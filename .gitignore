@@ -1,0 +1,28 @@
+# Build artifacts
+/tmp/
+/build/
+/dist/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lua compiled files
+*.luac
+
+# Node modules (if using Rojo or other tooling)
+node_modules/
+
+# Roblox Studio files
+*.rbxlx
+*.rbxl
+
+# Log files
+*.log
