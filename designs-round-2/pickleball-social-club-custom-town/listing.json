@@ -1,0 +1,55 @@
+{
+  "slug": "pickleball-social-club-custom-town",
+  "verdict_for_old_design": "improves [Town] Pickleball Club",
+  "title": "Custom Pickleball Social Club Shirt, Personalized Town Name Pickleball Club Tee, Retro Team Gift",
+  "tags": [
+    "pickleball club",
+    "social club shirt",
+    "custom town shirt",
+    "personalized shirt",
+    "pickleball team",
+    "pickleball league",
+    "club gift idea",
+    "pickleball gift",
+    "custom pickleball",
+    "retro pickleball",
+    "pickleball tee",
+    "pickleball group",
+    "pickleball player"
+  ],
+  "description": "Your town, your club, your year. A retro crest for pickleball groups that want matching shirts.\n\nWho it's for:\n- Neighbourhood, retirement community and church groups\n- Leagues, ladders and tournament organisers\n- Anyone who wants a hometown pickleball shirt\n\nAbout the design:\nAn arched town name above crossed paddles, a bold 'PICKLEBALL', a 'SOCIAL CLUB' ribbon and an 'EST.' year. Personalise the town (shown as OAKWOOD) and the year.\n\nThis design was created by our shop with the help of AI design tools and is printed on demand by our production partner.",
+  "alt_text": "Retro Oakwood Pickleball Social Club crest with crossed paddles and a ribbon on a natural tee.",
+  "products": [
+    {
+      "type": "tee",
+      "colors": [
+        "White",
+        "Natural",
+        "Light Blue",
+        "Sand"
+      ],
+      "price_usd": 29.99
+    },
+    {
+      "type": "crewneck",
+      "colors": [
+        "White",
+        "Natural",
+        "Light Blue",
+        "Sand"
+      ],
+      "price_usd": 44.99
+    },
+    {
+      "type": "hoodie",
+      "colors": [
+        "White",
+        "Natural",
+        "Light Blue",
+        "Sand"
+      ],
+      "price_usd": 51.99
+    }
+  ],
+  "occasion": "year-round (clubs and leagues)"
+}

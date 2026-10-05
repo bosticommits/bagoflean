@@ -1,0 +1,55 @@
+{
+  "slug": "gobble-gobble-dink-dink",
+  "verdict_for_old_design": "improves Gobble Gobble Dink Dink",
+  "title": "Pickleball Thanksgiving Shirt, Gobble Gobble Dink Dink Turkey Pickleball Tee, Funny Fall Gift",
+  "tags": [
+    "thanksgiving shirt",
+    "pickleball turkey",
+    "gobble gobble",
+    "funny thanksgiving",
+    "pickleball fall",
+    "turkey day shirt",
+    "pickleball gift",
+    "pickleball tee",
+    "thanksgiving gift",
+    "dink dink",
+    "pickleball humor",
+    "fall sports shirt",
+    "pickleballer"
+  ],
+  "description": "A pickleball turkey for the Thanksgiving morning round-robin. Big, readable lettering and a feather fan in warm autumn colours.\n\nWho it's for:\n- Players hosting or joining a Thanksgiving pickleball game\n- Grandparents and parents who would rather be on the court than in the kitchen (the cooking one)\n- Anyone collecting funny fall gifts\n\nAbout the design:\nA pickleball with a face stands in for the turkey, surrounded by a fan of coral, teal and gold feathers with a navy outline. Dark navy lettering for strong contrast on light, earthy garments.\n\nThis design was created by our shop with the help of AI design tools and is printed on demand by our production partner.",
+  "alt_text": "Gobble Gobble Dink Dink design with a pickleball turkey and colourful feathers on a sand tee.",
+  "products": [
+    {
+      "type": "crewneck",
+      "colors": [
+        "Sand",
+        "Natural",
+        "Ash",
+        "Light Blue"
+      ],
+      "price_usd": 42.99
+    },
+    {
+      "type": "tee",
+      "colors": [
+        "Sand",
+        "Natural",
+        "Ash",
+        "Light Blue"
+      ],
+      "price_usd": 27.99
+    },
+    {
+      "type": "hoodie",
+      "colors": [
+        "Sand",
+        "Natural",
+        "Ash",
+        "Light Blue"
+      ],
+      "price_usd": 49.99
+    }
+  ],
+  "occasion": "Thanksgiving"
+}
