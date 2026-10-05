@@ -51,7 +51,7 @@ APPAREL_CARE = ("Care: machine wash cold, tumble dry low, do not iron the design
 PRODUCT_TYPES = {
     "crewneck": {
         "blueprint_id": 49, "print_provider_id": 99,  # Gildan 18000, same as Dink the Halls
-        "prices": {"S": 4499, "M": 4499, "L": 4499, "XL": 4499, "2XL": 4799, "3XL": 4999, "4XL": 5299, "5XL": 5299},
+        "prices": {"S": 3699, "M": 3699, "L": 3699, "XL": 3699, "2XL": 3999, "3XL": 4199, "4XL": 4499, "5XL": 4499},
         "colors": {},  # listing colour names are already Gildan names
         "fit": "crop",
         "free_shipping": True,
@@ -61,7 +61,7 @@ PRODUCT_TYPES = {
     },
     "tee": {
         "blueprint_id": 12, "print_provider_id": 99,  # Bella+Canvas 3001
-        "prices": {"S": 2799, "M": 2799, "L": 2799, "XL": 2799, "2XL": 2999, "3XL": 3199, "4XL": 3399, "5XL": 3399},
+        "prices": {"S": 2499, "M": 2499, "L": 2499, "XL": 2499, "2XL": 2699, "3XL": 3099, "4XL": 3299, "5XL": 3499},
         "colors": {"Forest Green": "Forest", "Charcoal": "Asphalt", "Light Pink": "Soft Pink", "Sand": "Sand Dune"},
         "fit": "crop",
         "free_shipping": True,
@@ -71,7 +71,7 @@ PRODUCT_TYPES = {
     },
     "mug": {
         "blueprint_id": 478, "print_provider_id": 99,
-        "variant_prices": {"11oz": 1899},
+        "variant_prices": {"11oz": 1699},
         "fit": "full",
         "free_shipping": False,
         "details": ("Product details:\n- 11oz white ceramic mug, printed on both sides\n"
@@ -271,6 +271,41 @@ def cmd_publish(args) -> None:
         print(f"{slug}: sent to Etsy")
 
 
+BLUEPRINT_TYPES = {pt["blueprint_id"]: name for name, pt in PRODUCT_TYPES.items()}
+
+
+def new_price(ptype: dict, title: str) -> int | None:
+    if "variant_prices" in ptype:
+        return ptype["variant_prices"].get(title)
+    parts = [x.strip() for x in title.split("/")]
+    return next((ptype["prices"][x] for x in parts if x in ptype["prices"]), None)
+
+
+def cmd_reprice(_args) -> None:
+    """Apply PRODUCT_TYPES prices to every product in the store; re-sync live ones to Etsy."""
+    for p in call("GET", f"/shops/{SHOP_ID}/products.json?limit=50")["data"]:
+        name = BLUEPRINT_TYPES.get(p["blueprint_id"])
+        if not name:
+            print(f"skip (unknown product type): {p['title'][:60]}")
+            continue
+        ptype = PRODUCT_TYPES[name]
+        variants, changed = [], 0
+        for v in p["variants"]:
+            price = new_price(ptype, v["title"]) if v["is_enabled"] else None
+            if price and price != v["price"]:
+                changed += 1
+            variants.append({"id": v["id"], "price": price or v["price"], "is_enabled": v["is_enabled"]})
+        if not changed:
+            print(f"unchanged: {p['title'][:60]}")
+            continue
+        call("PUT", f"/shops/{SHOP_ID}/products/{p['id']}.json", {"variants": variants})
+        if p.get("external"):
+            call("POST", f"/shops/{SHOP_ID}/products/{p['id']}/publish.json", {
+                "title": False, "description": False, "images": False, "variants": True,
+                "tags": False, "keyFeatures": False, "shipping_template": False})
+        print(f"repriced {changed} variants{' and re-synced to Etsy' if p.get('external') else ''}: {p['title'][:60]}")
+
+
 def cmd_delete(args) -> None:
     state = load_state()
     for slug in args.slugs:
@@ -290,6 +325,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list").set_defaults(func=cmd_list)
     sub.add_parser("plan").set_defaults(func=cmd_plan)
+    sub.add_parser("reprice").set_defaults(func=cmd_reprice)
     for name, func in [("create", cmd_create), ("publish", cmd_publish), ("delete", cmd_delete)]:
         p = sub.add_parser(name)
         p.add_argument("slugs", nargs="+")
