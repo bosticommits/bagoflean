@@ -62,16 +62,40 @@ Built-in safety rails:
 - Adds an AI-use and production-partner disclosure line to every description.
 - Remembers designs it already made so new batches don't repeat jokes.
 
-## Starter pack (already made)
+## Ready-made designs (17)
 
-Four finished designs with listings are in [`samples/`](samples/), ready to upload:
+Seventeen finished designs with print files and ready-to-paste listings are in
+[`samples/`](samples/). Upload them in this order. The holiday ones are time-sensitive,
+because Etsy needs a few weeks to rank new listings.
 
-| Design | Shirt | Angle |
-|---|---|---|
-| [Dink the Halls](samples/dink-the-halls/listing.md) | Forest Green | Christmas gift. List it **now**, since Etsy needs 6-8 weeks to rank listings before December |
-| [It always starts with 0-0-2](samples/zero-zero-two/listing.md) | Black | Insider joke in a retro sunset style, sells year-round |
-| [I've got a Dinkin' Problem](samples/dinkin-problem/listing.md) | Sand | Obsession humor, sells year-round |
-| [My Retirement Plan: Pickleball](samples/retirement-plan-pickleball/listing.md) | Navy | Retirement gift for the sport's biggest player group |
+| # | Design | Product / colour | Why |
+|---|---|---|---|
+| 1 | [Gobble Gobble, Dink Dink](samples/gobble-gobble-dink-dink/listing.md) | Tee, Natural | Thanksgiving. List this week |
+| 2 | [Merry Dinkmas](samples/merry-dinkmas/listing.md) | Sweatshirt, Maroon | Christmas |
+| 3 | [Dink the Halls](samples/dink-the-halls/listing.md) | Sweatshirt/tee, Forest Green | Christmas |
+| 4 | [Santa's Favorite Dinker](samples/santas-favorite-dinker/listing.md) | Tee, Dark Heather | Christmas, kids and family |
+| 5 | [Pickleball Nana](samples/pickleball-nana/listing.md) | Tee, Light Blue | Grandma gift |
+| 6 | [Pickleball Papa](samples/pickleball-papa/listing.md) | Tee, Military Green | Grandpa gift |
+| 7 | [My Retirement Plan: Pickleball](samples/retirement-plan-pickleball/listing.md) | Tee, Navy | Retirement gift |
+| 8 | [Coffee, then Pickleball](samples/coffee-then-pickleball/listing.md) | **Mug** (`mug-11oz.png`) + tee | Cheap, easy gift |
+| 9 | [Paddle Up! sticker](samples/paddle-up-sticker/listing.md) | **Sticker** | Stocking stuffer |
+| 10 | [Partners in Dink](samples/partners-in-dink/listing.md) | Tee, White | Couples (sells in pairs) |
+| 11 | [Kitchen Inspector](samples/kitchen-inspector/listing.md) | Tee, Black | Insider joke |
+| 12 | [Just One More Game](samples/just-one-more-game/listing.md) | Tee, True Royal | Obsession humor |
+| 13 | [I've got a Dinkin' Problem](samples/dinkin-problem/listing.md) | Tee, Sand | Obsession humor |
+| 14 | [It always starts with 0-0-2](samples/zero-zero-two/listing.md) | Tee, Black | Insider joke, retro |
+| 15 | [Former Tennis Player](samples/former-tennis-player/listing.md) | Tee, Athletic Heather | Players who switched from tennis |
+| 16 | [Born to Dink, Forced to Work](samples/born-to-dink-forced-to-work/listing.md) | Tee, Charcoal | Working-age players |
+| 17 | [*Your Town* Pickleball Club](samples/pickleball-club-personalized/listing.md) | Personalised tee, White | Clubs and teams |
+
+Put each design on 2-3 products (tee, sweatshirt, hoodie, mug) and you'll have 40+ listings.
+
+### Personalised club shirts
+When someone orders the club shirt, make their print file with:
+
+```bash
+python scripts/club_shirt.py "Lake Havasu City"   # -> output/club-lake-havasu-city/design.png
+```
 
 ## Setup
 
