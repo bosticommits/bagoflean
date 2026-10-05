@@ -1,0 +1,55 @@
+{
+  "slug": "pickleball-player-name-number",
+  "verdict_for_old_design": "new",
+  "title": "Custom Pickleball Jersey Shirt, Personalized Name and Number Tee, Pickleball Team Gift",
+  "tags": [
+    "custom name shirt",
+    "player number tee",
+    "personalized shirt",
+    "pickleball team",
+    "pickleball jersey",
+    "custom pickleball",
+    "pickleball gift",
+    "pickleball player",
+    "11 pickleball",
+    "pickleball league",
+    "team name shirt",
+    "pickleball tee",
+    "game day shirt"
+  ],
+  "description": "A jersey-style shirt with your name and favourite number. Eleven is the winning score, so it makes a fun default.\n\nWho it's for:\n- Teams, leagues and doubles pairs\n- Birthday and club gifts\n- Players who want their own number\n\nAbout the design:\nArched surname, a huge lime number and a clean 'PICKLEBALL' line. Personalise the name (shown as JOHNSON) and the number (shown as 11).\n\nThis design was created by our shop with the help of AI design tools and is printed on demand by our production partner.",
+  "alt_text": "Jersey-style design with the name JOHNSON and the number 11 on a navy tee.",
+  "products": [
+    {
+      "type": "tee",
+      "colors": [
+        "Navy",
+        "Black",
+        "Forest Green",
+        "Charcoal"
+      ],
+      "price_usd": 29.99
+    },
+    {
+      "type": "crewneck",
+      "colors": [
+        "Navy",
+        "Black",
+        "Forest Green",
+        "Charcoal"
+      ],
+      "price_usd": 44.99
+    },
+    {
+      "type": "hoodie",
+      "colors": [
+        "Navy",
+        "Black",
+        "Forest Green",
+        "Charcoal"
+      ],
+      "price_usd": 51.99
+    }
+  ],
+  "occasion": "year-round"
+}
