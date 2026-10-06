@@ -70,3 +70,17 @@ Offline, using mock item data and a fake Claude client:
 python -m unittest discover -s tests -v
 ```
 To try the CLI without hitting Rolimons: `ROLIMONS_MOCK_FILE=tests/mock_items.json python roblox_trade_advisor.py scan --budget 5000`.
+
+## Roblox skills for Claude
+
+`.claude/skills/` holds 27 Roblox game-development skills (Luau, data saving, networking
+and security, monetization, UI, VFX, physics, publishing and more). Claude loads them
+automatically in sessions that work on this repo.
+
+They were copied from [Roqer](https://github.com/S4US/Roqer) at commit `62f4295`, leaving out
+`roblox-studio-mcp`, which only covers Roqer's own app. Most are based on
+[roblox-brain](https://github.com/TabooHarmony/roblox-brain) (MIT, see
+`ROBLOX-BRAIN-LICENSE.txt`), and Roqer's additions are AGPL-3.0 (see
+`ROQER-LICENSE-AGPL-3.0.txt` and `ROQER-PROVENANCE.md`). Those licences cover the skill
+files only, not the rest of this repo. Where a skill mentions Roqer's Studio commands
+(such as `build_instances` or the Blender worker), Claude writes plain Luau or Rojo files instead.
