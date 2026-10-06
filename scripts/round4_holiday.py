@@ -155,6 +155,21 @@ def prim_bbox(p, grow=0.0):
     return min(xs) - g, min(ys) - g, max(xs) + g, max(ys) + g
 
 
+def stroke(d, pts, hw, color, closed=False):
+    """Thick polyline as quads + round joints (PIL's wide lines leave slivers at joints)."""
+    if closed:
+        pts = list(pts) + [pts[0]]
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        dx, dy = x1 - x0, y1 - y0
+        ln = math.hypot(dx, dy)
+        if ln < 1e-6:
+            continue
+        nx, ny = -dy / ln * hw, dx / ln * hw
+        d.polygon([(x0 + nx, y0 + ny), (x1 + nx, y1 + ny), (x1 - nx, y1 - ny), (x0 - nx, y0 - ny)], fill=color)
+    for x, y in pts:
+        d.ellipse((x - hw, y - hw, x + hw, y + hw), fill=color)
+
+
 def draw_prim(d, p, color, grow=0.0, s=1.0, ox=0.0, oy=0.0):
     k = p[0]
     T = lambda pts: [((x - ox) * s, (y - oy) * s) for x, y in pts]  # noqa: E731
@@ -169,15 +184,10 @@ def draw_prim(d, p, color, grow=0.0, s=1.0, ox=0.0, oy=0.0):
         pts = p[1]
         d.polygon(T(pts), fill=color)
         if grow > 0:
-            d.line(T(pts + [pts[0]]), fill=color, width=max(1, int(round(2 * grow * s))), joint="curve")
-            for x, y in pts:
-                d.ellipse(((x - grow - ox) * s, (y - grow - oy) * s, (x + grow - ox) * s, (y + grow - oy) * s), fill=color)
+            stroke(d, T(pts), grow * s, color, closed=True)
     elif k == "line":
         pts, w = p[1], p[2]
-        hw = w / 2 + grow
-        d.line(T(pts), fill=color, width=max(1, int(round(2 * hw * s))), joint="curve")
-        for x, y in (pts[0], pts[-1]):
-            d.ellipse(((x - hw - ox) * s, (y - hw - oy) * s, (x + hw - ox) * s, (y + hw - oy) * s), fill=color)
+        stroke(d, T(pts), (w / 2 + grow) * s, color)
 
 
 class Part:
@@ -292,17 +302,17 @@ def distress(img: Image.Image, seed: int, amount: float, s: int) -> Image.Image:
             pts.append((x + rr * math.cos(a), y + rr * math.sin(a)))
         md.polygon(pts, fill=255)
     # A few dry-brush scratches.
-    for _ in range(int(30 * amount)):
+    for _ in range(int(18 * amount)):
         x, y = rng.uniform(0, w), rng.uniform(0, h)
         if alpha[int(y), int(x)] == 0:
             continue
-        ln = rng.uniform(120, 420) * s
+        ln = rng.uniform(60, 170) * s
         a = rng.uniform(0, math.pi)
-        bend = rng.uniform(-0.25, 0.25) * ln
+        bend = rng.uniform(-0.08, 0.08) * ln
         p0 = (x - math.cos(a) * ln / 2, y - math.sin(a) * ln / 2)
         p2 = (x + math.cos(a) * ln / 2, y + math.sin(a) * ln / 2)
         p1 = (x - math.sin(a) * bend, y + math.cos(a) * bend)
-        md.line(qbez(p0, p1, p2, 24), fill=255, width=int(rng.uniform(8, 11) * s), joint="curve")
+        stroke(md, qbez(p0, p1, p2, 12), rng.uniform(4.5, 6) * s, 255)
     m = np.array(mask) > 127
     alpha[m] = 0
     out = img.copy()
@@ -448,7 +458,7 @@ def sneaker(cx, cy, u, ang=0.0, flip=False, color=RED):
                    + [(0.74, 0.34), (-0.46, 0.34)]))
     sole = poly(T(rrect_pts(0.14, 0.38, 1.3, 0.22, 0.11)))
     toe = poly(T(ellipse_pts(0.56, 0.2, 0.22, 0.16, n=40, a0=-120, a1=90) + [(0.4, 0.3)]))
-    laces = [line([C(-0.05 + 0.12 * i, -0.08 + 0.05 * i), C(0.1 + 0.12 * i, -0.02 + 0.05 * i)], 0.06 * u) for i in range(3)]
+    laces = [line([C(0.0 + 0.17 * i, -0.13 + 0.06 * i), C(0.1 + 0.17 * i, -0.02 + 0.06 * i)], 0.06 * u) for i in range(3)]
     return [Part([upper], color), Part([toe], CREAM), Part(laces, CREAM, ow=0), Part([sole], CREAM)]
 
 
@@ -456,15 +466,14 @@ def paddle(gx, gy, ang, L, face=GREEN, trim=CREAM, grip=RED):
     """Paddle whose grip centre is (gx, gy), pointing at angle ang (0 = straight up). L = total length."""
     T = lambda pts: xf(pts, gx, gy, L, ang)  # noqa: E731
     C = lambda x, y: T([(x, y)])[0]  # noqa: E731
-    handle = line([C(0, 0.14), C(0, -0.3)], 0.12 * L)
+    handle = line([C(0, 0.1), C(0, -0.3)], 0.12 * L)
     outline = rrect_pts(0, -0.64, 0.62, 0.72, 0.24)
     face_p = poly(T(outline))
     clip = [poly(T(rrect_pts(0, -0.64, 0.62, 0.72, 0.24)))]
     stripe = poly(T([(-0.4, -0.5), (0.4, -0.86), (0.4, -0.74), (-0.4, -0.38)]))
     stripe2 = poly(T([(-0.4, -0.36), (0.4, -0.72), (0.4, -0.67), (-0.4, -0.31)]))
-    cap = line([C(0, 0.15), C(0, 0.15)], 0.15 * L)
     return {
-        "handle": [Part([handle], grip), Part([cap], INK, ow=0)],
+        "handle": [Part([handle], grip)],
         "face": [Part([face_p], face), Part([stripe, stripe2], trim, ow=0, clip=clip)],
     }
 
@@ -514,7 +523,7 @@ def ball_body(cx, cy, R, face_box=None, skip=()):
     return parts
 
 
-def face(cx, cy, R, look=(0.0, 0.0), wink=False, mouth="grin"):
+def face(cx, cy, R, look=(0.0, 0.0), wink=False, nose=None):
     """Rubber-hose face: big cream eyes with pie-cut pupils, rosy cheeks, open grin."""
     lx, ly = look
     parts = []
@@ -540,8 +549,222 @@ def face(cx, cy, R, look=(0.0, 0.0), wink=False, mouth="grin"):
     for side in (-1, 1):
         parts.append(Part([line(qbez((mx + side * 0.27 * R, my - 0.07 * R), (mx + side * 0.34 * R, my - 0.02 * R),
                                      (mx + side * 0.33 * R, my + 0.07 * R), 10), 0.045 * R)], INK, ow=0))
+    if nose:
+        nx, ny = mx + 0.02 * R, my - 0.06 * R
+        parts.append(Part([circle(nx, ny, 0.12 * R)], nose, ow=int(0.03 * R)))
+        parts.append(Part([ell(nx - 0.04 * R, ny - 0.045 * R, 0.035 * R, 0.025 * R, -30)], CREAM, ow=0))
     return parts
 
 
 def limb(pts, R, color=INK):
     return Part([line(pts, 0.115 * R)], color, ow=0)
+
+
+def sparkle(cx, cy, r, color=CREAM):
+    pts = []
+    for i in range(8):
+        a = -math.pi / 2 + i * math.pi / 4
+        rr = r if i % 2 == 0 else r * 0.24
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    return Part([poly(pts)], color, ow=0, contour=False)
+
+
+def snowflake(cx, cy, r, color=CREAM, w=None, ang=0.0):
+    w = w or max(22, r * 0.16)
+    prims = []
+    for i in range(6):
+        a = math.radians(ang + i * 60)
+        ex, ey = cx + r * math.cos(a), cy + r * math.sin(a)
+        prims.append(line([(cx, cy), (ex, ey)], w))
+        for t, br in ((0.55, 0.32),):
+            bx, by = cx + r * t * math.cos(a), cy + r * t * math.sin(a)
+            for da in (-50, 50):
+                b = a + math.radians(da)
+                prims.append(line([(bx, by), (bx + r * br * math.cos(b), by + r * br * math.sin(b))], w))
+    return Part(prims, color, ow=0, contour=False)
+
+
+def arm_to(parts, sh, hand, R, c1, c2):
+    """Rubber-hose arm from shoulder sh to hand, with bezier control offsets c1, c2 (in R units)."""
+    p1 = (sh[0] + c1[0] * R, sh[1] + c1[1] * R)
+    p2 = (hand[0] + c2[0] * R, hand[1] + c2[1] * R)
+    parts.append(limb(bez(sh, p1, p2, hand, 30), R))
+
+
+def fist_cuff(hand, u, ang, flip=False):
+    return xf([(0.62, 0.0)], hand[0], hand[1], u, ang, flip)[0]
+
+
+# ------------------------------------------------------------------ design 1: Merry Dinkmas
+def mascot_merry(cx, cy, R):
+    back, front = [], []
+    for side in (-1, 1):
+        hip = (cx + side * 0.32 * R, cy + 0.85 * R)
+        ank = (cx + side * 0.5 * R, cy + 1.48 * R)
+        back.append(limb(bez(hip, (hip[0] + side * 0.05 * R, hip[1] + 0.3 * R), (ank[0] - side * 0.05 * R, ank[1] - 0.3 * R), ank, 20), R))
+        back += sneaker(ank[0], ank[1], 0.64 * R, ang=side * 4, flip=(side < 0))
+    # paddle arm (viewer's left)
+    hand, ang, u = (cx - 1.52 * R, cy - 0.12 * R), -10, 0.5 * R
+    cuff = fist_cuff(hand, u, ang)
+    wx, wy = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+    arm_to(back, (cx - 0.8 * R, cy + 0.22 * R), cuff, R, (-0.4, 0.06), (0.3 * wx, 0.3 * wy))
+    pad = paddle(hand[0], hand[1], ang, 1.5 * R)
+    front += pad["face"] + pad["handle"] + glove_fist(hand[0], hand[1], u, ang)
+    # waving arm
+    hand2 = (cx + 1.6 * R, cy - 0.42 * R)
+    arm_to(back, (cx + 0.8 * R, cy + 0.15 * R), (hand2[0] - 0.02 * R, hand2[1] + 0.3 * R), R, (0.5, 0.05), (0.05, 0.35))
+    front += glove_open(hand2[0], hand2[1] - 0.05 * R, 0.46 * R, ang=18)
+    body = ball_body(cx, cy, R, face_box=(cx - 0.62 * R, cy - 0.45 * R, cx + 0.62 * R, cy + 0.7 * R))
+    return back + body + face(cx, cy, R) + santa_hat(cx, cy, R) + front
+
+
+def design_merry() -> bytes:
+    art = Art()
+    # "Merry": cream script, red extrusion, arched
+    merry = text_layer("Merry", "lobster", fit_size("Merry", "lobster", 2700), CREAM, shadow=RED, shadow_dist=55)
+    merry = warp_arc(merry, 230, up=True)
+    art.paste_center(merry, W / 2, 110)
+    mh = merry.height / SCALE
+    # sparkles and snow around the character
+    deco = [sparkle(520, 1650, 150), sparkle(3980, 1500, 120), sparkle(700, 3550, 110), sparkle(3900, 3450, 150),
+            snowflake(380, 2550, 120), snowflake(4140, 2550, 135, ang=15), sparkle(330, 1150, 85), sparkle(4200, 1050, 95)]
+    for p in deco:
+        art.part(p)
+    R = 860
+    cy = 110 + mh + 1.5 * R - 40
+    # "DINKMAS": fat retro block, lime with red extrusion, gentle smile curve; the mascot stands on it
+    dk = text_layer("DINKMAS", "shrikhand", fit_size("DINKMAS", "shrikhand", 3700), LIME, shadow=RED, shadow_dist=75)
+    dk = warp_arc(dk, 160, up=False)
+    feet_bottom = cy + 1.48 * R + 0.56 * 0.64 * R
+    art.paste_center(dk, W / 2, feet_bottom - 210)
+    art.figure(mascot_merry(W / 2, cy, R))
+    return art
+
+
+def ribbon_layer(text, fname, band_w, band_h, fill=RED, text_color=CREAM, arc=0.0, tail_w=None, fold=INK,
+                 tracking=0.0):
+    """Retro ribbon banner with notched tails and the text on the band. Returns a SCALE-res layer."""
+    tail_w = tail_w or band_h * 1.05
+    drop = band_h * 0.32
+    tuck = band_h * 0.45
+    pad = OW + CW + 20
+    lw, lh = int(band_w + 2 * tail_w - 2 * tuck + 2 * pad), int(band_h + drop + 2 * pad)
+    lay = Art(lw, lh)
+    x0, y0 = pad + tail_w - tuck, pad
+    x1 = x0 + band_w
+    notch = band_h * 0.32
+    tails = []
+    for side in (-1, 1):
+        if side < 0:
+            ox = pad
+            pts = [(ox, y0 + drop), (ox + tail_w, y0 + drop), (ox + tail_w, y0 + drop + band_h), (ox, y0 + drop + band_h),
+                   (ox + notch, y0 + drop + band_h / 2)]
+        else:
+            ox = x1 + tuck - tail_w + tail_w - tuck
+            ox = x1 - tuck
+            pts = [(ox, y0 + drop), (ox + tail_w, y0 + drop), (ox + tail_w - notch, y0 + drop + band_h / 2),
+                   (ox + tail_w, y0 + drop + band_h), (ox, y0 + drop + band_h)]
+        tails.append(Part([poly(pts)], fill))
+    folds = [Part([poly([(x0, y0 + band_h), (x0 + tuck, y0 + band_h + drop), (x0 + tuck, y0 + band_h)])], fold),
+             Part([poly([(x1, y0 + band_h), (x1 - tuck, y0 + band_h + drop), (x1 - tuck, y0 + band_h)])], fold)]
+    band = Part([poly([(x0, y0), (x1, y0), (x1, y0 + band_h), (x0, y0 + band_h)])], fill)
+    lay.figure(tails + folds + [band])
+    size = fit_size(text, fname, band_w - 2.2 * band_h * 0.5, tracking)
+    f = font(fname, 1000)
+    asc_box = f.getbbox(text, anchor="ls")
+    cap_h = -asc_box[1] / 1000 * size
+    size = min(size, 0.62 * band_h / (cap_h / size))
+    t = text_layer(text, fname, size, text_color, ow=0, contour=None, tracking=tracking * size / 1000)
+    lay.paste(t, (x0 + x1) / 2 - t.width / SCALE / 2, y0 + band_h / 2 - t.height / SCALE / 2)
+    img = lay.img
+    if arc:
+        img = warp_arc(img, arc, up=True)
+    return img.crop(img.getbbox())
+
+
+# ------------------------------------------------------------------ design 2: Dashing Through the Kitchen
+def antler(cx, cy, R, side, color=GOLD):
+    """One branching antler rooted on top of the ball; side=-1 left, +1 right."""
+    b0 = (cx + side * 0.3 * R, cy - 0.8 * R)
+    beam = bez(b0, (b0[0] + side * 0.05 * R, b0[1] - 0.45 * R), (b0[0] + side * 0.45 * R, b0[1] - 0.6 * R),
+               (b0[0] + side * 0.62 * R, b0[1] - 0.85 * R), 20)
+    w = 0.12 * R
+    t1s = beam[7]
+    t2s = beam[13]
+    tine1 = qbez(t1s, (t1s[0] - side * 0.05 * R, t1s[1] - 0.22 * R), (t1s[0] - side * 0.02 * R, t1s[1] - 0.36 * R), 10)
+    tine2 = qbez(t2s, (t2s[0] + side * 0.02 * R, t2s[1] - 0.2 * R), (t2s[0] - side * 0.06 * R, t2s[1] - 0.32 * R), 10)
+    return Part([line(beam, w), line(tine1, w * 0.9), line(tine2, w * 0.85)], color)
+
+
+def motion_lines(x_right, ys_lens, w=46, color=CREAM):
+    return Part([line([(x_right - ln, y), (x_right, y)], w) for y, ln in ys_lens], color, ow=0, contour=False)
+
+
+def puff(cx, cy, r, color=CREAM):
+    return Part([circle(cx, cy, r), circle(cx - 0.8 * r, cy + 0.25 * r, 0.7 * r), circle(cx + 0.85 * r, cy + 0.2 * r, 0.75 * r),
+                 circle(cx + 0.1 * r, cy + 0.45 * r, 0.7 * r)], color, ow=OW)
+
+
+def mascot_dashing(cx, cy, R):
+    back, front = [], []
+    # back leg kicked out behind, front leg reaching forward
+    hipb, ankb = (cx - 0.25 * R, cy + 0.85 * R), (cx - 1.0 * R, cy + 1.12 * R)
+    back.append(limb(bez(hipb, (hipb[0] - 0.05 * R, hipb[1] + 0.45 * R), (ankb[0] + 0.35 * R, ankb[1] + 0.25 * R), ankb, 24), R))
+    back += sneaker(ankb[0], ankb[1], 0.6 * R, ang=38)
+    hipf, ankf = (cx + 0.3 * R, cy + 0.82 * R), (cx + 0.98 * R, cy + 1.28 * R)
+    back.append(limb(bez(hipf, (hipf[0] + 0.45 * R, hipf[1] + 0.05 * R), (ankf[0] - 0.25 * R, ankf[1] - 0.45 * R), ankf, 24), R))
+    back += sneaker(ankf[0], ankf[1], 0.6 * R, ang=-8)
+    # antlers behind the head
+    back += [antler(cx, cy, R, -1), antler(cx, cy, R, 1)]
+    # back arm swinging behind with an open glove
+    hb = (cx - 1.42 * R, cy + 0.12 * R)
+    arm_to(back, (cx - 0.8 * R, cy + 0.2 * R), (hb[0] + 0.14 * R, hb[1] + 0.12 * R), R, (-0.3, 0.25), (0.25, 0.15))
+    front += glove_open(hb[0], hb[1], 0.42 * R, ang=-118)
+    # paddle arm reaching forward
+    hand, ang, u = (cx + 1.45 * R, cy - 0.18 * R), 30, 0.48 * R
+    cuff = fist_cuff(hand, u, ang + 180, flip=False)
+    wx, wy = math.cos(math.radians(ang + 180)), math.sin(math.radians(ang + 180))
+    arm_to(back, (cx + 0.8 * R, cy + 0.18 * R), cuff, R, (0.35, 0.15), (0.3 * wx, 0.3 * wy))
+    pad = paddle(hand[0], hand[1], ang, 1.45 * R, face=RED, trim=CREAM, grip=GREEN)
+    front += pad["face"] + pad["handle"] + glove_fist(hand[0], hand[1], u, ang + 180)
+    body = ball_body(cx, cy, R, face_box=(cx - 0.5 * R, cy - 0.45 * R, cx + 0.75 * R, cy + 0.7 * R))
+    return back + body + face(cx, cy, R, look=(0.12, 0.0), nose=RED) + front
+
+
+def design_dashing() -> Art:
+    art = Art()
+    top = 110
+    dash = text_layer("DASHING", "racing", fit_size("DASHING", "racing", 3650), CREAM, shadow=RED, shadow_dist=70)
+    dash = warp_arc(dash, 210, up=True)
+    art.paste_center(dash, W / 2, top)
+    dash_bottom = top + dash.height / SCALE
+    R = 720
+    cx, cy = W / 2 + 110, dash_bottom + 1.95 * R - 40
+    # motion lines and snow behind the runner
+    art.part(motion_lines(cx - 1.75 * R, [(cy - 0.55 * R, 520), (cy - 0.12 * R, 780), (cy + 0.32 * R, 460)]))
+    for p in [snowflake(430, cy - 1.15 * R, 120), snowflake(4140, cy - 0.35 * R, 115, ang=15), sparkle(4060, cy + 0.75 * R, 120),
+              sparkle(380, cy + 0.85 * R, 100), sparkle(3700, cy - 1.75 * R, 80), sparkle(820, cy - 1.75 * R, 70)]:
+        art.part(p)
+    rib_top = cy + 1.66 * R
+    rib = ribbon_layer("THROUGH THE", "bowlby", 2500, 400, arc=70, tracking=60)
+    kit = text_layer("KITCHEN", "racing", fit_size("KITCHEN", "racing", 3750), LIME, shadow=RED, shadow_dist=75)
+    kit = warp_arc(kit, 150, up=False)
+    art.paste_center(kit, W / 2, rib_top + rib.height / SCALE - 150)
+    art.paste_center(rib, W / 2, rib_top)
+    # snow puffs kicked up behind the back foot
+    art.figure([puff(cx - 1.55 * R, cy + 1.42 * R, 90), puff(cx - 2.0 * R, cy + 1.58 * R, 66)])
+    art.figure(mascot_dashing(cx, cy, R))
+    return art
+
+
+def preview(art: Art, name: str, shirt="#1B1B1D", seed=1, distress_amount=1.0):
+    png = art.finish(seed=seed, distress_amount=distress_amount)
+    scratch = Path(os.environ.get("SCRATCH", "/tmp"))
+    img = Image.open(io.BytesIO(png))
+    bg = Image.new("RGBA", img.size, shirt)
+    bg.alpha_composite(img)
+    bg.convert("RGB").resize((900, 1080), Image.LANCZOS).save(scratch / f"{name}_view.png")
+    m = make_mockup(png, shirt)
+    (scratch / f"{name}_mock.png").write_bytes(m)
+    Image.open(io.BytesIO(m)).resize((300, 330), Image.LANCZOS).save(scratch / f"{name}_thumb.png")
+    return png
