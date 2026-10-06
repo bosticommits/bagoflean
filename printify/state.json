@@ -197,37 +197,37 @@
     "product_id": "6ac4bd707fb2cc1a75029d14",
     "image_id": "6ac4d027bd13a0a776121911",
     "type": "crewneck",
-    "published": false,
+    "published": true,
     "design": "jingle-kitchen-knit-sweater"
   },
   "dashing-through-the-kitchen": {
     "product_id": "6ac4d047b6d3488ca205e4a2",
     "image_id": "6ac4d042ff7531a9b6940d24",
     "type": "crewneck",
-    "published": false
+    "published": true
   },
   "grandmas-got-game": {
     "product_id": "6ac4d052de736a3ee90c4b59",
     "image_id": "6ac4d04d9bf7e88aef90b980",
     "type": "tee-cc",
-    "published": false
+    "published": true
   },
   "knees-say-no-heart-says-pickleball": {
     "product_id": "6ac4d05db6d3488ca205e4f9",
     "image_id": "6ac4d058ff7531a9b6940d27",
     "type": "tee-cc",
-    "published": false
+    "published": true
   },
   "kitchen-staff-only-chef": {
     "product_id": "6ac4d068de736a3ee90c4b6e",
     "image_id": "6ac4d064f5f4cdac21d1521c",
     "type": "tee-cc",
-    "published": false
+    "published": true
   },
   "retired-now-serving-full-time": {
     "product_id": "6ac4d076b6d3488ca205e51a",
     "image_id": "6ac4d0700146b83bfff6294a",
     "type": "tee-cc",
-    "published": false
+    "published": true
   }
 }
