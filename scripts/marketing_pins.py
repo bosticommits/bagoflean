@@ -1,8 +1,11 @@
 """Make Pinterest pins for every live listing plus a bulk-upload CSV that schedules them.
 
 Usage:  python scripts/marketing_pins.py [--start 2026-10-06] [--per-day 2]
+        python scripts/marketing_pins.py --round designs-round-4 --csv pinterest_round4.csv
 
-Writes marketing/pins/*.png (1000x1500) and marketing/pinterest_bulk.csv.
+Writes marketing/pins/*.png (1000x1500) and marketing/pinterest_bulk.csv (or --csv).
+Pins use the listing photos from photo_studio.py (photos/<slug>/) when they exist,
+otherwise the plain mockup. --round limits the pins to one design folder.
 Upload the CSV in Pinterest: Create > Create Pin > Bulk create Pins.
 Images are served from this public repo, so push before uploading the CSV.
 """
@@ -41,11 +44,18 @@ BOARDS = {
 
 # Two headlines per kind of design; each becomes its own pin.
 HOOKS = {
-    "christmas": ["Christmas gift idea for pickleball lovers", "The pickleball Christmas sweatshirt"],
+    "christmas": ["Christmas gift idea for pickleball lovers", "The pickleball Christmas sweatshirt",
+                  "Ugly Christmas sweater for pickleball players"],
     "thanksgiving": ["Thanksgiving shirt for pickleball players", "Gobble gobble, dink dink"],
-    "grandma": ["Gift for the pickleball grandma", "For grandmas who rule the court"],
+    "grandma": ["Gift for the pickleball grandma", "For grandmas who rule the court",
+                "Grandma's got game: gift from the grandkids"],
     "grandpa": ["Gift for the pickleball grandpa", "For grandpas who dink daily"],
-    "retirement": ["Retirement gift for pickleball players", "The only retirement plan they need"],
+    "knees": ["Funny gift for pickleball players over 50", "My knees say no. My heart says pickleball.",
+              "Pickleball shirt for bad knees and big hearts"],
+    "kitchen": ["Gift for the player who lives in the kitchen", "Kitchen staff only: a pickleball insider joke",
+                "Funny pickleball shirt for dinkers"],
+    "retirement": ["Retirement gift for pickleball players", "The only retirement plan they need",
+                   "Retired and now serving full time"],
     "mug": ["Pickleball gift under $20", "For the morning pickleball crew"],
     "sticker": ["Pickleball stocking stuffer", "Sticker for your paddle bag"],
     "default": ["Funny pickleball shirt", "Gift idea for pickleball players"],
@@ -59,14 +69,24 @@ def font(name: str, size: int) -> ImageFont.FreeTypeFont:
 def kind(slug: str, listing: dict, ptype: str) -> str:
     if ptype in ("mug", "sticker"):
         return ptype
-    for key in ("grandma", "grandpa", "retirement"):
-        if key in slug:
+    for key, words in (("grandma", ("grandma",)), ("grandpa", ("grandpa",)), ("knees", ("knees",)),
+                       ("retirement", ("retire",))):
+        if any(w in slug for w in words):
             return key
     occ = (listing.get("occasion") or listing.get("_concept_occasion", "")).lower()
     for key in ("christmas", "thanksgiving"):
         if occ.startswith(key) or key in slug or (key == "christmas" and "dink-the-halls" in slug):
             return key
+    if "kitchen" in slug:
+        return "kitchen"
     return "default"
+
+
+def pin_images(slug: str, folder: Path) -> list[Path]:
+    """Listing photos to put on pins (hero, close-up, gift card), else the mockup."""
+    photos = ROOT / "photos" / slug
+    picks = [photos / f for f in ("1-hero.jpg", "2-closeup.jpg", "4-gift.jpg") if (photos / f).exists()]
+    return picks or [folder / "mockup.png"]
 
 
 def fit_lines(draw, text, fnt_name, max_w, max_size, max_lines=2):
@@ -91,8 +111,16 @@ def make_pin(mockup: Path, hook: str, price_line: str, bg: str, out: Path) -> No
     # product photo in a rounded card
     top, bottom = y + 30, H - 230
     card = Image.open(mockup).convert("RGB")
-    scale = min((W - 100) / card.width, (bottom - top) / card.height)
-    card = card.resize((int(card.width * scale), int(card.height * scale)), Image.LANCZOS)
+    box_w, box_h = W - 100, bottom - top
+    if mockup.name.startswith("1-hero"):
+        # flat-lay photo: crop to fill the tall pin (the garment sits in the middle)
+        scale = max(box_w / card.width, box_h / card.height)
+        card = card.resize((int(card.width * scale), int(card.height * scale)), Image.LANCZOS)
+        left, upper = (card.width - box_w) // 2, (card.height - box_h) // 2
+        card = card.crop((left, upper, left + box_w, upper + box_h))
+    else:
+        scale = min(box_w / card.width, box_h / card.height)
+        card = card.resize((int(card.width * scale), int(card.height * scale)), Image.LANCZOS)
     mask = Image.new("L", card.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, *card.size), radius=36, fill=255)
     pin.paste(card, ((W - card.width) // 2, top + (bottom - top - card.height) // 2), mask)
@@ -121,6 +149,7 @@ def live_listings() -> list[dict]:
         slug = by_pid.get(p["id"]) or ("dink-the-halls" if "Dink the Halls" in p["title"] else None)
         if not slug:
             continue
+        slug = state.get(slug, {}).get("design", slug)  # artwork swapped onto an older product
         folder = pf.design_dir(slug)
         listing = json.loads((folder / "listing.json").read_text())
         ptype = pf.BLUEPRINT_TYPES[p["blueprint_id"]]
@@ -134,17 +163,21 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--start", default=(dt.date.today() + dt.timedelta(days=1)).isoformat())
     parser.add_argument("--per-day", type=int, default=2)
+    parser.add_argument("--round", help="only designs in this folder, e.g. designs-round-4")
+    parser.add_argument("--csv", default="pinterest_bulk.csv")
     args = parser.parse_args()
 
     rows = []
-    for item in sorted(live_listings(), key=lambda i: i["slug"]):
+    items = [i for i in live_listings() if not args.round or i["folder"].parent.name == args.round]
+    for item in sorted(items, key=lambda i: i["slug"]):
         listing, k = item["listing"], kind(item["slug"], item["listing"], item["type"])
         shipping = "  ·  FREE US SHIPPING" if pf.PRODUCT_TYPES[item["type"]]["free_shipping"] else ""
         price_line = f"FROM ${item['from']:.2f}{shipping}"
         bg = CREAM
+        images = pin_images(item["slug"], item["folder"])
         for n, hook in enumerate(HOOKS.get(k, HOOKS["default"])):
             name = f"{item['slug']}-{n + 1}.png"
-            make_pin(item["folder"] / "mockup.png", hook, price_line, bg, OUT / "pins" / name)
+            make_pin(images[n % len(images)], hook, price_line, bg, OUT / "pins" / name)
             bg = "#EAF3F1" if bg == CREAM else CREAM
             board = BOARDS.get(k if k not in ("grandma", "grandpa") else "grand", BOARDS["default"])
             first = listing["description"].split("\n")[0].strip()
@@ -163,14 +196,17 @@ def main() -> None:
             })
 
     # Interleave so the first pins of each design go out first, then schedule.
-    rows = rows[0::2] + rows[1::2]
+    per = {}
+    for row in rows:
+        per.setdefault(row["Link"], []).append(row)
+    rows = [r for n in range(max(map(len, per.values()))) for group in per.values() if n < len(group) for r in [group[n]]]
     start = dt.date.fromisoformat(args.start)
     times = ["09:00", "19:00", "13:00", "16:00"][: args.per_day]
     for i, row in enumerate(rows):
         day = start + dt.timedelta(days=i // args.per_day)
         row["Publish date"] = f"{day.isoformat()} {times[i % args.per_day]}"
     OUT.mkdir(exist_ok=True)
-    with open(OUT / "pinterest_bulk.csv", "w", newline="") as f:
+    with open(OUT / args.csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
