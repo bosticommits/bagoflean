@@ -31,7 +31,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-DESIGN_DIRS = [ROOT / "designs-round-2", ROOT / "samples"]
+DESIGN_DIRS = [ROOT / "designs-round-3", ROOT / "designs-round-2", ROOT / "samples"]
 STATE = ROOT / "printify" / "state.json"
 API = "https://api.printify.com/v1"
 SHOP_ID = 29206471  # "My new store", connected to the DinkDistrictArt Etsy shop
@@ -69,6 +69,18 @@ PRODUCT_TYPES = {
                     "- Soft, lightweight 100% Airlume combed and ring-spun cotton (heather colours are blends)\n"
                     "- Retail fit, side-seamed - see the size chart in the photos\n\n" + APPAREL_CARE),
     },
+    "tee-cc": {
+        "blueprint_id": 706, "print_provider_id": 99,  # Comfort Colors 1717 garment-dyed
+        "prices": {"S": 2699, "M": 2699, "L": 2699, "XL": 2699, "2XL": 2899, "3XL": 3199, "4XL": 3399},
+        "colors": {"Forest Green": "Blue Spruce", "Charcoal": "Pepper", "Light Pink": "Blossom", "Natural": "Ivory",
+                   "White": "Ivory", "Sand": "Ivory", "Light Blue": "Chalky Mint", "Military Green": "Blue Spruce"},
+        "fit": "crop",
+        "free_shipping": True,
+        "title_prefix": "Comfort Colors ",
+        "details": ("Product details:\n- Comfort Colors 1717 garment-dyed heavyweight t-shirt\n"
+                    "- 100% ring-spun cotton, soft lived-in feel and vintage colour\n"
+                    "- Relaxed unisex fit - see the size chart in the photos\n\n" + APPAREL_CARE),
+    },
     "mug": {
         "blueprint_id": 478, "print_provider_id": 99,
         "variant_prices": {"11oz": 1699},
@@ -76,6 +88,15 @@ PRODUCT_TYPES = {
         "free_shipping": False,
         "details": ("Product details:\n- 11oz white ceramic mug, printed on both sides\n"
                     "- Dishwasher and microwave safe\n\n"
+                    "Made to order just for you - please allow 2-5 business days for production before shipping."),
+    },
+    "mug-accent": {
+        "blueprint_id": 635, "print_provider_id": 99,  # 11oz accent mug (coloured handle and inside)
+        "variant_prices": {"11oz / Light Green": 1899, "11oz / Black": 1899},
+        "fit": "full",
+        "free_shipping": False,
+        "details": ("Product details:\n- 11oz white ceramic mug with a coloured handle and inside (lime green or black)\n"
+                    "- Printed on both sides\n- Dishwasher and microwave safe\n\n"
                     "Made to order just for you - please allow 2-5 business days for production before shipping."),
     },
     "sticker": {
@@ -87,6 +108,18 @@ PRODUCT_TYPES = {
                     "- Choose 3\" or 4\"\n- Great for paddle bags, water bottles, coolers and laptops\n\n"
                     "Made to order just for you - please allow 2-5 business days for production before shipping."),
     },
+}
+
+# Comfort Colors versions of designs that are already live as Bella+Canvas tees.
+# Key: "<slug>@tee-cc"; value: Comfort Colors colour names (main colour first).
+EXTRA_PRODUCTS = {
+    "doctors-orders-pickleball-rx@tee-cc": ["Ivory", "Butter", "Chalky Mint"],
+    "just-one-more-game-clock@tee-cc": ["Black", "Pepper", "Navy"],
+    "mine-yours-doubles-oops@tee-cc": ["Ivory", "Butter", "Chalky Mint"],
+    "pickleball-2027-resolutions@tee-cc": ["Black", "Pepper", "Navy"],
+    "pickleball-grandma-sweet-sneaky@tee-cc": ["Blossom", "Ivory", "Chalky Mint", "Butter"],
+    "pickleball-grandpa-dinking-since-retirement@tee-cc": ["Blue Spruce", "Pepper", "Navy", "Black"],
+    "retirement-schedule-pickleball@tee-cc": ["Navy", "Pepper", "Black"],
 }
 
 CHRISTMAS_ATTRS = {  # Etsy attributes copied from the Dink the Halls sweatshirt (Holiday: Christmas)
@@ -122,6 +155,7 @@ def save_state(state: dict) -> None:
 
 # ------------------------------------------------------------------ designs
 def design_dir(slug: str) -> Path:
+    slug = slug.split("@")[0]
     for base in DESIGN_DIRS:
         if (base / slug / "listing.json").exists():
             return base / slug
@@ -129,8 +163,30 @@ def design_dir(slug: str) -> Path:
 
 
 def all_slugs() -> list[str]:
-    base = DESIGN_DIRS[0]
-    return sorted(p.name for p in base.iterdir() if (p / "listing.json").exists() and p.name not in SKIP)
+    folders = [p.name for base in DESIGN_DIRS if base.name.startswith("designs-round") and base.exists()
+               for p in base.iterdir() if (p / "listing.json").exists() and p.name not in SKIP]
+    return sorted(folders) + list(EXTRA_PRODUCTS)
+
+
+def load_listing(slug: str) -> tuple[dict, dict]:
+    """The listing data and the product (type + colours) to create for this slug."""
+    listing = json.loads((design_dir(slug) / "listing.json").read_text())
+    if "@" in slug:
+        ptype = slug.split("@")[1]
+        product = {"type": ptype, "colors": EXTRA_PRODUCTS[slug]}
+        prefix = PRODUCT_TYPES[ptype].get("title_prefix", "")
+        title = listing["title"]
+        if prefix and not title.startswith(prefix):
+            title = prefix + title
+            if len(title) > 140:
+                title = title[:140].rsplit(",", 1)[0]
+        tags = list(listing["tags"])
+        if ptype == "tee-cc" and "comfort colors tee" not in tags:
+            tags[-1] = "comfort colors tee"
+        listing = {**listing, "title": title, "tags": tags}
+    else:
+        product = primary_product(listing)
+    return listing, product
 
 
 def primary_product(listing: dict) -> dict:
@@ -194,8 +250,7 @@ def choose_variants(ptype: dict, product: dict, catalog: list[dict]) -> list[dic
 
 def build_product(slug: str, image_id: str | None = None) -> tuple[dict, dict]:
     """The Printify product payload and a short summary of it."""
-    listing = json.loads((design_dir(slug) / "listing.json").read_text())
-    product = primary_product(listing)
+    listing, product = load_listing(slug)
     ptype = PRODUCT_TYPES[product["type"]]
     catalog = call("GET", f"/catalog/blueprints/{ptype['blueprint_id']}/print_providers/"
                           f"{ptype['print_provider_id']}/variants.json")["variants"]
@@ -243,8 +298,8 @@ def cmd_create(args) -> None:
         if state.get(slug, {}).get("product_id"):
             print(f"{slug}: already created ({state[slug]['product_id']}), skipping")
             continue
-        listing = json.loads((design_dir(slug) / "listing.json").read_text())
-        fit = PRODUCT_TYPES[primary_product(listing)["type"]]["fit"]
+        _, product = load_listing(slug)
+        fit = PRODUCT_TYPES[product["type"]]["fit"]
         art, _ = artwork(slug, fit)
         upload = call("POST", "/uploads/images.json", {
             "file_name": f"{slug}.png", "contents": base64.b64encode(art).decode()})

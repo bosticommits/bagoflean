@@ -17,6 +17,12 @@ first in each log.
 - **Mugs (11oz):** Coffee then Pickleball, What's the Score
 - **Sticker:** Official Kitchen Inspector
 
+**Drafts waiting for the owner's go-ahead (18, created 2026-10-06):**
+- Comfort Colors tees, name versions: Gigi, Nana, Mimi, Memaw (Sweet as Pie) and Papa, Pops, Pawpaw, Gramps (Dinking Since Retirement)
+- Comfort Colors copies of the 7 live tees
+- Two-tone accent mugs: "I'm Not Yelling, I'm Calling the Score" and "Professional Dinker"
+- Ugly-sweater crewneck: "Jingle All the Way to the Kitchen"
+
 The source of truth for what's live is `printify/state.json` plus `python scripts/printify_publish.py list`.
 
 ## Prices (free US shipping on apparel)
@@ -24,10 +30,12 @@ The source of truth for what's live is `printify/state.json` plus `python script
 |---|---|---|---|---|---|---|
 | Crewneck | $36.99 | $39.99 | $41.99 | $44.99 | $44.99 | about $7.80 |
 | Tee | $24.99 | $26.99 | $30.99 | $32.99 | $34.99 | about $6 |
+| Tee, Comfort Colors 1717 | $26.99 | $28.99 | $31.99 | $33.99 | - | about $6 |
 | Mug 11oz | $16.99 + shipping | | | | | about $10 |
+| Accent mug 11oz (lime or black handle and inside) | $18.99 + shipping | | | | | about $10.70 |
 | Sticker | $4.99 (3") / $5.99 (4") + shipping | | | | | about $3 |
 
-Costs: crewneck $17.87 (S-XL), tee $11.29 (S-XL), mug $5.03, sticker $1.58. Etsy fees are about 9.5% + $0.45 per order. Off-site ads take 15% when an ad brings the sale.
+Costs: crewneck $17.87 (S-XL), tee $11.29 (S-XL), Comfort Colors tee $12.65 (S-XL), mug $5.03, accent mug $6.40, sticker $1.58. Etsy fees are about 9.5% + $0.45 per order. Off-site ads take 15% when an ad brings the sale.
 
 ## What the market shows (Etsy search, early Oct 2026)
 - **Personalisation leads.** Bestsellers include "Pickleball Grandma sweatshirt personalised Gigi" (235 reviews), team/club shirts ("TEAM NAME, EST 2025, PICKLEBALL CLUB, AUSTIN TX") and name mugs.
@@ -53,6 +61,10 @@ Costs: crewneck $17.87 (S-XL), tee $11.29 (S-XL), mug $5.03, sticker $1.58. Etsy
 - **Publishing:** create as a Printify draft, tell the owner, and publish only after they say so. Every listing costs $0.20.
 
 ## Decisions log
+- 2026-10-06: Added Grandma and Grandpa **name versions** as separate listings, so each ranks for "pickleball gigi shirt" etc. More names: `python scripts/name_variants.py grandma Lolli`.
+- 2026-10-06: Added **Comfort Colors** tees as a second blank. Light-ink designs avoid CC Moss (too light for lime or gold ink); use Blue Spruce, Pepper, Navy or Black instead.
+- 2026-10-06: New formats from market research: two-tone accent mugs with a one-liner, and a knit ugly-sweater crewneck (`scripts/round3_designs.py`).
+- 2026-10-06: Subagents created (`.claude/agents/`), plus this shared memory file and `CLAUDE.md`.
 - 2026-10-06: Lowered prices to crewneck $36.99 / tee $24.99 / mug $16.99 to compete as a new shop.
 - 2026-10-06: Skipped "raise prices and run a permanent sale", because it would be an illegal fake discount for an EU seller.
 - 2026-10-06: Hoodies skipped for now. Printify's Gildan 18500 front print area is short, so tall designs print small.
