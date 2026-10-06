@@ -7,6 +7,7 @@ Usage:
   python scripts/printify_publish.py create-all              # everything in the plan not created yet
   python scripts/printify_publish.py publish merry-dinkmas-christmas [...]
   python scripts/printify_publish.py delete <slug>           # remove an unpublished product
+  python scripts/printify_publish.py swap <old-slug> <new-design-slug>   # new artwork + text on an existing product
 
 A design is a folder in designs-round-2/ (or samples/) with design.png and a
 listing.json whose "products" list names the product type and colours. The
@@ -165,7 +166,8 @@ def design_dir(slug: str) -> Path:
 def all_slugs() -> list[str]:
     folders = [p.name for base in DESIGN_DIRS if base.name.startswith("designs-round") and base.exists()
                for p in base.iterdir() if (p / "listing.json").exists() and p.name not in SKIP]
-    return sorted(folders) + list(EXTRA_PRODUCTS)
+    swapped = {e.get("design") for e in load_state().values()}
+    return [s for s in sorted(folders) + list(EXTRA_PRODUCTS) if s not in swapped]
 
 
 def load_listing(slug: str) -> tuple[dict, dict]:
@@ -361,6 +363,42 @@ def cmd_reprice(_args) -> None:
         print(f"repriced {changed} variants{' and re-synced to Etsy' if p.get('external') else ''}: {p['title'][:60]}")
 
 
+def cmd_swap(args) -> None:
+    """Put a new design (artwork, title, tags, description, colours) on an existing product.
+
+    Keeps the same Printify product and Etsy listing, so nothing is duplicated. A live
+    listing is re-synced to Etsy straight away; a draft stays a draft.
+    """
+    state = load_state()
+    entry = state.get(args.old)
+    if not entry:
+        raise SystemExit(f"{args.old}: not in state")
+    _, product = load_listing(args.new)
+    if product["type"] != entry["type"]:
+        raise SystemExit(f"{args.new} is a {product['type']}, but {args.old} is a {entry['type']}")
+    art, _ = artwork(args.new, PRODUCT_TYPES[product["type"]]["fit"])
+    upload = call("POST", "/uploads/images.json", {
+        "file_name": f"{args.new}.png", "contents": base64.b64encode(art).decode()})
+    payload, summary = build_product(args.new, upload["id"])
+    pid = entry["product_id"]
+    old_variants = call("GET", f"/shops/{SHOP_ID}/products/{pid}.json")["variants"]
+    chosen = {v["id"] for v in payload["variants"]}
+    # variants the new design doesn't use (e.g. a dropped colour) are switched off, not left on sale
+    payload["variants"] += [{"id": v["id"], "price": v["price"], "is_enabled": False}
+                            for v in old_variants if v["id"] not in chosen]
+    payload["print_areas"][0]["variant_ids"] = [v["id"] for v in payload["variants"]]
+    body = {k: payload[k] for k in ("title", "description", "tags", "variants", "print_areas")}
+    call("PUT", f"/shops/{SHOP_ID}/products/{pid}.json", body)
+    entry.update({"image_id": upload["id"], "design": args.new})
+    save_state(state)
+    if entry.get("published"):
+        call("POST", f"/shops/{SHOP_ID}/products/{pid}/publish.json", {
+            "title": True, "description": True, "images": True, "variants": True,
+            "tags": True, "keyFeatures": True, "shipping_template": False})
+    print(f"{args.old}: now shows {args.new} ({summary['variants']} variants, "
+          f"{', '.join(summary['colours'])}){' and re-synced to Etsy' if entry.get('published') else ''}")
+
+
 def cmd_delete(args) -> None:
     state = load_state()
     for slug in args.slugs:
@@ -385,6 +423,10 @@ def main() -> None:
         p = sub.add_parser(name)
         p.add_argument("slugs", nargs="+")
         p.set_defaults(func=func)
+    p = sub.add_parser("swap")
+    p.add_argument("old")
+    p.add_argument("new")
+    p.set_defaults(func=cmd_swap)
     sub.add_parser("create-all").set_defaults(
         func=lambda a: cmd_create(argparse.Namespace(slugs=[s for s in all_slugs() if s not in load_state()])))
     args = parser.parse_args()

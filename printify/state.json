@@ -43,9 +43,10 @@
   },
   "merry-dinkmas-christmas": {
     "product_id": "6ac3b7d8ff369fe79909cca3",
-    "image_id": "6ac3b7d3b4f783738db27a2e",
+    "image_id": "6ac4cfe9d35b18022554e348",
     "type": "crewneck",
-    "published": true
+    "published": true,
+    "design": "merry-dinkmas-mascot"
   },
   "mine-yours-doubles-oops": {
     "product_id": "6ac3b7e61176c5078c0f7202",
@@ -79,9 +80,10 @@
   },
   "santas-favorite-dinker": {
     "product_id": "6ac3b84b4d063463e50af45a",
-    "image_id": "6ac3b8470e497e3680b1f4e3",
+    "image_id": "6ac4d01cbd13a0a77612190d",
     "type": "crewneck",
-    "published": true
+    "published": true,
+    "design": "santas-favorite-dinker-badge"
   },
   "whats-the-score-mug": {
     "product_id": "6ac3b858b9ed4b8e70088007",
@@ -193,8 +195,39 @@
   },
   "jingle-all-the-way-to-the-kitchen": {
     "product_id": "6ac4bd707fb2cc1a75029d14",
-    "image_id": "6ac4bd6d1e18f3703539dc60",
+    "image_id": "6ac4d027bd13a0a776121911",
     "type": "crewneck",
+    "published": false,
+    "design": "jingle-kitchen-knit-sweater"
+  },
+  "dashing-through-the-kitchen": {
+    "product_id": "6ac4d047b6d3488ca205e4a2",
+    "image_id": "6ac4d042ff7531a9b6940d24",
+    "type": "crewneck",
+    "published": false
+  },
+  "grandmas-got-game": {
+    "product_id": "6ac4d052de736a3ee90c4b59",
+    "image_id": "6ac4d04d9bf7e88aef90b980",
+    "type": "tee-cc",
+    "published": false
+  },
+  "knees-say-no-heart-says-pickleball": {
+    "product_id": "6ac4d05db6d3488ca205e4f9",
+    "image_id": "6ac4d058ff7531a9b6940d27",
+    "type": "tee-cc",
+    "published": false
+  },
+  "kitchen-staff-only-chef": {
+    "product_id": "6ac4d068de736a3ee90c4b6e",
+    "image_id": "6ac4d064f5f4cdac21d1521c",
+    "type": "tee-cc",
+    "published": false
+  },
+  "retired-now-serving-full-time": {
+    "product_id": "6ac4d076b6d3488ca205e51a",
+    "image_id": "6ac4d0700146b83bfff6294a",
+    "type": "tee-cc",
     "published": false
   }
 }
