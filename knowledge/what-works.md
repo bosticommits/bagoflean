@@ -58,6 +58,7 @@ Costs: crewneck $17.87 (S-XL), tee $11.29 (S-XL), Comfort Colors tee $12.65 (S-X
 - **Publishing:** create as a Printify draft, tell the owner, and publish only after they say so. Every listing costs $0.20.
 
 ## Decisions log
+- 2026-10-06: Marketing restart for round 4: `marketing/pinterest_round4.csv` (24 pins, Oct 7-18, made from the new listing photos; `marketing_pins.py --round`) and the owner guide `marketing/START-HERE.md` (photos, Pinterest setup, optional Etsy Ads at $1-2/day, weekly Stats screenshots, and how to tell traffic problems from design problems). Day-14 check is around Oct 20, the day-30 decision around Nov 5.
 - 2026-10-06: Created `knowledge/design-playbook.md` (house style, checklist, scoring, owner taste and lessons logs) and `scripts/design_check.py` (automatic pre-flight; all 8 round-4 designs pass). The designer agent must follow the playbook; the researcher feeds sales results into it.
 - 2026-10-06: Published round 4 to Etsy (6 listings). Deleted the 17 old unpublished drafts at the owner's request. The owner chose to keep the 13 older live listings up for now. Next: check which older listings get no views after about 30 days and retire them.
 - 2026-10-06: New `swap <old> <new>` command in `printify_publish.py` puts a new design onto an existing product (same listing, no duplicate). Used for Merry Dinkmas, Santa's Favorite Dinker (live, re-synced) and the Jingle draft. The state entry keeps the old slug and gains `"design": <new slug>`. Printify needs every variant id, including disabled ones, in `print_areas.variant_ids`.
