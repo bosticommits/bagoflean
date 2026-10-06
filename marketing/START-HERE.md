@@ -22,8 +22,10 @@ Tick these off one at a time. Each one is a few clicks.
 **4. Make a free Pinterest business account**
 - Go to **business.pinterest.com** → Sign up → name it **Dink District**.
 
-**5. Connect your Etsy shop**
-- Pinterest → **Settings** → **Claimed accounts** → **Etsy** → Claim.
+**5. Connect your Etsy shop (optional)**
+- Pinterest → profile picture → **Settings** → **Claimed accounts** → **Etsy** → Claim → log in to Etsy → Allow.
+- **Don't use "Claim your website".** That's for your own website and won't work with an Etsy link.
+- If Etsy isn't in the list, skip this step. Pins still work without it.
 
 **6. Make 3 boards** (copy these names exactly)
 - Pickleball Christmas Gifts
