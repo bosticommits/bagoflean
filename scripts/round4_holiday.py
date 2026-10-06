@@ -43,6 +43,7 @@ from etsy_agent.render import make_mockup  # noqa: E402
 OUT = ROOT / "designs-round-4"
 FONT_DIR = ROOT / "fonts"
 SCALE = 1 if os.environ.get("PREVIEW") else 2
+Image.MAX_IMAGE_PIXELS = None  # our own 2x canvas is ~100M pixels
 W, H = 4500, 5400
 
 # Palette: screen-print style, five inks max per design.
@@ -302,7 +303,7 @@ def distress(img: Image.Image, seed: int, amount: float, s: int) -> Image.Image:
             pts.append((x + rr * math.cos(a), y + rr * math.sin(a)))
         md.polygon(pts, fill=255)
     # A few dry-brush scratches.
-    for _ in range(int(18 * amount)):
+    for _ in range(int(6 * amount)):
         x, y = rng.uniform(0, w), rng.uniform(0, h)
         if alpha[int(y), int(x)] == 0:
             continue
@@ -757,6 +758,325 @@ def design_dashing() -> Art:
     return art
 
 
+# ------------------------------------------------------------------ design 3: Santa's Favorite Dinker badge
+DKGREEN = "#237A48"
+
+
+def star_part(cx, cy, r, color=RED, ow=0, ang=0.0):
+    pts = []
+    for i in range(10):
+        a = math.radians(-90 + ang + i * 36)
+        rr = r if i % 2 == 0 else r * 0.45
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    return Part([poly(pts)], color, ow=ow, contour=False)
+
+
+def mascot_bust(cx, cy, R):
+    """Santa-hat mascot from the chest up: paddle over the shoulder, waving, winking."""
+    back, front = [], []
+    hand, ang, u = (cx - 1.38 * R, cy + 0.05 * R), -16, 0.5 * R
+    cuff = fist_cuff(hand, u, ang)
+    wx, wy = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+    arm_to(back, (cx - 0.8 * R, cy + 0.35 * R), cuff, R, (-0.35, 0.1), (0.3 * wx, 0.3 * wy))
+    pad = paddle(hand[0], hand[1], ang, 1.4 * R)
+    front += pad["face"] + pad["handle"] + glove_fist(hand[0], hand[1], u, ang)
+    hand2 = (cx + 1.42 * R, cy - 0.2 * R)
+    arm_to(back, (cx + 0.8 * R, cy + 0.3 * R), (hand2[0] - 0.02 * R, hand2[1] + 0.3 * R), R, (0.45, 0.05), (0.05, 0.35))
+    front += glove_open(hand2[0], hand2[1] - 0.05 * R, 0.44 * R, ang=16)
+    body = ball_body(cx, cy, R, face_box=(cx - 0.62 * R, cy - 0.45 * R, cx + 0.62 * R, cy + 0.7 * R))
+    return back + body + face(cx, cy, R, wink=True) + santa_hat(cx, cy, R, tilt=-10) + front
+
+
+def design_badge() -> Art:
+    art = Art()
+    bx, by = W / 2, 2080
+    r_out, r_in = 1830, 1300
+    # rings
+    art.figure([Part([circle(bx, by, r_out)], CREAM, ow=OW)])
+    art.part(Part([circle(bx, by, r_out - 70)], INK, ow=0))
+    art.part(Part([circle(bx, by, r_out - 70 - 26)], CREAM, ow=0))
+    art.part(Part([circle(bx, by, r_in)], GREEN, ow=OW))
+    # starburst in the disc
+    rays = []
+    for i in range(28):
+        a0, a1 = math.radians(i * 360 / 28), math.radians(i * 360 / 28 + 360 / 56)
+        rays.append(poly([(bx, by), (bx + 2 * r_in * math.cos(a0), by + 2 * r_in * math.sin(a0)),
+                          (bx + 2 * r_in * math.cos(a1), by + 2 * r_in * math.sin(a1))]))
+    art.part(Part(rays, DKGREEN, ow=0, clip=[circle(bx, by, r_in - 4)]))
+    art.part(Part([line(ellipse_pts(bx, by, r_in - 75, r_in - 75, n=180) + [ellipse_pts(bx, by, r_in - 75, r_in - 75, n=180)[0]], 26)],
+                  CREAM, ow=0, contour=False))
+    for (dx, dy, rr) in [(-860, -560, 70), (880, -620, 60), (-1040, 120, 55), (1060, 80, 62), (-560, -960, 52), (600, -980, 48)]:
+        art.part(snowflake(bx + dx, by + dy, rr * 1.4, w=24))
+    # ring lettering
+    ring_r = (r_out - 96 + r_in) / 2 + 10
+    top = "SANTA\u2019S FAVORITE"
+    size = 300
+    arc_text(art, top, "alfa", size, bx, by, ring_r, -90, RED, ow=0, contour=None, tracking=22)
+    arc_text(art, "OFFICIAL NICE LIST", "alfa", 190, bx, by, ring_r + 40, 90, INK, ow=0, contour=None, bottom=True, tracking=14)
+    for a in (-6, 186):
+        art.part(star_part(bx + ring_r * math.cos(math.radians(a)), by + ring_r * math.sin(math.radians(a)), 120, RED, ang=a + 90))
+    # mascot
+    R = 600
+    art.figure(mascot_bust(bx, by - 10, R), contour=CREAM)
+    # ribbon across the lower disc
+    rib = ribbon_layer("DINKER", "bowlby", 3150, 590, arc=100, tracking=40)
+    art.paste_center(rib, bx, by + 330)
+    return art
+
+
+# ------------------------------------------------------------------ design 4: ugly sweater (knit)
+KNIT_COLORS = {"W": CREAM, "R": RED, "L": LIME, "O": OLIVE, "K": INK, "P": PINK, "G": GREEN}
+
+MASCOT_HAT = [
+    "..........RRRRR..........",
+    "........RRRRRRRRRR.......",
+    ".......RRRRRRRRRRRRR.....",
+    "......RRRRRRRRRRRRRRRR...",
+    "......RRRRRRRRRRR..RRRR..",
+    ".....RRRRRRRRRRRR....RR..",
+    ".....RRRRRRRRRRRR...WWWW.",
+    ".....RRRRRRRRRRRR..WWWWWW",
+    "...WWWWWWWWWWWWWWW.WWWWWW",
+    "..WWWWWWWWWWWWWWWWW.WWWW.",
+    "..WWWWWWWWWWWWWWWWWW.....",
+]
+
+REINDEER = [
+    "..........W...W....",
+    "..........W.W.W.W..",
+    "...........WW.WW...",
+    "............WWW....",
+    "...........WWWW....",
+    "...........WWWWWWR.",
+    "...........WWWWWW..",
+    "..........WWWW.....",
+    "W........WWWW......",
+    ".WWWWWWWWWWWW......",
+    ".WWWWWWWWWWWW......",
+    ".WWWWWWWWWWWW......",
+    "..WWWWWWWWWW.......",
+    "..W.W.....W.W......",
+    "..W.W.....W.W......",
+    ".W...W...W...W.....",
+]
+
+MOTIFS = {
+    "ball": ["..LLL..", ".LOLOL.", "LLLLLLL", "LOLOLOL", "LLLLLLL", ".LOLOL.", "..LLL.."],
+    "tree": ["...W...", "..WWW..", ".WWWWW.", "..WWW..", ".WWWWW.", "WWWWWWW", "...R..."],
+    "snow": ["...W...", ".W.W.W.", "..WWW..", "WWWWWWW", "..WWW..", ".W.W.W.", "...W..."],
+    "holly": [".......", "LL...LL", "LLL.LLL", ".LLRLL.", "..RRR..", "...R...", "......."],
+}
+
+
+UPRIGHT_PADDLE = [
+    ".RRRRR.", "RRRRRRR", "RRRRRRR", "RRRRRRR", "RRRRRRR", "RRRRRRR", "RRRRRRR", ".RRRRR.",
+    "..WWW..", "..WWW..", "..WWW..", "..WWW..",
+]
+
+CROSSED_PADDLES = [
+    ".RRR....LLL....RRR.",
+    "RRRRR..LLOLL..RRRRR",
+    "RRRRRR.LOLOL.RRRRRR",
+    "RRRRRRRLLLLLRRRRRRR",
+    ".RRRRRRRLLLRRRRRRR.",
+    "..RRRRRR...RRRRRR..",
+    "...RRRRR...RRRRR...",
+    "....RRRW...WRRR....",
+    "......WW...WW......",
+    ".......WW.WW.......",
+    "........WWW........",
+    "........WWW........",
+    ".......WW.WW.......",
+    "......WW...WW......",
+    ".....WW.....WW.....",
+]
+
+
+def mascot_sprite():
+    w, h = 25, 27
+    g = [["." for _ in range(w)] for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            if (x - 12) ** 2 + (y + 0.5 - 17.5) ** 2 <= 8.9 ** 2:
+                g[y][x] = "L"
+    for y, row in enumerate(MASCOT_HAT):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                g[y][x] = ch
+    feats = {(8, 13): "K", (9, 13): "W", (8, 14): "K", (9, 14): "K", (8, 15): "K", (9, 15): "K",
+             (15, 13): "K", (16, 13): "W", (15, 14): "K", (16, 14): "K", (15, 15): "K", (16, 15): "K",
+             (5, 17): "P", (6, 17): "P", (18, 17): "P", (19, 17): "P"}
+    feats[(8, 18)] = "K"
+    feats[(16, 18)] = "K"
+    for x in range(9, 16):
+        feats[(x, 19)] = "K"
+    for x in range(10, 15):
+        feats[(x, 20)] = "R" if 11 <= x <= 13 else "K"
+    for xy in [(5, 12), (19, 12), (4, 15), (20, 15), (4, 20), (20, 20), (7, 23), (17, 23), (12, 24), (6, 21), (18, 21)]:
+        feats[xy] = "O"
+    for (x, y), ch in feats.items():
+        g[y][x] = ch
+    return ["".join(r) for r in g]
+
+
+# Hand-built knit block font: 10 rows tall, 2-stitch strokes.
+KNIT_FONT = {
+    "T": ["######", "######", "..##..", "..##..", "..##..", "..##..", "..##..", "..##..", "..##..", "..##.."],
+    "H": ["##..##", "##..##", "##..##", "##..##", "######", "######", "##..##", "##..##", "##..##", "##..##"],
+    "E": ["######", "######", "##....", "##....", "#####.", "#####.", "##....", "##....", "######", "######"],
+    "L": ["##....", "##....", "##....", "##....", "##....", "##....", "##....", "##....", "######", "######"],
+    "A": [".####.", "######", "##..##", "##..##", "##..##", "######", "######", "##..##", "##..##", "##..##"],
+    "G": [".####.", "######", "##..##", "##....", "##....", "##.###", "##.###", "##..##", "######", ".####."],
+    "O": [".####.", "######", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "######", ".####."],
+    "C": [".####.", "######", "##..##", "##....", "##....", "##....", "##....", "##..##", "######", ".####."],
+    "K": ["##..##", "##..##", "##.##.", "####..", "###...", "###...", "####..", "##.##.", "##..##", "##..##"],
+    "Y": ["##..##", "##..##", "##..##", "######", ".####.", "..##..", "..##..", "..##..", "..##..", "..##.."],
+    "W": ["##...##", "##...##", "##...##", "##...##", "##.#.##", "##.#.##", "#######", "#######", "###.###", "##...##"],
+    "I": ["####", "####", ".##.", ".##.", ".##.", ".##.", ".##.", ".##.", "####", "####"],
+    "J": ["..####", "..####", "....##", "....##", "....##", "....##", "##..##", "##..##", "######", ".####."],
+    "N": ["##...##", "###..##", "###..##", "####.##", "##.#.##", "##.#.##", "##.####", "##..###", "##..###", "##...##"],
+    " ": ["...", "...", "...", "...", "...", "...", "...", "...", "...", "..."],
+}
+
+
+def knit_word(text, stretch=()):
+    """Compose KNIT_FONT glyphs (1-stitch gaps); stretch = row indexes to duplicate for taller type."""
+    rows = [""] * 10
+    for i, ch in enumerate(text):
+        g = KNIT_FONT[ch]
+        for r in range(10):
+            rows[r] += g[r] + ("." if i < len(text) - 1 else "")
+    out = []
+    for r, row in enumerate(rows):
+        out.append(row)
+        if r in stretch:
+            out.append(row)
+    return out
+
+
+def pixel_text(text, cap_rows, fname="Anton-Regular.ttf", k=16):
+    """Rasterise text onto a knit grid: returns (rows of '#'/'.', width in cells)."""
+    f0 = ImageFont.truetype(str(FONT_DIR / fname), 1000)
+    cap = -f0.getbbox("H", anchor="ls")[1]
+    size = int(cap_rows * k * 1000 / cap)
+    f = ImageFont.truetype(str(FONT_DIR / fname), size)
+    l, t, r, b = f.getbbox(text, anchor="ls")
+    wpx = int(math.ceil((r - l) / k)) * k + 2 * k
+    hpx = int(math.ceil((b - t) / k)) * k + 2 * k
+    img = Image.new("L", (wpx, hpx), 0)
+    ImageDraw.Draw(img).text((k - l, k - t), text, font=f, fill=255, anchor="ls")
+    small = np.array(img.reduce(k))
+    on = small >= 118
+    ys, xs = np.nonzero(on)
+    on = on[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    return ["".join("#" if v else "." for v in row) for row in on]
+
+
+class Knit:
+    def __init__(self, cols, cell, top):
+        self.cols, self.cell, self.top = cols, cell, top
+        self.x0 = (W - cols * cell) / 2
+        self.cells = {}
+
+    def put(self, c, r, color):
+        if 0 <= c < self.cols:
+            self.cells[(c, r)] = color
+
+    def sprite(self, rows, c0, r0, flip=False, recolor=None):
+        for y, row in enumerate(rows):
+            if flip:
+                row = row[::-1]
+            for x, ch in enumerate(row):
+                if ch not in ".":
+                    col = recolor or KNIT_COLORS.get(ch, CREAM)
+                    self.put(c0 + x, r0 + y, col)
+
+    def band(self, r0, motif_order):
+        for c in range(self.cols):
+            self.put(c, r0, RED)
+            self.put(c, r0 + 16, RED)
+            for zr in (r0 + 2, r0 + 13):  # cream zigzag, 2 rows
+                k = c % 4
+                if k in (0,):
+                    self.put(c, zr + 1, CREAM)
+                elif k == 2:
+                    self.put(c, zr, CREAM)
+                else:
+                    self.put(c, zr, CREAM)
+                    self.put(c, zr + 1, CREAM)
+        n = len(motif_order)
+        span = self.cols // n
+        for i, name in enumerate(motif_order):
+            m = MOTIFS[name]
+            c0 = i * span + (span - len(m[0])) // 2
+            self.sprite(m, c0, r0 + 5)
+        return r0 + 17
+
+    def stripe(self, r0, nrows, color, margin=0):
+        for r in range(r0, r0 + nrows):
+            for c in range(margin, self.cols - margin):
+                self.put(c, r, color)
+
+    def text(self, text, r0, color, shadow=None, stretch=()):
+        rows = knit_word(text, stretch)
+        wc = len(rows[0])
+        c0 = (self.cols - wc) // 2
+        if shadow:
+            for y, row in enumerate(rows):
+                for x, ch in enumerate(row):
+                    if ch == "#":
+                        self.put(c0 + x + 1, r0 + y + 1, shadow)
+        for y, row in enumerate(rows):
+            for x, ch in enumerate(row):
+                if ch == "#":
+                    self.put(c0 + x, r0 + y, color)
+        return r0 + len(rows) + 1, wc
+
+    def render(self, art: Art):
+        c = self.cell
+        for (col, row), color in self.cells.items():
+            x = self.x0 + col * c
+            y = self.top + row * c
+            # a knit "V": two leaning rounded legs meeting at the bottom centre
+            for side, ang in ((-1, -24), (1, 24)):
+                art.prim(ell(x + c / 2 + side * 0.215 * c, y + c / 2, 0.215 * c, 0.47 * c, ang), color)
+
+
+def design_sweater() -> Art:
+    art = Art()
+    k = Knit(cols=85, cell=44, top=120)
+    r = k.band(0, ["ball", "snow", "holly", "tree", "ball", "snow", "holly", "tree", "ball"])
+    r += 2
+    r, _ = k.text("JINGLE ALL", r, CREAM)
+    r += 1
+    r, _ = k.text("THE WAY TO", r, CREAM)
+    r += 1
+    # title lockup: lime knit letters on a solid red stripe with cream edging
+    k.stripe(r, 1, CREAM, margin=0)
+    k.stripe(r + 1, 17, RED, margin=0)
+    k.stripe(r + 18, 1, CREAM, margin=0)
+    k.text("THE KITCHEN", r + 3, LIME, stretch=(2, 6, 7))
+    r += 19 + 2
+    m = mascot_sprite()
+    mc0 = (k.cols - len(m[0])) // 2
+    k.sprite(m, mc0, r)
+    bottom = r + len(m) - 1
+    pw = len(UPRIGHT_PADDLE[0])
+    for pc in (mc0 - 1 - pw, mc0 + len(m[0]) + 1):
+        k.sprite(UPRIGHT_PADDLE, pc, bottom - len(UPRIGHT_PADDLE) - 1)
+    rd_r = bottom - len(REINDEER)
+    left_c = mc0 - 1 - pw - 3 - len(REINDEER[0])
+    right_c = mc0 + len(m[0]) + 1 + pw + 3
+    k.sprite(REINDEER, left_c, rd_r)
+    k.sprite(REINDEER, right_c, rd_r, flip=True)
+    for dc in (left_c + 6, right_c + 6):
+        k.sprite(MOTIFS["snow"], dc, r + 1)
+    r += len(m) + 1
+    k.band(r, ["tree", "ball", "holly", "snow", "ball", "snow", "holly", "ball", "tree"])
+    k.render(art)
+    return art
+
+
 def preview(art: Art, name: str, shirt="#1B1B1D", seed=1, distress_amount=1.0):
     png = art.finish(seed=seed, distress_amount=distress_amount)
     scratch = Path(os.environ.get("SCRATCH", "/tmp"))
@@ -768,3 +1088,115 @@ def preview(art: Art, name: str, shirt="#1B1B1D", seed=1, distress_amount=1.0):
     (scratch / f"{name}_mock.png").write_bytes(m)
     Image.open(io.BytesIO(m)).resize((300, 330), Image.LANCZOS).save(scratch / f"{name}_thumb.png")
     return png
+
+
+# ------------------------------------------------------------------ listings & output
+def listing(slug, replaces, title, tags, hook, who, about, alt, colors):
+    desc = (f"{hook}\n\nWho it's for:\n" + "\n".join(f"- {w}" for w in who)
+            + f"\n\nAbout the design:\n{about}\n\nSoft, cozy unisex crewneck sweatshirt. Size up for an oversized fit."
+            + f"\n\n{AI_DISCLOSURE}")
+    data = {"slug": slug, "verdict_for_old_design": replaces, "title": title, "tags": tags, "description": desc,
+            "alt_text": alt, "products": [{"type": "crewneck", "colors": colors}], "occasion": "Christmas"}
+    problems = listing_problems(data, PICKLEBALL.blocked_terms)
+    if problems:
+        raise SystemExit(f"{slug}: {problems}")
+    return data
+
+
+DESIGNS = {
+    "merry": dict(
+        build=lambda: design_merry(), seed=11, distress=1.0, shirt="Black",
+        data=lambda: listing(
+            "merry-dinkmas-mascot",
+            "round 4 upgrade of designs-round-2/merry-dinkmas-christmas (swap the artwork on the live listing)",
+            "Merry Dinkmas Pickleball Sweatshirt, Retro Christmas Pickleball Crewneck, Funny Pickleball Gift for Players",
+            ["merry dinkmas", "pickleball christmas", "pickleball sweater", "pickleball gift", "christmas sweatshirt",
+             "retro christmas", "funny pickleball", "pickleball lover", "secret santa gift", "pickleball crewneck",
+             "dink shirt", "holiday sweatshirt", "pickleball player"],
+            "Merry Dinkmas! A cheerful retro pickleball mascot in a Santa hat waves hello with paddle in hand, ready for the holiday round robin.",
+            ["Pickleball players who live at the courts, even in December", "Christmas, Secret Santa and stocking-stuffer shoppers",
+             "Clubs planning a holiday social or matching group photo"],
+            "A vintage cartoon pickleball with white gloves and red high-tops, wearing a Santa hat and holding a paddle, "
+            "under big 'Merry' script and bold 'DINKMAS' lettering. Screen-print style colours with a subtle worn texture.",
+            "Black crewneck sweatshirt with a retro cartoon pickleball in a Santa hat holding a paddle and waving, with the words Merry Dinkmas.",
+            ["Black", "Navy", "Forest Green", "Maroon"])),
+    "dashing": dict(
+        build=lambda: design_dashing(), seed=23, distress=1.0, shirt="Navy",
+        data=lambda: listing(
+            "dashing-through-the-kitchen",
+            "new (round 4)",
+            "Dashing Through the Kitchen Pickleball Sweatshirt, Funny Christmas Pickleball Crewneck, Reindeer Pickleball Gift",
+            ["dashing through", "kitchen pickleball", "pickleball christmas", "pickleball sweater", "pickleball gift",
+             "funny pickleball", "christmas crewneck", "reindeer sweatshirt", "pickleball lover", "secret santa gift",
+             "holiday sweatshirt", "pickleball player", "retro christmas"],
+            "Dashing through the kitchen... every pickleball player knows you're not supposed to. Our reindeer pickleball does it anyway.",
+            ["Pickleball players who get called for kitchen faults (or call them)", "Christmas, Secret Santa and stocking-stuffer shoppers",
+             "Holiday round robins and club parties"],
+            "A retro cartoon pickleball with antlers and a red nose sprints with a paddle, motion lines and snow puffs behind it, "
+            "between 'Dashing' and 'Kitchen' lettering with a 'through the' ribbon. Screen-print style colours with a subtle worn texture.",
+            "Navy crewneck sweatshirt with a running cartoon pickleball wearing antlers and holding a paddle, with the words Dashing through the Kitchen.",
+            ["Navy", "Black", "Forest Green", "Maroon"])),
+    "badge": dict(
+        build=lambda: design_badge(), seed=37, distress=1.0, shirt="Maroon",
+        data=lambda: listing(
+            "santas-favorite-dinker-badge",
+            "round 4 upgrade of designs-round-2/santas-favorite-dinker (swap the artwork on the live listing)",
+            "Santa's Favorite Dinker Sweatshirt, Vintage Pickleball Christmas Crewneck, Funny Pickleball Gift for Mom or Dad",
+            ["santas favorite", "favorite dinker", "pickleball christmas", "pickleball sweater", "pickleball gift",
+             "vintage christmas", "nice list sweater", "funny pickleball", "pickleball mom", "pickleball dad",
+             "christmas crewneck", "pickleball lover", "pickleball grandma"],
+            "Officially on the nice list. A vintage-badge pickleball sweatshirt for the player who never misses a dink.",
+            ["Moms, dads and grandparents who play every morning", "Christmas, Secret Santa and stocking-stuffer shoppers",
+             "Club holiday parties and gift exchanges"],
+            "A round vintage badge: a winking cartoon pickleball in a Santa hat with a paddle, a red 'DINKER' ribbon, "
+            "'Santa's Favorite' arched across the top and 'Official Nice List' below. Screen-print style colours with a subtle worn texture.",
+            "Maroon crewneck sweatshirt with a vintage round badge of a winking pickleball in a Santa hat and a ribbon reading Santa's Favorite Dinker.",
+            ["Maroon", "Black", "Navy", "Forest Green"])),
+    "sweater": dict(
+        build=lambda: design_sweater(), seed=41, distress=0.0, shirt="Forest Green",
+        data=lambda: listing(
+            "jingle-kitchen-knit-sweater",
+            "round 4 upgrade of designs-round-3/jingle-all-the-way-to-the-kitchen (swap the artwork on the draft)",
+            "Pickleball Ugly Christmas Sweater, Jingle All the Way to the Kitchen Knit Look Sweatshirt, Funny Pickleball Gift",
+            ["pickleball christmas", "ugly sweater", "ugly xmas sweater", "pickleball sweater", "pickleball gift",
+             "jingle all the way", "christmas sweatshirt", "funny pickleball", "holiday party shirt", "pickleball lover",
+             "secret santa gift", "kitchen pickleball", "reindeer sweater"],
+            "Jingle all the way... to the kitchen. A knit-look ugly Christmas sweater for pickleball players, no itchy wool required.",
+            ["Pickleball players heading to an ugly sweater party", "Christmas, Secret Santa and stocking-stuffer shoppers",
+             "Clubs planning a holiday round robin"],
+            "A printed faux-knit pattern: stitch-by-stitch lettering, a pixel pickleball mascot in a Santa hat between two paddles "
+            "and two reindeer, and bands of pickleballs, snowflakes, holly and trees. Printed on a soft crewneck sweatshirt.",
+            "Forest green sweatshirt with a knit-look ugly Christmas sweater pattern of reindeer, paddles and a pickleball in a Santa hat, "
+            "with the words Jingle all the way to the kitchen.",
+            ["Forest Green", "Maroon", "Navy", "Black"])),
+}
+
+
+def check_print(png: bytes) -> dict:
+    img = Image.open(io.BytesIO(png))
+    a = np.array(img)
+    alpha = a[..., 3]
+    ys, xs = np.nonzero(alpha)
+    partial = ((alpha > 0) & (alpha < 255)).sum() / max(1, (alpha > 0).sum())
+    return {"size": img.size, "mode": img.mode, "dpi": img.info.get("dpi"),
+            "art_width_pct": round(100 * (xs.max() - xs.min() + 1) / img.width, 1),
+            "top_px": int(ys.min()), "bottom_px": int(ys.max()),
+            "edge_aa_pct": round(100 * partial, 2)}
+
+
+def main(names):
+    for name in names:
+        spec = DESIGNS[name]
+        data = spec["data"]()
+        png = spec["build"]().finish(seed=spec["seed"], distress_amount=spec["distress"])
+        mock = make_mockup(png, SHIRTS[spec["shirt"]])
+        d = OUT / data["slug"]
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "design.png").write_bytes(png)
+        (d / "mockup.png").write_bytes(mock)
+        (d / "listing.json").write_text(json.dumps(data, indent=2) + "\n")
+        print(data["slug"], check_print(png))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:] or list(DESIGNS))

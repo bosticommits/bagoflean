@@ -32,6 +32,8 @@ from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
+Image.MAX_IMAGE_PIXELS = None  # our own 2x canvases are large on purpose
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from etsy_agent.compliance import AI_DISCLOSURE, listing_problems  # noqa: E402
@@ -166,7 +168,7 @@ class Poly(Shape):
         d.polygon(P, fill=fill)
         if g > 0:
             gw = L.k(g)
-            d.line(P + [P[0]], fill=fill, width=max(1, round(2 * gw)), joint="curve")
+            d.line(P + [P[0]], fill=fill, width=max(1, round(2 * gw)))
             for x, y in P:
                 d.ellipse((x - gw, y - gw, x + gw, y + gw), fill=fill)
 
@@ -181,8 +183,8 @@ class Tube(Shape):
         d = d or L.d
         P = [L.p(*q) for q in self.pts_]
         wd = L.k(self.w + 2 * g)
-        d.line(P, fill=fill, width=max(1, round(wd)), joint="curve")
-        for x, y in (P[0], P[-1]):
+        d.line(P, fill=fill, width=max(1, round(wd)))
+        for x, y in P:
             d.ellipse((x - wd / 2, y - wd / 2, x + wd / 2, y + wd / 2), fill=fill)
 
 
@@ -296,44 +298,54 @@ def text_img(L, s, fname, size, fill, stroke=0, sfill=NAVY, track=0):
 
 
 def arc_text(L, s, fname, size, cx, cy, radius, fill, stroke=0, sfill=NAVY, track=0, up=True):
-    """Text along a circle. up=True: convex arch above (cx, cy); False: smile below."""
+    """Text along a circle. up=True: convex arch; False: smile.
+
+    Returns (image, (x, y) of the circle centre relative to the image) so
+    place_arc() can position it. Only the glyphs' bounding box is allocated.
+    """
     f = font(fname, L.k(size))
     sw = round(L.k(stroke))
     rr = L.k(radius)
-    advs = [f.getlength(c) + L.k(track) for c in s]
-    advs[-1] -= L.k(track)
-    total = sum(advs)
-    cap = f.getbbox("H", anchor="ls")
-    cap_h = -cap[1]
+    tr = L.k(track)
+    advs = [f.getlength(c) for c in s]
+    total = sum(advs) + tr * (len(s) - 1)
+    cap_h = -f.getbbox("H", anchor="ls")[1]
     asc, desc = f.getmetrics()
     hh = asc + desc + sw * 2
-    size_px = int(2 * (rr + hh) + 10)
-    strokes = Image.new("RGBA", (size_px, size_px), (0, 0, 0, 0))
-    fills = Image.new("RGBA", (size_px, size_px), (0, 0, 0, 0))
-    c0 = size_px / 2
+    placed = []  # (stroke_img, fill_img, x, y) relative to the circle centre
     pos = -total / 2
     for c, a in zip(s, advs):
-        theta = (pos + (a - (L.k(track) if c != s[-1] else 0)) / 2) / rr
-        pos += a
+        theta = (pos + a / 2) / rr
+        pos += a + tr
         if c == " ":
             continue
-        cw = int(f.getlength(c)) + 2 * sw + 4
-        for layer, (fc, w_) in ((strokes, (sfill, sw)), (fills, (fill, 0))):
-            if layer is strokes and not sw:
-                continue
+        cw = int(a) + 2 * sw + 8
+        imgs = []
+        for fc, w_ in ((sfill, sw), (fill, 0)):
             ci = Image.new("RGBA", (cw, int(2 * hh)), (0, 0, 0, 0))
-            ImageDraw.Draw(ci).text((sw + 2, hh + cap_h / 2), c, font=f, fill=fc, anchor="ls",
+            if fc is sfill and not sw:
+                imgs.append(None)
+                continue
+            ImageDraw.Draw(ci).text((sw + 4, hh + cap_h / 2), c, font=f, fill=fc, anchor="ls",
                                     stroke_width=w_, stroke_fill=fc)
             deg = math.degrees(theta)
-            ci = ci.rotate(-deg if up else deg, resample=Image.BICUBIC, expand=True)
-            x = c0 + rr * math.sin(theta)
-            y = c0 - rr * math.cos(theta) if up else c0 + rr * math.cos(theta)
-            composite(layer, ci, round(x - ci.width / 2), round(y - ci.height / 2))
+            imgs.append(ci.rotate(-deg if up else deg, resample=Image.BICUBIC, expand=True))
+        x = rr * math.sin(theta)
+        y = -rr * math.cos(theta) if up else rr * math.cos(theta)
+        placed.append((imgs[0], imgs[1], x, y))
+    x0 = min(x - im.width / 2 for _, im, x, _ in placed)
+    y0 = min(y - im.height / 2 for _, im, _, y in placed)
+    x1 = max(x + im.width / 2 for _, im, x, _ in placed)
+    y1 = max(y + im.height / 2 for _, im, _, y in placed)
+    strokes = Image.new("RGBA", (int(x1 - x0) + 2, int(y1 - y0) + 2), (0, 0, 0, 0))
+    fills = strokes.copy()
+    for st, fi, x, y in placed:
+        for layer, im in ((strokes, st), (fills, fi)):
+            if im is not None:
+                composite(layer, im, round(x - im.width / 2 - x0), round(y - im.height / 2 - y0))
     strokes.alpha_composite(fills)
     box = strokes.getbbox()
-    out = strokes.crop(box)
-    # centre of the circle relative to the crop, so callers can place it
-    return out, (c0 - box[0], c0 - box[1])
+    return strokes.crop(box), (-x0 - box[0], -y0 - box[1])
 
 
 def place_arc(L, arc, cx, cy):
@@ -514,7 +526,7 @@ def paddle(L, hx, hy, ang, R, face=CORAL, grip=TEAL, heart=False, trim=CREAM, sc
     for i in range(3):
         a, b = P(-0.08, 0.06 - i * 0.12), P(0.08, 0.0 - i * 0.12)
         line(L, [a, b], 0.03 * s, NAVY)
-    fc = P(0, -0.7)
+    fc = P(0, -0.84 if heart else -0.7)
     if heart:
         hp = heart_pts(*fc, 0.9 * s, ang)
         ink(L, [(Poly(hp), face)], OW)
@@ -605,7 +617,7 @@ def grandma(ss):
     L = Layer((0, 0, W, H), ss)
     cx = W / 2
     # ---- arched headline
-    arc = arc_text(L, "GRANDMA'S", "BowlbyOneSC-Regular.ttf", 600, 0, 0, 3100, CORAL, stroke=30, track=34)
+    arc = arc_text(L, "GRANDMA’S", "BowlbyOneSC-Regular.ttf", 600, 0, 0, 3100, CORAL, stroke=30, track=34)
     arc = (extrude(arc[0], 0, round(L.k(55)), NAVY), arc[1])
     place_arc(L, arc, cx, 3500)
 
@@ -622,7 +634,6 @@ def grandma(ss):
     limb(L, P(-0.88, 0.0), P(-1.5, 0.12), P(-1.42, -0.42), 0.12 * R)
     glove_open(L, *P(-1.4, -0.56), -95, R, thumb_side=1)
     # paddle arm, mid-swing
-    motion_arcs(L, *P(0.9, 0.1), 1.62 * R, 8, 42, n=3, gap=0.16 * R, width=0.055 * R)
     limb(L, P(0.88, 0.12), P(1.45, 0.35), P(1.52, -0.12), 0.12 * R)
     paddle(L, *P(1.55, -0.24), 52, R, face=CORAL)
     glove_fist(L, *P(1.55, -0.24), -50, R)
@@ -665,10 +676,10 @@ def grandma(ss):
             ink(t, [(Ell(*P(x, y), 0.07 * R), WHITE)], 14)
     ring_restroke(L, bx, by, R, 20, 160)
     # the ball she just smashed
-    mini_ball(L, *P(2.95, -1.12), 0.2 * R)
+    mini_ball(L, *P(2.92, -0.9), 0.2 * R)
     for k in range(3):
-        a = P(2.66, -1.12 + (k - 1) * 0.16)
-        b = P(2.5 + abs(k - 1) * 0.06, -1.12 + (k - 1) * 0.2)
+        a = P(2.63, -0.9 + (k - 1) * 0.16)
+        b = P(2.47 + abs(k - 1) * 0.06, -0.9 + (k - 1) * 0.2)
         line(L, [a, b], 0.05 * R, NAVY)
     sparkle(L, *P(-2.0, -1.05), 0.2 * R, CORAL, 0)
     sparkle(L, *P(-1.75, 0.55), 0.12 * R, NAVY, 0)
@@ -741,11 +752,11 @@ def knees(ss):
     P = lambda x, y: (bx + x * R, by + y * R)  # noqa: E731
     legs = []
     for sgn in (-1, 1):
-        pts = bezier3(P(sgn * 0.3, 0.88), P(sgn * 0.95, 1.12), P(sgn * 0.92, 1.6), P(sgn * 0.62, 1.86))
+        pts = bezier3(P(sgn * 0.3, 0.88), P(sgn * 0.98, 1.1), P(sgn * 0.98, 1.8), P(sgn * 0.62, 2.1))
         Tube(pts, 0.13 * R).draw(L, NAVY)
         legs.append(pts)
     for sgn in (-1, 1):
-        shoe(L, *P(sgn * 0.62, 1.86), sgn, R)
+        shoe(L, *P(sgn * 0.62, 2.1), sgn, R)
     for sgn, pts in zip((-1, 1), legs):
         kx, ky = max(pts, key=lambda q: sgn * q[0])
         knee_brace(L, kx - sgn * 0.02 * R, ky, R, ang=sgn * 4)
@@ -755,18 +766,18 @@ def knees(ss):
     glove_thumbs_up(L, *P(-1.32, -0.28), R, side=1)
     # heart paddle arm (viewer right)
     limb(L, P(0.88, 0.08), P(1.45, 0.4), P(1.36, -0.1), 0.12 * R)
-    paddle(L, *P(1.38, -0.22), 14, R, face=CORAL, heart=True)
+    paddle(L, *P(1.38, -0.22), 14, R, face=CORAL, heart=True, scale=1.12)
     glove_fist(L, *P(1.38, -0.22), -76, R)
     # body
     ball_body(L, bx, by, R, skip=(15, 345, 255, 105))
-    headband(L, bx, by, R, y=-0.6)
+    headband(L, bx, by, R, y=-0.72)
     for sgn in (-1, 1):
         pie_eye(L, *P(sgn * 0.24, -0.1), R, look=(0.025, -0.03))
         # determined brows
         line(L, [P(sgn * 0.36, -0.37 + 0.0), P(sgn * 0.13, -0.33)], 0.06 * R, NAVY)
     cheeks(L, bx, by, R, dx=0.47, dy=0.16)
     open_mouth(L, *P(0, 0.2), R, w=0.5, depth=0.3)
-    sweat_drop(L, *P(-0.62, -0.32), R)
+    sweat_drop(L, *P(-0.6, -0.2), R)
     plaster(L, *P(0.5, 0.52), R, -35)
     plaster(L, *P(0.5, 0.52), R, 35)
     # little hearts
@@ -775,10 +786,10 @@ def knees(ss):
 
     # ---- bottom lines
     t1 = text_img(L, "My heart says", "Pacifico-Regular.ttf", 400, NAVY)
-    L.put_img_top(t1, cx, 3440)
-    arc = arc_text(L, "PICKLEBALL", "Shrikhand-Regular.ttf", 600, 0, 0, 5200, CORAL, stroke=28, track=10, up=False)
+    L.put_img_top(t1, cx, 3740)
+    arc = arc_text(L, "PICKLEBALL", "Shrikhand-Regular.ttf", 600, 0, 0, 9000, CORAL, stroke=28, track=10, up=False)
     arc = (extrude(arc[0], 0, round(L.k(45)), NAVY), arc[1])
-    place_arc(L, arc, cx, 4080 - 5200)
+    place_arc(L, arc, cx, 4570 - 9000)
     return L
 
 
@@ -790,21 +801,21 @@ def kitchen(ss):
     place_arc(L, arc, cx, 2900)
 
     G = Layer((0, 0, W, H), ss)  # badge group, gets a cream halo
-    dcx, dcy, dr = cx, 2330, 1080
+    dcx, dcy, dr = cx, 2330, 1120
     ink(G, [(Ell(dcx, dcy, dr), TEAL)], 34, NAVY)
     for i in range(48):
         a = math.radians(i * 7.5)
         Ell(dcx + (dr - 95) * math.cos(a), dcy + (dr - 95) * math.sin(a), 17).draw(G, CREAM)
     R = 600
-    bx, by = cx - 60, 2470
+    bx, by = cx - 150, 2470
     P = lambda x, y: (bx + x * R, by + y * R)  # noqa: E731
     # hand-on-hip arm
     limb(G, P(-0.9, 0.05), P(-1.62, 0.05), P(-1.02, 0.55), 0.12 * R)
     glove_fist(G, *P(-1.0, 0.56), 150, R)
     # flipping arm with the paddle as a spatula
-    limb(G, P(0.88, 0.1), P(1.35, 0.35), P(1.42, -0.05), 0.12 * R)
-    paddle(G, *P(1.45, -0.16), 62, R, face=CORAL)
-    glove_fist(G, *P(1.45, -0.16), -28, R)
+    limb(G, P(0.88, 0.1), P(1.3, 0.35), P(1.33, 0.05), 0.12 * R)
+    paddle(G, *P(1.35, -0.05), 72, R, face=CORAL)
+    glove_fist(G, *P(1.35, -0.05), -18, R)
     ball_body(G, bx, by, R, skip=(345, 15, 255, 285, 75, 105))
     # chef hat
     hat = [(Ell(*P(-0.4, -1.32), 0.36 * R), WHITE), (Ell(*P(0.02, -1.52), 0.43 * R), WHITE),
@@ -826,22 +837,19 @@ def kitchen(ss):
         Ell(*P(sgn * 0.47, 0.0), 0.065 * R).draw(G, NAVY)
     Ell(*P(0, 0.04), 0.08 * R, 0.06 * R).draw(G, NAVY)
     # the flipped ball and its arc
-    fx, fy = P(2.15, -1.7)
-    mini_ball(G, fx, fy, 0.24 * R)
-    pts = bezier(P(1.5, -0.95), P(1.65, -1.75), P(1.85, -1.75), 20)
-    for i in range(0, 20, 5):
-        line(G, pts[i:i + 3], 0.05 * R, CREAM)
-    sparkle(G, *P(2.65, -1.2), 0.14 * R, CREAM)
-    sparkle(G, *P(-1.4, -1.3), 0.18 * R, CREAM)
+    fx, fy = P(1.98, -1.0)
+    mini_ball(G, fx, fy, 0.22 * R)
+    motion_arcs(G, fx, fy, 0.36 * R, 150, 215, n=2, gap=0.13 * R, width=0.045 * R, color=NAVY)
     # ribbon
     ribbon_y = 3290
     ribbon(G, cx, ribbon_y, 3300, 430, CORAL, sag=-90, ow=30)
     G.img = halo(G.img, G.k(34), CREAM).crop((int(G.k(34) * 1.6) + 4, int(G.k(34) * 1.6) + 4, int(G.k(34) * 1.6) + 4 + G.img.width, int(G.k(34) * 1.6) + 4 + G.img.height))
     L.put(G)
-    arc2 = arc_text(L, "STAFF ONLY", "BowlbyOneSC-Regular.ttf", 300, 0, 0, 3300 ** 2 / (8 * 90), CREAM, track=30, up=True)
+    sparkle(L, *P(-1.25, -1.25), 0.17 * R, CREAM)
+    sparkle(L, *P(-1.5, -0.8), 0.09 * R, CREAM)
     # The ribbon curves like a parabola with sag -90 over half-width 1650: approximate with a circle
     rad = 1650 ** 2 / (2 * 90)
-    arc2 = arc_text(L, "STAFF ONLY", "BowlbyOneSC-Regular.ttf", 300, 0, 0, rad, CREAM, track=30, up=True)
+    arc2 = arc_text(L, "STAFF ONLY", "BowlbyOneSC-Regular.ttf", 330, 0, 0, rad, CREAM, track=30, up=True)
     place_arc(L, arc2, cx, ribbon_y - 90 + rad + 15)
     sub = text_img(L, "NON-VOLLEY ZONE DEPT.", "BowlbyOneSC-Regular.ttf", 190, CREAM, track=22)
     L.put_img_top(sub, cx, 3720)
@@ -879,22 +887,17 @@ def retired(ss):
     ring = Ell(*P(1.5, -0.9), 0.5 * R, 0.09 * R).pts()
     line(G, ring + [ring[0]], 0.03 * R, NAVY)
     mini_ball(G, *P(1.5, -1.25), 0.33 * R)
-    sparkle(G, *P(2.15, -1.55), 0.15 * R, CREAM)
-    sparkle(G, *P(0.92, -1.68), 0.11 * R, CREAM)
     ball_body(G, bx, by, R, skip=(345, 15, 45, 315, 165, 195))
     # visor
     with clipped(G, (bx - R, by - R, bx + R, by + R), Ell(bx, by, R)) as tt:
         pts = [P(x / 20, -0.58 + 0.08 * (1 - (x / 20) ** 2)) for x in range(-22, 23)]
         Tube(pts, 0.16 * R + 2 * OW).draw(tt, NAVY)
-        Tube(pts, 0.16 * R).draw(tt, TEAL)
+        Tube(pts, 0.16 * R).draw(tt, CORAL)
     ring_restroke(G, bx, by, R, 200, 240)
     ring_restroke(G, bx, by, R, 300, 340)
     brim = [P(0.82 * math.cos(math.radians(a)), -0.5 + 0.3 * math.sin(math.radians(a))) for a in range(0, 181, 5)]
-    ink(G, [(Poly(brim), TEAL)])
+    ink(G, [(Poly(brim), CORAL)])
     line(G, [P(0.6 * math.cos(math.radians(a)), -0.47 + 0.18 * math.sin(math.radians(a))) for a in range(20, 161, 5)], 0.03 * R, CREAM)
-    # grandpa hair tufts
-    for sgn in (-1, 1):
-        ink(G, [(Ell(*P(sgn * 0.93, -0.32), 0.14 * R), WHITE), (Ell(*P(sgn * 1.0, -0.12), 0.12 * R), WHITE)])
     for sgn in (-1, 1):
         pie_eye(G, *P(sgn * 0.24, -0.02), R, look=(0.02, -0.01), scale=0.9)
     cheeks(G, bx, by, R, dx=0.5, dy=0.22)
@@ -906,28 +909,106 @@ def retired(ss):
     pad = int(G.k(34) * 1.6) + 4
     G.img = halo(G.img, G.k(34), CREAM).crop((pad, pad, pad + G.img.width, pad + G.img.height))
     L.put(G)
+    sparkle(L, *P(2.3, -1.45), 0.16 * R, CREAM)
+    sparkle(L, *P(0.85, -1.62), 0.1 * R, CREAM)
 
     # ---- diner sign bottom
-    ry = 3640
+    ry = 3720
     R2 = ribbon(L, cx, ry, 2700, 400, CORAL, sag=0, ow=0)
     del R2
     t2 = text_img(L, "NOW SERVING", "BowlbyOneSC-Regular.ttf", 270, CREAM, track=30)
     L.put_img(t2, cx, ry)
     t3 = text_img(L, "FULL TIME", "BowlbyOneSC-Regular.ttf", 640, LIME, track=20)
     t3 = extrude(t3, 0, round(L.k(50)), CORAL)
-    L.put_img_top(t3, cx, 3930)
+    L.put_img_top(t3, cx, 4010)
     t4 = text_img(L, "OPEN 7 DAYS A WEEK", "BowlbyOneSC-Regular.ttf", 150, CREAM, track=30)
-    L.put_img_top(t4, cx, 4720)
+    L.put_img_top(t4, cx, 4800)
     for sgn in (-1, 1):
-        sparkle(L, cx + sgn * (t4.width / L.ss / 2 + 120), 4720 + 75, 60, LIME)
+        sparkle(L, cx + sgn * (t4.width / L.ss / 2 + 120), 4800 + 75, 60, LIME)
     return L
 
 
+
+def _desc(hook, who, about):
+    return (f"{hook}\n\nWho it's for:\n" + "\n".join(f"- {w}" for w in who)
+            + f"\n\nAbout the design:\n{about}\n\n" + AI_DISCLOSURE)
+
+
+LISTINGS = {
+    "grandmas-got-game": {
+        "slug": "grandmas-got-game",
+        "title": "Comfort Colors Grandma's Got Game Pickleball Shirt, Retro Pickleball Grandma Tee, Funny Mother's Day or Birthday Gift",
+        "tags": ["pickleball grandma", "grandmas got game", "grandma gift", "funny grandma shirt", "pickleball gift",
+                 "retro pickleball", "comfort colors tee", "mothers day gift", "grandma birthday", "gift from grandkids",
+                 "pickleball shirt", "pickleball lover", "cute pickleball"],
+        "description": _desc(
+            "She's sweet, she wears pearls, and she will absolutely smash your lob. A happy retro pickleball shirt for the grandma who out-plays everyone at open play.",
+            ["A grandma who plays pickleball every week", "Grandkids and adult children looking for a gift she'll actually wear",
+             "Mother's Day, birthdays, Christmas and \"just because\""],
+            "A vintage cartoon pickleball granny with cat-eye glasses, a pearl necklace, a sweatband and white gloves, "
+            "mid-swing with her paddle, under arched 'Grandma's' and a big script 'Got Game!'. Printed with a subtle worn, "
+            "vintage texture on a soft garment-dyed Comfort Colors tee."),
+        "alt_text": "Retro cartoon pickleball grandma with glasses, pearls and a paddle under the words Grandma's Got Game on a pink tee.",
+        "products": [{"type": "tee-cc", "colors": ["Blossom", "Ivory", "Chalky Mint", "Butter"]}],
+        "occasion": "year-round (Mother's Day, birthdays, Christmas)",
+    },
+    "knees-say-no-heart-says-pickleball": {
+        "slug": "knees-say-no-heart-says-pickleball",
+        "title": "Comfort Colors My Knees Say No My Heart Says Pickleball Shirt, Funny Retro Pickleball Tee, Birthday Gift for Player",
+        "tags": ["pickleball shirt", "funny pickleball", "pickleball gift", "bad knees shirt", "pickleball humor",
+                 "retro pickleball", "comfort colors tee", "senior pickleball", "pickleball grandpa", "pickleball grandma",
+                 "birthday gift", "fathers day gift", "pickleball lover"],
+        "description": _desc(
+            "The knees file a complaint every morning. The heart books another game anyway. A warm, funny retro pickleball shirt for every player who ices after open play and shows up again tomorrow.",
+            ["Pickleball players who wear a knee brace (or should)", "Spouses, kids and grandkids shopping for a birthday, Father's Day or Mother's Day gift",
+             "Anyone whose doctor and whose paddle disagree"],
+            "A vintage cartoon pickleball mascot in knee braces with wobbly knees, a sweatband and a bandage, giving a thumbs-up "
+            "and holding a heart-shaped paddle. 'My knees say NO!' above and 'My heart says PICKLEBALL' below, with a subtle worn texture."),
+        "alt_text": "Cartoon pickleball in knee braces holding a heart-shaped paddle with the words My knees say no, my heart says pickleball on a mint tee.",
+        "products": [{"type": "tee-cc", "colors": ["Chalky Mint", "Ivory", "Butter", "Blossom"]}],
+        "occasion": "year-round (birthdays, Father's Day, Mother's Day)",
+    },
+    "kitchen-staff-only-chef": {
+        "slug": "kitchen-staff-only-chef",
+        "title": "Comfort Colors Kitchen Staff Only Pickleball Shirt, Funny Retro Chef Pickleball Tee, Non-Volley Zone Gift for Player",
+        "tags": ["pickleball kitchen", "kitchen staff only", "non volley zone", "funny pickleball", "pickleball gift",
+                 "pickleball shirt", "retro pickleball", "comfort colors tee", "pickleball chef", "dink shirt",
+                 "fathers day gift", "pickleball lover", "pickleball dad"],
+        "description": _desc(
+            "Some people cook in the kitchen. Real players live there. A retro restaurant-sign pickleball shirt for the dinker who never leaves the non-volley zone line.",
+            ["Players who love the soft game and the kitchen line", "Gift shoppers looking for a pickleball joke players actually get",
+             "Birthdays, Father's Day, Christmas and club gift swaps"],
+            "A vintage diner-style badge: a winking pickleball chef with a curly mustache and chef's hat, flipping a ball with "
+            "his paddle like a spatula, under arched 'KITCHEN', a 'STAFF ONLY' ribbon and 'Non-Volley Zone Dept.' Light ink "
+            "made for dark garment-dyed Comfort Colors tees, with a subtle worn texture."),
+        "alt_text": "Retro badge with a winking pickleball chef flipping a ball with a paddle and the words Kitchen Staff Only, Non-Volley Zone Dept. on a dark grey tee.",
+        "products": [{"type": "tee-cc", "colors": ["Pepper", "Navy", "Black", "Blue Spruce"]}],
+        "occasion": "year-round (birthdays, Father's Day, Christmas)",
+    },
+    "retired-now-serving-full-time": {
+        "slug": "retired-now-serving-full-time",
+        "title": "Comfort Colors Retired Now Serving Full Time Pickleball Shirt, Funny Retirement Gift, Retro Pickleball Tee for Retiree",
+        "tags": ["retirement gift", "retired pickleball", "pickleball retiree", "funny retirement", "retirement shirt",
+                 "pickleball gift", "pickleball shirt", "retro pickleball", "comfort colors tee", "gift for retiree",
+                 "retirement party", "pickleball grandpa", "pickleball lover"],
+        "description": _desc(
+            "The office is closed. The courts are open seven days a week. A retro diner-sign pickleball shirt for the newly retired player who finally serves full time.",
+            ["A coworker, parent or spouse who is retiring and plays pickleball", "Retirement parties and farewell gifts",
+             "Retirees who already treat open play like a job"],
+            "A vintage cartoon pickleball waiter in a visor and bow tie, carrying a pickleball on a serving tray with a paddle in "
+            "the other hand, over a 50s starburst. Script 'Retired.' on top, then a 'NOW SERVING' ribbon, a big 'FULL TIME' and "
+            "'Open 7 days a week'. Light ink for dark garment-dyed Comfort Colors tees, with a subtle worn texture."),
+        "alt_text": "Retro cartoon pickleball waiter serving a ball on a tray under the words Retired. Now Serving Full Time on a dark green tee.",
+        "products": [{"type": "tee-cc", "colors": ["Blue Spruce", "Pepper", "Navy", "Black"]}],
+        "occasion": "year-round (retirement parties, birthdays, Father's Day)",
+    },
+}
+
 DESIGNS = {
-    "grandmas-got-game": dict(fn=grandma, seed=11, garments=LIGHT, mock="Blossom"),
-    "knees-say-no-heart-says-pickleball": dict(fn=knees, seed=22, garments=LIGHT, mock="Chalky Mint"),
-    "kitchen-staff-only-chef": dict(fn=kitchen, seed=33, garments=DARK, mock="Pepper"),
-    "retired-now-serving-full-time": dict(fn=retired, seed=44, garments=DARK, mock="Blue Spruce"),
+    "grandmas-got-game": dict(listing=LISTINGS["grandmas-got-game"], fn=grandma, seed=11, garments=LIGHT, mock="Blossom"),
+    "knees-say-no-heart-says-pickleball": dict(listing=LISTINGS["knees-say-no-heart-says-pickleball"], fn=knees, seed=22, garments=LIGHT, mock="Chalky Mint"),
+    "kitchen-staff-only-chef": dict(listing=LISTINGS["kitchen-staff-only-chef"], fn=kitchen, seed=33, garments=DARK, mock="Pepper"),
+    "retired-now-serving-full-time": dict(listing=LISTINGS["retired-now-serving-full-time"], fn=retired, seed=44, garments=DARK, mock="Blue Spruce"),
 }
 
 
@@ -940,16 +1021,23 @@ def build(slug, ss, outdir: Path, texture=1.0):
     data = png_bytes(img)
     (folder / "design.png").write_bytes(data)
     (folder / "mockup.png").write_bytes(make_mockup(data, CC[spec["mock"]]))
-    for g in spec["garments"]:
-        (folder.parent / "_review").mkdir(exist_ok=True)
-        (folder.parent / "_review" / f"{slug}-{g.replace(' ', '-').lower()}.png").write_bytes(make_mockup(data, CC[g], size=700))
-    if "listing" in spec:
-        listing = spec["listing"]
-        problems = listing_problems(listing, PICKLEBALL.blocked_terms)
-        if problems:
-            raise SystemExit(f"{slug}: {problems}")
-        (folder / "listing.json").write_text(json.dumps(listing, indent=2, ensure_ascii=False) + "\n")
-    return folder
+    listing = spec["listing"]
+    problems = listing_problems(listing, PICKLEBALL.blocked_terms)
+    if problems:
+        raise SystemExit(f"{slug}: {problems}")
+    (folder / "listing.json").write_text(json.dumps(listing, indent=2, ensure_ascii=False) + "\n")
+    colorways = [Image.open(io.BytesIO(make_mockup(data, CC[g], size=500))) for g in spec["garments"]]
+    return folder, colorways
+
+
+def contact_sheet(rows, path):
+    """One row per design, one tee per garment colour."""
+    cw, ch = 500, 550
+    sheet = Image.new("RGB", (cw * max(len(r) for r in rows), ch * len(rows)), "#FFFFFF")
+    for y, row in enumerate(rows):
+        for x, im in enumerate(row):
+            sheet.paste(im.convert("RGB"), (x * cw, y * ch))
+    sheet.save(path, optimize=True)
 
 
 def main():
@@ -960,10 +1048,15 @@ def main():
     a = ap.parse_args()
     ss = 0.5 if a.preview else 2
     outdir = Path(a.out) if a.out else OUT
+    rows = []
     for slug in DESIGNS:
         if a.only and slug != a.only:
             continue
-        print("built", build(slug, ss, outdir))
+        folder, colorways = build(slug, ss, outdir)
+        rows.append(colorways)
+        print("built", folder)
+    if rows and not a.only:
+        contact_sheet(rows, outdir / "contact-sheet-evergreen.png")
 
 
 if __name__ == "__main__":

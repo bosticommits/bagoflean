@@ -31,7 +31,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-DESIGN_DIRS = [ROOT / "designs-round-3", ROOT / "designs-round-2", ROOT / "samples"]
+DESIGN_DIRS = [ROOT / "designs-round-4", ROOT / "designs-round-3", ROOT / "designs-round-2", ROOT / "samples"]
 STATE = ROOT / "printify" / "state.json"
 API = "https://api.printify.com/v1"
 SHOP_ID = 29206471  # "My new store", connected to the DinkDistrictArt Etsy shop

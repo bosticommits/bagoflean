@@ -371,11 +371,19 @@ def hero(design: Image.Image, ptype: str, color_name: str, season: str, seed: in
 
 
 def closeup(design: Image.Image, ptype: str, color_name: str, seed: int) -> Image.Image:
-    rng = np.random.default_rng(seed + 7)
     rgb = GARMENT_RGB.get(color_name, (200, 200, 200))
-    g = render_garment(design, rgb, garment_kind(ptype), (3200, 3200), rng)
-    # crop around the print
-    box = (int(0.18 * 3200), int(0.12 * 3200), int(0.82 * 3200), int(0.60 * 3200))
+    g = render_garment(design, rgb, garment_kind(ptype), (3200, 3200), np.random.default_rng(seed + 7))
+    # find where the print landed by diffing against the same garment without it,
+    # then crop a 4:3 box that holds the whole print with a little margin
+    blank = render_garment(Image.new("RGBA", design.size), rgb, garment_kind(ptype), (3200, 3200),
+                           np.random.default_rng(seed + 7))
+    diff = np.abs(np.asarray(g.convert("RGB"), dtype=np.int16) - np.asarray(blank.convert("RGB"), dtype=np.int16))
+    ys, xs = np.nonzero(diff.max(axis=2) > 24)
+    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    bw = max((x1 - x0) * 1.12, (y1 - y0) * 1.12 * W / H)
+    bh = bw * H / W
+    box = (int(cx - bw / 2), int(cy - bh / 2), int(cx + bw / 2), int(cy + bh / 2))
     crop = g.crop(box).resize((W, int(W * (box[3] - box[1]) / (box[2] - box[0]))), Image.LANCZOS)
     bg = Image.new("RGB", (W, H), tuple(int(c * 0.8) for c in rgb))
     bg.paste(crop.convert("RGB"), (0, (H - crop.height) // 2), crop)
