@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 .env
 photos/
+designs-*/*/thumbs.png

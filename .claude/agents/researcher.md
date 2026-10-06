@@ -30,3 +30,6 @@ Update `knowledge/what-works.md`:
 - the "Decisions log"
 
 Keep the file under about 200 lines.
+
+## Feed the design playbook
+When stats show which listings get views, favourites or orders, add a line to section 7 ("What sold or got attention") of `knowledge/design-playbook.md`: the design, its style or layout, the numbers, and the lesson for the next designs. When the owner gives feedback on how designs look, add it to section 6 (owner taste log).

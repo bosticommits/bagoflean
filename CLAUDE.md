@@ -2,7 +2,7 @@
 
 An Etsy print-on-demand shop, **DinkDistrictArt**, selling funny pickleball apparel and gifts through Printify.
 
-**Before any task, read `knowledge/what-works.md`** (shared memory: what's live, prices, market findings, rules). After any task that changes something, add a dated line to it.
+**Before any task, read `knowledge/what-works.md`** (shared memory: what's live, prices, market findings, rules). **For any design work, also read `knowledge/design-playbook.md`** (house style, checklist, what the owner likes). After any task that changes something, add a dated line to the right file.
 
 ## Specialist subagents (`.claude/agents/`)
 - **designer**: new or improved print-ready designs plus `listing.json`
@@ -12,7 +12,10 @@ An Etsy print-on-demand shop, **DinkDistrictArt**, selling funny pickleball appa
 - **researcher**: turns Etsy screenshots and stats into decisions; keeps the memory file current
 
 ## Map
-- `designs-round-2/`, `samples/`: one folder per design (`design.png`, `mockup.png`, `listing.json`)
+- `knowledge/design-playbook.md`: house style (the mascot), design checklist, scoring, owner taste and lessons logs
+- `scripts/design_check.py`: automatic pre-flight check for a design folder (writes `thumbs.png`)
+- `scripts/photo_studio.py`: listing photos into `photos/<slug>/` (gitignored)
+- `designs-round-4/` (current mascot style), `designs-round-2/`, `samples/`: one folder per design (`design.png`, `mockup.png`, `listing.json`)
 - `scripts/printify_publish.py`: create, publish and reprice products; `printify/state.json` records what's created and live
 - `scripts/marketing_pins.py`: Pinterest pins plus bulk CSV in `marketing/`
 - `scripts/club_shirt.py`: personalised "<Town> Pickleball Club" file per order
