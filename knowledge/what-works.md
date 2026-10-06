@@ -11,18 +11,14 @@ first in each log.
 - **Goal right now:** first sales and reviews. The owner has spent about $20 so far and wants it back first. Keep spending near zero.
 - **Brand colours:** navy #1D2B45, coral #E76F51, teal #2A9D8F, lime #D9F03C, cream #FBF3E4. The tone is warm and clever, never mean.
 
-## Live on Etsy (16 listings, as of 2026-10-06)
-- **Crewneck (Gildan 18000):** Dink the Halls, Merry Dinkmas (round-4 mascot art since 2026-10-06), Santa's Favorite Dinker (round-4 badge art), Santa's Naughty List Kitchen Violators, Dear Santa Fix My Backhand, Gobble Gobble Dink Dink
-- **Tee (Bella+Canvas 3001):** Grandma (Sweet as Pie), Grandpa (Dinking Since Retirement), Retirement Schedule, 2027 Resolutions, Mine Yours Oops, Just One More Game, Doctor's Orders Rx
+## Live on Etsy (22 listings, as of 2026-10-06)
+- **Round 4 (mascot style, best work):** Merry Dinkmas, Santa's Favorite Dinker, Dashing Through the Kitchen, Jingle All the Way to the Kitchen knit sweater (crewnecks); Grandma's Got Game, My Knees Say No My Heart Says Pickleball, Kitchen Staff Only, Retired Now Serving Full Time (Comfort Colors tees)
+- **Older crewnecks:** Dink the Halls, Santa's Naughty List Kitchen Violators, Dear Santa Fix My Backhand, Gobble Gobble Dink Dink
+- **Older tees (Bella+Canvas 3001):** Grandma (Sweet as Pie), Grandpa (Dinking Since Retirement), Retirement Schedule, 2027 Resolutions, Mine Yours Oops, Just One More Game, Doctor's Orders Rx
 - **Mugs (11oz):** Coffee then Pickleball, What's the Score
 - **Sticker:** Official Kitchen Inspector
 
-**Drafts (23). The owner said "publish all of them" on 2026-10-06, but the session's permission check blocked the publish step, so they're still unpublished. Publish from the Printify dashboard or re-run `publish`:**
-- Round 4 (new): Dashing Through the Kitchen (crewneck); Grandma's Got Game, My Knees Say No, Kitchen Staff Only, Retired Now Serving Full Time (Comfort Colors tees)
-- Comfort Colors tees, name versions: Gigi, Nana, Mimi, Memaw (Sweet as Pie) and Papa, Pops, Pawpaw, Gramps (Dinking Since Retirement)
-- Comfort Colors copies of the 7 live tees
-- Two-tone accent mugs: "I'm Not Yelling, I'm Calling the Score" and "Professional Dinker"
-- Ugly-sweater crewneck: "Jingle All the Way to the Kitchen" (now with round-4 knit art)
+**No drafts.** On 2026-10-06 the owner had the 17 old drafts deleted (name tees, Comfort Colors copies, accent mugs). Don't run `create-all` without asking, because it would recreate them.
 
 The source of truth for what's live is `printify/state.json` plus `python scripts/printify_publish.py list`.
 
@@ -62,7 +58,7 @@ Costs: crewneck $17.87 (S-XL), tee $11.29 (S-XL), Comfort Colors tee $12.65 (S-X
 - **Publishing:** create as a Printify draft, tell the owner, and publish only after they say so. Every listing costs $0.20.
 
 ## Decisions log
-- 2026-10-06: Published round 4 to Etsy: Dashing Through the Kitchen, Jingle sweater (knit art), Grandma's Got Game, My Knees Say No, Kitchen Staff Only, Retired Now Serving Full Time. The owner wants the old designs removed; that's waiting for them to confirm the exact list.
+- 2026-10-06: Published round 4 to Etsy (6 listings). Deleted the 17 old unpublished drafts at the owner's request. The owner chose to keep the 13 older live listings up for now. Next: check which older listings get no views after about 30 days and retire them.
 - 2026-10-06: New `swap <old> <new>` command in `printify_publish.py` puts a new design onto an existing product (same listing, no duplicate). Used for Merry Dinkmas, Santa's Favorite Dinker (live, re-synced) and the Jingle draft. The state entry keeps the old slug and gains `"design": <new slug>`. Printify needs every variant id, including disabled ones, in `print_areas.variant_ids`.
 - 2026-10-06: `scripts/photo_studio.py` makes listing photos (flat-lay hero, close-up, colour sheet, gift card) into `photos/<slug>/` (gitignored). Printify can't upload them, so the owner adds them in the Etsy listing editor. The close-up now frames the whole print.
 - 2026-10-06: Round 4 evergreen gift tees (Comfort Colors, `scripts/round4_evergreen.py` → `designs-round-4/`): Grandma's Got Game, My Knees Say No My Heart Says Pickleball, Kitchen Staff Only (chef badge), Retired. Now Serving Full Time (waiter with tray). New house style to replace flat text + icons: one recurring lime rubber-hose ball mascot (pie-cut eyes, white gloves, sneakers) with a costume per joke, retro arched/script/extruded type, ribbons and starbursts, and a subtle binary speck texture. Dark-shirt designs get a cream halo, so the navy outlines don't vanish on Navy/Black. Drafts not created yet (DESIGN_DIRS now includes designs-round-4).
