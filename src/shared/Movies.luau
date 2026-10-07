@@ -26,31 +26,32 @@ Movies.SpecialtyBonus = 1.5 -- actor cast in their specialty genre (plan section
 
 Movies.Genres = { "Action", "Comedy", "Horror", "Romance", "Sci-Fi" }
 
--- Plan section 2: Short Film 2 min, Indie 10 min, Feature 45 min, Epic 3 h. Costs and bases are
--- placeholders to tune in playtests.
+-- Plan section 2: Short Film 2 min, Indie 10 min, Feature 45 min, Epic 3 h. Base earnings per
+-- second fall slightly with length, so Shorts (with clapping) are best while playing and long
+-- scripts are for time away. Tuned with tools/economy_sim.py (see ECONOMY.md).
 Movies.Lengths = {
-	{ id = "Short", name = "Short Film", seconds = 2 * 60, base = 10, cost = 30, fame = 0 },
-	{ id = "Indie", name = "Indie", seconds = 10 * 60, base = 60, cost = 150, fame = 0 },
-	{ id = "Feature", name = "Feature", seconds = 45 * 60, base = 350, cost = 900, fame = 40 },
-	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 2400, cost = 6000, fame = 400 },
+	{ id = "Short", name = "Short Film", seconds = 2 * 60, base = 12, cost = 15, fame = 0 },
+	{ id = "Indie", name = "Indie", seconds = 10 * 60, base = 55, cost = 60, fame = 0 },
+	{ id = "Feature", name = "Feature", seconds = 45 * 60, base = 220, cost = 250, fame = 1400 },
+	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 780, cost = 900, fame = 12000 },
 } :: { Length }
 
 -- Fame needed before a genre's scripts can be bought (plan section 6: Fame unlocks genres).
 Movies.GenreFame = {
 	Action = 0,
 	Comedy = 0,
-	Horror = 25,
-	Romance = 25,
-	["Sci-Fi"] = 75,
+	Horror = 100,
+	Romance = 100,
+	["Sci-Fi"] = 1500,
 } :: { [string]: number }
 
 -- Ordered worst to best.
 Movies.Results = {
 	{ id = "Flop", name = "Flop", chance = 0.20, multiplier = 0.5, color = Color3.fromRGB(150, 150, 160) },
-	{ id = "Hit", name = "Hit", chance = 0.55, multiplier = 1, color = Color3.fromRGB(90, 200, 120) },
+	{ id = "Hit", name = "Hit", chance = 0.5525, multiplier = 1, color = Color3.fromRGB(90, 200, 120) },
 	{ id = "Blockbuster", name = "Blockbuster", chance = 0.20, multiplier = 3, color = Color3.fromRGB(80, 160, 255) },
 	{ id = "Cult", name = "Cult Classic", chance = 0.045, multiplier = 6, color = Color3.fromRGB(180, 100, 255) },
-	{ id = "Masterpiece", name = "Masterpiece", chance = 0.005, multiplier = 20, color = Color3.fromRGB(255, 215, 0) },
+	{ id = "Masterpiece", name = "Masterpiece", chance = 0.0025, multiplier = 20, color = Color3.fromRGB(255, 215, 0) },
 } :: { Result }
 
 local TITLES: { [string]: { string } } = {
@@ -169,7 +170,7 @@ function Movies.payout(length: Length, power: number, result: Result, genreBonus
 	return math.max(1, math.floor(length.base * power * (genreBonus or 1) * result.multiplier))
 end
 
--- Fame is a placeholder curve until M4 spends it.
+-- Fame never resets and is never spent; the unlock thresholds are set from this curve (ECONOMY.md).
 function Movies.fame(payout: number): number
 	return math.max(1, math.floor(math.sqrt(payout)))
 end

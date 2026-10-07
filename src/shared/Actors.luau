@@ -31,12 +31,12 @@ local Actors = {}
 -- Ordered common to rare.
 Actors.Tiers = {
 	{ id = "Newcomer", name = "Newcomer", oneIn = 2, starPower = 1, color = Color3.fromRGB(170, 170, 180) },
-	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 4, color = Color3.fromRGB(90, 200, 120) },
-	{ id = "Pro", name = "Pro", oneIn = 30, starPower = 15, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "Star", name = "Star", oneIn = 200, starPower = 70, color = Color3.fromRGB(180, 100, 255) },
-	{ id = "Superstar", name = "Superstar", oneIn = 1500, starPower = 400, color = Color3.fromRGB(255, 150, 60) },
-	{ id = "Legend", name = "Legend", oneIn = 15000, starPower = 2500, color = Color3.fromRGB(255, 80, 80) },
-	{ id = "Icon", name = "Icon", oneIn = 150000, starPower = 20000, color = Color3.fromRGB(255, 215, 0) },
+	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 3, color = Color3.fromRGB(90, 200, 120) },
+	{ id = "Pro", name = "Pro", oneIn = 40, starPower = 8, color = Color3.fromRGB(80, 160, 255) },
+	{ id = "Star", name = "Star", oneIn = 500, starPower = 20, color = Color3.fromRGB(180, 100, 255) },
+	{ id = "Superstar", name = "Superstar", oneIn = 5000, starPower = 50, color = Color3.fromRGB(255, 150, 60) },
+	{ id = "Legend", name = "Legend", oneIn = 50000, starPower = 120, color = Color3.fromRGB(255, 80, 80) },
+	{ id = "Icon", name = "Icon", oneIn = 500000, starPower = 300, color = Color3.fromRGB(255, 215, 0) },
 } :: { Tier }
 
 Actors.List = {
@@ -88,9 +88,9 @@ export type Agency = {
 
 -- Plan section 3: better agencies cost more per roll and remove the bottom tier(s).
 Actors.Agencies = {
-	{ id = "Open", name = "Open Casting", cost = 20, fame = 0, minTier = 1 },
-	{ id = "Talent", name = "Talent Agency", cost = 75, fame = 100, minTier = 2 },
-	{ id = "Hollywood", name = "Hollywood Casting", cost = 400, fame = 1000, minTier = 3 },
+	{ id = "Open", name = "Open Casting", cost = 10, fame = 0, minTier = 1 },
+	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 2500, minTier = 2 },
+	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 45000, minTier = 3 },
 } :: { Agency }
 
 local agencyById: { [string]: Agency } = {}
