@@ -140,10 +140,11 @@ the Hollywood sign letters, cars.
    `/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/<model>.py`
 3. The script also **renders a preview PNG** (front and three-quarter views) into
    `art/previews/`. Look at it and fix problems before uploading.
-4. Export **FBX** to `art/exports/<model>.fbx`.
+4. Export **FBX** to `art/exports/<model>.fbx`, written in studs (see the export rules below).
 5. Import the FBX into Studio with the **3D Importer** (Home → Import 3D), which uploads it
-   to the owner's account and places it in the world. Then screenshot it in Studio to check
-   scale and look.
+   to the owner's account and places it in the world. Set the MeshPart's `Color` to white and
+   `Material` to SmoothPlastic so the vertex colors show unchanged, then screenshot it in
+   Studio to check scale and look.
 6. Commit the `.py` script and preview, so every model can be rebuilt or changed later.
    Don't commit large exports.
 
@@ -152,11 +153,18 @@ the Hollywood sign letters, cars.
 - Low poly, flat shaded, simple shapes. **Under 2,000 triangles** for props and
   **under 5,000** for hero objects (Casting Booth, cinema facade).
 - Colors from the palette above, as **solid-color materials** (no image textures for now).
+  Roblox ignores FBX material colors, so the script must also **bake each face's material
+  color into a vertex color attribute** and export with `colors_type="SRGB"`.
 - Origin at the bottom center, facing −Y in Blender so it imports facing forward.
 - Real scale in mind: 1 stud ≈ 0.28 m. A trophy is about 2 studs tall, a palm tree about 25.
+- Roblox reads FBX units (centimetres) as studs, so export with
+  `global_scale = 1 / (0.28 * 100)`. Without it a 2-stud trophy imports 56 studs tall.
 - Apply all transforms before export. One object per model unless it needs moving parts.
 - Name every model and material clearly (`Trophy_Gold`, `Mat_AwardGold`).
 - Collision is done in Roblox with simple invisible parts, not the mesh.
+
+**Working example:** `art/blender/trophy_gold.py` (604 triangles, 2 studs tall, Roblox
+asset 100325620206746). Copy it as the starting point for new models.
 
 ## 13. References
 
