@@ -88,10 +88,12 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	}
 
 	-- Banner ------------------------------------------------------------------------------------
+	-- Below the Cash HUD and the Award Night line (which ends 124 px down), so it covers neither.
+	local TOP_POSITION = UDim2.new(0.5, 0, 0, 132)
 	local banner = Instance.new("Frame")
 	banner.Name = "Tutorial"
 	banner.AnchorPoint = Vector2.new(0.5, 0)
-	banner.Position = UDim2.new(0.5, 0, 0, 104)
+	banner.Position = TOP_POSITION
 	banner.Size = UDim2.new(0.9, 0, 0, 58)
 	banner.BackgroundColor3 = UiKit.NAVY
 	banner.BackgroundTransparency = 0.05
@@ -367,7 +369,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					banner.Position = UDim2.new(0.5, 0, 1, -12)
 				else
 					banner.AnchorPoint = Vector2.new(0.5, 0)
-					banner.Position = UDim2.new(0.5, 0, 0, 104)
+					banner.Position = TOP_POSITION
 				end
 			end
 			task.wait(0.2)

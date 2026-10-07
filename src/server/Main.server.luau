@@ -56,6 +56,9 @@ local function onPlayerAdded(player: Player)
 	end
 	EconomyService.refresh(player)
 	CastingService.refresh(player)
+	-- A player can step on a claim pad before their data arrives (a quick rejoin waits for the old
+	-- session to save). Redraw their lot now so it shows their stages and star, not an empty lot.
+	LotService.refresh(player)
 	player:SetAttribute("DataLoaded", true)
 	Analytics.onboarding(player, Analytics.Steps.Joined)
 	RewardService.joined(player)
