@@ -91,8 +91,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	banner.AnchorPoint = Vector2.new(0.5, 0)
 	banner.Position = UDim2.new(0.5, 0, 0, 104)
 	banner.Size = UDim2.new(0.9, 0, 0, 58)
-	banner.BackgroundColor3 = Color3.fromRGB(30, 26, 12)
-	banner.BackgroundTransparency = 0.1
+	banner.BackgroundColor3 = UiKit.NAVY
+	banner.BackgroundTransparency = 0.05
 	banner.Visible = false
 	banner.ZIndex = 8 -- above panels, below the reveal overlays
 	banner.Parent = gui
@@ -100,23 +100,23 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local limit = Instance.new("UISizeConstraint")
 	limit.MaxSize = Vector2.new(520, 70)
 	limit.Parent = banner
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = UiKit.GOLD
-	stroke.Thickness = 2
-	stroke.Parent = banner
+	UiKit.border(banner, 3, UiKit.GOLD)
 
-	local stepLabel = UiKit.makeLabel(banner, "", UiKit.GOLD, UDim2.new(0, 46, 1, -12), UDim2.fromOffset(8, 6))
+	local stepLabel = UiKit.makeTitle(banner, "", UiKit.GOLD, UDim2.new(0, 46, 1, -12), UDim2.fromOffset(8, 6))
 	stepLabel.ZIndex = 9
 	local textLabel = UiKit.makeLabel(banner, "", UiKit.WHITE, UDim2.new(1, -140, 1, -12), UDim2.fromOffset(58, 6))
 	textLabel.TextXAlignment = Enum.TextXAlignment.Left
 	textLabel.TextWrapped = true
 	textLabel.ZIndex = 9
 	UiKit.textConstraint(textLabel, 20)
-	local skip = UiKit.makeButton(banner, "Skip", Color3.fromRGB(90, 80, 60), UDim2.fromOffset(66, 40), UDim2.new(1, -74, 0.5, -20))
+	local skip = UiKit.makeButton(banner, "Skip", UiKit.TAB_OFF, UDim2.fromOffset(66, 40), UDim2.new(1, -74, 0.5, -20))
 	skip.ZIndex = 9
 
 	-- Highlights ----------------------------------------------------------------------------------
+	-- The pulsing outline borrows the button's own outline (a button keeps one border stroke), so
+	-- clearing it puts the original color and thickness back.
 	local highlight: UIStroke? = nil
+	local highlightRestore: { Color: Color3, Thickness: number, Transparency: number }? = nil
 	local highlightTween: Tween? = nil
 	local arrow: BillboardGui? = nil
 	local outline: Highlight? = nil
@@ -128,7 +128,14 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			highlightTween = nil
 		end
 		if highlight ~= nil then
-			highlight:Destroy()
+			if highlightRestore ~= nil then
+				highlight.Color = highlightRestore.Color
+				highlight.Thickness = highlightRestore.Thickness
+				highlight.Transparency = highlightRestore.Transparency
+				highlightRestore = nil
+			else
+				highlight:Destroy()
+			end
 			highlight = nil
 		end
 		if arrow ~= nil then
@@ -214,9 +221,11 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			board.Parent = gui.Parent
 			local label = Instance.new("TextLabel")
 			label.Size = UDim2.fromScale(1, 1)
-			label.BackgroundColor3 = UiKit.GOLD
-			label.TextColor3 = Color3.fromRGB(30, 20, 0)
-			label.Font = Enum.Font.GothamBlack
+			label.BackgroundColor3 = UiKit.AWARD_GOLD
+			label.TextColor3 = UiKit.WHITE
+			label.Font = UiKit.DISPLAY_FONT
+			UiKit.outline(label, 3)
+			UiKit.border(label, 3)
 			label.TextScaled = true
 			label.Text = if target == "claimPad" then "CLAIM HERE" else "COLLECT HERE"
 			label.Parent = board
@@ -232,9 +241,16 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		if button == nil or not button:IsA("GuiObject") then
 			return
 		end
-		local pulse = Instance.new("UIStroke")
-		pulse.Name = "TutorialPulse"
-		pulse.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		local existing = button:FindFirstChild("Outline")
+		local pulse: UIStroke
+		if existing ~= nil and existing:IsA("UIStroke") then
+			pulse = existing
+			highlightRestore = { Color = pulse.Color, Thickness = pulse.Thickness, Transparency = pulse.Transparency }
+		else
+			pulse = Instance.new("UIStroke")
+			pulse.Name = "TutorialPulse"
+			pulse.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		end
 		pulse.Color = UiKit.GOLD
 		pulse.Thickness = 4
 		pulse.Parent = button

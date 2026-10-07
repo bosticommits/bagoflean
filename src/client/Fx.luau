@@ -12,11 +12,12 @@ local Sfx = require(script.Parent.Sfx)
 local CONFETTI_TEXTURE = "rbxasset://textures/particles/SquareParticle.png"
 local SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
 local CONFETTI_COLORS = {
-	Color3.fromRGB(255, 205, 70),
-	Color3.fromRGB(255, 90, 110),
-	Color3.fromRGB(90, 200, 255),
-	Color3.fromRGB(140, 255, 140),
-	Color3.fromRGB(200, 120, 255),
+	-- The design kit's party colors: award gold, carpet red, Hollywood blue, fresh green, star purple.
+	Color3.fromRGB(245, 184, 46),
+	Color3.fromRGB(200, 32, 47),
+	Color3.fromRGB(46, 134, 222),
+	Color3.fromRGB(91, 191, 90),
+	Color3.fromRGB(160, 77, 255),
 }
 
 local Fx = {}
