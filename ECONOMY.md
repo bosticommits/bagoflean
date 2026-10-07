@@ -58,9 +58,9 @@ Other players:
 - **Casual** (25 min on day one, then 20 min a day): Talent Agency on day 3, first Superstar on
   day 4, Epic scripts on day 7. Legend 23%, Icon 1% in week one.
 - **Hardcore** (about 2 hours a day): Talent Agency in the first hour, Hollywood on day 3, Legend
-  on day 4 (88%), Icon 18% in week one, all upgrades maxed on day 6.
+  on day 4 (88%), Icon 7% in week one, all upgrades maxed on day 6.
 - **2x Luck pass** (typical schedule): Star at 15 min, Superstar in the first hour, Legend 64%,
-  Icon 9%. Faster, but nothing a free player cannot reach.
+  Icon 5%. Faster, but nothing a free player cannot reach.
 
 ## The levers and why they are set this way
 
