@@ -1,9 +1,10 @@
 --!strict
--- Placeholder HUD. Reads server-owned attributes; it never sends amounts to the server.
+-- Cash HUD: big outlined gold Cash with the box office line under it. Reads server-owned attributes; it never sends amounts to the server.
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
 local Sfx = require(script.Parent.Sfx)
+local UiKit = require(script.Parent.UiKit)
 
 local Hud = {}
 
@@ -17,30 +18,23 @@ Hud.comma = comma
 function Hud.start(gui: ScreenGui)
 	local player = Players.LocalPlayer
 
+	-- No box: outlined text floats over the world, as in the design kit.
 	local frame = Instance.new("Frame")
 	frame.Name = "Hud"
 	frame.AnchorPoint = Vector2.new(0.5, 0)
-	frame.Position = UDim2.new(0.5, 0, 0, 12)
-	frame.Size = UDim2.fromOffset(280, 84)
-	frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-	frame.BackgroundTransparency = 0.15
+	frame.Position = UDim2.new(0.5, 0, 0, 8)
+	frame.Size = UDim2.fromOffset(320, 84)
+	frame.BackgroundTransparency = 1
 	frame.Parent = gui
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
 	local function makeLabel(y: number, height: number, color: Color3): TextLabel
-		local label = Instance.new("TextLabel")
-		label.Position = UDim2.fromOffset(0, y)
-		label.Size = UDim2.new(1, 0, 0, height)
-		label.BackgroundTransparency = 1
-		label.TextColor3 = color
-		label.TextScaled = true
-		label.Font = Enum.Font.GothamBold
-		label.Parent = frame
+		local label = UiKit.makeTitle(frame, "", color, UDim2.new(1, 0, 0, height), UDim2.fromOffset(0, y), if height >= 40 then 3.5 else 2.5)
+		UiKit.textConstraint(label, height)
 		return label
 	end
 
-	local cashLabel = makeLabel(6, 44, Color3.fromRGB(120, 255, 140))
-	local pendingLabel = makeLabel(52, 26, Color3.fromRGB(255, 220, 90))
+	local cashLabel = makeLabel(4, 48, UiKit.GOLD)
+	local pendingLabel = makeLabel(54, 24, UiKit.WHITE)
 	cashLabel.Text = "Loading..."
 	pendingLabel.Text = ""
 
@@ -70,7 +64,7 @@ function Hud.start(gui: ScreenGui)
 			return
 		end
 		Sfx.play("sweep")
-		local float = makeLabel(0, 0, Color3.fromRGB(120, 255, 140))
+		local float = makeLabel(0, 30, UiKit.CASH_GREEN)
 		float.Text = "+$" .. comma(collected)
 		float.Position = UDim2.new(0, 0, 1, 0)
 		float.Size = UDim2.new(1, 0, 0, 30)
