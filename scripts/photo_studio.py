@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -490,6 +490,115 @@ def mug_scene(design: Image.Image, accent=(155, 203, 60), seed: int = 1) -> Imag
     return light_and_vignette(canvas.convert("RGB"))
 
 
+def gift_tag_text(slug: str, listing: dict) -> str:
+    """What the handwritten gift tag says: who the shirt is for, or the occasion."""
+    if listing.get("gift_tag"):
+        return listing["gift_tag"]
+    for key, text in (("grandma", "For Grandma, with love"), ("grandpa", "For Grandpa, with love"),
+                      ("gigi", "For Gigi, with love"), ("nana", "For Nana, with love"),
+                      ("retire", "Happy Retirement!"), ("knees", "For my favorite player"),
+                      ("kitchen", "For my doubles partner"), ("mom", "For Mom, with love"),
+                      ("dad", "For Dad, with love")):
+        if key in slug:
+            return text
+    return "Merry Christmas!" if season_of(listing) == "christmas" else "For my favorite player"
+
+
+def tissue(size: tuple[int, int], rng) -> Image.Image:
+    w, h = size
+    base = np.full((h, w, 3), 246, np.float32)
+    crinkle = smooth_noise(h, w, 60, 90, rng) * 0.6 + smooth_noise(h, w, 18, 26, rng) * 0.4
+    base -= crinkle[..., None] * 26
+    return Image.fromarray(np.clip(base, 0, 255).astype(np.uint8)).convert("RGBA")
+
+
+def gift_scene(design: Image.Image, ptype: str, color_name: str, slug: str, listing: dict, seed: int) -> Image.Image:
+    """The shirt folded in an open gift box on tissue paper, with a handwritten tag (who it's for)."""
+    rng = np.random.default_rng(seed + 19)
+    rnd = random.Random(seed + 19)
+    rgb = GARMENT_RGB.get(color_name, (200, 200, 200))
+    christmas = season_of(listing) == "christmas"
+    canvas = (wood(rng) if not christmas else linen(rng, (228, 222, 210))).convert("RGBA")
+    kind = garment_kind(ptype)
+    # box: kraft board seen from above, walls shaded, tissue inside
+    bw, bh = 1500, 1380
+    bx, by = 330, 240
+    box = Image.new("RGBA", (bw, bh), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(box)
+    kraft, wall = (190, 152, 104), (160, 124, 82)
+    bd.rounded_rectangle((0, 0, bw, bh), radius=18, fill=kraft + (255,))
+    t = 70  # wall thickness in perspective
+    bd.polygon([(t, t), (bw - t, t), (bw - t - 30, t + 40), (t + 30, t + 40)], fill=(132, 100, 64, 255))
+    bd.rectangle((t, t + 40, bw - t, bh - t), fill=wall + (255,))
+    box.alpha_composite(tissue((bw - 2 * t - 40, bh - 2 * t - 70), rng), (t + 20, t + 55))
+    drop_shadow(canvas, box, (bx, by), offset=(26, 34), blur=40, strength=0.45)
+    # folded shirt: the front panel from collar to below the print, sides folded under
+    g = render_garment(design, rgb, kind, (1900, 1900), rng)
+    # crop below the print's real bottom so tall designs aren't cut off
+    alpha = np.asarray(g.getchannel("A"))
+    diff = render_garment(Image.new("RGBA", design.size), rgb, kind, (1900, 1900), np.random.default_rng(seed + 19))
+    ink = np.abs(np.asarray(g.convert("RGB"), dtype=np.int16) - np.asarray(diff.convert("RGB"), dtype=np.int16)).max(axis=2) > 24
+    ys = np.nonzero(ink.any(axis=1))[0]
+    bottom = min(int(ys.max() + 1900 * 0.05), int(1900 * 0.86)) if len(ys) else int(1900 * 0.66)
+    fold = g.crop((int(1900 * 0.245), int(1900 * 0.06), int(1900 * 0.755), bottom))
+    m = Image.new("L", fold.size, 0)
+    ImageDraw.Draw(m).rounded_rectangle((0, 0, fold.width, fold.height), radius=40, fill=255)
+    m = ImageChops.multiply(m, fold.getchannel("A"))
+    fold.putalpha(m)
+    edge = Image.new("RGBA", fold.size, (0, 0, 0, 0))
+    ed = ImageDraw.Draw(edge)
+    for i in range(36):  # darker folded edges left, right and bottom
+        a = int(70 * (1 - i / 36))
+        ed.line((i, 0, i, fold.height), fill=(0, 0, 0, a))
+        ed.line((fold.width - 1 - i, 0, fold.width - 1 - i, fold.height), fill=(0, 0, 0, a))
+        ed.line((0, fold.height - 1 - i, fold.width, fold.height - 1 - i), fill=(0, 0, 0, a))
+    edge.putalpha(ImageChops.multiply(edge.getchannel("A"), m))
+    fold.alpha_composite(edge)
+    scale = min((bh - 2 * t - 140) / fold.height, (bw - 2 * t - 330) / fold.width)
+    fold = fold.resize((int(fold.width * scale), int(fold.height * scale)), Image.LANCZOS)
+    fold = fold.rotate(rnd.uniform(-2, 2), expand=True, resample=Image.BICUBIC)
+    fx, fy = bx + t + 60, by + t + 70 + max(0, (bh - 2 * t - 140 - fold.height) // 2)
+    drop_shadow(canvas, fold, (fx, fy), offset=(10, 16), blur=20, strength=0.35)
+    # ribbon down the right side, with a bow
+    ribbon = (178, 32, 44) if christmas else (42, 157, 143)
+    rd = ImageDraw.Draw(canvas)
+    rx = bx + bw - t - 150
+    rd.rectangle((rx, 0, rx + 70, H), fill=ribbon + (255,))
+    rd.rectangle((rx + 8, 0, rx + 18, H), fill=tuple(min(255, c + 40) for c in ribbon) + (255,))
+    bow = Image.new("RGBA", (420, 300), (0, 0, 0, 0))
+    bdw = ImageDraw.Draw(bow)
+    dark = tuple(int(c * 0.7) for c in ribbon) + (255,)
+    bdw.ellipse((0, 40, 210, 230), fill=ribbon + (255,))
+    bdw.ellipse((210, 40, 420, 230), fill=ribbon + (255,))
+    bdw.ellipse((60, 90, 170, 180), fill=dark)
+    bdw.ellipse((250, 90, 360, 180), fill=dark)
+    bdw.rounded_rectangle((170, 80, 250, 190), radius=20, fill=tuple(int(c * 0.85) for c in ribbon) + (255,))
+    drop_shadow(canvas, bow, (rx + 35 - 210, by - 60), offset=(10, 14), blur=12, strength=0.35)
+    # handwritten gift tag on a string
+    tag = Image.new("RGBA", (640, 360), (0, 0, 0, 0))
+    td = ImageDraw.Draw(tag)
+    td.polygon([(90, 0), (640, 0), (640, 360), (90, 360), (0, 180)], fill=(250, 244, 230, 255))
+    td.ellipse((50, 160, 90, 200), fill=(0, 0, 0, 0))
+    text = gift_tag_text(slug, listing)
+    fnt = font("Pacifico-Regular.ttf", 64)
+    while td.textlength(text, font=fnt) > 500 and fnt.size > 30:
+        fnt = font("Pacifico-Regular.ttf", fnt.size - 4)
+    td.text((365, 175), text, font=fnt, fill=(29, 43, 69, 255), anchor="mm")
+    tag = tag.rotate(rnd.uniform(-14, -6), expand=True, resample=Image.BICUBIC)
+    tx, ty = bx + bw - 380, by + bh - 300
+    rd.line((rx + 35, by + 60, tx + 90, ty + 210), fill=(120, 90, 60, 255), width=6)
+    drop_shadow(canvas, tag, (tx, ty), offset=(12, 16), blur=14, strength=0.35)
+    # props
+    if christmas:
+        for (x, y, rot, ln) in [(-140, 1200, 30, 760), (1950, -160, 120, 640)]:
+            sp = pine_sprig(ln, rng).rotate(rot, expand=True, resample=Image.BICUBIC)
+            drop_shadow(canvas, sp, (x, y), offset=(10, 14), blur=12, strength=0.3)
+    else:
+        for (x, y, r) in [(120, 1450, 88), (2080, 300, 80)]:
+            drop_shadow(canvas, sphere(r, (214, 236, 52)), (x, y), offset=(12, 16), blur=10, strength=0.38)
+    return light_and_vignette(canvas.convert("RGB"))
+
+
 # ------------------------------------------------------------------ driver
 def find_design(slug: str) -> Path:
     for base in ("designs-round-4", "designs-round-3", "designs-round-2", "samples"):
@@ -525,6 +634,7 @@ def render(slug: str) -> Path:
     closeup(design, ptype, colors[0], seed).save(out / "2-closeup.jpg", quality=90)
     colors_sheet(design, ptype, colors, seed).save(out / "3-colors.jpg", quality=90)
     gift_card(design, ptype, colors[0], listing, seed).save(out / "4-gift.jpg", quality=90)
+    gift_scene(design, ptype, colors[0], slug, listing, seed).save(out / "5-giftbox.jpg", quality=90)
     return out
 
 

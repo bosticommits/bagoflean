@@ -71,6 +71,44 @@ A 1930s rubber-hose cartoon pickleball. Use the same character on every design, 
   - red details on Maroon (they vanish, so list Maroon last)
   - lime text on red bands unless the letters are big
 
+## 2b. Authenticity details (since 2026-10-07): make it feel like a real brand
+Real brands and real vintage athletic prints are full of small details. They make a shirt look *designed* and *official* instead of "a joke printed on a blank", and they reward a closer look. **Every design gets 2-3 of these:**
+
+| Detail | Examples | How |
+|---|---|---|
+| Brand seal | "DINK DISTRICT · EST. 2026" round stamp with crossed paddles | `etsy_agent.brandmark.seal(width, color)`, at least 360 px wide, tucked under or beside the art |
+| Brand or department line | "DINK DISTRICT ATHLETIC CO.", "NON-VOLLEY ZONE DEPT.", "COURT 3 · OPEN 7 DAYS" | `brand_line(text, width, color)`, spaced caps under the hook |
+| Purpose line (who it's for or what it celebrates) | "LEAGUE CHAMPION GRANDMA", "RETIRED · CLASS OF 2026", "OFFICIAL KITCHEN STAFF", "MEMBER SINCE THE FIRST DINK" | Ties the shirt to the buyer's reason for buying (gift, milestone, club) |
+| Fake-official numbers | "No. 0-0-2", "EST. 7AM DAILY", "RULE 9.B COMPLIANT" (the kitchen rule) | Insider jokes for players; small type |
+| Badge furniture | Small stars, rules (lines), ribbon tails, "OFFICIAL" tab, laurel | From the round-4 helpers |
+
+Rules:
+- Details are small but still printable: strokes 20 px or more, text cap height 60 px or more on a 4500 px shirt.
+- They never compete with the hook word. If the thumbnail test gets worse, remove one.
+- One flat colour from the design's own palette.
+- **Never claim anything false or borrowed:** no real league, club, tournament or brand names, and no "licensed" or "official merchandise" of anyone else. "Official" is fine only as an obvious joke ("Official Kitchen Inspector").
+
+**On the product itself:**
+- **Printed neck label:** `brandmark.neck_label(size, color)` puts our seal, name, size and care line where a brand label goes. Gildan 18000 (756x756) and Bella 3001 (750x750) support a "neck" print area; Comfort Colors 1717 from Printify Choice does not. A neck print can raise the Printify cost, so check the cost and get the owner's OK before adding it to live products.
+- **Listing photos show the details:** close-ups of the seal and the neck label, plus fabric texture.
+
+## 2c. Reference board: pictures the owner likes
+The owner sends pictures of products that catch their eye. They're saved in `references/` with a note (see `references/README.md`). Before designing, look at every reference and its note, and borrow the **idea** (layout, colour mood, type style, photo style, level of detail), **never the artwork or the words.** When a reference teaches something general, write it into section 6 (owner taste log).
+
+## 2d. Listing photos: the click decides the sale
+The owner's rule: "people click mainly if the picture is convincing." Etsy shows the first photo in search, so that photo is the ad.
+
+**Photo set per listing, in this order:**
+1. **Hero:** a real photo when one exists (`photos/<slug>/real-*.jpg` from `scripts/photo_templates.py`), otherwise the drawn flat lay (`1-hero.jpg`).
+2. **Close-up** of the print (`2-closeup.jpg`): shows the details and quality.
+3. **Gift box** (`5-giftbox.jpg`): the shirt folded in a gift box with a handwritten tag naming who it's for ("For Grandma, with love", "Happy Retirement!"). That's the purpose of the purchase, made visible. Override the tag text with `"gift_tag"` in `listing.json`.
+4. **Colours** (`3-colors.jpg`), then the **gift card** with product facts (`4-gift.jpg`).
+
+**Rules:**
+- **Real beats drawn.** Any real photo (a blank shirt from the owner's phone, a licensed mockup photo, an ordered sample) goes first. Keep asking the owner for them; see `photo_templates/README.md`.
+- **Never show what the product doesn't have.** No neck label in photos until it's really printed; only colours that are offered; no fake reviews, badges or "bestseller" claims.
+- Check every photo at phone size: is the design readable, is the colour right, does anything look fake (halos, floating shadows, warped text)?
+
 ## 3. Checklist: every design must pass before it's delivered
 Run `python scripts/design_check.py designs-round-N/<slug>`. It checks automatically:
 - size (shirts 4500x5400, mugs 2475x1155, stickers 3000x3000), RGBA and transparent, 300 DPI
@@ -84,6 +122,7 @@ Then do these by eye. The checker writes `thumbs.png`, so look at it:
 - [ ] **Thumbnail test:** in `thumbs.png`, can you read the hook word and tell what the character is doing? If not, make it bigger or simpler.
 - [ ] **Spelling:** read every word letter by letter, including apostrophes.
 - [ ] **Joke test:** say it out loud. Does a player smile? Would a grandkid buy it for Grandma?
+- [ ] **Authenticity details:** 2-3 details from section 2b (seal, brand or department line, purpose line). Small, printable, and none of them claims a real organisation.
 - [ ] **Not a repeat:** different from everything live (see `what-works.md`) and not a saturated phrase.
 - [ ] **No crowding:** at least about 60 px between separate elements. Nothing touches unless it's meant to overlap.
 - [ ] **Face check:** eyes the same size, no texture specks in the eyes, the expression matches the joke.
@@ -109,6 +148,7 @@ Be honest. The owner would rather get 3 designs scored 9 than 8 designs scored 7
 
 ## 6. Owner taste log (newest first)
 What the owner liked, disliked or picked. Follow it.
+- 2026-10-07: The owner wants designs to carry details that give them **authenticity** (what the product is, what it's for) and wants **much more convincing photos**: "people click mainly if the picture is convincing." Hence section 2b, the neck label and the photo upgrades.
 - 2026-10-06: The owner approved all 8 round-4 mascot designs straight away and said the older designs are "most definitely not going to sell". Keep the mascot style and don't go back to text plus icon.
 - 2026-10-06: The owner said rounds 1-3 "all seem fairly generic, nothing that would draw buyers" and asked for more convincing photos as well. That led to the mascot style and `photo_studio.py`.
 

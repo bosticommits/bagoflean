@@ -24,7 +24,8 @@ You are the lead designer for Dink District, a funny pickleball apparel and gift
   - Flat solid colours only. No gradients, glows or semi-transparency. Nothing thinner than about 20 px.
 - Choose 3-4 garment colours that contrast with the ink.
 - Run `python scripts/design_check.py designs-round-N/<slug>` and fix every FAIL. Then look at the `thumbs.png` it writes and at the full-size design, and work through the by-eye checklist in the playbook. Score with the playbook's scale and keep only 8+.
-- Render listing photos with `python scripts/photo_studio.py <slug>` and check the hero photo.
+- Add the authenticity details from playbook section 2b (`etsy_agent/brandmark.py`) and check `references/` for pictures the owner likes.
+- Render listing photos with `python scripts/photo_studio.py <slug>` (plus `python scripts/photo_templates.py <slug>` if `photo_templates/` has real photos) and check them against playbook section 2d.
 
 ## Deliver each design as a folder in `designs-round-N/<slug>/`
 - `design.png`, `mockup.png`

@@ -14,7 +14,10 @@ An Etsy print-on-demand shop, **DinkDistrictArt**, selling funny pickleball appa
 ## Map
 - `knowledge/design-playbook.md`: house style (the mascot), design checklist, scoring, owner taste and lessons logs
 - `scripts/design_check.py`: automatic pre-flight check for a design folder (writes `thumbs.png`)
-- `scripts/photo_studio.py`: listing photos into `photos/<slug>/` (gitignored)
+- `scripts/photo_studio.py`: drawn listing photos into `photos/<slug>/` (gitignored): hero, close-up, colours, gift card, gift box
+- `scripts/photo_templates.py` + `photo_templates/`: prints designs onto REAL photos of blank shirts the owner supplies
+- `etsy_agent/brandmark.py`: brand seal, brand line and neck label (authenticity details)
+- `references/`: pictures of products the owner likes, with notes
 - `designs-round-4/` (current mascot style), `designs-round-2/`, `samples/`: one folder per design (`design.png`, `mockup.png`, `listing.json`)
 - `scripts/printify_publish.py`: create, publish and reprice products; `printify/state.json` records what's created and live
 - `scripts/marketing_pins.py`: Pinterest pins plus bulk CSV in `marketing/`
