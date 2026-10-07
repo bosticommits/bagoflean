@@ -5,3 +5,4 @@ portfolio.json.tmp
 *.rbxl
 *.rbxlx
 sourcemap.json
+.claude/settings.local.json
