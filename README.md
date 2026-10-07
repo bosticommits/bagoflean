@@ -1,4 +1,69 @@
-# bagoflean: Roblox Limited trade advisor
+# bagoflean
+
+Two separate projects live in this repo:
+
+1. **Movie Mogul**, a Roblox game built with Rojo. Design: [GAME_PLAN.md](GAME_PLAN.md).
+2. **A Roblox Limited trade advisor**, a Python terminal chatbot (see further down).
+
+## Movie Mogul (Roblox game)
+
+Status: milestones M0 to M5 are built and playtested in Studio: lots and cash, casting,
+movies, Index, agencies, upgrades, lot visuals, billboard, effects, sounds and the tutorial.
+Art is still placeholder parts. See GAME_PLAN.md sections 9 and 11.
+
+### Setup
+
+1. Install the pinned Rojo with [Aftman](https://github.com/LPGhatguy/aftman) (`aftman.toml`
+   pins Rojo 7.7.0):
+   ```
+   aftman install
+   ```
+2. Install the Rojo plugin into Studio **once**, from the command line:
+   ```
+   rojo plugin install
+   ```
+   Do not also install a Rojo plugin from the Creator Store. Two Rojo plugins connected at the
+   same time can each create the same new script, which leaves duplicate scripts in the place.
+3. Start the sync server from the repo root, then press **Connect** in the Rojo plugin (port 34872):
+   ```
+   rojo serve
+   ```
+4. To test saving in Studio, publish the place and turn on Game Settings > Security >
+   **Enable Studio Access to API Services**. Without it the game falls back to in-memory data
+   (it logs a warning, and nothing is saved).
+
+### Layout
+
+| Folder | Runs on | Contents |
+|---|---|---|
+| `src/shared` | both | Config, actors and odds, movies, upgrades (pure rules, no state) |
+| `src/server` | server | Data (ProfileStore), economy, lots, casting, movies, upgrades |
+| `src/client` | client | HUD, casting, studio, upgrades, and tutorial screens |
+
+The server decides every roll, price, timer and payout. Remotes carry requests, never values.
+`src/server/ProfileStore.luau` is vendored from MadStudioRoblox/ProfileStore (Apache-2.0, see
+`LICENSE-ProfileStore`).
+
+### Before you publish
+
+Run this in Studio's command bar and make sure it prints no `DUPLICATE` lines. A duplicated
+script that was published would run twice in every server:
+```lua
+local seen = {}
+for _, d in game:GetDescendants() do
+	if d:IsA("LuaSourceContainer") then
+		local p = d:GetFullName()
+		if seen[p] then print("DUPLICATE", p) end
+		seen[p] = true
+	end
+end
+print("duplicate check done")
+```
+The game also checks at startup and warns in the output (`[MovieMogul] duplicate ...`).
+
+---
+
+## Roblox Limited trade advisor
 
 A terminal chatbot that gives cautious trade advice on Roblox Limiteds using public
 [Rolimons](https://www.rolimons.com/) data and Claude.
