@@ -9,8 +9,8 @@ return table.freeze({
 	FirstFilmSeconds = 15,
 	-- Cinema earns while you are away, up to the cap (plan section 2: start at 4 h).
 	-- Base income is the free trickle; each finished movie adds RoyaltyRate x its payout per second.
-	CinemaIncomePerSecond = 1,
-	RoyaltyRate = 0.0005,
+	CinemaIncomePerSecond = 0.5,
+	RoyaltyRate = 0.00001,
 	CinemaCapacity = 10, -- finished movies kept in the cinema; the oldest is replaced
 	OfflineCapSeconds = 4 * 60 * 60,
 	-- Minimum seconds between collects per player (server enforced).
@@ -22,6 +22,9 @@ return table.freeze({
 	TierRewardLuck = 0.05, -- per completed Index tier row, once claimed
 	GenreBonus = 0.15, -- extra payout multiplier for a genre once all its actors are discovered
 	OfflineCapStepSeconds = 2 * 60 * 60, -- per Offline upgrade level
+	CinemaStep = 0.25, -- royalty multiplier added per Cinema Size level
+	LuckStep = 0.1, -- Luck added per Luck upgrade level
+	ClapStep = 0.5, -- seconds added to each clapperboard tap per Clapperboard level
 	-- Minimum seconds between casting calls per player (server enforced).
 	CastCooldown = 0.6,
 

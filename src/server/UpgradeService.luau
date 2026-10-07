@@ -85,9 +85,7 @@ local function onBuyUpgrade(player: Player, id: any)
 	end
 	DataService.markDirty(player)
 	refreshStats(player)
-	if upgrade.id == "Stages" then
-		LotService.refresh(player) -- a new sound stage appears on the lot
-	end
+	LotService.refresh(player) -- stages, cinema and office all show on the lot
 end
 
 local function onClaimReward(player: Player, id: any)
