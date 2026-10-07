@@ -25,9 +25,20 @@ local function clearTemplate()
 	end
 end
 
--- ART_STYLE.md section 5: a little extra color and a soft glow on neon signs. Added only when the
--- place has none of its own, so settings made in Studio win.
+-- ART_STYLE.md section 5: a light warm haze (it also hides the far edge of the ground), a little
+-- extra color, and a soft glow on neon signs. Each is added only when the place has none of its
+-- own, so settings made in Studio win.
 local function addLook()
+	if Lighting:FindFirstChildOfClass("Atmosphere") == nil then
+		local air = Instance.new("Atmosphere")
+		air.Density = 0.3
+		air.Offset = 0.1
+		air.Color = Color3.fromRGB(240, 228, 210)
+		air.Decay = Color3.fromRGB(120, 125, 140)
+		air.Glare = 0
+		air.Haze = 1
+		air.Parent = Lighting
+	end
 	if Lighting:FindFirstChildOfClass("ColorCorrectionEffect") == nil then
 		local color = Instance.new("ColorCorrectionEffect")
 		color.Saturation = 0.15
@@ -63,7 +74,7 @@ local function addPrompt(info: MapModels.StandInfo, anchor: BasePart)
 	prompt.ActionText = info.action
 	prompt.ObjectText = info.title
 	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 8 -- stands are 18 studs apart, so only one shows at a time
+	prompt.MaxActivationDistance = 12 -- when two stands are in reach, only the nearer one shows
 	prompt.RequiresLineOfSight = false
 	prompt:SetAttribute("Screen", info.screen)
 	prompt.Parent = anchor

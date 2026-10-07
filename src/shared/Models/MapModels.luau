@@ -38,7 +38,7 @@ MapModels.Layout = table.freeze({
 	fenceX = 129,
 	fenceZ = 119,
 	-- Players appear on the plaza looking past the fountain at the Shop and Rewards stands.
-	spawn = CFrame.new(0, 0.4, -15) * CFrame.Angles(0, math.pi, 0),
+	spawn = CFrame.new(0, 0.65, -15) * CFrame.Angles(0, math.pi, 0),
 	-- Gold star sign on the big hill behind lots 4-6.
 	hillStar = Vector3.new(0, 44, 190),
 })
@@ -71,6 +71,7 @@ export type StandInfo = {
 
 local PURPLE = Color3.fromRGB(160, 77, 255)
 local TEAL = Color3.fromRGB(32, 178, 190)
+local INK = Color3.fromRGB(11, 15, 31) -- the menus' outline color (UiKit.INK)
 
 -- From spawn, players look past the fountain at the Shop and Rewards stands.
 MapModels.Stands = table.freeze({
@@ -100,8 +101,17 @@ local function flatStar(b: Builder, name: string, size: number, at: Vector3, thi
 	b:block(name, v(size, thickness, size), CFrame.new(at) * CFrame.Angles(0, math.rad(45), 0), color, material)
 end
 
+-- Dark outline round sign text, like the menus' outlined labels.
+local function outline(label: TextLabel, thickness: number)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = INK
+	stroke.Thickness = thickness
+	stroke.Parent = label
+end
+
 -- A market stand: counter, striped awning, lit sign with the store's name, a big 3D icon
--- on the roof, and an actor serving. Returns the invisible part the prompt goes on.
+-- on the roof, its name floating above, and an actor serving. Returns the invisible part the
+-- prompt goes on.
 function MapModels.stand(parent: Instance, base: CFrame, info: StandInfo): BasePart
 	local model = Instance.new("Model")
 	model.Name = "Stand_" .. info.screen
@@ -110,8 +120,9 @@ function MapModels.stand(parent: Instance, base: CFrame, info: StandInfo): BaseP
 	local accent = info.color
 
 	-- Floor, walls and shelves.
-	b:block("StandFloor", v(12, 0.4, 9), v(0, 0.2, 0.6), P.Paving)
-	b:block("StandFloorTrim", v(12.4, 0.2, 9.4), v(0, 0.1, 0.6), P.Burgundy)
+	-- The raised floor stops at the counter, so walking up to it is flat.
+	b:block("StandFloor", v(12, 0.4, 6.5), v(0, 0.2, 1.85), P.Paving)
+	b:block("StandFloorTrim", v(12.4, 0.2, 6.9), v(0, 0.1, 1.85), P.Burgundy)
 	b:block("BackWall", v(11, 7, 0.8), v(0, 3.9, 4.6), P.Cream)
 	for _, side in { -1, 1 } do
 		b:block("SideWall", v(0.8, 7, 5.4), v(side * 5.1, 3.9, 2.3), P.Cream)
@@ -129,7 +140,7 @@ function MapModels.stand(parent: Instance, base: CFrame, info: StandInfo): BaseP
 	local counter = b:block("Counter", v(10.2, 3, 1.6), v(0, 1.9, -0.6), accent)
 	b:block("CounterBand", v(10.4, 0.5, 1.7), v(0, 0.65, -0.6), P.Burgundy)
 	b:block("CounterTop", v(11, 0.4, 2.2), v(0, 3.6, -0.7), P.Wood)
-	Build.sign(counter, Enum.NormalId.Front, info.action, P.OffWhite)
+	outline(Build.sign(counter, Enum.NormalId.Front, info.action, P.OffWhite), 4)
 
 	-- Roof and a striped awning sloping down over the counter, with a flap along its edge.
 	b:block("Roof", v(12, 0.6, 7.2), v(0, 7.7, 1.5), P.Burgundy)
@@ -145,14 +156,35 @@ function MapModels.stand(parent: Instance, base: CFrame, info: StandInfo): BaseP
 	-- Lit sign on the roof, and the big icon above it.
 	b:block("SignFrame", v(10.8, 3.6, 0.4), v(0, 9.9, -0.7), accent)
 	local board = b:block("Sign", v(10, 2.8, 0.3), v(0, 9.9, -0.95), P.Navy)
-	Build.sign(board, Enum.NormalId.Front, info.title, P.Gold)
+	outline(Build.sign(board, Enum.NormalId.Front, info.title, P.Gold), 4)
 	for i = 0, 5 do
 		b:ball("SignBulb", 0.45, v(-4.5 + i * 1.8, 11.85, -0.9), P.Light, NEON)
 	end
 	IconModels.build(model, info.icon, b:at(v(0, 11.9, -0.4)), info.iconScale or 2)
 
-	-- Someone serving, and a plant on either side.
-	ActorModels.build(model, b:at(v(0, 0.4, 1.8)), info.keeper)
+	-- The name again, floating over the icon and turned to the camera, so it reads from anywhere
+	-- down the street (white letters with a dark outline, like the menu buttons).
+	local nameGui = Instance.new("BillboardGui")
+	nameGui.Name = "StandName"
+	nameGui.Size = UDim2.fromScale(13, 2.6) -- studs
+	nameGui.StudsOffsetWorldSpace = Vector3.new(0, 12.6, 0)
+	nameGui.LightInfluence = 0
+	nameGui.MaxDistance = 160
+	nameGui.Parent = board
+	local name = Instance.new("TextLabel")
+	name.Name = "Text"
+	name.Size = UDim2.fromScale(1, 1)
+	name.BackgroundTransparency = 1
+	name.Text = info.title
+	name.TextColor3 = Color3.new(1, 1, 1)
+	name.TextScaled = true
+	name.Font = Enum.Font.FredokaOne
+	name.Parent = nameGui
+	outline(name, 2)
+
+	-- Someone serving (on a step, so they show over the counter), and a plant on either side.
+	b:block("KeeperStep", v(3, 0.6, 2), v(0, 0.7, 1.9), P.Wood)
+	ActorModels.build(model, b:at(v(0, 1, 1.8)), info.keeper)
 	for _, side in { -1, 1 } do
 		b:cylinder("PlantPot", 1.2, 1.6, v(side * 7.2, 0.6, -2.4), P.Burgundy)
 		b:ball("Plant", 2, v(side * 7.2, 1.9, -2.4), P.DarkGreen, GRASS)
@@ -160,9 +192,9 @@ function MapModels.stand(parent: Instance, base: CFrame, info: StandInfo): BaseP
 
 	-- A glowing ring on the ground in front, where the prompt appears.
 	b:cylinder("PromptRing", 0.06, 6, v(0, 0.03, -7.2), accent, NEON)
-	b:cylinder("PromptSpot", 0.08, 5.2, v(0, 0.04, -7.2), P.Paving)
+	b:cylinder("PromptSpot", 0.12, 5.2, v(0, 0.06, -7.2), P.Paving)
 
-	local anchor = b:block("PromptAnchor", v(10, 3, 1), v(0, 2, -2.2), P.OffWhite)
+	local anchor = b:block("PromptAnchor", v(1, 1, 1), v(0, 3, -2.4), P.OffWhite)
 	anchor.Transparency = 1
 	anchor.CanCollide = false
 	anchor.CanTouch = false
@@ -234,41 +266,47 @@ end
 
 local function plaza(b: Builder)
 	local r = Lay.plazaRadius
-	-- Rings of paving, red carpet and gold, each a hair higher than the one under it.
+	-- Rings of gold, paving and red carpet, each a little higher than the one under it (stacked
+	-- surfaces closer than about 0.05 studs flicker from far away).
 	b:cylinder("PlazaEdge", 0.3, r * 2 + 2, v(0, 0.15, 0), P.Gold)
-	b:cylinder("Plaza", 0.32, r * 2, v(0, 0.16, 0), P.OffWhite)
-	b:cylinder("PlazaCarpet", 0.34, 30, v(0, 0.17, 0), P.Carpet, Enum.Material.Fabric)
-	b:cylinder("PlazaInner", 0.36, 27, v(0, 0.18, 0), P.Paving)
-	fountain(b:sub(v(0, 0.36, 0)))
+	b:cylinder("Plaza", 0.36, r * 2, v(0, 0.18, 0), P.OffWhite)
+	b:cylinder("PlazaCarpet", 0.42, 30, v(0, 0.21, 0), P.Carpet, Enum.Material.Fabric)
+	b:cylinder("PlazaInner", 0.48, 27, v(0, 0.24, 0), P.Paving)
+	fountain(b:sub(v(0, 0.48, 0)))
 
 	-- Gold star where players appear.
 	local spawn = Lay.spawn.Position
-	flatStar(b, "SpawnStar", 4.6, v(spawn.X, 0.4, spawn.Z), 0.06, P.Gold)
-	b:cylinder("SpawnStarMiddle", 0.08, 2.2, v(spawn.X, 0.42, spawn.Z), P.Carpet)
+	flatStar(b, "SpawnStar", 4.6, v(spawn.X, 0.51, spawn.Z), 0.06, P.Gold)
+	b:cylinder("SpawnStarMiddle", 0.08, 2.2, v(spawn.X, 0.55, spawn.Z), P.Carpet)
 
 	-- Palms in planters and benches facing the fountain on the diagonals; searchlights on the
 	-- boulevard sides.
 	for i = 0, 3 do
 		local yaw = math.rad(45 + i * 90)
 		local dir = CFrame.Angles(0, yaw, 0)
-		planter(Build.new(b.parent, b:at(dir * CFrame.new(0, 0.32, -(r - 3.5)))), 16)
-		bench(Build.new(b.parent, b:at(dir * CFrame.new(0, 0.34, -(r - 9)) * CFrame.Angles(0, math.pi, 0))))
+		planter(Build.new(b.parent, b:at(dir * CFrame.new(0, 0.36, -(r - 3.5)))), 16)
+		bench(Build.new(b.parent, b:at(dir * CFrame.new(0, 0.42, -(r - 9)) * CFrame.Angles(0, math.pi, 0))))
 	end
 	for _, side in { -1, 1 } do
-		LotModels.searchlight(b:sub(v(side * (r - 4), 0.32, 0)), if side > 0 then 35 else -35, P.Light)
+		LotModels.searchlight(b:sub(v(side * (r - 4), 0.36, 0)), if side > 0 then 35 else -35, P.Light)
 	end
 end
 
 -- Streets ----------------------------------------------------------------------------------------
 
 local function lamp(b: Builder, at: Vector3)
-	LotModels.lamp(b:sub(at), 9)
+	local head = LotModels.lamp(b:sub(at), 9)
+	-- The neon head already glows; dozens of real lights would cost frame rate for little.
+	local light = head:FindFirstChildOfClass("PointLight")
+	if light ~= nil then
+		light:Destroy()
+	end
 end
 
 local function walkOfFameStar(b: Builder, x: number, z: number)
 	b:block("FameTile", v(3.6, 0.06, 3.6), v(x, 0.23, z), P.Charcoal)
-	flatStar(b, "FameStar", 2.2, v(x, 0.25, z), 0.06, Color3.fromRGB(240, 140, 150))
-	b:cylinder("FameMedal", 0.08, 0.9, v(x, 0.28, z), P.Gold, METAL)
+	flatStar(b, "FameStar", 2.2, v(x, 0.28, z), 0.06, Color3.fromRGB(240, 140, 150))
+	b:cylinder("FameMedal", 0.08, 0.9, v(x, 0.32, z), P.Gold, METAL)
 end
 
 local function streets(b: Builder)
@@ -278,17 +316,23 @@ local function streets(b: Builder)
 	local front = Lay.sidewalkTo
 	local ring = Lay.ringWidth
 
-	-- Boulevard: asphalt with a red carpet down the middle, gold-edged.
+	-- Boulevard: asphalt with a red carpet down the middle, gold-edged. The carpet stops just
+	-- past the arches with a gold strip, and a curb closes each end of the road.
 	b:block("Road", v(length, 0.15, road * 2), v(0, 0.075, 0), P.Asphalt)
-	b:block("BoulevardCarpet", v(length, 0.06, 6), v(0, 0.18, 0), P.Carpet, Enum.Material.Fabric)
+	local carpetHalf = x0 - 3
+	b:block("BoulevardCarpet", v(carpetHalf * 2, 0.06, 6), v(0, 0.18, 0), P.Carpet, Enum.Material.Fabric)
 	for _, z in { -3.2, 3.2 } do
-		b:block("BoulevardCarpetEdge", v(length, 0.07, 0.4), v(0, 0.185, z), P.Gold)
+		b:block("BoulevardCarpetEdge", v(carpetHalf * 2, 0.07, 0.4), v(0, 0.185, z), P.Gold)
+	end
+	for _, dir in { -1, 1 } do
+		b:block("CarpetEnd", v(0.4, 0.07, 6.8), v(dir * (carpetHalf + 0.2), 0.185, 0), P.Gold)
+		b:block("RoadEnd", v(0.8, 0.35, road * 2), v(dir * (x0 - 0.4), 0.175, 0), P.Cream)
 	end
 	-- Crossings in front of the outer lots' gates (the middle lots cross through the plaza).
 	for _, x in { -LOT_SPACING, LOT_SPACING } do
 		for _, side in { -1, 1 } do
 			for i = 0, 2 do
-				b:block("Crossing", v(10, 0.04, 1.2), v(x, 0.17, side * (4.2 + i * 2)), P.OffWhite)
+				b:block("Crossing", v(10, 0.06, 1.2), v(x, 0.18, side * (4.2 + i * 2)), P.OffWhite)
 			end
 		end
 	end
@@ -326,8 +370,8 @@ local function streets(b: Builder)
 		for _, span in { { -110, -86 }, { -74, -50 }, { -30, -6 }, { 6, 30 }, { 50, 74 }, { 86, 110 } } do
 			local left, right = span[1], span[2]
 			local zMid = side * (lawnFrom + lawnTo) / 2
-			b:block("Lawn", v(right - left, 0.3, lawnTo - lawnFrom), v((left + right) / 2, 0.15, zMid), P.Green, GRASS)
-			b:block("LawnEdge", v(right - left + 0.4, 0.22, lawnTo - lawnFrom + 0.4), v((left + right) / 2, 0.11, zMid), P.Cream)
+			b:block("Lawn", v(right - left, 0.34, lawnTo - lawnFrom), v((left + right) / 2, 0.17, zMid), P.Green, GRASS)
+			b:block("LawnEdge", v(right - left + 0.4, 0.27, lawnTo - lawnFrom + 0.4), v((left + right) / 2, 0.135, zMid), P.Cream)
 			local n = 0
 			for x = left + 3, right - 2, 5 do
 				n += 1
@@ -456,6 +500,16 @@ local function hills(b: Builder)
 		{ at = v(270, -85, 20), size = 200, color = P.Green },
 		{ at = v(-275, -85, -20), size = 200, color = P.Green },
 	}
+	-- A far ring of hills all the way round, so the edge of the ground never shows.
+	for i = 0, 11 do
+		local a = math.rad(i * 30 + 15)
+		local size = if i % 2 == 0 then 320 else 280
+		table.insert(hillList, {
+			at = v(math.sin(a) * 540, -115, math.cos(a) * 540),
+			size = size,
+			color = if i % 3 == 0 then P.DarkGreen else P.Green,
+		})
+	end
 	for _, hill in hillList do
 		b:ball("Hill", hill.size, hill.at, hill.color, GRASS)
 	end
@@ -480,6 +534,45 @@ end
 
 -- Everything ------------------------------------------------------------------------------------
 
+-- Thin trim laid over the paths: it never collides, so nobody trips on a lip a few hundredths of
+-- a stud high (people walk on the path under it), and it casts no shadow.
+local GROUND_TRIM = {
+	BoulevardCarpet = true,
+	BoulevardCarpetEdge = true,
+	CarpetEnd = true,
+	Crossing = true,
+	Curb = true,
+	FameMedal = true,
+	FameStar = true,
+	FameTile = true,
+	Lawn = true,
+	LawnEdge = true,
+	PlazaCarpet = true,
+	PlazaEdge = true,
+	PlazaInner = true,
+	PromptRing = true,
+	PromptSpot = true,
+	RoadEnd = true,
+	SpawnStar = true,
+	SpawnStarMiddle = true,
+}
+
+-- Walking surfaces, hills and tiny bits: shadows nobody would notice, so skip drawing them.
+local NO_SHADOW = {
+	Alley = true,
+	BackPath = true,
+	Flower = true,
+	GateRamp = true,
+	Ground = true,
+	Hill = true,
+	Plaza = true,
+	Road = true,
+	SidePath = true,
+	Sidewalk = true,
+	SignBulb = true,
+	StandFloorTrim = true,
+}
+
 export type Built = {
 	stands: { { info: StandInfo, anchor: BasePart } }, -- anchor: where the stand's prompt goes
 }
@@ -487,7 +580,7 @@ export type Built = {
 -- Build the whole town into `parent`. The lots themselves are built by LotService (LotLook).
 function MapModels.build(parent: Instance): Built
 	local b = Build.new(parent, CFrame.identity)
-	b:block("Ground", v(1400, 1, 1400), v(0, -0.5, 0), P.Green, GRASS)
+	b:block("Ground", v(2048, 1, 2048), v(0, -0.5, 0), P.Green, GRASS) -- the largest part Roblox allows
 	streets(b)
 	plaza(b)
 	fence(b)
@@ -500,6 +593,17 @@ function MapModels.build(parent: Instance): Built
 	local stands = {}
 	for _, info in MapModels.Stands do
 		table.insert(stands, { info = info, anchor = MapModels.stand(parent, MapModels.standBase(info), info) })
+	end
+
+	for _, part in parent:GetDescendants() do
+		if part:IsA("BasePart") then
+			if GROUND_TRIM[part.Name] then
+				part.CanCollide = false
+				part.CastShadow = false
+			elseif NO_SHADOW[part.Name] then
+				part.CastShadow = false
+			end
+		end
 	end
 	return { stands = stands }
 end
