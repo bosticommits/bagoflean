@@ -24,7 +24,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	end
 	local buyUpgrade = remotes:WaitForChild("BuyUpgrade") :: RemoteEvent
 
-	local panel, list = UiKit.makePanel(gui, "UpgradesPanel", "Upgrades")
+	local panel, list = UiKit.makePanel(gui, "UpgradesPanel", "Upgrades", nil, nil, nil, UiKit.AWARD_GOLD)
 
 	local function build()
 		UiKit.clear(list)
@@ -45,16 +45,16 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 			local level = Upgrades.level(stats, upgrade.id)
 			local maxed = level >= upgrade.maxLevel
 			local row = UiKit.addRow(list, order, 92)
-			local title = makeLabel(row, `{upgrade.name}  Lv {level}/{upgrade.maxLevel}`, UiKit.WHITE, UDim2.new(0.62, 0, 0, 28), UDim2.fromOffset(10, 4))
+			local title = UiKit.makeTitle(row, `{upgrade.name}  Lv {level}/{upgrade.maxLevel}`, UiKit.WHITE, UDim2.new(0.62, 0, 0, 28), UDim2.fromOffset(10, 4))
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			local now = makeLabel(row, upgrade.effect(level), UiKit.MUTED, UDim2.new(0.62, 0, 0, 20), UDim2.fromOffset(10, 34))
 			now.TextXAlignment = Enum.TextXAlignment.Left
 
 			if maxed then
-				makeLabel(row, "MAX", UiKit.GOLD, UDim2.new(0.34, 0, 0, 44), UDim2.new(0.64, 0, 0, 24))
+				UiKit.makeTitle(row, "MAX", UiKit.GOLD, UDim2.new(0.34, 0, 0, 44), UDim2.new(0.64, 0, 0, 24))
 				continue
 			end
-			local nextEffect = makeLabel(row, "Next: " .. upgrade.effect(level + 1), UiKit.GREEN, UDim2.new(0.62, 0, 0, 20), UDim2.fromOffset(10, 62))
+			local nextEffect = makeLabel(row, "Next: " .. upgrade.effect(level + 1), UiKit.CASH_GREEN, UDim2.new(0.62, 0, 0, 20), UDim2.fromOffset(10, 62))
 			nextEffect.TextXAlignment = Enum.TextXAlignment.Left
 
 			local cost = upgrade.costs[level + 1]
@@ -62,8 +62,12 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 			local locked = fame < needFame
 			local affordable = cash >= cost
 			local text = if locked then `Fame {Hud.comma(needFame)}` else `${Hud.comma(cost)}`
-			local color = if locked then Color3.fromRGB(110, 70, 70) elseif affordable then UiKit.GREEN else Color3.fromRGB(70, 70, 80)
+			-- Like the reference games' level-locked rows: gold "locked", green "buy", grey "can't afford".
+			local color = if locked then UiKit.AWARD_GOLD elseif affordable then UiKit.GREEN else UiKit.DISABLED
 			local button = makeButton(row, text, color, UDim2.new(0.34, 0, 0, 44), UDim2.new(0.64, 0, 0, 24))
+			if not locked and not affordable then
+				button.TextColor3 = UiKit.MUTED
+			end
 			button.Activated:Connect(function()
 				if locked then
 					UiKit.toast(gui, `Needs Fame {Hud.comma(needFame)}`)

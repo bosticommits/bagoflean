@@ -1,6 +1,6 @@
 --!strict
 -- Bottom button bar, Casting Call (agencies, odds, reveal), and the Collection screen (roster and
--- Index with reward claims). Placeholder visuals until M5.
+-- Index with reward claims). Styled after the design kit (see UiKit).
 -- The client only asks; the server charges Cash, checks Fame, and decides every result.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -81,15 +81,21 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		end
 	end)
 
-	local rosterButton = makeButton(bar, "Roster", UiKit.BLUE, UDim2.fromScale(0.17, 1))
-	local studioButton = makeButton(bar, "Studio", Color3.fromRGB(70, 130, 110), UDim2.fromScale(0.17, 1), UDim2.fromScale(0.18, 0))
+	local rosterButton = makeButton(bar, "Roster", UiKit.PURPLE, UDim2.fromScale(0.17, 1))
+	local studioButton = makeButton(bar, "Studio", UiKit.FRESH_GREEN, UDim2.fromScale(0.17, 1), UDim2.fromScale(0.18, 0))
 	studioButton.Name = "StudioButton"
-	local castButton = makeButton(bar, "", UiKit.RED, UDim2.fromScale(0.28, 1), UDim2.fromScale(0.36, 0))
+	local castButton = makeButton(bar, "", UiKit.GREEN, UDim2.fromScale(0.28, 1), UDim2.fromScale(0.36, 0))
 	castButton.Name = "CastButton"
 	castButton:SetAttribute("Silent", true) -- the reveal has its own sounds
 	local oddsButton = makeButton(bar, "Odds", UiKit.BLUE, UDim2.fromScale(0.17, 1), UDim2.fromScale(0.65, 0))
-	local upgradesButton = makeButton(bar, "Upgrade", Color3.fromRGB(150, 110, 50), UDim2.fromScale(0.17, 1), UDim2.fromScale(0.83, 0))
+	local upgradesButton = makeButton(bar, "Upgrade", UiKit.AWARD_GOLD, UDim2.fromScale(0.17, 1), UDim2.fromScale(0.83, 0))
 	upgradesButton.Name = "UpgradesButton"
+	-- The Cast button is the hero: thicker outline and text.
+	local castOutline = castButton:FindFirstChild("Outline") :: UIStroke
+	local castTextOutline = castButton:FindFirstChild("TextOutline") :: UIStroke
+	castOutline.Thickness = 4
+	castTextOutline.Thickness = 3
+	UiKit.textConstraint(castButton, 30)
 
 	local function refreshCastButton()
 		local agency = currentAgency()
@@ -109,7 +115,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 
 	local buildOdds: () -> ()
 	for slot, agency in Actors.Agencies do
-		local button = makeButton(agencyRow, agency.name, UiKit.BLUE, UDim2.new(0.32, 0, 1, 0), UDim2.new((slot - 1) * 0.34, 0, 0, 0))
+		local button = makeButton(agencyRow, agency.name, UiKit.TAB_OFF, UDim2.new(0.32, 0, 1, 0), UDim2.new((slot - 1) * 0.34, 0, 0, 0))
 		agencyButtons[agency.id] = button
 		button.Activated:Connect(function()
 			agencyId = agency.id
@@ -123,7 +129,11 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		local agency = currentAgency()
 		for id, button in agencyButtons do
 			local unlocked = fame() >= (Actors.getAgency(id) :: Actors.Agency).fame
-			button.BackgroundColor3 = if id == agencyId then Color3.fromRGB(70, 130, 110) elseif unlocked then UiKit.BLUE else Color3.fromRGB(70, 70, 80)
+			UiKit.styleTab(button, id == agencyId)
+			if id ~= agencyId and not unlocked then
+				button.BackgroundColor3 = UiKit.DISABLED
+				button.TextColor3 = UiKit.MUTED
+			end
 		end
 		local luck = player:GetAttribute("Luck") or Config.BaseLuck
 		local chances = Actors.tierChances(luck, agency.minTier)
@@ -133,14 +143,16 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		local info = UiKit.addRow(oddsList, order, 44)
 		local removed = if agency.minTier > 1 then `no {Actors.Tiers[1].name}{if agency.minTier > 2 then " or " .. Actors.Tiers[2].name else ""}` else "every tier"
 		local unlocked = fame() >= agency.fame
-		makeLabel(info, `${Hud.comma(agency.cost)} per cast  -  {removed}  -  {if unlocked then "unlocked" else "needs Fame " .. Hud.comma(agency.fame)}`, if unlocked then UiKit.GOLD else Color3.fromRGB(220, 110, 110), UDim2.new(1, -20, 1, -8), UDim2.fromOffset(10, 4))
+		makeLabel(info, `${Hud.comma(agency.cost)} per cast  -  {removed}  -  {if unlocked then "unlocked" else "needs Fame " .. Hud.comma(agency.fame)}`, if unlocked then UiKit.GOLD else UiKit.WARN, UDim2.new(1, -20, 1, -8), UDim2.fromOffset(10, 4))
 
 		for tierIndex = #Actors.Tiers, 1, -1 do
 			local tier = Actors.Tiers[tierIndex]
 			if chances[tier.id] > 0 then
 				order += 1
 				local row = UiKit.addRow(oddsList, order, 40)
-				local name = makeLabel(row, tier.name, tier.color, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
+				local name = UiKit.makeTitle(row, tier.name, tier.color, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
+				local outline = row:FindFirstChild("Outline") :: UIStroke
+				outline.Color = tier.color
 				name.TextXAlignment = Enum.TextXAlignment.Left
 				makeLabel(row, fmtOdds(chances[tier.id]), WHITE, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.4, 0))
 				makeLabel(row, "Power " .. Hud.comma(tier.starPower), UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
@@ -151,7 +163,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 			if variant.oneIn ~= nil then
 				order += 1
 				local row = UiKit.addRow(oddsList, order, 40)
-				local name = makeLabel(row, variant.name, variant.color, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
+				local name = UiKit.makeTitle(row, variant.name, variant.color, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
 				name.TextXAlignment = Enum.TextXAlignment.Left
 				makeLabel(row, fmtOdds(vChances[variant.id]), WHITE, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.4, 0))
 				makeLabel(row, "x" .. variant.multiplier .. " power", UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
@@ -163,7 +175,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	end
 
 	-- Collection panel: Roster and Index tabs -------------------------------------------------
-	local collection, collectionList, collectionHeader = UiKit.makePanel(gui, "RosterPanel", "Collection", 108)
+	local collection, collectionList, collectionHeader = UiKit.makePanel(gui, "RosterPanel", "Collection", 108, nil, nil, UiKit.PURPLE)
 	local collectionTab = "Roster"
 	local collectionTabs: { [string]: TextButton } = {}
 	local tabRow = Instance.new("Frame")
@@ -174,17 +186,35 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	tabRow.Parent = collection
 
 	local function chip(row: Frame, text: string, color: Color3, found: boolean, slot: number)
-		local label = makeLabel(row, text, if found then color else Color3.fromRGB(100, 100, 110), UDim2.fromScale(0.14, 0.7), UDim2.fromScale(0.5 + (slot - 1) * 0.16, 0.15))
-		label.BackgroundTransparency = 0.7
-		label.BackgroundColor3 = if found then color else Color3.fromRGB(60, 60, 70)
-		corner(label, 6)
+		local label = UiKit.makeTitle(row, text, if found then WHITE else UiKit.FAINT, UDim2.fromScale(0.14, 0.7), UDim2.fromScale(0.5 + (slot - 1) * 0.16, 0.15), 1.5)
+		label.BackgroundTransparency = if found then 0 else 0.4
+		label.BackgroundColor3 = if found then color:Lerp(UiKit.NAVY, 0.35) else UiKit.DARK
+		corner(label, 8)
+		UiKit.border(label, 2, if found then color else UiKit.INK)
 	end
 
 	local function actorRowLabels(row: Frame, actor: Actors.Actor, seen: boolean)
-		local name = makeLabel(row, if seen then actor.name else "???", if seen then WHITE else Color3.fromRGB(130, 130, 140), UDim2.fromScale(0.5, 0.6), UDim2.fromOffset(10, 2))
+		local name = makeLabel(row, if seen then actor.name else "???", if seen then WHITE else UiKit.FAINT, UDim2.fromScale(0.5, 0.6), UDim2.fromOffset(10, 2))
 		name.TextXAlignment = Enum.TextXAlignment.Left
-		local genre = makeLabel(row, if seen then actor.genre else "", UiKit.MUTED, UDim2.fromScale(0.5, 0.35), UDim2.new(0, 10, 0.62, 0))
+		local genre = makeLabel(row, if seen then actor.genre else "", if seen then UiKit.GENRE_COLORS[actor.genre] or UiKit.MUTED else UiKit.MUTED, UDim2.fromScale(0.5, 0.35), UDim2.new(0, 10, 0.62, 0))
 		genre.TextXAlignment = Enum.TextXAlignment.Left
+	end
+
+	-- Discovered actors get a border in their rarity color (Icon: rainbow); unknown ones stay dark.
+	local function rarityBorder(row: Frame, tier: Actors.Tier, seen: boolean)
+		local outline = row:FindFirstChild("Outline") :: UIStroke
+		if not seen then
+			row.BackgroundColor3 = UiKit.DARK
+			return
+		end
+		outline.Thickness = 3
+		outline.Color = tier.color
+		if tier.id == "Icon" then
+			outline.Color = WHITE
+			local rainbow = Instance.new("UIGradient")
+			rainbow.Color = UiKit.RAINBOW
+			rainbow.Parent = outline
+		end
 	end
 
 	local function renderRoster()
@@ -192,14 +222,15 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		-- Common first, so a new player sees what they own without scrolling past a wall of "???".
 		for _, tier in Actors.Tiers do
 			order += 1
-			local head = UiKit.addRow(collectionList, order, 28)
+			local head = UiKit.addRow(collectionList, order, 30)
 			head.BackgroundColor3 = tier.color
-			head.BackgroundTransparency = 0.55
-			makeLabel(head, tier.name, WHITE, UDim2.fromScale(1, 1), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+			UiKit.makeTitle(head, tier.name, WHITE, UDim2.fromScale(1, 1), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
 			for _, actor in Actors.actorsInTier(tier.id) do
 				order += 1
 				local row = UiKit.addRow(collectionList, order, 48)
-				actorRowLabels(row, actor, Upgrades.actorDiscovered(ClientState.index, actor.id))
+				local seen = Upgrades.actorDiscovered(ClientState.index, actor.id)
+				actorRowLabels(row, actor, seen)
+				rarityBorder(row, tier, seen)
 				for slot, variant in Actors.Variants do
 					local key = Actors.key(actor.id, variant.id)
 					local found = ClientState.index[key] == true
@@ -235,13 +266,14 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 			order += 1
 			local head = UiKit.addRow(collectionList, order, 40)
 			head.BackgroundColor3 = tier.color
-			head.BackgroundTransparency = 0.55
-			makeLabel(head, `{tier.name}  {found}/{total}`, WHITE, UDim2.new(0.4, 0, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+			UiKit.makeTitle(head, `{tier.name}  {found}/{total}`, WHITE, UDim2.new(0.4, 0, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
 			rewardControl(head, rewardId, found == total, rewards[rewardId] == true, `+{Config.TierRewardLuck} Luck`)
 			for _, actor in Actors.actorsInTier(tier.id) do
 				order += 1
 				local row = UiKit.addRow(collectionList, order, 44)
-				actorRowLabels(row, actor, Upgrades.actorDiscovered(ClientState.index, actor.id))
+				local seen = Upgrades.actorDiscovered(ClientState.index, actor.id)
+				actorRowLabels(row, actor, seen)
+				rarityBorder(row, tier, seen)
 				for slot, variant in Actors.Variants do
 					local key = Actors.key(actor.id, variant.id)
 					local hasIt = ClientState.index[key] == true
@@ -252,15 +284,14 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 
 		order += 1
 		local setsHead = UiKit.addRow(collectionList, order, 32)
-		setsHead.BackgroundColor3 = UiKit.GOLD
-		setsHead.BackgroundTransparency = 0.6
-		makeLabel(setsHead, "Genre sets  -  discover every actor of a genre", WHITE, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+		setsHead.BackgroundColor3 = UiKit.AWARD_GOLD
+		UiKit.makeTitle(setsHead, "Genre sets  -  discover every actor of a genre", WHITE, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
 		for _, genre in Movies.Genres do
 			local found, total = Upgrades.genreProgress(ClientState.index, genre)
 			local rewardId = "genre:" .. genre
 			order += 1
 			local row = UiKit.addRow(collectionList, order, 44)
-			makeLabel(row, `{genre}  {found}/{total}`, UiKit.GENRE_COLORS[genre], UDim2.new(0.4, 0, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+			UiKit.makeTitle(row, `{genre}  {found}/{total}`, UiKit.GENRE_COLORS[genre], UDim2.new(0.4, 0, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
 			rewardControl(row, rewardId, found == total, rewards[rewardId] == true, `x{1 + Config.GenreBonus} payout`)
 		end
 	end
@@ -273,7 +304,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		end)
 		UiKit.clear(collectionList)
 		for name, button in collectionTabs do
-			button.BackgroundColor3 = if name == collectionTab then Color3.fromRGB(70, 130, 110) else UiKit.BLUE
+			UiKit.styleTab(button, name == collectionTab)
 		end
 		local discovered = 0
 		for _ in ClientState.index do
@@ -288,7 +319,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	end
 
 	for slot, name in { "Roster", "Index" } do
-		local button = makeButton(tabRow, name, UiKit.BLUE, UDim2.new(0.49, 0, 1, 0), UDim2.new((slot - 1) * 0.51, 0, 0, 0))
+		local button = makeButton(tabRow, name, UiKit.TAB_OFF, UDim2.new(0.49, 0, 1, 0), UDim2.new((slot - 1) * 0.51, 0, 0, 0))
 		collectionTabs[name] = button
 		button.Activated:Connect(function()
 			collectionTab = name
@@ -300,8 +331,8 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	local overlay = Instance.new("Frame")
 	overlay.Name = "Reveal"
 	overlay.Size = UDim2.fromScale(1, 1)
-	overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-	overlay.BackgroundTransparency = 0.35
+	overlay.BackgroundColor3 = UiKit.DARK
+	overlay.BackgroundTransparency = 0.25
 	overlay.Active = true -- swallows taps so the world is not clicked through
 	overlay.Visible = false
 	overlay.ZIndex = 10
@@ -314,17 +345,19 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	card.BackgroundColor3 = PANEL
 	card.ZIndex = 11
 	card.Parent = overlay
-	corner(card, 16)
+	corner(card, 20)
 	local cardLimit = Instance.new("UISizeConstraint")
 	cardLimit.MaxSize = Vector2.new(440, 480)
 	cardLimit.Parent = card
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 4
-	stroke.Color = WHITE
-	stroke.Parent = card
+	-- The card's frame glows in the rarity color; the Icon tier gets a rainbow.
+	local stroke = UiKit.border(card, 6, WHITE)
+	local rainbow = Instance.new("UIGradient")
+	rainbow.Color = UiKit.RAINBOW
+	rainbow.Enabled = false
+	rainbow.Parent = stroke
 
 	local function cardLabel(y: number, h: number, size: number): TextLabel
-		local label = makeLabel(card, "", WHITE, UDim2.new(0.9, 0, h, 0), UDim2.new(0.05, 0, y, 0))
+		local label = UiKit.makeTitle(card, "", WHITE, UDim2.new(0.9, 0, h, 0), UDim2.new(0.05, 0, y, 0), if size >= 30 then 3 else 2)
 		label.ZIndex = 12
 		textConstraint(label, size)
 		return label
@@ -335,8 +368,8 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	local detailLabel = cardLabel(0.5, 0.1, 22)
 	local powerLabel = cardLabel(0.6, 0.1, 22)
 
-	local againButton = makeButton(card, "Cast again", UiKit.RED, UDim2.fromScale(0.44, 0.15), UDim2.fromScale(0.04, 0.8))
-	local doneButton = makeButton(card, "Continue", UiKit.GREEN, UDim2.fromScale(0.44, 0.15), UDim2.fromScale(0.52, 0.8))
+	local againButton = makeButton(card, "Cast again", UiKit.GREEN, UDim2.fromScale(0.44, 0.15), UDim2.fromScale(0.04, 0.8))
+	local doneButton = makeButton(card, "Continue", UiKit.BLUE, UDim2.fromScale(0.44, 0.15), UDim2.fromScale(0.52, 0.8))
 	againButton.ZIndex = 12
 	doneButton.ZIndex = 12
 
@@ -353,7 +386,8 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		revealToken += 1
 		overlay.Visible = true
 		setCardVisible(false)
-		stroke.Color = Color3.fromRGB(120, 120, 140)
+		stroke.Color = UiKit.FAINT
+		rainbow.Enabled = false
 		nameLabel.Visible = true
 		nameLabel.Text = "Casting..."
 		nameLabel.TextColor3 = WHITE
@@ -375,14 +409,16 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		nameLabel.Visible = true
 		nameLabel.Text = "..."
 		nameLabel.TextColor3 = WHITE
-		stroke.Color = Color3.fromRGB(120, 120, 140)
+		stroke.Color = UiKit.FAINT
+		rainbow.Enabled = false
 
 		task.delay(0.7, function()
 			if revealToken ~= mine then
 				return
 			end
 			setCardVisible(true)
-			stroke.Color = tier.color
+			stroke.Color = if tier.id == "Icon" then WHITE else tier.color
+			rainbow.Enabled = tier.id == "Icon"
 			nameLabel.Text = actor.name
 			nameLabel.TextColor3 = tier.color
 			tierLabel.Text = tier.name
