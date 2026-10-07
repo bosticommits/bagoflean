@@ -38,9 +38,11 @@ export type PlayerData = {
 	scripts: { [string]: number }, -- "genre:lengthId" -> unused scripts
 	films: { Film },
 	cinema: { CinemaMovie },
+	upgrades: { [string]: number }, -- upgrade id -> level (Stages lives in stageCount)
+	rewards: { [string]: boolean }, -- claimed Index rewards: "tier:<id>" / "genre:<name>"
 }
 
-local CURRENT_VERSION = 2
+local CURRENT_VERSION = 3
 
 local TEMPLATE: PlayerData = {
 	version = CURRENT_VERSION,
@@ -54,6 +56,8 @@ local TEMPLATE: PlayerData = {
 	scripts = {},
 	films = {},
 	cinema = {},
+	upgrades = {},
+	rewards = {},
 }
 
 local playerStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
@@ -85,7 +89,7 @@ local function migrate(data: any)
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end
-	for _, field in { "scripts" } do
+	for _, field in { "scripts", "upgrades", "rewards" } do
 		if type(data[field]) ~= "table" then
 			data[field] = {}
 		end

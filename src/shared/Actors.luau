@@ -78,6 +78,30 @@ Actors.Variants = {
 
 Actors.IndexSlots = #Actors.List * #Actors.Variants
 
+export type Agency = {
+	id: string,
+	name: string,
+	cost: number,
+	fame: number, -- Fame needed to use it
+	minTier: number, -- tiers below this index are removed from the pool
+}
+
+-- Plan section 3: better agencies cost more per roll and remove the bottom tier(s).
+Actors.Agencies = {
+	{ id = "Open", name = "Open Casting", cost = 20, fame = 0, minTier = 1 },
+	{ id = "Talent", name = "Talent Agency", cost = 75, fame = 100, minTier = 2 },
+	{ id = "Hollywood", name = "Hollywood Casting", cost = 400, fame = 1000, minTier = 3 },
+} :: { Agency }
+
+local agencyById: { [string]: Agency } = {}
+for _, agency in Actors.Agencies do
+	agencyById[agency.id] = agency
+end
+
+function Actors.getAgency(id: string): Agency?
+	return agencyById[id]
+end
+
 local tierById: { [string]: Tier } = {}
 for _, tier in Actors.Tiers do
 	tierById[tier.id] = tier
@@ -116,17 +140,29 @@ end
 
 -- Chance of each tier as a fraction (sums to 1). Tiers are tried rarest first: each hits its
 -- "1 in N" with whatever probability is left, so Icon is exactly 1 in 150,000 and the rare tiers
--- match the plan. Luck divides N (Luck x2 turns 1 in 1,500 into 1 in 750). Newcomer gets the rest.
-function Actors.tierChances(luck: number): { [string]: number }
-	local chances: { [string]: number } = {}
+-- match the plan. Luck divides N (Luck x2 turns 1 in 1,500 into 1 in 750).
+-- An agency's `minTier` removes the tiers below it from the pool: their share is dropped and the
+-- rest is scaled back up to 1, so the rare tiers get proportionally more likely.
+function Actors.tierChances(luck: number, minTier: number?): { [string]: number }
+	local floorIndex = math.clamp(minTier or 1, 1, #Actors.Tiers)
+	local open: { [string]: number } = {}
 	local remaining = 1
 	for index = #Actors.Tiers, 2, -1 do
 		local tier = Actors.Tiers[index]
 		local chance = remaining * math.min(1, math.max(luck, 1) / tier.oneIn)
-		chances[tier.id] = chance
+		open[tier.id] = chance
 		remaining -= chance
 	end
-	chances[Actors.Tiers[1].id] = remaining
+	open[Actors.Tiers[1].id] = remaining
+
+	local removed = 0
+	for index = 1, floorIndex - 1 do
+		removed += open[Actors.Tiers[index].id]
+	end
+	local chances: { [string]: number } = {}
+	for index, tier in Actors.Tiers do
+		chances[tier.id] = if index < floorIndex then 0 else open[tier.id] / (1 - removed)
+	end
 	return chances
 end
 
@@ -139,8 +175,8 @@ function Actors.variantChances(luck: number): { [string]: number }
 end
 
 -- `random` is a Random object so the server owns the seed.
-function Actors.roll(random: Random, luck: number): (Actor, Variant)
-	local chances = Actors.tierChances(luck)
+function Actors.roll(random: Random, luck: number, minTier: number?): (Actor, Variant)
+	local chances = Actors.tierChances(luck, minTier)
 	local pick = random:NextNumber()
 	local chosenTier = Actors.Tiers[1]
 	local running = 0

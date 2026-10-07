@@ -9,6 +9,7 @@ export type Length = {
 	seconds: number,
 	base: number, -- script base earnings
 	cost: number,
+	fame: number, -- Fame needed to buy this script length
 }
 
 export type Result = {
@@ -28,11 +29,20 @@ Movies.Genres = { "Action", "Comedy", "Horror", "Romance", "Sci-Fi" }
 -- Plan section 2: Short Film 2 min, Indie 10 min, Feature 45 min, Epic 3 h. Costs and bases are
 -- placeholders to tune in playtests.
 Movies.Lengths = {
-	{ id = "Short", name = "Short Film", seconds = 2 * 60, base = 10, cost = 30 },
-	{ id = "Indie", name = "Indie", seconds = 10 * 60, base = 60, cost = 150 },
-	{ id = "Feature", name = "Feature", seconds = 45 * 60, base = 350, cost = 900 },
-	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 2400, cost = 6000 },
+	{ id = "Short", name = "Short Film", seconds = 2 * 60, base = 10, cost = 30, fame = 0 },
+	{ id = "Indie", name = "Indie", seconds = 10 * 60, base = 60, cost = 150, fame = 0 },
+	{ id = "Feature", name = "Feature", seconds = 45 * 60, base = 350, cost = 900, fame = 40 },
+	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 2400, cost = 6000, fame = 400 },
 } :: { Length }
+
+-- Fame needed before a genre's scripts can be bought (plan section 6: Fame unlocks genres).
+Movies.GenreFame = {
+	Action = 0,
+	Comedy = 0,
+	Horror = 25,
+	Romance = 25,
+	["Sci-Fi"] = 75,
+} :: { [string]: number }
 
 -- Ordered worst to best.
 Movies.Results = {
@@ -153,9 +163,10 @@ function Movies.rollResult(random: Random, luck: number): Result
 	return chosen
 end
 
--- Plan section 2: script base x total Star Power x genre bonus x premiere result.
-function Movies.payout(length: Length, power: number, result: Result): number
-	return math.max(1, math.floor(length.base * power * result.multiplier))
+-- Plan section 2: script base x total Star Power x genre bonus x premiere result. The genre bonus
+-- comes from completing a genre's Index set (1 when not earned).
+function Movies.payout(length: Length, power: number, result: Result, genreBonus: number?): number
+	return math.max(1, math.floor(length.base * power * (genreBonus or 1) * result.multiplier))
 end
 
 -- Fame is a placeholder curve until M4 spends it.

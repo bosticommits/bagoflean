@@ -8,6 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
 local UiKit = require(script.Parent.UiKit)
 
@@ -24,15 +26,13 @@ local ERRORS: { [string]: string } = {
 	nocast = "Those actors aren't free",
 	notready = "Not finished filming yet",
 	none = "Nothing to premiere there",
+	fame = "You need more Fame for that",
+	maxed = "Already at max level",
+	claimed = "Already claimed",
+	unavailable = "Not complete yet",
 }
 
-local GENRE_COLORS: { [string]: Color3 } = {
-	Action = Color3.fromRGB(235, 120, 60),
-	Comedy = Color3.fromRGB(240, 205, 60),
-	Horror = Color3.fromRGB(150, 90, 200),
-	Romance = Color3.fromRGB(235, 100, 150),
-	["Sci-Fi"] = Color3.fromRGB(70, 190, 230),
-}
+local GENRE_COLORS = UiKit.GENRE_COLORS
 
 local StudioUi = {}
 
@@ -77,15 +77,14 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local startFilm = remotes:WaitForChild("StartFilm") :: RemoteEvent
 	local clapRemote = remotes:WaitForChild("Clap") :: RemoteEvent
 	local premiereRemote = remotes:WaitForChild("Premiere") :: RemoteEvent
-	local studioSync = remotes:WaitForChild("StudioSync") :: RemoteEvent
 	local premiereResult = remotes:WaitForChild("PremiereResult") :: RemoteEvent
 	local studioError = remotes:WaitForChild("StudioError") :: RemoteEvent
 	local announce = remotes:WaitForChild("Announce") :: RemoteEvent
-	local rosterSync = remotes:WaitForChild("RosterSync") :: RemoteEvent
 
-	local state: any = nil
-	local syncedAt = 0
-	local roster: { [string]: number } = {}
+	-- Local aliases of ClientState, refreshed whenever it changes (see the changed handler below).
+	local state: any = ClientState.studio
+	local syncedAt = ClientState.syncedAt
+	local roster: { [string]: number } = ClientState.roster
 	local tab = "Stages"
 
 	local function serverNow(): number
@@ -226,18 +225,24 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		makeLabel(summary, if #owned > 0 then "Owned: " .. table.concat(owned, ", ") else "No scripts yet - buy one below", UiKit.GOLD, UDim2.new(1, -20, 1, -8), UDim2.fromOffset(10, 4))
 
 		local cash = player:GetAttribute("Cash") or 0
+		local fame = state.fame or 0
 		for _, length in Movies.Lengths do
 			order += 1
 			local row = UiKit.addRow(list, order, 96)
-			local title = makeLabel(row, `{length.name}  -  {fmtTime(length.seconds)}`, WHITE, UDim2.new(0.55, 0, 0, 26), UDim2.fromOffset(10, 4))
+			local lengthLocked = fame < length.fame
+			local title = makeLabel(row, `{length.name}  -  {fmtTime(length.seconds)}`, if lengthLocked then Color3.fromRGB(130, 130, 140) else WHITE, UDim2.new(0.5, 0, 0, 26), UDim2.fromOffset(10, 4))
 			title.TextXAlignment = Enum.TextXAlignment.Left
-			local cost = makeLabel(row, `${Hud.comma(length.cost)}  -  base ${Hud.comma(length.base)}`, if cash >= length.cost then UiKit.GOLD else Color3.fromRGB(200, 90, 90), UDim2.new(0.43, -10, 0, 22), UDim2.new(0.57, 0, 0, 6))
+			local costText = if lengthLocked then `needs Fame {Hud.comma(length.fame)}` else `${Hud.comma(length.cost)}  -  base ${Hud.comma(length.base)}`
+			local cost = makeLabel(row, costText, if lengthLocked then Color3.fromRGB(220, 110, 110) elseif cash >= length.cost then UiKit.GOLD else Color3.fromRGB(200, 90, 90), UDim2.new(0.48, -10, 0, 22), UDim2.new(0.52, 0, 0, 6))
 			cost.TextXAlignment = Enum.TextXAlignment.Right
 			for slot, genre in Movies.Genres do
 				local count = state.scripts[Movies.scriptKey(genre, length.id)] or 0
-				local text = if count > 0 then `{genre} ({count})` else genre
-				local button = makeButton(row, text, if cash >= length.cost then GENRE_COLORS[genre] else Color3.fromRGB(70, 70, 80), UDim2.new(0.19, 0, 0, 40), UDim2.new((slot - 1) * 0.2 + 0.005, 0, 0, 44))
-				button.TextColor3 = Color3.fromRGB(20, 20, 25)
+				local needFame = math.max(length.fame, Movies.GenreFame[genre] or 0)
+				local locked = fame < needFame
+				local text = if locked then `{genre}\nFame {needFame}` elseif count > 0 then `{genre} ({count})` else genre
+				local usable = not locked and cash >= length.cost
+				local button = makeButton(row, text, if usable then GENRE_COLORS[genre] else Color3.fromRGB(70, 70, 80), UDim2.new(0.19, 0, 0, 40), UDim2.new((slot - 1) * 0.2 + 0.005, 0, 0, 44))
+				button.TextColor3 = if locked then Color3.fromRGB(190, 120, 120) elseif usable then Color3.fromRGB(20, 20, 25) else Color3.fromRGB(150, 150, 160)
 				button.Activated:Connect(function()
 					buyScript:FireServer(genre, length.id)
 				end)
@@ -526,6 +531,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			resultLabel.Text = res.name:upper() .. "!"
 			resultLabel.TextColor3 = res.color
 			payoutLabel.Text = `+${Hud.comma(result.payout)}`
+			if (result.genreBonus or 1) > 1 then
+				payoutLabel.Text ..= `  (genre set x{result.genreBonus})`
+			end
 			payoutLabel.TextColor3 = Color3.fromRGB(120, 255, 140)
 			fameLabel.Text = `+{Hud.comma(result.fame)} Fame  -  Star Power {fmtPower(result.power)}`
 			fameLabel.TextColor3 = UiKit.GOLD
@@ -563,12 +571,16 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end)
 
 	-- Wiring -----------------------------------------------------------------------------------
-	studioSync.OnClientEvent:Connect(function(newState)
-		if type(newState) ~= "table" then
+	ClientState.changed:Connect(function(kind)
+		state = ClientState.studio
+		syncedAt = ClientState.syncedAt
+		roster = ClientState.roster
+		if kind ~= "studio" then
+			if picker.Visible then
+				buildPicker()
+			end
 			return
 		end
-		state = newState
-		syncedAt = os.clock()
 		if panel.Visible then
 			-- Rebuild only when the layout changed; otherwise the tick loop refreshes timers in place.
 			if tab ~= "Stages" or stageSignature() ~= renderedSignature then
@@ -577,12 +589,6 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		end
 		if picker.Visible then
 			buildPicker()
-		end
-	end)
-
-	rosterSync.OnClientEvent:Connect(function(newRoster)
-		if type(newRoster) == "table" then
-			roster = newRoster
 		end
 	end)
 
@@ -624,7 +630,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 						entry.button.BackgroundColor3 = UiKit.GREEN
 					else
 						entry.time.Text = fmtTime(remaining)
-						entry.button.Text = `CLAP!  (-{Config.ClapSeconds}s)`
+						entry.button.Text = `CLAP!  (-{Upgrades.clapSeconds(ClientState.stats())}s)`
 						entry.button.BackgroundColor3 = UiKit.RED
 					end
 					entry.ready = ready
@@ -634,14 +640,6 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				end
 			end
 		end
-	end)
-
-	-- Ask for the studio once the server has loaded this player's data.
-	task.spawn(function()
-		while not player:GetAttribute("DataLoaded") do
-			player.AttributeChanged:Wait()
-		end
-		studioRequest:FireServer()
 	end)
 end
 

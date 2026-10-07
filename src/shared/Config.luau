@@ -13,9 +13,12 @@ return table.freeze({
 	-- Minimum seconds between collects per player (server enforced).
 	CollectCooldown = 0.3,
 
-	-- Casting (plan section 3). Luck is 1 until M4 adds upgrades.
-	CastCost = 20,
+	-- Casting (plan section 3). Agency prices live in Actors.Agencies; Luck grows with upgrades and
+	-- Index rewards (see Upgrades).
 	BaseLuck = 1,
+	TierRewardLuck = 0.05, -- per completed Index tier row, once claimed
+	GenreBonus = 0.15, -- extra payout multiplier for a genre once all its actors are discovered
+	OfflineCapStepSeconds = 2 * 60 * 60, -- per Offline upgrade level
 	-- Minimum seconds between casting calls per player (server enforced).
 	CastCooldown = 0.6,
 

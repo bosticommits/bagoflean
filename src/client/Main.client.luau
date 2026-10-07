@@ -1,9 +1,12 @@
 --!strict
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CastingUi = require(script.Parent.CastingUi)
+local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
 local StudioUi = require(script.Parent.StudioUi)
+local UpgradesUi = require(script.Parent.UpgradesUi)
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
@@ -16,7 +19,18 @@ gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 gui.Parent = playerGui
 
 Hud.start(gui)
-local studioButton = CastingUi.start(gui)
-if studioButton ~= nil then
-	StudioUi.start(gui, studioButton)
+
+local remotes = ReplicatedStorage:WaitForChild("Remotes", 15)
+if remotes ~= nil then
+	-- State first, so every screen sees synced data from its first frame.
+	ClientState.start(remotes)
+	local studioButton, upgradesButton = CastingUi.start(gui)
+	if studioButton ~= nil then
+		StudioUi.start(gui, studioButton)
+	end
+	if upgradesButton ~= nil then
+		UpgradesUi.start(gui, upgradesButton)
+	end
+else
+	warn("[MovieMogul] Remotes folder never arrived")
 end

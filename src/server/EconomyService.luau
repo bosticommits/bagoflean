@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local DataService = require(script.Parent.DataService)
 
 local lastCollectAttempt: { [Player]: number } = {}
@@ -15,17 +16,17 @@ local EconomyService = {}
 
 -- Cash per second the cinema earns right now.
 function EconomyService.rate(data: DataService.PlayerData): number
-	local rate = Config.CinemaIncomePerSecond
+	local royalties = 0
 	for _, movie in data.cinema do
-		rate += movie.payout * Config.RoyaltyRate
+		royalties += movie.payout * Config.RoyaltyRate
 	end
-	return rate
+	return Config.CinemaIncomePerSecond + royalties * Upgrades.royaltyMultiplier(data)
 end
 
 local function bankedAt(data: DataService.PlayerData, now: number): number
 	local elapsed = math.max(now - data.lastCollect, 0)
 	local rate = EconomyService.rate(data)
-	return math.min(data.accrued + elapsed * rate, Config.OfflineCapSeconds * rate)
+	return math.min(data.accrued + elapsed * rate, Upgrades.offlineCap(data) * rate)
 end
 
 -- Moves royalties earned so far into the bank. Call before anything that changes the rate.

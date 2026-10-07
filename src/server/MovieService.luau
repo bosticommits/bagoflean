@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -67,6 +68,8 @@ local function snapshot(player: Player): { [string]: any }?
 		scripts = data.scripts,
 		films = data.films,
 		cinema = data.cinema,
+		upgrades = data.upgrades,
+		rewards = data.rewards,
 	}
 end
 
@@ -149,6 +152,11 @@ local function onBuyScript(player: Player, genre: any, lengthId: any)
 	local length = Movies.getLength(lengthId)
 	if length == nil then
 		studioError:FireClient(player, "invalid")
+		return
+	end
+	-- Fame unlocks script lengths and genres (plan section 6).
+	if data.fame < length.fame or data.fame < (Movies.GenreFame[genre] or 0) then
+		studioError:FireClient(player, "fame")
 		return
 	end
 	if not EconomyService.spendCash(player, length.cost) then
@@ -235,7 +243,7 @@ local function onClap(player: Player, stage: any)
 		MovieService.sync(player) -- nothing to speed up; resync so the client catches up
 		return
 	end
-	film.endTime = math.max(now, film.endTime - Config.ClapSeconds)
+	film.endTime = math.max(now, film.endTime - Upgrades.clapSeconds(data))
 	DataService.markDirty(player)
 	MovieService.sync(player)
 end
@@ -271,7 +279,8 @@ local function onPremiere(player: Player, stage: any)
 	-- Roll and settle with no yield, so the film cannot be premiered twice.
 	local power = Movies.castPower(film.cast, film.genre)
 	local result = Movies.rollResult(random, CastingService.getLuck(player))
-	local payout = Movies.payout(length, power, result)
+	local genreBonus = Upgrades.genreBonus(data, film.genre)
+	local payout = Movies.payout(length, power, result, genreBonus)
 	local fame = Movies.fame(payout)
 
 	table.remove(data.films, filmIndex) -- frees the stage and the cast copies
@@ -298,6 +307,7 @@ local function onPremiere(player: Player, stage: any)
 		payout = payout,
 		fame = fame,
 		power = power,
+		genreBonus = genreBonus,
 	})
 	MovieService.sync(player)
 	if result.id == "Masterpiece" then

@@ -11,6 +11,14 @@ UiKit.GREEN = Color3.fromRGB(70, 160, 90)
 UiKit.RED = Color3.fromRGB(230, 70, 70)
 UiKit.BLUE = Color3.fromRGB(70, 90, 160)
 
+UiKit.GENRE_COLORS = {
+	Action = Color3.fromRGB(235, 120, 60),
+	Comedy = Color3.fromRGB(240, 205, 60),
+	Horror = Color3.fromRGB(150, 90, 200),
+	Romance = Color3.fromRGB(235, 100, 150),
+	["Sci-Fi"] = Color3.fromRGB(70, 190, 230),
+} :: { [string]: Color3 }
+
 function UiKit.corner(parent: Instance, radius: number)
 	local c = Instance.new("UICorner")
 	c.CornerRadius = UDim.new(0, radius)

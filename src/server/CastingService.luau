@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local Remotes = require(script.Parent.Remotes)
@@ -20,8 +21,12 @@ local rosterSync = Remotes.get("RosterSync")
 
 local CastingService = {}
 
-function CastingService.getLuck(_player: Player): number
-	return Config.BaseLuck
+function CastingService.getLuck(player: Player): number
+	local data = DataService.getData(player)
+	if data == nil then
+		return Config.BaseLuck
+	end
+	return Upgrades.luck(data)
 end
 
 -- Mirror luck to an attribute so the odds panel can compute the same numbers the roll uses.
@@ -51,7 +56,7 @@ function CastingService.grant(player: Player, actorId: string, variantId: string
 	return isNew, data.roster[key]
 end
 
-local function onCast(player: Player)
+local function onCast(player: Player, agencyId: any)
 	local now = os.clock()
 	local last = lastCast[player]
 	if last ~= nil and now - last < Config.CastCooldown then
@@ -61,16 +66,30 @@ local function onCast(player: Player)
 	end
 	lastCast[player] = now
 
-	if DataService.getData(player) == nil then
+	local data = DataService.getData(player)
+	if data == nil then
 		castResult:FireClient(player, { ok = false, reason = "loading" })
 		return
 	end
+	-- The client names an agency (or nothing for Open Casting); price, Fame gate and pool are ours.
+	local agency = Actors.getAgency("Open")
+	if agencyId ~= nil then
+		agency = if type(agencyId) == "string" and #agencyId <= 16 then Actors.getAgency(agencyId) else nil
+	end
+	if agency == nil then
+		castResult:FireClient(player, { ok = false, reason = "invalid" })
+		return
+	end
+	if data.fame < agency.fame then
+		castResult:FireClient(player, { ok = false, reason = "fame" })
+		return
+	end
 	-- Charge, roll and grant with no yield in between, so nothing can interleave.
-	if not EconomyService.spendCash(player, Config.CastCost) then
+	if not EconomyService.spendCash(player, agency.cost) then
 		castResult:FireClient(player, { ok = false, reason = "cash" })
 		return
 	end
-	local actor, variant = Actors.roll(random, CastingService.getLuck(player))
+	local actor, variant = Actors.roll(random, CastingService.getLuck(player), agency.minTier)
 	local isNew, count = CastingService.grant(player, actor.id, variant.id)
 	castResult:FireClient(player, {
 		ok = true,
