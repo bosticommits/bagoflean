@@ -638,6 +638,47 @@ def gift_scene(design: Image.Image, ptype: str, color_name: str, slug: str, list
     return light_and_vignette(canvas.convert("RGB"))
 
 
+NECK_LABEL_TYPES = {"crewneck", "tee"}  # Comfort Colors 1717 can't take a neck print
+
+
+def label_card(ptype: str, color_name: str, seed: int) -> Image.Image:
+    """Detail card: our printed neck label on a fabric swatch, with what it is (truthful, not a fake photo)."""
+    from etsy_agent.brandmark import neck_label
+    rng = np.random.default_rng(seed + 23)
+    navy, cream, lime = (29, 43, 69), (251, 243, 228), (217, 240, 60)
+    rgb = GARMENT_RGB.get(color_name, (40, 40, 40))
+    img = Image.new("RGBA", (W, H), navy + (255,))
+    # fabric swatch with knit texture
+    sw, sh = 1100, 1500
+    fabric = np.ones((sh, sw, 3), np.float32) * np.array(rgb, np.float32)
+    knit = smooth_noise(sh, sw, 3, 2, rng) * 0.5 + fine_noise(sh, sw, rng) * 0.5
+    fabric *= (0.93 + knit[..., None] * 0.12)
+    fabric *= (1.04 - smooth_noise(sh, sw, 400, 300, rng)[..., None] * 0.1)
+    swatch = Image.fromarray(np.clip(fabric, 0, 255).astype(np.uint8)).convert("RGBA")
+    m = Image.new("L", (sw, sh), 0)
+    ImageDraw.Draw(m).rounded_rectangle((0, 0, sw, sh), radius=40, fill=255)
+    swatch.putalpha(m)
+    ImageDraw.Draw(swatch).rounded_rectangle((0, 0, sw - 1, sh - 1), radius=40, outline=cream + (255,), width=10)
+    label = neck_label("M", "#FBF3E4" if is_dark(rgb) else "#1D2B45", (900, 900))
+    la = np.asarray(label, dtype=np.float32)
+    la[..., :3] *= (0.94 + knit[:900, :900, None] * 0.1)  # ink picks up the fabric grain
+    label = Image.fromarray(np.clip(la, 0, 255).astype(np.uint8))
+    swatch.alpha_composite(label, ((sw - 900) // 2, 260))
+    drop_shadow(img, swatch, (110, 150), offset=(14, 18), blur=20, strength=0.4)
+    d = ImageDraw.Draw(img)
+    x = 1330
+    d.text((x, 190), "OUR OWN", font=font("Anton-Regular.ttf", 120), fill=cream)
+    d.text((x, 330), "NECK LABEL", font=font("Anton-Regular.ttf", 120), fill=lime)
+    body = font("BebasNeue-Regular.ttf", 58)
+    for i, line in enumerate(["PRINTED INSIDE THE COLLAR", "DINK DISTRICT SEAL + YOUR SIZE", "CARE NOTES ALWAYS AT HAND",
+                              "PRINTED TO ORDER JUST FOR YOU"]):
+        y = 540 + i * 92
+        d.ellipse((x, y + 20, x + 22, y + 42), fill=(231, 111, 81))
+        d.text((x + 44, y), line, font=body, fill=cream)
+    d.text((x, 1560), "DINK DISTRICT", font=font("ArchivoBlack-Regular.ttf", 64), fill=lime)
+    return img.convert("RGB")
+
+
 # ------------------------------------------------------------------ driver
 def find_design(slug: str) -> Path:
     for base in ("designs-round-4", "designs-round-3", "designs-round-2", "samples"):
@@ -674,6 +715,8 @@ def render(slug: str) -> Path:
     colors_sheet(design, ptype, colors, seed).save(out / "3-colors.jpg", quality=90)
     gift_card(design, ptype, colors[0], listing, seed).save(out / "4-gift.jpg", quality=90)
     gift_scene(design, ptype, colors[0], slug, listing, seed).save(out / "5-giftbox.jpg", quality=90)
+    if ptype in NECK_LABEL_TYPES:
+        label_card(ptype, colors[0], seed).save(out / "6-label.jpg", quality=90)
     return out
 
 

@@ -89,7 +89,7 @@ Rules:
 - **Never claim anything false or borrowed:** no real league, club, tournament or brand names, and no "licensed" or "official merchandise" of anyone else. "Official" is fine only as an obvious joke ("Official Kitchen Inspector").
 
 **On the product itself:**
-- **Printed neck label:** `brandmark.neck_label(size, color)` puts our seal, name, size and care line where a brand label goes. Gildan 18000 (756x756) and Bella 3001 (750x750) support a "neck" print area; Comfort Colors 1717 from Printify Choice does not. A neck print can raise the Printify cost, so check the cost and get the owner's OK before adding it to live products.
+- **Printed neck label:** `brandmark.neck_label(size, color)` puts our seal, name, size and care line where a brand label goes. Gildan 18000 (756x756) and Bella 3001 (750x750) support a "neck" print area; Comfort Colors 1717 from Printify Choice does not. **Live since 2026-10-07** on all crewnecks and Bella tees (+$0.75 cost); new products get it with `python scripts/printify_publish.py neck`.
 - **Listing photos show the details:** close-ups of the seal and the neck label, plus fabric texture.
 
 ## 2c. Reference board: pictures the owner likes

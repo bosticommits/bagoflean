@@ -8,6 +8,7 @@ Usage:
   python scripts/printify_publish.py publish merry-dinkmas-christmas [...]
   python scripts/printify_publish.py delete <slug>           # remove an unpublished product
   python scripts/printify_publish.py swap <old-slug> <new-design-slug>   # new artwork + text on an existing product
+  python scripts/printify_publish.py neck [--dry-run]     # add the printed neck label to crewnecks and Bella tees
 
 A design is a folder in designs-round-2/ (or samples/) with design.png and a
 listing.json whose "products" list names the product type and colours. The
@@ -399,6 +400,74 @@ def cmd_swap(args) -> None:
           f"{', '.join(summary['colours'])}){' and re-synced to Etsy' if entry.get('published') else ''}")
 
 
+NECK_TYPES = {"crewneck": (756, 756), "tee": (750, 750)}  # Comfort Colors 1717 (provider 99) has no neck area
+SIZES = {"XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"}
+
+
+def cmd_neck(args) -> None:
+    """Add the printed Dink District neck label (seal, name, size, care) to every supported product.
+
+    One label per size, cream on dark shirts and navy on light ones. Adds about $0.75 to the
+    Printify cost (measured 2026-10-07); prices stay the same. Products that already have a
+    neck print are skipped. --dry-run shows the plan without changing anything.
+    """
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT))
+    _sys.path.insert(0, str(ROOT / "scripts"))
+    from etsy_agent.brandmark import neck_label
+    from photo_studio import GARMENT_RGB, is_dark
+
+    uploaded: dict = {}
+
+    def label_id(size: str, dark: bool, dims: tuple[int, int]) -> str:
+        key = (size, dark, dims)
+        if key not in uploaded:
+            img = neck_label(size, "#FBF3E4" if dark else "#1D2B45", dims)
+            buf = io.BytesIO()
+            img.save(buf, format="PNG", dpi=(300, 300))
+            name = f"neck-{size}-{'cream' if dark else 'navy'}-{dims[0]}.png"
+            uploaded[key] = call("POST", "/uploads/images.json", {
+                "file_name": name, "contents": base64.b64encode(buf.getvalue()).decode()})["id"]
+        return uploaded[key]
+
+    for p in call("GET", f"/shops/{SHOP_ID}/products.json?limit=50")["data"]:
+        ptype = BLUEPRINT_TYPES.get(p["blueprint_id"])
+        if ptype not in NECK_TYPES:
+            continue
+        if any(ph["position"] == "neck" for pa in p["print_areas"] for ph in pa["placeholders"]):
+            print(f"already has a neck label: {p['title'][:60]}")
+            continue
+        front = [ph for ph in p["print_areas"][0]["placeholders"] if ph["position"] == "front"][0]
+        front_images = [{k: im[k] for k in ("id", "x", "y", "scale", "angle")} for im in front["images"]]
+        groups: dict = {}
+        unknown = set()
+        for v in p["variants"]:
+            parts = [x.strip() for x in v["title"].split("/")]
+            size = next((x for x in parts if x in SIZES), None)
+            colour = next((x for x in parts if x not in SIZES), "")
+            if colour not in GARMENT_RGB and v["is_enabled"]:
+                unknown.add(colour)
+            dark = is_dark(GARMENT_RGB.get(colour, (40, 40, 40)))
+            groups.setdefault((size or "M", dark), []).append(v["id"])
+        if unknown:
+            print(f"  (colours without a reference, treated as dark: {sorted(unknown)})")
+        plan = ", ".join(f"{sz}/{'cream' if dk else 'navy'}" for sz, dk in sorted(groups, key=str))
+        print(f"{'would add' if args.dry_run else 'adding'} neck labels [{plan}]: {p['title'][:60]}")
+        if args.dry_run:
+            continue
+        dims = NECK_TYPES[ptype]
+        areas = [{"variant_ids": ids, "placeholders": [
+                    {"position": "front", "images": front_images},
+                    {"position": "neck", "images": [{"id": label_id(sz, dk, dims), "x": 0.5, "y": 0.5,
+                                                     "scale": 1, "angle": 0}]}]}
+                 for (sz, dk), ids in groups.items()]
+        call("PUT", f"/shops/{SHOP_ID}/products/{p['id']}.json", {"print_areas": areas})
+        if p.get("external"):
+            call("POST", f"/shops/{SHOP_ID}/products/{p['id']}/publish.json", {
+                "title": False, "description": False, "images": False, "variants": True,
+                "tags": False, "keyFeatures": False, "shipping_template": False})
+
+
 def cmd_delete(args) -> None:
     state = load_state()
     for slug in args.slugs:
@@ -427,6 +496,9 @@ def main() -> None:
     p.add_argument("old")
     p.add_argument("new")
     p.set_defaults(func=cmd_swap)
+    p = sub.add_parser("neck")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(func=cmd_neck)
     sub.add_parser("create-all").set_defaults(
         func=lambda a: cmd_create(argparse.Namespace(slugs=[s for s in all_slugs() if s not in load_state()])))
     args = parser.parse_args()

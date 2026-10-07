@@ -25,14 +25,14 @@ The source of truth for what's live is `printify/state.json` plus `python script
 ## Prices (free US shipping on apparel)
 | Product | S-XL | 2XL | 3XL | 4XL | 5XL | Approx. profit S-XL |
 |---|---|---|---|---|---|---|
-| Crewneck | $36.99 | $39.99 | $41.99 | $44.99 | $44.99 | about $7.80 |
-| Tee | $24.99 | $26.99 | $30.99 | $32.99 | $34.99 | about $6 |
+| Crewneck | $36.99 | $39.99 | $41.99 | $44.99 | $44.99 | about $7.05 |
+| Tee | $24.99 | $26.99 | $30.99 | $32.99 | $34.99 | about $5.25 |
 | Tee, Comfort Colors 1717 | $26.99 | $28.99 | $31.99 | $33.99 | - | about $6 |
 | Mug 11oz | $16.99 + shipping | | | | | about $10 |
 | Accent mug 11oz (lime or black handle and inside) | $18.99 + shipping | | | | | about $10.70 |
 | Sticker | $4.99 (3") / $5.99 (4") + shipping | | | | | about $3 |
 
-Costs: crewneck $17.87 (S-XL), tee $11.29 (S-XL), Comfort Colors tee $12.65 (S-XL), mug $5.03, accent mug $6.40, sticker $1.58. Etsy fees are about 9.5% + $0.45 per order. Off-site ads take 15% when an ad brings the sale.
+Costs: crewneck $18.62 (S-XL, incl. $0.75 neck label), tee $12.03 (S-XL, incl. $0.74 neck label), Comfort Colors tee $12.65 (S-XL), mug $5.03, accent mug $6.40, sticker $1.58. Etsy fees are about 9.5% + $0.45 per order. Off-site ads take 15% when an ad brings the sale.
 
 ## What the market shows (Etsy search, early Oct 2026)
 - **Personalisation leads.** Bestsellers include "Pickleball Grandma sweatshirt personalised Gigi" (235 reviews), team/club shirts ("TEAM NAME, EST 2025, PICKLEBALL CLUB, AUSTIN TX") and name mugs.
@@ -58,6 +58,7 @@ Costs: crewneck $17.87 (S-XL), tee $11.29 (S-XL), Comfort Colors tee $12.65 (S-X
 - **Publishing:** create as a Printify draft, tell the owner, and publish only after they say so. Every listing costs $0.20.
 
 ## Decisions log
+- 2026-10-07: **Printed neck labels are live** on all 8 crewnecks and all 7 Bella tees (`printify_publish.py neck`): Dink District seal, size and care line, cream on dark and navy on light, one label per size. Measured cost +$0.75 (crewneck) and +$0.74 (Bella); prices unchanged at the owner's OK ("if the cost is low"). Comfort Colors 1717 (Printify Choice) has no neck area. Listing photo `6-label.jpg` (a detail card, not a fake photo) is now allowed for crewnecks and Bella tees.
 - 2026-10-07: The owner approved "swap all": the 8 round-4 listings now carry the authenticity-detail artwork (North Pole Pickleball Club, Open Play Champion, Knee Brace Division, No. 0-0-2, Dink District seal). v1 art is kept as `design-v1.png`. New 5-photo sets (hero with blank callout, close-up, gift box, colours, facts) were sent to the owner to upload. The owner still needs to trademark-search the 3 new phrases.
 - 2026-10-07: Authenticity details added to the 8 round-4 designs (club line, EST. / 2026, Dink District seal, purpose lines; see the playbook lessons log). New art is in `design.png`; the live art is saved as `design-v1.png`; comparison sheet at `designs-round-4/authenticity-before-after.jpg`. **Live listings keep v1 until the owner approves a swap** (`printify_publish.py swap`). Nothing published.
 - 2026-10-06: Marketing restart for round 4: `marketing/pinterest_round4.csv` (24 pins, Oct 7-18, made from the new listing photos; `marketing_pins.py --round`) and the owner guide `marketing/START-HERE.md` (photos, Pinterest setup, optional Etsy Ads at $1-2/day, weekly Stats screenshots, and how to tell traffic problems from design problems). Day-14 check is around Oct 20, the day-30 decision around Nov 5.
