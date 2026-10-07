@@ -70,7 +70,7 @@ Luck divides the "1 in N" chance (Luck ×2 turns 1/5,000 into 1/2,500).
 | Star | Teen Heartthrob, Method Actor | 1 in 500 | 20 |
 | Superstar | Box Office King, Scream Queen | 1 in 5,000 | 50 |
 | Legend | Golden Age Diva | 1 in 60,000 | 120 |
-| Icon | The Mogul's Muse | 1 in 600,000 | 300 |
+| Icon | The Mogul's Muse | 1 in 1,000,000 | 300 |
 
 **Variants**, rolled on top of any actor: *Shiny* (1 in 40, ×2) and *Award-Winning*
 (1 in 800, ×5). Each variant has its own Index slot. Version 1 ships 21 actors (3 per tier),
@@ -151,7 +151,7 @@ exciting by M3, fix the core before adding anything else.
   Newcomer gets the rest (about 80%, not "1 in 2"): both cannot be true at once.
 - **Agencies**: Open Casting $10 (Fame 0), Talent Agency $1,000 (Fame 3,500), Hollywood
   Casting $100,000 (Fame 50,000). Removing bottom tiers rescales the rest of the pool, so better
-  agencies make rare tiers more likely (Icon: 1 in 600,000, 113,581 and 16,297).
+  agencies make rare tiers more likely (Icon: 1 in 1,000,000, 189,301 and 27,162).
 - **Actors are not used up.** A copy is busy while it is filming and returns after the
   premiere, so duplicates and extra stages matter.
 - **Fame** is a threshold, never spent: about the square root of each payout. It gates

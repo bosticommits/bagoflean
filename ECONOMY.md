@@ -23,7 +23,7 @@ Robux cash packs. Treat it as the shape of the curve, not a promise: playtests d
   scripts and the fourth stage unlock on day 3, which makes the overnight movie worth a lot more.
 - **Days 4 to 7.** Cinema, Offline and Clapperboard upgrades max out on day 4. **Hollywood
   Casting** opens on day 6. About half of players pull a **Legend** in week one. **Icon** stays a
-  rare brag (about 1 in 8 players in week one). The last Luck upgrades and most of the Index
+  rare brag (about 1 in 20 players in week one). The last Luck upgrades and most of the Index
   (about 35 of 63 slots) are left for week two.
 
 How you earn changes over the week. Early on, active play (Short Films plus clapping) is most of
@@ -52,7 +52,7 @@ Median time, from 100 runs. "Slow 10%" is the unlucky end.
 | First Legend | day 5 (56% of players in week one) | |
 | Hollywood Casting | day 6 (260 min) | day 7 |
 | All upgrades maxed | day 6 (67% in week one) | |
-| First Icon | 13% of players in week one | |
+| First Icon | 5% of players in week one | |
 
 Other players:
 - **Casual** (25 min on day one, then 20 min a day): Talent Agency on day 3, first Superstar on
@@ -70,7 +70,7 @@ the old numbers a player had every upgrade maxed after 35 minutes and earned 270
 by day 7.
 
 **Odds are rarer at the top** (Star 1 in 500, Superstar 1 in 5,000, Legend 1 in 60,000, Icon
-1 in 600,000). Casting soon costs almost nothing compared with income, so how fast rare actors
+1 in 1,000,000). Casting soon costs almost nothing compared with income, so how fast rare actors
 arrive depends on how many casts a player makes. The odds are set for about one cast every
 3 seconds of play.
 
@@ -113,7 +113,5 @@ progression.
   Superstar and Legend come sooner. The first fix would be rarer odds, not higher prices.
 - Holding finished Epics for Award Night doubles them. The sim's player does this when an Award
   Night falls inside the session, which slows Fame slightly.
-- Icon in week one is about 13%, a little above the 5% aim. If that feels too common, raise Icon
-  to 1 in 1,000,000.
 - After week one income keeps growing slowly. The Sequel (rebirth) in M7 is the planned long-term
   sink.

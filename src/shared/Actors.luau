@@ -37,7 +37,7 @@ Actors.Tiers = {
 	{ id = "Star", name = "Star", oneIn = 500, starPower = 20, color = Color3.fromRGB(160, 77, 255) },
 	{ id = "Superstar", name = "Superstar", oneIn = 5000, starPower = 50, color = Color3.fromRGB(255, 194, 26) },
 	{ id = "Legend", name = "Legend", oneIn = 60000, starPower = 120, color = Color3.fromRGB(255, 90, 46) },
-	{ id = "Icon", name = "Icon", oneIn = 600000, starPower = 300, color = Color3.fromRGB(255, 95, 210) },
+	{ id = "Icon", name = "Icon", oneIn = 1000000, starPower = 300, color = Color3.fromRGB(255, 95, 210) },
 } :: { Tier }
 
 Actors.List = {
