@@ -10,10 +10,10 @@ local WorldLabel = require(ReplicatedStorage.Shared.WorldLabel)
 
 local StudioAvatar = {}
 
-local SCALE = 6.5
--- Lot space (-Z faces the boulevard): centred behind the cinema, which hides the waist from the
--- street.
-local SPOT = Vector3.new(0, 14, 23)
+local SCALE = 9
+-- Lot space (-Z faces the boulevard): centred behind the cinema, with the waist at its roof, so
+-- the chest and head rise clear of it.
+local SPOT = Vector3.new(0, 18, 24)
 local NAME_HEIGHT = 5 -- studs, over the head
 
 -- How see-through a part is by its height in the body (0 soles, 1 top of the head): solid head and
@@ -140,8 +140,9 @@ function StudioAvatar.build(holder: Model, base: CFrame, player: Player, stillWa
 		end
 	end
 	figure.Parent = holder
-	-- The name sits just over the head.
-	nameAnchor.Position = Vector3.new(target.Position.X, top + NAME_HEIGHT * 0.7, target.Position.Z)
+	-- The name sits clear over the head (seen from the street below, the front of the head rises
+	-- in the picture, so leave a full line of room).
+	nameAnchor.Position = Vector3.new(target.Position.X, top + NAME_HEIGHT * 1.2, target.Position.Z)
 end
 
 return StudioAvatar

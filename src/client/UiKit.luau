@@ -2,7 +2,6 @@
 -- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
-local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
@@ -500,10 +499,33 @@ end
 
 -- Layout ---------------------------------------------------------------------------------------
 -- A string that changes whenever `value` (plain data) does, so a screen can skip rebuilding
--- when nothing it shows changed (a rebuilt 3D picture is blank until Roblox redraws it).
+-- when nothing it shows changed (a rebuilt 3D picture is blank until Roblox redraws it). Keys are
+-- sorted, so two syncs holding the same data always match whatever order their tables were built.
 function UiKit.signature(value: any): string
-	local ok, encoded = pcall(HttpService.JSONEncode, HttpService, value)
-	return if ok then encoded else tostring(os.clock())
+	local out: { string } = {}
+	local function write(v: any)
+		if type(v) == "table" then
+			local keys = {}
+			for key in v do
+				table.insert(keys, key)
+			end
+			table.sort(keys, function(a, b)
+				return tostring(a) < tostring(b)
+			end)
+			table.insert(out, "{")
+			for _, key in keys do
+				table.insert(out, tostring(key))
+				table.insert(out, "=")
+				write(v[key])
+				table.insert(out, ";")
+			end
+			table.insert(out, "}")
+		else
+			table.insert(out, tostring(v))
+		end
+	end
+	write(value)
+	return table.concat(out)
 end
 
 -- Short screens (phones in landscape) get taller panels so lists have room to breathe.
