@@ -2,6 +2,9 @@
 -- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
+local TweenService = game:GetService("TweenService")
+
+local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 
 local UiKit = {}
@@ -24,6 +27,7 @@ UiKit.CLOSE_RED = Color3.fromRGB(229, 38, 47)
 UiKit.WARN = Color3.fromRGB(255, 138, 102) -- "needs Fame" text
 UiKit.BLUE = Color3.fromRGB(46, 134, 222)
 UiKit.PURPLE = Color3.fromRGB(160, 77, 255)
+UiKit.TEAL = Color3.fromRGB(32, 178, 190)
 UiKit.BURGUNDY = Color3.fromRGB(122, 31, 43)
 UiKit.CREAM = Color3.fromRGB(244, 231, 207)
 UiKit.FRESH_GREEN = Color3.fromRGB(91, 191, 90)
@@ -143,6 +147,95 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 		end
 	end)
 	return button
+end
+
+-- Grows a little under the pointer and dips when pressed, like the reference games' buttons.
+-- `onHover` runs with true/false as the pointer enters and leaves.
+function UiKit.bounce(button: GuiButton, onHover: ((boolean) -> ())?)
+	local scale = Instance.new("UIScale")
+	scale.Parent = button
+	local function to(value: number)
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = value }):Play()
+	end
+	button.MouseEnter:Connect(function()
+		to(1.08)
+		if onHover then
+			onHover(true)
+		end
+	end)
+	button.MouseLeave:Connect(function()
+		to(1)
+		if onHover then
+			onHover(false)
+		end
+	end)
+	button.MouseButton1Down:Connect(function()
+		to(0.92)
+	end)
+	button.MouseButton1Up:Connect(function()
+		to(1.04)
+	end)
+end
+
+-- Square picture button (design kit / reference games): a 3D icon (IconModels id) over a bright
+-- tile, with an outlined label overlapping its bottom edge. Badges go on it like any button.
+function UiKit.makeIconTile(parent: Instance, iconId: string, text: string, color: Color3, size: UDim2, position: UDim2?): TextButton
+	local tile = Instance.new("TextButton")
+	tile.Name = text .. "Button"
+	tile.AutoButtonColor = false
+	tile.BackgroundColor3 = color
+	tile.Size = size
+	tile.Position = position or UDim2.new()
+	tile.Text = ""
+	tile.Parent = parent
+	UiKit.corner(tile, 14)
+	UiKit.border(tile, 3)
+	-- Light top, deeper bottom, and a thin inner highlight along the top edge.
+	local shade = Instance.new("UIGradient")
+	shade.Name = "Shade"
+	shade.Rotation = 90
+	shade.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(170, 170, 170))
+	shade.Parent = tile
+	local shine = Instance.new("Frame")
+	shine.Name = "Shine"
+	shine.BackgroundColor3 = UiKit.WHITE
+	shine.BackgroundTransparency = 0.6
+	shine.BorderSizePixel = 0
+	shine.Position = UDim2.new(0.1, 0, 0, 4)
+	shine.Size = UDim2.new(0.8, 0, 0, 4)
+	shine.Parent = tile
+	UiKit.corner(shine, 2)
+
+	local art = Instance.new("Frame")
+	art.Name = "Art"
+	art.BackgroundTransparency = 1
+	art.AnchorPoint = Vector2.new(0.5, 0)
+	art.Position = UDim2.new(0.5, 0, 0.04, 0)
+	art.Size = UDim2.fromScale(0.86, 0.7)
+	art.Parent = tile
+	local viewport = Icon3D.icon(art, iconId)
+
+	local label = UiKit.makeTitle(tile, text, UiKit.WHITE, UDim2.fromScale(1.1, 0.34), UDim2.fromScale(-0.05, 0.64), 2.5)
+	label.Name = "Label"
+	label.ZIndex = tile.ZIndex + 3
+	UiKit.textConstraint(label, 22)
+
+	local stopWobble: (() -> ())? = nil
+	UiKit.bounce(tile, function(hovered)
+		if stopWobble ~= nil then
+			stopWobble()
+			stopWobble = nil
+		end
+		if hovered then
+			stopWobble = Icon3D.wobble(viewport)
+		end
+	end)
+	tile.Activated:Connect(function()
+		if not tile:GetAttribute("Silent") then
+			Sfx.play("click")
+		end
+	end)
+	return tile
 end
 
 -- Grey a button out (still tappable, so it can explain why) or give it back its color.

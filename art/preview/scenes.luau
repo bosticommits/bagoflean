@@ -92,6 +92,15 @@ function scenes.lotMax(folder, load, roblox)
 	lot(folder, load, roblox, { stages = 5, cinema = 6, office = 5, trophies = 7, filming = { true, false, true, true, true }, star = "PhantomAuteur", variant = "Award" })
 end
 
+-- The menu button icons in a row (arg: one icon id to show just that one).
+function scenes.icons(folder, load, roblox, arg)
+	local IconModels = load("src/shared/Models/IconModels.luau")
+	local ids = if arg ~= nil and arg ~= "" then { arg } else IconModels.Ids
+	for i, id in ids do
+		IconModels.build(folder, id, roblox.CFrame.new((i - (#ids + 1) / 2) * 5, 0, 0))
+	end
+end
+
 -- All six lots placed the way LotService places them, at mixed progress, to check facing.
 function scenes.map(folder, load, roblox)
 	local LotLook = load("src/shared/Models/LotLook.luau")
