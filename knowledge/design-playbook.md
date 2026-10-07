@@ -76,7 +76,7 @@ Real brands and real vintage athletic prints are full of small details. They mak
 
 | Detail | Examples | How |
 |---|---|---|
-| Brand seal | "DINK DISTRICT · EST. 2026" round stamp with crossed paddles | `etsy_agent.brandmark.seal(width, color)`, at least 360 px wide, tucked under or beside the art |
+| Brand seal | "DINK DISTRICT · EST. 2026" round stamp with crossed paddles | On shirt fronts use `etsy_agent.brandmark.print_seal(width, color)` at about 880 px wide (63 px caps), tucked under or beside the art. `seal()` is for neck labels only: at 360-420 px its strokes are about 5 px |
 | Brand or department line | "DINK DISTRICT ATHLETIC CO.", "NON-VOLLEY ZONE DEPT.", "COURT 3 · OPEN 7 DAYS" | `brand_line(text, width, color)`, spaced caps under the hook |
 | Purpose line (who it's for or what it celebrates) | "LEAGUE CHAMPION GRANDMA", "RETIRED · CLASS OF 2026", "OFFICIAL KITCHEN STAFF", "MEMBER SINCE THE FIRST DINK" | Ties the shirt to the buyer's reason for buying (gift, milestone, club) |
 | Fake-official numbers | "No. 0-0-2", "EST. 7AM DAILY", "RULE 9.B COMPLIANT" (the kitchen rule) | Insider jokes for players; small type |
@@ -158,6 +158,7 @@ Fill in from Etsy Stats: design, style or layout, views, favourites, orders, and
 - _No data yet. All round-4 designs went live on 2026-10-06; first review around 2026-11-06._
 
 ## 8. Lessons log (newest first)
+- 2026-10-07: Authenticity details on the 8 round-4 designs. **Small text must use a heavy font:** Bowlby One SC at size 81 or more gives 60 px caps with strokes of 24 px or more. Righteous, Bebas and Anton need caps of 100-130 px before their strokes reach 20 px. `seal()` at 360-420 px measured 54% sub-20-px ink, so `print_seal()` was added (Bowlby lettering, rings and gaps of at least 24 px, a 7-hole ball on the paddle crossing; a solid ball above the paddles read as a stick figure). Put small lettering on a layer composited **after** the speck texture (`Art.overlay()` in `round4_holiday.py`, `Layer.clean()` in `round4_evergreen.py`), or specks and scratches break letters ("0-0-2" read as "0+0-2"). Reuse empty space instead of adding height: EST. / 2026 in place of sparkles beside the legs, the seal beside the art where a sparkle or the tray leaves a gap, a club line on an arc around a badge. In `round4_evergreen.py`, anything wider than the hook word shrinks the whole design (`finish()` fits to 87% width). Knit designs got a 3x5 single-stitch font (`KNIT_SMALL`). Every hook word still read at 300 px after the details were added.
 - 2026-10-06: The knit design's thousands of small stitches give many anti-aliased edge pixels. That's fine; `design_check.py` tells edges apart from real glows.
 - 2026-10-06: `etsy_agent.render.make_mockup` draws a T-shirt shape, even for crewnecks. Use `photo_studio.py` for listing photos.
 - 2026-10-06: Wide badges print shorter (Kitchen Staff Only is about 11 inches tall). Fine for a badge, but consider a taller layout when the joke needs presence.
