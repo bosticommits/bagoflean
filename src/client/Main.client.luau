@@ -1,12 +1,16 @@
 --!strict
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 
 local CastingUi = require(script.Parent.CastingUi)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local RewardsUi = require(script.Parent.RewardsUi)
 local Sfx = require(script.Parent.Sfx)
+local ShopUi = require(script.Parent.ShopUi)
+local SideMenu = require(script.Parent.SideMenu)
 local StudioUi = require(script.Parent.StudioUi)
 local Tutorial = require(script.Parent.Tutorial)
 local UpgradesUi = require(script.Parent.UpgradesUi)
@@ -42,7 +46,23 @@ if remotes ~= nil then
 	if upgradesButton ~= nil then
 		UpgradesUi.start(gui, upgradesButton)
 	end
+	local side = SideMenu.start(gui)
+	ShopUi.start(gui, side.shop)
+	RewardsUi.start(gui, side.rewards, side.codes)
 	Tutorial.start(gui, remotes)
 else
 	warn("[MovieMogul] Remotes folder never arrived")
+end
+
+-- VIP chat tag. The server sets PassVIP on players who own the pass; this only decorates text.
+TextChatService.OnIncomingMessage = function(message: TextChatMessage)
+	local properties = Instance.new("TextChatMessageProperties")
+	local source = message.TextSource
+	if source then
+		local speaker = Players:GetPlayerByUserId(source.UserId)
+		if speaker ~= nil and speaker:GetAttribute("PassVIP") then
+			properties.PrefixText = `<font color="#FFCD46">[VIP]</font> {message.PrefixText}`
+		end
+	end
+	return properties
 end

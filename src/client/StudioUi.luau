@@ -2,6 +2,7 @@
 -- Studio screen: stages (start a movie, clapperboard, premiere), script shop, and cinema.
 -- Placeholder visuals until M5. The client shows server state and sends requests; it never decides
 -- Cash, timers, or results. Remaining time is the server's end stamp minus the server's clock.
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -12,6 +13,7 @@ local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local ShopUi = require(script.Parent.ShopUi)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -32,6 +34,7 @@ local ERRORS: { [string]: string } = {
 	maxed = "Already at max level",
 	claimed = "Already claimed",
 	unavailable = "Not complete yet",
+	noskip = "You have no Skip Filming",
 }
 
 local GENRE_COLORS = UiKit.GENRE_COLORS
@@ -82,6 +85,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local premiereResult = remotes:WaitForChild("PremiereResult") :: RemoteEvent
 	local studioError = remotes:WaitForChild("StudioError") :: RemoteEvent
 	local announce = remotes:WaitForChild("Announce") :: RemoteEvent
+	local useSkip = remotes:WaitForChild("UseSkip") :: RemoteEvent
 
 	-- Local aliases of ClientState, refreshed whenever it changes (see the changed handler below).
 	local state: any = ClientState.studio
@@ -130,7 +134,14 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local tabButtons: { [string]: TextButton } = {}
 
 	-- Stage rows that need a live countdown: updated in place so buttons are not rebuilt each tick.
-	local timers: { { stage: number, time: TextLabel, fill: Frame, button: TextButton, ready: boolean } } = {}
+	local timers: { { stage: number, time: TextLabel, fill: Frame, button: TextButton, skip: TextButton, ready: boolean } } = {}
+	-- Stage the player wanted to skip when they had no token: used as soon as a bought one arrives.
+	local pendingSkipStage: number? = nil
+
+	-- Stages usable now (bought stages plus the +1 Sound Stage pass).
+	local function stageCount(): number
+		return if state ~= nil then state.stages or state.stageCount else 1
+	end
 	local renderedSignature = ""
 
 	local render: () -> ()
@@ -140,8 +151,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		if state == nil then
 			return "loading"
 		end
-		local parts = { tab, tostring(state.stageCount) }
-		for stage = 1, Config.MaxStages do
+		local parts = { tab, tostring(stageCount()) }
+		for stage = 1, Config.StageLimit do
 			local film = filmAt(stage)
 			table.insert(parts, if film ~= nil then film.title .. film.startTime else "-")
 		end
@@ -150,11 +161,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	local function renderStages()
 		local order = 0
-		for stage = 1, Config.MaxStages do
+		for stage = 1, Config.StageLimit do
 			order += 1
-			if stage > state.stageCount then
+			if stage > stageCount() then
 				local row = UiKit.addRow(list, order, 52)
-				makeLabel(row, `Stage {stage}  -  locked (stage upgrades come later)`, Color3.fromRGB(120, 120, 130), UDim2.new(1, -20, 0.6, 0), UDim2.fromOffset(10, 10))
+				local how = if stage <= Config.MaxStages then "buy it in Upgrades" else "+1 Sound Stage pass in the Shop"
+				makeLabel(row, `Stage {stage}  -  locked ({how})`, Color3.fromRGB(120, 120, 130), UDim2.new(1, -20, 0.6, 0), UDim2.fromOffset(10, 10))
 				continue
 			end
 			local film = filmAt(stage)
@@ -194,9 +206,19 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 			local time = makeLabel(row, "", UiKit.GOLD, UDim2.new(0.38, 0, 0, 26), UDim2.new(0, 10, 1, -32))
 			time.TextXAlignment = Enum.TextXAlignment.Left
-			local button = makeButton(row, "", UiKit.RED, UDim2.new(0.55, 0, 0, 30), UDim2.new(0.43, 0, 1, -34))
+			local button = makeButton(row, "", UiKit.RED, UDim2.new(0.36, 0, 0, 30), UDim2.new(0.43, 0, 1, -34))
 			button:SetAttribute("Silent", true) -- plays its own clapper sound
-			table.insert(timers, { stage = stage, time = time, fill = fill, button = button, ready = false })
+			local skip = makeButton(row, "Skip", Color3.fromRGB(150, 80, 200), UDim2.new(0.18, 0, 0, 30), UDim2.new(0.8, 0, 1, -34))
+			skip.Activated:Connect(function()
+				if (state.skips or 0) > 0 then
+					useSkip:FireServer(stage)
+				elseif ShopUi.promptProduct("SkipFilming") then
+					pendingSkipStage = stage
+				else
+					UiKit.toast(gui, "Skip Filming is coming soon")
+				end
+			end)
+			table.insert(timers, { stage = stage, time = time, fill = fill, button = button, skip = skip, ready = false })
 			button.Activated:Connect(function()
 				-- Look the film up now: this row is updated in place, so `film` may be stale.
 				local current = filmAt(stage)
@@ -539,6 +561,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			if (result.genreBonus or 1) > 1 then
 				payoutLabel.Text ..= `  (genre set x{result.genreBonus})`
 			end
+			if result.awardNight then
+				payoutLabel.Text ..= `  (Award Night x{Config.AwardNightPayoutMultiplier})`
+			end
 			payoutLabel.TextColor3 = Color3.fromRGB(120, 255, 140)
 			fameLabel.Text = `+{Hud.comma(result.fame)} Fame  -  Star Power {fmtPower(result.power)}`
 			fameLabel.TextColor3 = UiKit.GOLD
@@ -595,6 +620,17 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		if picker.Visible then
 			buildPicker()
 		end
+		-- A Skip Filming bought from a stage's Skip button is used on that stage right away.
+		local skipStage = pendingSkipStage
+		if skipStage ~= nil and state ~= nil and (state.skips or 0) > 0 then
+			pendingSkipStage = nil
+			useSkip:FireServer(skipStage)
+		end
+	end)
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function(_userId, _productId, purchased)
+		if not purchased then
+			pendingSkipStage = nil
+		end
 	end)
 
 	premiereResult.OnClientEvent:Connect(function(result)
@@ -630,6 +666,10 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local total = math.max(1, film.endTime - film.startTime)
 			entry.fill.Size = UDim2.fromScale(math.clamp(1 - remaining / total, 0, 1), 1)
 			local ready = remaining <= 0
+			entry.skip.Visible = not ready
+			if not ready then
+				entry.skip.Text = if (state.skips or 0) > 0 then `Skip ({state.skips})` else "Skip"
+			end
 			if ready then
 				entry.time.Text = "Finished!"
 				entry.button.Text = "PREMIERE!"

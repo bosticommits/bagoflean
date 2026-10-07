@@ -10,9 +10,11 @@ ClientState.index = {} :: { [string]: boolean }
 -- Latest StudioSync payload: serverNow, stageCount, fame, rate, scripts, films, cinema, upgrades, rewards.
 ClientState.studio = nil :: any
 ClientState.syncedAt = 0
+-- Latest RewardsSync payload: serverNow, today, daily { day, streak }, requests, codes.
+ClientState.rewards = nil :: any
 
 local changedEvent = Instance.new("BindableEvent")
--- Fires "roster" or "studio" after the state above has been updated.
+-- Fires "roster", "studio" or "rewards" after the state above has been updated.
 ClientState.changed = changedEvent.Event
 
 -- The server's clock now, from the last sync plus local time since.
@@ -31,6 +33,7 @@ function ClientState.stats(): any
 		upgrades = if studio ~= nil then studio.upgrades else {},
 		stageCount = if studio ~= nil then studio.stageCount else 1,
 		rewards = if studio ~= nil then studio.rewards else {},
+		passes = if studio ~= nil then studio.passes else {},
 	}
 end
 
@@ -40,6 +43,8 @@ function ClientState.start(remotes: Instance)
 	local studioSync = remotes:WaitForChild("StudioSync") :: RemoteEvent
 	local rosterRequest = remotes:WaitForChild("RosterRequest") :: RemoteEvent
 	local studioRequest = remotes:WaitForChild("StudioRequest") :: RemoteEvent
+	local rewardsSync = remotes:WaitForChild("RewardsSync") :: RemoteEvent
+	local rewardsRequest = remotes:WaitForChild("RewardsRequest") :: RemoteEvent
 
 	rosterSync.OnClientEvent:Connect(function(roster, index)
 		if type(roster) == "table" and type(index) == "table" then
@@ -56,6 +61,13 @@ function ClientState.start(remotes: Instance)
 		end
 	end)
 
+	rewardsSync.OnClientEvent:Connect(function(rewards)
+		if type(rewards) == "table" then
+			ClientState.rewards = rewards
+			changedEvent:Fire("rewards")
+		end
+	end)
+
 	-- Ask once the server has loaded this player's data.
 	task.spawn(function()
 		while not player:GetAttribute("DataLoaded") do
@@ -63,6 +75,7 @@ function ClientState.start(remotes: Instance)
 		end
 		rosterRequest:FireServer()
 		studioRequest:FireServer()
+		rewardsRequest:FireServer()
 	end)
 end
 

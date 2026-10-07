@@ -1,5 +1,6 @@
 --!strict
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Startup guard. A duplicated script (for example from two sync tools creating the same file) must
 -- not start every service twice, and duplicate modules should be reported rather than ignored.
@@ -19,18 +20,29 @@ do
 	end
 end
 
+local Config = require(ReplicatedStorage.Shared.Config)
+local Analytics = require(script.Parent.Analytics)
+local AwardNightService = require(script.Parent.AwardNightService)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local LotService = require(script.Parent.LotService)
 local MovieService = require(script.Parent.MovieService)
 local Remotes = require(script.Parent.Remotes)
+local RewardService = require(script.Parent.RewardService)
+local ShopService = require(script.Parent.ShopService)
 local UpgradeService = require(script.Parent.UpgradeService)
 
 LotService.start()
 CastingService.start()
 MovieService.start()
 UpgradeService.start()
+RewardService.start()
+ShopService.start()
+AwardNightService.start()
+Analytics.start()
+LiveConfig.start()
 Remotes.publish()
 
 local function onPlayerAdded(player: Player)
@@ -45,10 +57,23 @@ local function onPlayerAdded(player: Player)
 	EconomyService.refresh(player)
 	CastingService.refresh(player)
 	player:SetAttribute("DataLoaded", true)
+	Analytics.onboarding(player, Analytics.Steps.Joined)
+	task.spawn(ShopService.load, player)
 
-	-- Keep the pending-royalty readout fresh for the HUD.
-	while player.Parent == Players and DataService.getData(player) ~= nil do
+	-- Keep the pending-royalty and Luck readouts fresh for the HUD (Luck changes as boosts and Award
+	-- Night start and end), and run the Auto-Collect pass.
+	local lastAutoCollect = os.clock()
+	while player.Parent == Players do
+		local live = DataService.getData(player)
+		if live == nil then
+			break
+		end
+		if live.passes.AutoCollect and os.clock() - lastAutoCollect >= Config.AutoCollectSeconds then
+			lastAutoCollect = os.clock()
+			EconomyService.collect(player)
+		end
 		EconomyService.refresh(player)
+		CastingService.refresh(player)
 		task.wait(1)
 	end
 end
@@ -59,6 +84,8 @@ local function onPlayerRemoving(player: Player)
 	CastingService.forget(player)
 	MovieService.forget(player)
 	UpgradeService.forget(player)
+	RewardService.forget(player)
+	Analytics.forget(player)
 	DataService.release(player)
 end
 
