@@ -43,7 +43,7 @@
   },
   "merry-dinkmas-christmas": {
     "product_id": "6ac3b7d8ff369fe79909cca3",
-    "image_id": "6ac4cfe9d35b18022554e348",
+    "image_id": "6ac5a2b6dd90ba88f9358f52",
     "type": "crewneck",
     "published": true,
     "design": "merry-dinkmas-mascot"
@@ -80,7 +80,7 @@
   },
   "santas-favorite-dinker": {
     "product_id": "6ac3b84b4d063463e50af45a",
-    "image_id": "6ac4d01cbd13a0a77612190d",
+    "image_id": "6ac5a2d1be8906c56de74298",
     "type": "crewneck",
     "published": true,
     "design": "santas-favorite-dinker-badge"
@@ -93,39 +93,44 @@
   },
   "jingle-all-the-way-to-the-kitchen": {
     "product_id": "6ac4bd707fb2cc1a75029d14",
-    "image_id": "6ac4d027bd13a0a776121911",
+    "image_id": "6ac5a2e70c1e56b93c8ab6f2",
     "type": "crewneck",
     "published": true,
     "design": "jingle-kitchen-knit-sweater"
   },
   "dashing-through-the-kitchen": {
     "product_id": "6ac4d047b6d3488ca205e4a2",
-    "image_id": "6ac4d042ff7531a9b6940d24",
+    "image_id": "6ac5a2ff64f5bf3ad481b024",
     "type": "crewneck",
-    "published": true
+    "published": true,
+    "design": "dashing-through-the-kitchen"
   },
   "grandmas-got-game": {
     "product_id": "6ac4d052de736a3ee90c4b59",
-    "image_id": "6ac4d04d9bf7e88aef90b980",
+    "image_id": "6ac5a325ab1d1228bbc5e956",
     "type": "tee-cc",
-    "published": true
+    "published": true,
+    "design": "grandmas-got-game"
   },
   "knees-say-no-heart-says-pickleball": {
     "product_id": "6ac4d05db6d3488ca205e4f9",
-    "image_id": "6ac4d058ff7531a9b6940d27",
+    "image_id": "6ac5a35075be71bf5f7ce6a4",
     "type": "tee-cc",
-    "published": true
+    "published": true,
+    "design": "knees-say-no-heart-says-pickleball"
   },
   "kitchen-staff-only-chef": {
     "product_id": "6ac4d068de736a3ee90c4b6e",
-    "image_id": "6ac4d064f5f4cdac21d1521c",
+    "image_id": "6ac5a364ff49b0b1d674bb0e",
     "type": "tee-cc",
-    "published": true
+    "published": true,
+    "design": "kitchen-staff-only-chef"
   },
   "retired-now-serving-full-time": {
     "product_id": "6ac4d076b6d3488ca205e51a",
-    "image_id": "6ac4d0700146b83bfff6294a",
+    "image_id": "6ac5a378bc3d233ee3aa067f",
     "type": "tee-cc",
-    "published": true
+    "published": true,
+    "design": "retired-now-serving-full-time"
   }
 }
