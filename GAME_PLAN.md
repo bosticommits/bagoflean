@@ -139,5 +139,4 @@ exciting by M3, fix the core before adding anything else.
 ## 10. Open questions
 
 - Final game name ("Movie Mogul", "Studio Tycoon RNG", "Hollywood RNG"...)
-- Art style (bright cartoon is the safe pick for this audience)
 - Whether to add light player interaction later (visiting lots, co-starring in premieres)

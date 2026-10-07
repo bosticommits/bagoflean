@@ -141,8 +141,9 @@ the Hollywood sign letters, cars.
 3. The script also **renders a preview PNG** (front and three-quarter views) into
    `art/previews/`. Look at it and fix problems before uploading.
 4. Export **FBX** to `art/exports/<model>.fbx`.
-5. Upload with the `upload_asset` tool (assetType `Model`), then insert it with
-   `insert_asset` and screenshot it in Studio to check scale and look.
+5. Import the FBX into Studio with the **3D Importer** (Home → Import 3D), which uploads it
+   to the owner's account and places it in the world. Then screenshot it in Studio to check
+   scale and look.
 6. Commit the `.py` script and preview, so every model can be rebuilt or changed later.
    Don't commit large exports.
 
