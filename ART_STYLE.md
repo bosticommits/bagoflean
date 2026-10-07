@@ -1,4 +1,4 @@
-# Art Style Guide: Movie Mogul
+# Art Style Guide: Hollywood RNG
 
 The target look for everything players see. Read it before building any model, map piece,
 UI screen or effect. When something here conflicts with a reference image in `references/`,

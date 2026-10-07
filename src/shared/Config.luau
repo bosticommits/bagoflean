@@ -1,5 +1,5 @@
 return table.freeze({
-	GameName = "Movie Mogul",
+	GameName = "Hollywood RNG",
 
 	LotCount = 6,
 

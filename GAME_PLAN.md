@@ -1,4 +1,4 @@
-# Game Plan: Movie Mogul (working title)
+# Game Plan: Hollywood RNG (working title was Movie Mogul)
 
 You own a tiny film studio. Roll casting calls for random actors (rarity, luck, variants),
 pair them with a script, and shoot a movie. It keeps filming while you are offline. Come back
@@ -141,7 +141,7 @@ exciting by M3, fix the core before adding anything else.
 
 ## 10. Open questions
 
-- Final game name ("Movie Mogul", "Studio Tycoon RNG", "Hollywood RNG"...)
+- ~~Final game name~~ Decided 7 Oct 2026: **Hollywood RNG**.
 - Whether to add light player interaction later (visiting lots, co-starring in premieres)
 
 ## 11. As built (decisions made during M0 to M5)

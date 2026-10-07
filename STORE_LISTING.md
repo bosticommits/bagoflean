@@ -1,14 +1,13 @@
-# Store Listing: Movie Mogul
+# Store Listing: Hollywood RNG
 
 Text and settings for the Creator Dashboard page. Paste the blocks as they are; change the
 name everywhere if the final name changes. Icon and thumbnails come from the design kit.
 
 ## Name
 
-Movie Mogul
+Hollywood RNG
 
-(Alternatives from the plan: "Studio Tycoon RNG", "Hollywood RNG". Roblox search favours names
-that say the genre, so "Movie Mogul RNG" is worth a test once the game has players.)
+(Chosen by Bosti on 7 Oct 2026. The working title was Movie Mogul.)
 
 ## Description
 

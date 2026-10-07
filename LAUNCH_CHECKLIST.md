@@ -1,4 +1,4 @@
-# Launch Checklist: Movie Mogul
+# Launch Checklist: Hollywood RNG
 
 From where the game is today (7 Oct 2026) to a public, publishable release.
 Work top to bottom. Each step has a "done when" so it is clear when to tick it.
@@ -12,7 +12,7 @@ Design details live in [GAME_PLAN.md](GAME_PLAN.md); the look lives in
   Award Night, daily rewards, codes, quests, analytics) and the restyled UI.
 - Owned by other threads right now: lot and actor models, economy balance, icon and
   thumbnails.
-- Still open: final name, real art, playtests and tuning, device checks, the Studio tests
+- Still open: real art, playtests and tuning, device checks, the Studio tests
   in section 7, and filling in the store page on the Creator Dashboard.
 
 ---
@@ -22,7 +22,7 @@ Design details live in [GAME_PLAN.md](GAME_PLAN.md); the look lives in
 - [x] Merge `m5-polish` (it contains M0 to M5) into `main`. *Done when:* `main` has `src/`
       and the updated GAME_PLAN.
 - [x] Merge `art-pipeline` into `main`. *Done when:* `ART_STYLE.md` is on `main`.
-- [ ] Decide the final name ("Movie Mogul" or another). *Done when:* the name is in
+- [x] Decide the final name: **Hollywood RNG** (chosen 7 Oct; it was Movie Mogul). *Done when:* the name is in
       GAME_PLAN section 10 as decided and in `Config.GameName`.
 
 ## 2. Core loop: make it fun first
