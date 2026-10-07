@@ -45,6 +45,6 @@ return table.freeze({
 	AutoCollectSeconds = 10, -- Auto-Collect pass banks the cinema this often
 	AwardNightLuckMultiplier = 2, -- casting Luck during Award Night
 	AwardNightPayoutMultiplier = 2, -- premiere payouts during Award Night
-	RewardCooldown = 1, -- min seconds between reward claims / code tries per player
+	RewardCooldown = 1, -- min seconds between code tries per player (claims use ActionCooldown)
 	StayGiftMinSeconds = 5 * 60, -- play this long in a session before the "don't leave yet" gift
 })

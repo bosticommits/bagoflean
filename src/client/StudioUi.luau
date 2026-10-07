@@ -165,7 +165,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			order += 1
 			if stage > stageCount() then
 				local row = UiKit.addRow(list, order, 52)
-				local how = if stage <= Config.MaxStages then "buy it in Upgrades" else "+1 Sound Stage pass in the Shop"
+				-- With the +1 Sound Stage pass, every locked stage is one more Sound Stage upgrade away.
+				local hasPass = state.passes ~= nil and state.passes.ExtraStage == true
+				local how = if stage <= Config.MaxStages or hasPass then "buy it in Upgrades" else "+1 Sound Stage pass in the Shop"
 				makeLabel(row, `Stage {stage}  -  locked ({how})`, UiKit.FAINT, UDim2.new(1, -20, 0.6, 0), UDim2.fromOffset(10, 10))
 				continue
 			end

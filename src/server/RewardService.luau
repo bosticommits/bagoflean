@@ -23,7 +23,7 @@ local redeemCode = Remotes.get("RedeemCode")
 local claimStayGift = Remotes.get("ClaimStayGift")
 local rewardResult = Remotes.get("RewardResult")
 
-local lastAction: { [Player]: number } = {}
+local lastAction: { [Player]: { [string]: number } } = {}
 local lastSync: { [Player]: number } = {}
 local joinedAt: { [Player]: number } = {}
 
@@ -63,22 +63,30 @@ function RewardService.afterGrant(player: Player, message: string?)
 	end
 end
 
-local function allow(player: Player): boolean
-	local now = os.clock()
-	local last = lastAction[player]
-	if last ~= nil and now - last < Config.RewardCooldown then
-		return false
-	end
-	lastAction[player] = now
-	return true
-end
-
 local function fail(player: Player, text: string)
 	rewardResult:FireClient(player, false, text)
 end
 
+-- Rate limit per kind of claim, so claiming the daily reward and then a request right after both
+-- work. A rejected tap is told "Slow down!" rather than ignored, so the button never seems dead.
+local function allow(player: Player, action: string, cooldown: number): boolean
+	local now = os.clock()
+	local perPlayer = lastAction[player]
+	if perPlayer == nil then
+		perPlayer = {}
+		lastAction[player] = perPlayer
+	end
+	local last = perPlayer[action]
+	if last ~= nil and now - last < cooldown then
+		fail(player, "Slow down!")
+		return false
+	end
+	perPlayer[action] = now
+	return true
+end
+
 local function onClaimDaily(player: Player)
-	if not allow(player) then
+	if not allow(player, "daily", Config.ActionCooldown) then
 		return
 	end
 	local data = DataService.getData(player)
@@ -97,7 +105,7 @@ local function onClaimDaily(player: Player)
 end
 
 local function onClaimRequest(player: Player, index: any)
-	if not allow(player) then
+	if not allow(player, "request", Config.ActionCooldown) then
 		return
 	end
 	local data = DataService.getData(player)
@@ -123,8 +131,9 @@ local function onClaimRequest(player: Player, index: any)
 end
 
 local function onRedeemCode(player: Player, raw: any)
-	if not allow(player) then
-		return fail(player, "Slow down!")
+	-- Codes keep the longer cooldown: it is what stops guessing codes by brute force.
+	if not allow(player, "code", Config.RewardCooldown) then
+		return
 	end
 	local data = DataService.getData(player)
 	if data == nil then
@@ -153,7 +162,7 @@ end
 -- "Don't leave yet!" gift. Once per UTC day and only after StayGiftMinSeconds of play this
 -- session, so opening the menu over and over, or joining just to claim it, gets nothing.
 local function onClaimStayGift(player: Player)
-	if not allow(player) then
+	if not allow(player, "stayGift", Config.ActionCooldown) then
 		return
 	end
 	local data = DataService.getData(player)

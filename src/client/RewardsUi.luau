@@ -48,6 +48,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 	local redeemCode = remotes:WaitForChild("RedeemCode") :: RemoteEvent
 	local rewardResult = remotes:WaitForChild("RewardResult") :: RemoteEvent
 	local claimStayGift = remotes:WaitForChild("ClaimStayGift") :: RemoteEvent
+	local rewardsRequest = remotes:WaitForChild("RewardsRequest") :: RemoteEvent
 	local sessionStart = os.clock()
 
 	local panel, list, header = UiKit.makePanel(gui, "RewardsPanel", "Rewards", 108, nil, nil, UiKit.PURPLE)
@@ -234,6 +235,8 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 
 	local function open(which: string)
 		tab = which
+		-- Fresh state every time the screen opens (the server limits this to once a second).
+		rewardsRequest:FireServer()
 		if panel.Visible then
 			render()
 		else
@@ -278,6 +281,19 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 			end
 			if panel.Visible and tab ~= "Codes" then
 				render()
+			end
+		end
+	end)
+
+	-- A new UTC day brings a new daily reward and new requests. Ask for them when it starts, so the
+	-- badge and the open screen do not keep showing yesterday for a player who stays in the game.
+	task.spawn(function()
+		while true do
+			task.wait(15)
+			local state = ClientState.rewards
+			if state ~= nil and untilTomorrow(state) <= 0 then
+				state.today += 1 -- ask once per rollover; the sync replaces this state
+				rewardsRequest:FireServer()
 			end
 		end
 	end)
