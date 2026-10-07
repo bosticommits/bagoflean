@@ -9,6 +9,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (4 sizes), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
+| `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
 | `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects |
 | `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
@@ -19,6 +20,17 @@ How the lot grows:
 - **Cinema**: Cinema Size levels 0-1 small, 2-3 adds a CINEMA blade sign, 4-5 adds columns and side wings, 6 adds a gold dome and searchlights.
 - **Office**: Offline Earnings level 0 is a star trailer, 1-2 a two-floor office, 3-4 a glass tower, 5 adds the gold film reel logo on the roof.
 - **Top star**: the owner's rarest actor stands on a pedestal by the red carpet (glowing for Star and up) and appears as a portrait on the billboard.
+
+The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
+
+- **Boulevard** between the two rows of lots: a red carpet, Walk of Fame stars, lamps, palms, crossings to the gates, and a HOLLYWOOD BLVD arch at each end.
+- **Spawn plaza** in the middle, with a fountain and a giant gold trophy (the Blender `TrophyGold` once imported). Players appear on the gold star.
+- **Store stands**: eight stalls on the sidewalks. Walking up to one shows a prompt that opens its screen: Shop, Rewards, Requests, Codes, Movies, Upgrades, Casting Odds and Talent Index.
+- **Paths** between the lots and round the outside, inside a hedge, so every lot is joined to the others. Lawns, bushes and flowers break up the paving.
+- **Edge of town**: hills with a giant gold star sign, two big sound stages and two water towers.
+- The town's palm trees and searchlights switch to the Blender meshes too, once imported.
+
+Previews: `art/previews/town.png` and `art/previews/town_boulevard.png`.
 
 ## Importing the Blender models into Studio
 
@@ -57,7 +69,7 @@ art/preview/actor_sheet.sh   # all actors -> art/previews/actors_sheet.png
 ```
 
 Scenes are listed in `art/preview/scenes.luau` (`stage`, `cinema`, `office`, `props`, `actors`, `icons`,
-`actor <Id>`, `lotEmpty`, `lotStarter`, `lotMid`, `lotMax`, `map`). The renderer draws shapes and
+`actor <Id>`, `lotEmpty`, `lotStarter`, `lotMid`, `lotMax`, `map` for the whole town). The renderer draws shapes and
 colors only (no text, particles or lights).
 
 The Blender scripts also run with the `bpy` Python package (Python 3.11) instead of the Blender

@@ -9,6 +9,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
+local Screens = require(script.Parent.Screens)
 local UiKit = require(script.Parent.UiKit)
 
 local makeLabel, makeButton = UiKit.makeLabel, UiKit.makeButton
@@ -93,6 +94,11 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 
 	upgradesButton.Activated:Connect(function()
 		UiKit.togglePanel(panel, build)
+	end)
+	Screens.register("Upgrades", function()
+		if not panel.Visible then
+			UiKit.togglePanel(panel, build)
+		end
 	end)
 end
 

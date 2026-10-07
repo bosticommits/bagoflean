@@ -101,10 +101,11 @@ function scenes.icons(folder, load, roblox, arg)
 	end
 end
 
--- All six lots placed the way LotService places them, at mixed progress, to check facing.
-function scenes.map(folder, load, roblox)
+-- The whole town: the six lots at mixed progress (placed the way LotService places them), plus
+-- the boulevard, plaza, paths and store stands from MapModels.
+function scenes.map(folder, load)
 	local LotLook = load("src/shared/Models/LotLook.luau")
-	local CFrame, Vector3 = roblox.CFrame, roblox.Vector3
+	local MapModels = load("src/shared/Models/MapModels.luau")
 	local levels = {
 		nil,
 		{ stages = 1, cinema = 0, office = 0, trophies = 0, filming = {}, star = "NervousIntern", variant = "Normal" },
@@ -114,12 +115,9 @@ function scenes.map(folder, load, roblox)
 		{ stages = 5, cinema = 6, office = 5, trophies = 9, filming = { true, true, true, true, true }, star = "MogulsMuse", variant = "Award" },
 	}
 	for index = 1, 6 do
-		local col = (index - 1) % 3
-		local row = (index - 1) // 3
-		local center = Vector3.new((col - 1) * 80, 0, if row == 0 then -70 else 70)
-		local base = CFrame.new(center) * (if row == 0 then CFrame.Angles(0, math.pi, 0) else CFrame.new())
-		LotLook.build(folder, base, index, levels[index])
+		LotLook.build(folder, MapModels.lotBase(index), index, levels[index])
 	end
+	MapModels.build(folder)
 end
 
 return scenes
