@@ -6,6 +6,8 @@ for the **premiere**, where a box-office roll decides between Flop and Masterpie
 Every actor you discover fills your Index, and your studio lot grows into a Hollywood empire
 that everyone on the server can see.
 
+Look and feel: see [ART_STYLE.md](ART_STYLE.md).
+
 Status: **draft, nothing built yet.** Numbers are starting points, to be tuned in playtests.
 
 Why this game: it combines the loops behind the biggest 2025-26 hits. Grow a Garden has
@@ -137,5 +139,4 @@ exciting by M3, fix the core before adding anything else.
 ## 10. Open questions
 
 - Final game name ("Movie Mogul", "Studio Tycoon RNG", "Hollywood RNG"...)
-- Art style (bright cartoon is the safe pick for this audience)
 - Whether to add light player interaction later (visiting lots, co-starring in premieres)
