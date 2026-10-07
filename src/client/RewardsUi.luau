@@ -1,5 +1,5 @@
 --!strict
--- Rewards screen: the 7-day login streak (opens by itself as "Welcome back!" when today's reward is
+-- Rewards screen: the 21-day login streak (opens by itself as "Welcome back!" when today's reward is
 -- waiting), today's three Studio Requests, and the code box. Everything is claimed from the server
 -- (RewardService), which checks it and answers through RewardResult.
 local GuiService = game:GetService("GuiService")
@@ -83,12 +83,22 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 
 		for day, reward in Rewards.Daily do
 			order += 1
-			local row = UiKit.addRow(list, order, 56)
+			local milestone = Rewards.Milestones[day] == true
+			local row = UiKit.addRow(list, order, if milestone then 84 else 56)
+			if milestone then
+				row.BackgroundColor3 = Color3.fromRGB(90, 70, 20)
+			end
 			local isToday = day == cycleDay
-			local title = makeLabel(row, `Day {day}`, if isToday then UiKit.GOLD else UiKit.WHITE, UDim2.new(0.2, 0, 0, 40), UDim2.fromOffset(10, 8))
+			local title = makeLabel(row, `Day {day}`, if isToday or milestone then UiKit.GOLD else UiKit.WHITE, UDim2.new(0.2, 0, 0, 40), UDim2.fromOffset(10, 8))
 			title.TextXAlignment = Enum.TextXAlignment.Left
-			local text = makeLabel(row, Rewards.describe(reward, rate()), UiKit.WHITE, UDim2.new(0.46, 0, 0, 30), UDim2.new(0.2, 10, 0, 13))
+			-- Days after tomorrow stay a mystery, except milestones, which are the reason to come back.
+			local hidden = day > cycleDay + 1 and not milestone
+			local text = makeLabel(row, if hidden then "???" else Rewards.describe(reward, rate()), UiKit.WHITE, UDim2.new(0.46, 0, 0, 30), UDim2.new(0.2, 10, 0, 13))
 			text.TextXAlignment = Enum.TextXAlignment.Left
+			if milestone and day > cycleDay then
+				local hint = makeLabel(row, `Play {day} days in a row to unlock this rare reward`, UiKit.GOLD, UDim2.new(0.9, 0, 0, 22), UDim2.fromOffset(10, 54))
+				hint.TextXAlignment = Enum.TextXAlignment.Left
+			end
 			local done = day < cycleDay or (isToday and not canClaim)
 			if isToday and canClaim then
 				local claim = makeButton(row, "CLAIM", UiKit.GREEN, UDim2.new(0.3, 0, 0, 40), UDim2.new(0.68, 0, 0, 8))

@@ -176,7 +176,8 @@ exciting by M3, fix the core before adding anything else.
 - **Luck stacking** for Casting Calls: Luck upgrades and Index rewards, then x2 for each of the 2x
   Luck pass, an active Lucky Casting boost, and Award Night. Premieres use the upgrade Luck only.
   The odds panel always shows the current, boosted odds.
-- **Daily rewards**: a 7-day streak that repeats; missing a UTC day starts again at day 1. Days
+- **Daily rewards**: a 21-day streak that repeats, with big milestone days at 7, 14 and 21
+  ("play N days in a row to unlock this rare reward"); days after tomorrow show "???"; missing a UTC day starts again at day 1. Days
   come from the server clock, so changing the device clock does nothing. A "Welcome back!" screen
   opens by itself when a reward is waiting (not during the tutorial).
 - **Studio Requests**: 3 a day from a pool of 6 (the same 3 for everyone), reset at UTC midnight.

@@ -7,7 +7,8 @@ local Rewards = {}
 
 export type Reward = Shop.Reward
 
--- A 7-day streak track that repeats. Missing a day starts again at day 1.
+-- A 21-day streak track that repeats, with big milestone days (7, 14, 21). Missing a day starts
+-- again at day 1.
 Rewards.Daily = {
 	{ cash = 150, cashMinutes = 5 },
 	{ cash = 300, cashMinutes = 10 },
@@ -15,8 +16,25 @@ Rewards.Daily = {
 	{ cash = 600, cashMinutes = 20 },
 	{ luckMinutes = 10 },
 	{ cash = 1000, cashMinutes = 30 },
-	{ skips = 1, cash = 2000, cashMinutes = 60 },
+	{ skips = 1, cash = 2000, cashMinutes = 60 }, -- 7
+	{ cash = 800, cashMinutes = 25 },
+	{ luckMinutes = 15 },
+	{ script = { genre = "Comedy", length = "Indie", count = 2 } },
+	{ cash = 1500, cashMinutes = 40 },
+	{ skips = 1 },
+	{ cash = 2000, cashMinutes = 45 },
+	{ luckMinutes = 30, skips = 2, cash = 5000, cashMinutes = 120 }, -- 14
+	{ cash = 1500, cashMinutes = 40 },
+	{ luckMinutes = 15 },
+	{ script = { genre = "Action", length = "Feature", count = 1 } },
+	{ cash = 2500, cashMinutes = 60 },
+	{ skips = 1 },
+	{ cash = 3000, cashMinutes = 60 },
+	{ luckMinutes = 60, skips = 3, cash = 10000, cashMinutes = 240 }, -- 21
 } :: { Reward }
+
+-- Milestone days: shown big, as "play N days in a row to unlock this rare reward".
+Rewards.Milestones = { [7] = true, [14] = true, [21] = true } :: { [number]: boolean }
 
 -- "Don't leave yet!" gift: offered when the player opens the Roblox menu (often to leave), once
 -- per UTC day, after StayGiftMinSeconds of play in that session.
