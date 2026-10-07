@@ -256,6 +256,7 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 	})
 	DataService.markDirty(player)
 	MovieService.sync(player)
+	LotService.refresh(player) -- the stage's ON AIR light comes on
 	Analytics.onboarding(player, Analytics.Steps.FirstFilm)
 end
 
