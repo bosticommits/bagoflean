@@ -23,14 +23,14 @@ export type Upgrade = {
 
 local Upgrades = {}
 
--- Prices and Fame gates are placeholders to tune in playtests (plan section 4).
+-- Prices and Fame gates are tuned with tools/economy_sim.py (see ECONOMY.md and plan section 4).
 Upgrades.List = {
 	{
 		id = "Stages",
 		name = "Sound Stage",
 		maxLevel = Config.MaxStages - Config.StartingStages,
-		costs = { 400, 4000, 40000 },
-		fame = { 20, 100, 500 },
+		costs = { 600, 25000, 400000 },
+		fame = { 50, 2800, 16000 },
 		effect = function(level)
 			local stages = Config.StartingStages + level
 			return `{stages} stage{if stages == 1 then "" else "s"} filming at once`
@@ -40,18 +40,18 @@ Upgrades.List = {
 		id = "Cinema",
 		name = "Cinema Size",
 		maxLevel = 6,
-		costs = { 300, 900, 2700, 8100, 24300, 72900 },
-		fame = { 0, 0, 0, 25, 100, 300 },
+		costs = { 300, 2000, 12000, 80000, 500000, 3000000 },
+		fame = { 0, 0, 0, 0, 0, 0 },
 		effect = function(level)
-			return `Royalties x{1 + 0.25 * level}`
+			return `Royalties x{1 + Config.CinemaStep * level}`
 		end,
 	},
 	{
 		id = "Offline",
 		name = "Offline Earnings",
 		maxLevel = 5,
-		costs = { 250, 750, 2250, 6750, 20250 },
-		fame = { 0, 0, 10, 40, 150 },
+		costs = { 500, 4000, 30000, 250000, 2000000 },
+		fame = { 0, 0, 0, 0, 0 },
 		effect = function(level)
 			local hours = (Config.OfflineCapSeconds + Config.OfflineCapStepSeconds * level) / 3600
 			return `Earn up to {hours}h while away`
@@ -61,20 +61,20 @@ Upgrades.List = {
 		id = "Luck",
 		name = "Luck",
 		maxLevel = 10,
-		costs = { 150, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 76800 },
-		fame = { 0, 0, 0, 10, 10, 30, 30, 100, 100, 300 },
+		costs = { 100, 500, 2000, 8000, 30000, 100000, 400000, 1500000, 6000000, 25000000 },
+		fame = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 		effect = function(level)
-			return `+{string.format("%.1f", 0.1 * level)} Luck`
+			return `+{string.format("%.1f", Config.LuckStep * level)} Luck`
 		end,
 	},
 	{
 		id = "Clap",
 		name = "Clapperboard",
 		maxLevel = 4,
-		costs = { 200, 800, 3200, 12800 },
-		fame = { 0, 10, 50, 200 },
+		costs = { 200, 3000, 40000, 500000 },
+		fame = { 0, 0, 0, 0 },
 		effect = function(level)
-			return `Each tap takes {Config.ClapSeconds + level}s off`
+			return `Each tap takes {Config.ClapSeconds + Config.ClapStep * level}s off`
 		end,
 	},
 } :: { Upgrade }
@@ -104,7 +104,7 @@ function Upgrades.luck(stats: Stats): number
 			tierRewards += 1
 		end
 	end
-	return Config.BaseLuck + 0.1 * Upgrades.level(stats, "Luck") + Config.TierRewardLuck * tierRewards
+	return Config.BaseLuck + Config.LuckStep * Upgrades.level(stats, "Luck") + Config.TierRewardLuck * tierRewards
 end
 
 -- Sound stages the player can film on: bought stages plus the +1 Sound Stage pass.
@@ -115,7 +115,7 @@ function Upgrades.stages(stats: Stats): number
 end
 
 function Upgrades.clapSeconds(stats: Stats): number
-	return Config.ClapSeconds + Upgrades.level(stats, "Clap")
+	return Config.ClapSeconds + Config.ClapStep * Upgrades.level(stats, "Clap")
 end
 
 function Upgrades.offlineCap(stats: Stats): number
@@ -123,7 +123,7 @@ function Upgrades.offlineCap(stats: Stats): number
 end
 
 function Upgrades.royaltyMultiplier(stats: Stats): number
-	return 1 + 0.25 * Upgrades.level(stats, "Cinema")
+	return 1 + Config.CinemaStep * Upgrades.level(stats, "Cinema")
 end
 
 function Upgrades.genreBonus(stats: Stats, genre: string): number

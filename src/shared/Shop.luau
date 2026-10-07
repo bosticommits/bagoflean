@@ -61,14 +61,14 @@ Shop.Products = {
 		id = 0,
 		name = "Box Office Bag",
 		description = "30 minutes of box office cash",
-		reward = { cash = 1000, cashMinutes = 30 },
+		reward = { cash = 5000, cashMinutes = 30 },
 	},
 	{
 		key = "CashLarge",
 		id = 0,
 		name = "Box Office Vault",
 		description = "4 hours of box office cash",
-		reward = { cash = 10000, cashMinutes = 240 },
+		reward = { cash = 50000, cashMinutes = 240 },
 	},
 } :: { Product }
 
