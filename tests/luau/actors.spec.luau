@@ -50,10 +50,11 @@ test("tier chances sum to 1 for every luck and agency", function()
 end)
 
 test("rare tiers hit their exact 1 in N at Luck 1, and Luck divides N", function()
+	local icon = Actors.Tiers[#Actors.Tiers]
 	local base = Actors.tierChances(1)
-	near(base.Icon, 1 / 150000, 1e-12, "Icon at luck 1")
+	near(base[icon.id], 1 / icon.oneIn, 1e-12, `{icon.id} at luck 1`)
 	local doubled = Actors.tierChances(2)
-	near(doubled.Icon, 2 / 150000, 1e-12, "Icon at luck 2")
+	near(doubled[icon.id], 2 / icon.oneIn, 1e-12, `{icon.id} at luck 2`)
 	expect(doubled.Superstar > base.Superstar, "luck should raise Superstar odds")
 	expect(doubled.Newcomer < base.Newcomer, "luck should lower Newcomer odds")
 end)
@@ -98,8 +99,9 @@ test("variant chances sum to 1 and match the plan at Luck 1", function()
 		end
 	end
 	local base = Actors.variantChances(1)
-	near(base.Award, 1 / 800, 1e-12, "Award-Winning")
-	near(base.Shiny, (1 - 1 / 800) / 40, 1e-12, "Shiny")
+	local award = 1 / Actors.getVariant("Award").oneIn
+	near(base.Award, award, 1e-12, "Award-Winning")
+	near(base.Shiny, (1 - award) / Actors.getVariant("Shiny").oneIn, 1e-12, "Shiny")
 end)
 
 test("rolls follow the odds and respect the agency floor", function()
