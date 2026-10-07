@@ -135,6 +135,34 @@ function Icon3D.actor(parent: GuiObject, actorId: string, variantId: string?, si
 	return viewport
 end
 
+-- A soft light behind a picture, like a spotlight on the item: two faint discs, the inner one
+-- brighter. Screens that open and close use it on their picture cards, because Roblox redraws a
+-- picture each time its screen shows again and the spot would otherwise sit empty for a moment.
+function Icon3D.glow(viewport: ViewportFrame, color: Color3?, strength: number?)
+	local parent = viewport.Parent
+	if parent == nil then
+		return
+	end
+	local amount = strength or 1
+	for _, ring in { { size = 0.92, transparency = 0.86 }, { size = 0.6, transparency = 0.8 } } do
+		local disc = Instance.new("Frame")
+		disc.Name = "Glow"
+		disc.AnchorPoint = Vector2.new(0.5, 0.5)
+		disc.Position = UDim2.fromScale(0.5, 0.5)
+		disc.Size = UDim2.fromScale(ring.size, ring.size)
+		disc.BackgroundColor3 = color or Color3.new(1, 1, 1)
+		disc.BackgroundTransparency = 1 - (1 - ring.transparency) * amount
+		disc.BorderSizePixel = 0
+		disc.ZIndex = viewport.ZIndex - 1
+		disc.Parent = parent
+		local round = Instance.new("UICorner")
+		round.CornerRadius = UDim.new(0.5, 0)
+		round.Parent = disc
+		local square = Instance.new("UIAspectRatioConstraint")
+		square.Parent = disc
+	end
+end
+
 -- Turns the viewport's models (the picture and its outline) by `angleAt(dt)` each frame until the
 -- viewport is destroyed or the returned stop function runs.
 local function animate(viewport: ViewportFrame, angleAt: (number) -> number): () -> ()
