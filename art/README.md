@@ -1,0 +1,64 @@
+# Art: lot and actor models
+
+Everything players see on a studio lot is built by code in `src/shared/Models/`, in the style of
+`ART_STYLE.md`. It works with no imports at all. The curved props also have Blender versions
+that look smoother; once you import them, the game uses them automatically.
+
+| File | What it builds |
+|---|---|
+| `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
+| `src/shared/Models/LotModels.luau` | Sound stage, cinema (4 sizes), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
+| `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
+| `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`) |
+| `art/preview/` | Draws previews of the code-built models without opening Studio |
+
+How the lot grows:
+
+- **Sound stages**: one per owned stage, grey while the lot is free. A red ON AIR light turns on while a movie films there, and a film camera stands outside each one.
+- **Cinema**: Cinema Size levels 0-1 small, 2-3 adds a CINEMA blade sign, 4-5 adds columns and side wings, 6 adds a gold dome and searchlights.
+- **Office**: Offline Earnings level 0 is a star trailer, 1-2 a two-floor office, 3-4 a glass tower, 5 adds the gold film reel logo on the roof.
+- **Top star**: the owner's rarest actor stands on a pedestal by the red carpet (glowing for Star and up) and appears as a portrait on the billboard.
+
+## Importing the Blender models into Studio
+
+Do this once. Until you do, the game shows the part-built versions, so nothing breaks.
+
+1. Build the FBX files on your Mac, from the repo folder:
+   `for m in palm_tree searchlight film_camera film_reel_logo; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
+   This writes `art/exports/<model>.fbx`.
+2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
+3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
+4. In the Explorer, open that Model, find its MeshPart, and:
+   - set **Color** to white (255, 255, 255) and **Material** to SmoothPlastic, so the baked colors show,
+   - rename it to the name below,
+   - drag it into `ReplicatedStorage > LotMeshes`, then delete the leftover Model from the world.
+
+| FBX file | Name it |
+|---|---|
+| `palm_tree.fbx` | `PalmTree` |
+| `searchlight.fbx` | `Searchlight` |
+| `film_camera.fbx` | `FilmCamera` |
+| `film_reel_logo.fbx` | `FilmReelLogo` |
+| `trophy_gold.fbx` (already uploaded) | `TrophyGold` |
+
+5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
+
+Rojo only manages `ReplicatedStorage.Shared`, so it leaves the `LotMeshes` folder alone.
+
+## Previewing without Studio
+
+Needs [Lune](https://github.com/lune-org/lune) and Python with numpy and Pillow. From the repo root:
+
+```
+lune run art/preview/dump.luau lotMax /tmp/lot.json
+python3 art/preview/render.py /tmp/lot.json /tmp/lot.png --view 34
+art/preview/actor_sheet.sh   # all actors -> art/previews/actors_sheet.png
+```
+
+Scenes are listed in `art/preview/scenes.luau` (`stage`, `cinema`, `office`, `props`, `actors`,
+`actor <Id>`, `lotEmpty`, `lotStarter`, `lotMid`, `lotMax`, `map`). The renderer draws shapes and
+colors only (no text, particles or lights).
+
+The Blender scripts also run with the `bpy` Python package (Python 3.11) instead of the Blender
+app; see the top of `art/blender/mmkit.py`.

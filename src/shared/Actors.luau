@@ -32,12 +32,12 @@ local Actors = {}
 -- the UI draws it as a rainbow (UiKit.RAINBOW) and uses this pink where one color is needed.
 Actors.Tiers = {
 	{ id = "Newcomer", name = "Newcomer", oneIn = 2, starPower = 1, color = Color3.fromRGB(167, 169, 172) },
-	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 4, color = Color3.fromRGB(76, 199, 100) },
-	{ id = "Pro", name = "Pro", oneIn = 30, starPower = 15, color = Color3.fromRGB(58, 141, 255) },
-	{ id = "Star", name = "Star", oneIn = 200, starPower = 70, color = Color3.fromRGB(160, 77, 255) },
-	{ id = "Superstar", name = "Superstar", oneIn = 1500, starPower = 400, color = Color3.fromRGB(255, 194, 26) },
-	{ id = "Legend", name = "Legend", oneIn = 15000, starPower = 2500, color = Color3.fromRGB(255, 90, 46) },
-	{ id = "Icon", name = "Icon", oneIn = 150000, starPower = 20000, color = Color3.fromRGB(255, 95, 210) },
+	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 3, color = Color3.fromRGB(76, 199, 100) },
+	{ id = "Pro", name = "Pro", oneIn = 40, starPower = 8, color = Color3.fromRGB(58, 141, 255) },
+	{ id = "Star", name = "Star", oneIn = 500, starPower = 20, color = Color3.fromRGB(160, 77, 255) },
+	{ id = "Superstar", name = "Superstar", oneIn = 5000, starPower = 50, color = Color3.fromRGB(255, 194, 26) },
+	{ id = "Legend", name = "Legend", oneIn = 60000, starPower = 120, color = Color3.fromRGB(255, 90, 46) },
+	{ id = "Icon", name = "Icon", oneIn = 1000000, starPower = 300, color = Color3.fromRGB(255, 95, 210) },
 } :: { Tier }
 
 Actors.List = {
@@ -89,9 +89,9 @@ export type Agency = {
 
 -- Plan section 3: better agencies cost more per roll and remove the bottom tier(s).
 Actors.Agencies = {
-	{ id = "Open", name = "Open Casting", cost = 20, fame = 0, minTier = 1 },
-	{ id = "Talent", name = "Talent Agency", cost = 75, fame = 100, minTier = 2 },
-	{ id = "Hollywood", name = "Hollywood Casting", cost = 400, fame = 1000, minTier = 3 },
+	{ id = "Open", name = "Open Casting", cost = 10, fame = 0, minTier = 1 },
+	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 3500, minTier = 2 },
+	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 50000, minTier = 3 },
 } :: { Agency }
 
 local agencyById: { [string]: Agency } = {}
