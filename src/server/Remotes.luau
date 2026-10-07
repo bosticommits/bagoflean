@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local folder = Instance.new("Folder")
 folder.Name = "Remotes"
 
-local events: { [string]: RemoteEvent } = {}
+local events: { [string]: RemoteEvent? } = {}
 
 local Remotes = {}
 

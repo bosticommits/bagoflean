@@ -2,7 +2,6 @@
 -- Script shop, filming, clapperboard, and premiere. The server owns every number: prices come from
 -- Movies, timers are os.time() stamps in the profile, and the premiere is rolled here when claimed.
 -- Every remote argument is untrusted: types, ranges, ownership and cooldowns are checked first.
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)

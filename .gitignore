@@ -9,3 +9,4 @@ sourcemap.json
 
 # Blender exports (rebuildable from art/blender scripts)
 art/exports/
+globalTypes.d.luau
