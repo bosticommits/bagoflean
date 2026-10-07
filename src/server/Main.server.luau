@@ -1,6 +1,24 @@
 --!strict
 local Players = game:GetService("Players")
 
+-- Startup guard. A duplicated script (for example from two sync tools creating the same file) must
+-- not start every service twice, and duplicate modules should be reported rather than ignored.
+local container = script.Parent
+if container:GetAttribute("MovieMogulStarted") then
+	warn(`[MovieMogul] duplicate Main ignored ({script:GetFullName()}); remove the extra copy`)
+	return
+end
+container:SetAttribute("MovieMogulStarted", true)
+do
+	local seen: { [string]: boolean } = {}
+	for _, child in container:GetChildren() do
+		if seen[child.Name] then
+			warn(`[MovieMogul] duplicate script "{child.Name}" in {container:GetFullName()}; remove the extra copy`)
+		end
+		seen[child.Name] = true
+	end
+end
+
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)

@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -54,13 +55,29 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	local bar = Instance.new("Frame")
 	bar.Name = "CastingBar"
 	bar.AnchorPoint = Vector2.new(0.5, 1)
-	bar.Position = UDim2.new(0.5, 0, 1, -16)
-	bar.Size = UDim2.new(0.92, 0, 0, 72)
 	bar.BackgroundTransparency = 1
 	bar.Parent = gui
 	local barLimit = Instance.new("UISizeConstraint")
 	barLimit.MaxSize = Vector2.new(560, 80)
 	barLimit.Parent = bar
+
+	-- Roblox draws the thumbstick (bottom left) and jump button (bottom right) over our UI on touch
+	-- devices. Landscape: leave both side zones clear. Portrait: sit above the control cluster.
+	local TOUCH_SIDE_ZONE = 150
+	local TOUCH_PORTRAIT_LIFT = 130
+	UiKit.onViewportChanged(function()
+		local viewport = UiKit.viewport()
+		if UserInputService.TouchEnabled and viewport.X >= viewport.Y then
+			bar.Position = UDim2.new(0.5, 0, 1, -16)
+			bar.Size = UDim2.new(1, -2 * TOUCH_SIDE_ZONE, 0, 64)
+		elseif UserInputService.TouchEnabled then
+			bar.Position = UDim2.new(0.5, 0, 1, -TOUCH_PORTRAIT_LIFT)
+			bar.Size = UDim2.new(0.96, 0, 0, 64)
+		else
+			bar.Position = UDim2.new(0.5, 0, 1, -16)
+			bar.Size = UDim2.new(0.92, 0, 0, 72)
+		end
+	end)
 
 	local rosterButton = makeButton(bar, "Roster", UiKit.BLUE, UDim2.fromScale(0.17, 1))
 	local studioButton = makeButton(bar, "Studio", Color3.fromRGB(70, 130, 110), UDim2.fromScale(0.17, 1), UDim2.fromScale(0.18, 0))

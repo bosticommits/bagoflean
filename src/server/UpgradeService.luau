@@ -19,11 +19,18 @@ local lastAction: { [Player]: number } = {}
 
 local UpgradeService = {}
 
+local lastCooldownReply: { [Player]: number } = {}
+
+-- Rate limit. A rejection is answered at most once per second, so spam cannot make us spam back.
 local function allow(player: Player): boolean
 	local now = os.clock()
 	local last = lastAction[player]
 	if last ~= nil and now - last < Config.ActionCooldown then
-		studioError:FireClient(player, "cooldown")
+		local lastReply = lastCooldownReply[player]
+		if lastReply == nil or now - lastReply >= 1 then
+			lastCooldownReply[player] = now
+			studioError:FireClient(player, "cooldown")
+		end
 		return false
 	end
 	lastAction[player] = now
@@ -112,6 +119,7 @@ end
 
 function UpgradeService.forget(player: Player)
 	lastAction[player] = nil
+	lastCooldownReply[player] = nil
 end
 
 return UpgradeService

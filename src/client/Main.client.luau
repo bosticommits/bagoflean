@@ -10,6 +10,12 @@ local UpgradesUi = require(script.Parent.UpgradesUi)
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
+-- Startup guard: a duplicated client script must not build the UI twice.
+if playerGui:FindFirstChild("MovieMogulUI") then
+	warn(`[MovieMogul] duplicate client Main ignored ({script:GetFullName()}); remove the extra copy`)
+	return
+end
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "MovieMogulUI"
 gui.ResetOnSpawn = false

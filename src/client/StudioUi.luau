@@ -308,8 +308,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	-- Start-movie picker -----------------------------------------------------------------------
-	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true)
-	pickerList.Size = UDim2.new(1, -20, 1, -(60 + 130))
+	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130)
 	local footer = Instance.new("Frame")
 	footer.BackgroundTransparency = 1
 	footer.Position = UDim2.new(0, 10, 1, -126)
@@ -608,38 +607,52 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		studioRequest:FireServer()
 	end)
 
-	-- Live countdowns.
-	task.spawn(function()
-		while true do
-			task.wait(0.25)
-			if panel.Visible and tab == "Stages" and state ~= nil then
-				local needsRender = false
-				for _, entry in timers do
-					local film = filmAt(entry.stage)
-					if film == nil then
-						needsRender = true
-						break
-					end
-					local remaining = film.endTime - serverNow()
-					local total = math.max(1, film.endTime - film.startTime)
-					entry.fill.Size = UDim2.fromScale(math.clamp(1 - remaining / total, 0, 1), 1)
-					local ready = remaining <= 0
-					if ready then
-						entry.time.Text = "Finished!"
-						entry.button.Text = "PREMIERE!"
-						entry.button.BackgroundColor3 = UiKit.GREEN
-					else
-						entry.time.Text = fmtTime(remaining)
-						entry.button.Text = `CLAP!  (-{Upgrades.clapSeconds(ClientState.stats())}s)`
-						entry.button.BackgroundColor3 = UiKit.RED
-					end
-					entry.ready = ready
-				end
-				if needsRender then
-					render()
-				end
-			end
+	-- Live countdowns: refresh timers in place (so buttons are never rebuilt under a tap). The loop
+	-- only runs while the panel is open.
+	local function refreshTimers()
+		if tab ~= "Stages" or state == nil then
+			return
 		end
+		local needsRender = false
+		for _, entry in timers do
+			local film = filmAt(entry.stage)
+			if film == nil then
+				needsRender = true
+				break
+			end
+			local remaining = film.endTime - serverNow()
+			local total = math.max(1, film.endTime - film.startTime)
+			entry.fill.Size = UDim2.fromScale(math.clamp(1 - remaining / total, 0, 1), 1)
+			local ready = remaining <= 0
+			if ready then
+				entry.time.Text = "Finished!"
+				entry.button.Text = "PREMIERE!"
+				entry.button.BackgroundColor3 = UiKit.GREEN
+			else
+				entry.time.Text = fmtTime(remaining)
+				entry.button.Text = `CLAP!  (-{Upgrades.clapSeconds(ClientState.stats())}s)`
+				entry.button.BackgroundColor3 = UiKit.RED
+			end
+			entry.ready = ready
+		end
+		if needsRender then
+			render()
+		end
+	end
+
+	local ticking = false
+	panel:GetPropertyChangedSignal("Visible"):Connect(function()
+		if not panel.Visible or ticking then
+			return
+		end
+		ticking = true
+		task.spawn(function()
+			while panel.Visible do
+				refreshTimers()
+				task.wait(0.25)
+			end
+			ticking = false
+		end)
 	end)
 end
 

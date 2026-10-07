@@ -26,11 +26,14 @@ local premiereResult = Remotes.get("PremiereResult")
 local studioError = Remotes.get("StudioError")
 
 local lastAction: { [Player]: { [string]: number } } = {}
+local lastCooldownReply: { [Player]: number } = {}
+local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "slow down" per second
 
 local MovieService = {}
 
--- Returns true if the player may act now; records the attempt. Rejections get a reply.
-local function allow(player: Player, action: string, cooldown: number): boolean
+-- Returns true if the player may act now; records the attempt. A rejection gets a reply, but at
+-- most one per COOLDOWN_REPLY_INTERVAL, and `silent` actions (background syncs) get none.
+local function allow(player: Player, action: string, cooldown: number, silent: boolean?): boolean
 	local now = os.clock()
 	local perPlayer = lastAction[player]
 	if perPlayer == nil then
@@ -39,7 +42,11 @@ local function allow(player: Player, action: string, cooldown: number): boolean
 	end
 	local last = perPlayer[action]
 	if last ~= nil and now - last < cooldown then
-		studioError:FireClient(player, "cooldown")
+		local lastReply = lastCooldownReply[player]
+		if not silent and (lastReply == nil or now - lastReply >= COOLDOWN_REPLY_INTERVAL) then
+			lastCooldownReply[player] = now
+			studioError:FireClient(player, "cooldown")
+		end
 		return false
 	end
 	perPlayer[action] = now
@@ -110,8 +117,11 @@ local function parseCast(raw: any, data: DataService.PlayerData): { string }?
 			return nil
 		end
 		count += 1
+		if count > Config.MaxCast then
+			return nil -- stop early: never walk a huge client-built table
+		end
 	end
-	if count < 1 or count > Config.MaxCast then
+	if count < 1 then
 		return nil
 	end
 
@@ -292,8 +302,15 @@ local function onPremiere(player: Player, stage: any)
 		payout = payout,
 		time = os.time(),
 	})
+	-- Over capacity: drop the lowest-earning movie (the oldest of equals), never a big earner.
 	while #data.cinema > Config.CinemaCapacity do
-		table.remove(data.cinema, 1)
+		local weakest = 1
+		for index, movie in data.cinema do
+			if movie.payout < data.cinema[weakest].payout then
+				weakest = index
+			end
+		end
+		table.remove(data.cinema, weakest)
 	end
 	data.fame += fame
 	EconomyService.addCash(player, payout)
@@ -317,7 +334,7 @@ end
 
 function MovieService.start()
 	studioRequest.OnServerEvent:Connect(function(player)
-		if allow(player, "request", 1) then
+		if allow(player, "request", 1, true) then
 			MovieService.sync(player)
 		end
 	end)
@@ -329,6 +346,7 @@ end
 
 function MovieService.forget(player: Player)
 	lastAction[player] = nil
+	lastCooldownReply[player] = nil
 end
 
 return MovieService

@@ -43,6 +43,7 @@ export type PlayerData = {
 }
 
 local CURRENT_VERSION = 3
+local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
 	version = CURRENT_VERSION,
@@ -106,8 +107,16 @@ end
 -- Callers must never substitute defaults on nil: that could overwrite a real profile.
 function DataService.load(player: Player): PlayerData?
 	local userId = player.UserId
+	-- A rejoin waits for the previous session's save to finish, but not forever: if the DataStore is
+	-- struggling we give up (the caller kicks) rather than leave the player hanging.
+	local waited = 0
 	while releasing[userId] do
+		if waited >= RELEASE_WAIT_SECONDS then
+			warn(`[DataService] gave up waiting for {userId}'s previous session to release`)
+			return nil
+		end
 		task.wait(0.2)
+		waited += 0.2
 	end
 
 	local profile = playerStore:StartSessionAsync("player_" .. userId, {
@@ -165,9 +174,12 @@ function DataService.release(player: Player)
 	local userId = player.UserId
 	releasing[userId] = true
 	profile:EndSession()
-	-- Hold off a rejoin on this server until the release has gone through.
-	while profile:IsActive() do
+	-- Hold off a rejoin on this server until the release has gone through (bounded; ProfileStore
+	-- keeps retrying the save on its own after we stop waiting).
+	local waited = 0
+	while profile:IsActive() and waited < RELEASE_WAIT_SECONDS do
 		task.wait(0.1)
+		waited += 0.1
 	end
 	releasing[userId] = nil
 end

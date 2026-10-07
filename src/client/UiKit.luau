@@ -87,6 +87,41 @@ function UiKit.toast(gui: ScreenGui, text: string)
 	end)
 end
 
+-- Layout ---------------------------------------------------------------------------------------
+-- Short screens (phones in landscape) get taller panels so lists have room to breathe.
+local COMPACT_HEIGHT = 500
+
+function UiKit.viewport(): Vector2
+	local camera = workspace.CurrentCamera
+	return if camera ~= nil then camera.ViewportSize else Vector2.new(1280, 720)
+end
+
+function UiKit.isCompact(): boolean
+	return UiKit.viewport().Y < COMPACT_HEIGHT
+end
+
+local function panelSize(): UDim2
+	if UiKit.isCompact() then
+		return UDim2.fromScale(0.96, 0.92)
+	end
+	return UDim2.fromScale(0.92, 0.72)
+end
+
+-- Calls `apply` now and whenever the screen size changes (rotation, device simulator, window resize).
+function UiKit.onViewportChanged(apply: () -> ())
+	apply()
+	local function hook(camera: Camera?)
+		if camera ~= nil then
+			camera:GetPropertyChangedSignal("ViewportSize"):Connect(apply)
+		end
+	end
+	hook(workspace.CurrentCamera)
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+		hook(workspace.CurrentCamera)
+		apply()
+	end)
+end
+
 -- Panels --------------------------------------------------------------------------------------
 local exclusivePanels: { Frame } = {}
 
@@ -108,14 +143,14 @@ end
 
 -- A centered window with a title, close button and scrolling list.
 -- `topOffset` leaves room under the header for a tab row; `modal` panels sit above the others and
--- are not closed by togglePanel.
-function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?): (Frame, ScrollingFrame, TextLabel)
+-- are not closed by togglePanel; `bottomReserve` leaves room under the list for a footer.
+function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?, bottomReserve: number?): (Frame, ScrollingFrame, TextLabel)
 	local top = topOffset or 60
+	local bottom = bottomReserve or 10
 	local panel = Instance.new("Frame")
 	panel.Name = name
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.fromScale(0.92, 0.72)
 	panel.BackgroundColor3 = UiKit.PANEL
 	panel.Visible = false
 	panel.ZIndex = if modal then 5 else 1
@@ -140,7 +175,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	list.Name = "List"
 	list.BackgroundTransparency = 1
 	list.Position = UDim2.fromOffset(10, top)
-	list.Size = UDim2.new(1, -20, 1, -(top + 10))
+	list.Size = UDim2.new(1, -20, 1, -(top + bottom))
 	list.ScrollBarThickness = 6
 	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	list.CanvasSize = UDim2.new()
@@ -149,6 +184,35 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	layout.Padding = UDim.new(0, 6)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = list
+
+	-- Slimmer chrome on short screens: smaller header, close button and tab row give the list room.
+	-- Re-applied on every open too, because callers add their tab row ("Tabs" or "Agencies") after us.
+	local function applyLayout()
+		local compact = UiKit.isCompact()
+		panel.Size = panelSize()
+		header.Size = UDim2.new(1, -70, 0, if compact then 34 else 44)
+		header.Position = UDim2.fromOffset(14, if compact then 4 else 8)
+		local closeSize = if compact then 34 else 44
+		close.Size = UDim2.fromOffset(closeSize, closeSize)
+		close.Position = UDim2.new(1, -(closeSize + 10), 0, if compact then 4 else 8)
+		local listTop = top
+		local tabs = panel:FindFirstChild("Tabs") or panel:FindFirstChild("Agencies")
+		if tabs ~= nil and tabs:IsA("Frame") then
+			tabs.Position = UDim2.fromOffset(10, if compact then 42 else 58)
+			tabs.Size = UDim2.new(1, -20, 0, if compact then 32 else 42)
+			listTop = if compact then top - 28 else top
+		elseif compact then
+			listTop = top - 12
+		end
+		list.Position = UDim2.fromOffset(10, listTop)
+		list.Size = UDim2.new(1, -20, 1, -(listTop + bottom))
+	end
+	UiKit.onViewportChanged(applyLayout)
+	panel:GetPropertyChangedSignal("Visible"):Connect(function()
+		if panel.Visible then
+			applyLayout()
+		end
+	end)
 	return panel, list, header
 end
 
