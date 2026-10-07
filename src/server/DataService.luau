@@ -52,6 +52,7 @@ export type PlayerData = {
 	requests: { day: number, list: { Request } }, -- today's Studio Requests
 	codes: { [string]: boolean }, -- redeemed codes
 	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
+	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
 	funnel: number, -- highest onboarding funnel step logged (analytics)
 }
 
@@ -83,6 +84,7 @@ local TEMPLATE: PlayerData = {
 	requests = { day = 0, list = {} },
 	codes = {},
 	purchaseIds = {},
+	stayGiftDay = 0,
 	funnel = 99, -- profiles from before M6 are not new players; load() sets 0 for new ones
 }
 
@@ -114,7 +116,7 @@ local function migrate(data: any)
 	if type(data.tutorialDone) ~= "boolean" then
 		data.tutorialDone = false
 	end
-	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel" } do
+	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
 		end

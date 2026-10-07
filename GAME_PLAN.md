@@ -192,6 +192,10 @@ exciting by M3, fix the core before adding anything else.
   least $1,000) and Box Office Vault (4 h, at least $10,000). Receipts use ProfileStore's
   purchase-id pattern: the grant and the receipt id are saved together, and the purchase is only
   acknowledged after that save, so every purchase is granted exactly once.
+- **"Don't leave yet!" gift**: opening the Roblox menu (often the first step of leaving) shows a
+  gift behind the menu: x2 Luck for 10 minutes plus some Cash. Once per UTC day, and only after
+  5 minutes of play in that session, both checked on the server, so it cannot be farmed.
+- **Welcome back**: on joining, a banner says what the cinema earned while the player was away.
 - No Robux purchase gives a random item, so no paid-random-item rules apply yet.
 - **Analytics** (server only): every Cash source and sink (batched per minute), the onboarding
   funnel for new players (joined, lot, first cast, script, film, premiere, collect, tutorial), and

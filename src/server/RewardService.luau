@@ -20,10 +20,12 @@ local Remotes = require(script.Parent.Remotes)
 local claimDaily = Remotes.get("ClaimDaily")
 local claimRequest = Remotes.get("ClaimRequest")
 local redeemCode = Remotes.get("RedeemCode")
+local claimStayGift = Remotes.get("ClaimStayGift")
 local rewardResult = Remotes.get("RewardResult")
 
 local lastAction: { [Player]: number } = {}
 local lastSync: { [Player]: number } = {}
+local joinedAt: { [Player]: number } = {}
 
 local RewardService = {}
 
@@ -148,10 +150,41 @@ local function onRedeemCode(player: Player, raw: any)
 	RewardService.afterGrant(player, `Code redeemed: {text}`)
 end
 
+-- "Don't leave yet!" gift. Once per UTC day and only after StayGiftMinSeconds of play this
+-- session, so opening the menu over and over, or joining just to claim it, gets nothing.
+local function onClaimStayGift(player: Player)
+	if not allow(player) then
+		return
+	end
+	local data = DataService.getData(player)
+	local started = joinedAt[player]
+	if data == nil or started == nil then
+		return fail(player, "Still loading your data")
+	end
+	local today = Rewards.today(os.time())
+	if data.stayGiftDay >= today then
+		return fail(player, "Already claimed today")
+	end
+	local left = Config.StayGiftMinSeconds - (os.clock() - started)
+	if left > 0 then
+		return fail(player, `Play {math.ceil(left / 60)} more min to unlock this gift`)
+	end
+	data.stayGiftDay = today
+	local text = RewardService.apply(player, data, Rewards.StayGift, "TimedReward", "StayGift")
+	Analytics.event(player, "StayGiftClaim")
+	RewardService.afterGrant(player, `Gift: {text}`)
+end
+
+-- Call once the player's data has loaded: starts the session clock for the stay gift.
+function RewardService.joined(player: Player)
+	joinedAt[player] = os.clock()
+end
+
 function RewardService.start()
 	claimDaily.OnServerEvent:Connect(onClaimDaily)
 	claimRequest.OnServerEvent:Connect(onClaimRequest)
 	redeemCode.OnServerEvent:Connect(onRedeemCode)
+	claimStayGift.OnServerEvent:Connect(onClaimStayGift)
 	Remotes.get("RewardsRequest").OnServerEvent:Connect(function(player)
 		local now = os.clock()
 		if lastSync[player] == nil or now - lastSync[player] >= 1 then
@@ -164,6 +197,7 @@ end
 function RewardService.forget(player: Player)
 	lastAction[player] = nil
 	lastSync[player] = nil
+	joinedAt[player] = nil
 end
 
 return RewardService

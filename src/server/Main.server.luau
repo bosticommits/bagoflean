@@ -58,6 +58,7 @@ local function onPlayerAdded(player: Player)
 	CastingService.refresh(player)
 	player:SetAttribute("DataLoaded", true)
 	Analytics.onboarding(player, Analytics.Steps.Joined)
+	RewardService.joined(player)
 	task.spawn(ShopService.load, player)
 
 	-- Keep the pending-royalty and Luck readouts fresh for the HUD (Luck changes as boosts and Award

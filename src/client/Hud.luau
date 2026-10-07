@@ -135,13 +135,39 @@ function Hud.start(gui: ScreenGui)
 		end
 	end)
 
+	-- Welcome back: what the cinema earned while the player was away, once, right after joining.
+	local function showAwayEarnings()
+		local pending = player:GetAttribute("Pending") or 0
+		if pending < 1 then
+			return
+		end
+		local away = makeLabel(0, 0, Color3.fromRGB(30, 20, 0))
+		away.Name = "AwayEarnings"
+		away.Text = `Your cinema earned ${comma(pending)} while you were away! Collect it at the gold pad`
+		away.BackgroundTransparency = 0
+		away.BackgroundColor3 = Color3.fromRGB(255, 220, 90)
+		away.Position = UDim2.new(0, -60, 1, 38)
+		away.Size = UDim2.new(1, 120, 0, 34)
+		away.ZIndex = 4
+		Instance.new("UICorner", away).CornerRadius = UDim.new(0, 10)
+		Sfx.play("jingle")
+		task.delay(7, function()
+			away:Destroy()
+		end)
+	end
+
 	player.AttributeChanged:Connect(function(name)
 		if name == "Pending" then
 			onPending()
+		elseif name == "DataLoaded" and player:GetAttribute("DataLoaded") then
+			showAwayEarnings()
 		end
 		refresh()
 	end)
 	refresh()
+	if player:GetAttribute("DataLoaded") then
+		showAwayEarnings()
+	end
 end
 
 return Hud

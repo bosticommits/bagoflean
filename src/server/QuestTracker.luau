@@ -38,6 +38,7 @@ function QuestTracker.sync(player: Player)
 		daily = data.daily,
 		requests = data.requests.list,
 		codes = data.codes,
+		stayGiftDay = data.stayGiftDay,
 	})
 end
 

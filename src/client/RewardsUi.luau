@@ -2,9 +2,11 @@
 -- Rewards screen: the 7-day login streak (opens by itself as "Welcome back!" when today's reward is
 -- waiting), today's three Studio Requests, and the code box. Everything is claimed from the server
 -- (RewardService), which checks it and answers through RewardResult.
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
@@ -45,6 +47,8 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 	local claimRequest = remotes:WaitForChild("ClaimRequest") :: RemoteEvent
 	local redeemCode = remotes:WaitForChild("RedeemCode") :: RemoteEvent
 	local rewardResult = remotes:WaitForChild("RewardResult") :: RemoteEvent
+	local claimStayGift = remotes:WaitForChild("ClaimStayGift") :: RemoteEvent
+	local sessionStart = os.clock()
 
 	local panel, list, header = UiKit.makePanel(gui, "RewardsPanel", "Rewards", 108)
 	local tabRow = Instance.new("Frame")
@@ -256,6 +260,56 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 				render()
 			end
 		end
+	end)
+
+	-- "Don't leave yet!" popup. Opening the Roblox menu is usually the first step of leaving, so a
+	-- gift waits behind the menu and is there when it closes. Shown only when the server would grant
+	-- it (once a day, after a few minutes of play); the server checks again on claim.
+	local gift = Instance.new("Frame")
+	gift.Name = "StayGift"
+	gift.AnchorPoint = Vector2.new(0.5, 0.5)
+	gift.Position = UDim2.fromScale(0.5, 0.5)
+	gift.Size = UDim2.fromScale(0.8, 0.5)
+	gift.BackgroundColor3 = UiKit.PANEL
+	gift.Visible = false
+	gift.ZIndex = 30
+	gift.Parent = gui
+	UiKit.corner(gift, 14)
+	local giftLimit = Instance.new("UISizeConstraint")
+	giftLimit.MaxSize = Vector2.new(420, 260)
+	giftLimit.Parent = gift
+	local giftStroke = Instance.new("UIStroke")
+	giftStroke.Thickness = 4
+	giftStroke.Color = UiKit.GOLD
+	giftStroke.Parent = gift
+	local giftTitle = makeLabel(gift, "Wait! A gift before you go", UiKit.GOLD, UDim2.new(0.9, 0, 0.2, 0), UDim2.fromScale(0.05, 0.06))
+	UiKit.textConstraint(giftTitle, 30)
+	local giftText = makeLabel(gift, "", UiKit.WHITE, UDim2.new(0.9, 0, 0.24, 0), UDim2.fromScale(0.05, 0.32))
+	local giftClaim = makeButton(gift, "CLAIM", UiKit.GREEN, UDim2.fromScale(0.5, 0.24), UDim2.fromScale(0.25, 0.68))
+	local giftClose = makeButton(gift, "X", Color3.fromRGB(200, 60, 60), UDim2.fromOffset(36, 36), UDim2.new(1, -44, 0, 8))
+	for _, child in gift:GetChildren() do
+		if child:IsA("GuiObject") then
+			child.ZIndex = 31
+		end
+	end
+	giftClaim.Activated:Connect(function()
+		claimStayGift:FireServer()
+		gift.Visible = false
+	end)
+	giftClose.Activated:Connect(function()
+		gift.Visible = false
+	end)
+	GuiService.MenuOpened:Connect(function()
+		local state = ClientState.rewards
+		if state == nil or (state.stayGiftDay or 0) >= state.today then
+			return
+		end
+		if os.clock() - sessionStart < Config.StayGiftMinSeconds then
+			return
+		end
+		giftText.Text = Rewards.describe(Rewards.StayGift, rate())
+		gift.Visible = true
+		Sfx.play("pop")
 	end)
 
 	rewardResult.OnClientEvent:Connect(function(ok, text)

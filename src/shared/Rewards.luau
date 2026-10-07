@@ -18,6 +18,10 @@ Rewards.Daily = {
 	{ skips = 1, cash = 2000, cashMinutes = 60 },
 } :: { Reward }
 
+-- "Don't leave yet!" gift: offered when the player opens the Roblox menu (often to leave), once
+-- per UTC day, after StayGiftMinSeconds of play in that session.
+Rewards.StayGift = { luckMinutes = 10, cash = 300, cashMinutes = 10 } :: Reward
+
 export type Request = {
 	id: string, -- stable; saved in player data
 	kind: string, -- the action that counts (see QuestTracker.track callers)

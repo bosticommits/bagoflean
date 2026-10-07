@@ -43,4 +43,5 @@ return table.freeze({
 	AwardNightLuckMultiplier = 2, -- casting Luck during Award Night
 	AwardNightPayoutMultiplier = 2, -- premiere payouts during Award Night
 	RewardCooldown = 1, -- min seconds between reward claims / code tries per player
+	StayGiftMinSeconds = 5 * 60, -- play this long in a session before the "don't leave yet" gift
 })
