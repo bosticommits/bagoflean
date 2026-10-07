@@ -1,11 +1,13 @@
 --!strict
 local Players = game:GetService("Players")
 
+local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local LotService = require(script.Parent.LotService)
 
 LotService.start()
+CastingService.start()
 
 local function onPlayerAdded(player: Player)
 	local data = DataService.load(player)
@@ -17,6 +19,7 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	EconomyService.refresh(player)
+	CastingService.refresh(player)
 	player:SetAttribute("DataLoaded", true)
 
 	-- Keep the pending-royalty readout fresh for the HUD.
@@ -29,6 +32,7 @@ end
 local function onPlayerRemoving(player: Player)
 	LotService.release(player)
 	EconomyService.forget(player)
+	CastingService.forget(player)
 	DataService.release(player)
 end
 

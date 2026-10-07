@@ -9,4 +9,10 @@ return table.freeze({
 	OfflineCapSeconds = 4 * 60 * 60,
 	-- Minimum seconds between collects per player (server enforced).
 	CollectCooldown = 0.3,
+
+	-- Casting (plan section 3). Luck is 1 until M4 adds upgrades.
+	CastCost = 20,
+	BaseLuck = 1,
+	-- Minimum seconds between casting calls per player (server enforced).
+	CastCooldown = 0.6,
 })

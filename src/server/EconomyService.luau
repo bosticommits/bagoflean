@@ -36,6 +36,18 @@ function EconomyService.addCash(player: Player, amount: number): boolean
 	return true
 end
 
+-- Removes Cash if the player can afford it. Returns whether it was spent.
+function EconomyService.spendCash(player: Player, amount: number): boolean
+	local data = DataService.getData(player)
+	if data == nil or amount ~= amount or amount <= 0 or data.cash < amount then
+		return false
+	end
+	data.cash -= math.floor(amount)
+	DataService.markDirty(player)
+	EconomyService.refresh(player)
+	return true
+end
+
 -- Moves the cinema's accrued royalties into Cash. Returns the amount collected.
 function EconomyService.collect(player: Player): number
 	local now = os.clock()

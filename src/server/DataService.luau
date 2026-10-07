@@ -10,6 +10,8 @@ export type PlayerData = {
 	version: number,
 	cash: number,
 	lastCollect: number, -- os.time() of the last cinema collect
+	roster: { [string]: number }, -- "actorId:variantId" -> copies owned (spent on movies in M3)
+	index: { [string]: boolean }, -- "actorId:variantId" -> ever discovered (kept through Sequel)
 }
 
 local CURRENT_VERSION = 1
@@ -18,6 +20,8 @@ local TEMPLATE: PlayerData = {
 	version = CURRENT_VERSION,
 	cash = 0,
 	lastCollect = 0, -- replaced with the join time for brand-new profiles in load()
+	roster = {},
+	index = {},
 }
 
 local playerStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
@@ -34,6 +38,12 @@ local function migrate(data: any)
 	end
 	if type(data.lastCollect) ~= "number" then
 		data.lastCollect = os.time()
+	end
+	if type(data.roster) ~= "table" then
+		data.roster = {}
+	end
+	if type(data.index) ~= "table" then
+		data.index = {}
 	end
 	data.version = CURRENT_VERSION
 end
