@@ -13,6 +13,7 @@ local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shop = require(ReplicatedStorage.Shared.Shop)
+local WorldLabel = require(ReplicatedStorage.Shared.WorldLabel)
 local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
@@ -30,24 +31,9 @@ local function addVipTag(character: Model)
 	if head == nil or not head:IsA("BasePart") or head:FindFirstChild("VipTag") then
 		return
 	end
-	local gui = Instance.new("BillboardGui")
+	local label = WorldLabel.new(head, "★ VIP", 4, 1.1, { color = VIP_GOLD, offset = Vector3.new(0, 3.4, 0), maxDistance = 80, outline = 2 })
+	local gui = label.Parent :: BillboardGui
 	gui.Name = "VipTag"
-	gui.Size = UDim2.fromOffset(80, 28)
-	gui.StudsOffset = Vector3.new(0, 3, 0)
-	gui.MaxDistance = 80
-	gui.Parent = head
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundColor3 = Color3.fromRGB(30, 25, 10)
-	label.BackgroundTransparency = 0.2
-	label.Text = "★ VIP"
-	label.TextColor3 = VIP_GOLD
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBlack
-	label.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = label
 end
 
 -- Makes owned passes take effect: attributes for the UI and chat tag, the VIP head tag, and every

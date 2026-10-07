@@ -88,12 +88,18 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	}
 
 	-- Banner ------------------------------------------------------------------------------------
-	-- Below the Cash HUD and the Award Night line (which ends 124 px down), so it covers neither.
-	local TOP_POSITION = UDim2.new(0.5, 0, 0, 132)
+	-- Below the top HUD (it starts at the side menu's "HudTop"; the event line, the box office line
+	-- and the "while you were away" note under them end 124 px lower), so it covers none of them.
+	-- With the event lines at the top right (touch screens) it goes straight under the wallet.
+	local function topPosition(): UDim2
+		local hudTop = gui:GetAttribute("HudTop")
+		local below = if gui:GetAttribute("HudRight") == true then 6 else 124
+		return UDim2.new(0.5, 0, 0, (if typeof(hudTop) == "number" then hudTop else 8) + below)
+	end
 	local banner = Instance.new("Frame")
 	banner.Name = "Tutorial"
 	banner.AnchorPoint = Vector2.new(0.5, 0)
-	banner.Position = TOP_POSITION
+	banner.Position = topPosition()
 	banner.Size = UDim2.new(0.9, 0, 0, 58)
 	banner.BackgroundColor3 = UiKit.NAVY
 	banner.BackgroundTransparency = 0.05
@@ -224,17 +230,16 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			board.StudsOffset = Vector3.new(0, 4, 0)
 			-- BillboardGuis do not render inside a ScreenGui; they live directly under PlayerGui.
 			board.Parent = gui.Parent
+			-- Outlined gold letters, no box (like every other label in the world).
 			local label = Instance.new("TextLabel")
 			label.Size = UDim2.fromScale(1, 1)
-			label.BackgroundColor3 = UiKit.AWARD_GOLD
-			label.TextColor3 = UiKit.WHITE
+			label.BackgroundTransparency = 1
+			label.TextColor3 = UiKit.GOLD
 			label.Font = UiKit.DISPLAY_FONT
-			UiKit.outline(label, 3)
-			UiKit.border(label, 3)
+			UiKit.outline(label, 3.5)
 			label.TextScaled = true
 			label.Text = if target == "claimPad" then "CLAIM HERE" else "COLLECT HERE"
 			label.Parent = board
-			UiKit.corner(label, 12)
 			arrow = board
 			local tween = TweenService:Create(board, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { StudsOffset = Vector3.new(0, 5.5, 0) })
 			highlightTween = tween
@@ -242,8 +247,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			outlinePad(pad)
 			return
 		end
-		local bar = gui:FindFirstChild("CastingBar")
-		local button = if bar ~= nil then bar:FindFirstChild(target) else nil
+		local button = gui:FindFirstChild(target, true)
 		if button == nil or not button:IsA("GuiObject") then
 			return
 		end
@@ -353,6 +357,13 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	-- While a panel is open the banner would cover its title and close button, so it docks at the
 	-- bottom of the screen instead (over the button bar, which is not needed while a panel is up).
 	local docked = false
+	local function replace()
+		if not docked then
+			banner.Position = topPosition()
+		end
+	end
+	gui:GetAttributeChangedSignal("HudTop"):Connect(replace)
+	gui:GetAttributeChangedSignal("HudRight"):Connect(replace)
 	task.spawn(function()
 		while not finished do
 			local panelOpen = false
@@ -369,7 +380,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					banner.Position = UDim2.new(0.5, 0, 1, -12)
 				else
 					banner.AnchorPoint = Vector2.new(0.5, 0)
-					banner.Position = TOP_POSITION
+					banner.Position = topPosition()
 				end
 			end
 			task.wait(0.2)

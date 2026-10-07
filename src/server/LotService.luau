@@ -19,6 +19,8 @@ local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
+local StudioAvatar = require(script.Parent.StudioAvatar)
+local WorldLabel = require(ReplicatedStorage.Shared.WorldLabel)
 
 -- One accent color per lot (sound stage roofs, cinema canopy) so neighbors are easy to tell apart.
 local LOT_COLORS = {
@@ -34,7 +36,7 @@ local GOLD = Color3.fromRGB(245, 184, 46)
 
 -- The pieces that change with the owner. Each is rebuilt only when its key changes, so a casting
 -- spree doesn't rebuild the whole lot.
-local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Star" }
+local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Star", "Avatar" }
 
 type Lot = {
 	index: number,
@@ -56,24 +58,13 @@ local celebrate = Remotes.get("Celebrate")
 
 local LotService = {}
 
-local function floatingLabel(target: BasePart, text: string, offset: Vector3, maxDistance: number): TextLabel
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(200, 40)
-	gui.StudsOffset = offset
-	gui.AlwaysOnTop = true
-	gui.MaxDistance = maxDistance
-	gui.Parent = target
-	local label = Instance.new("TextLabel")
-	label.Name = "TextLabel"
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 0.3
-	label.BackgroundColor3 = Color3.new(0, 0, 0)
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.Text = text
-	label.Parent = gui
-	return label
+-- Outlined text floating over a pad (no dark box behind it), sized in studs.
+local function floatingLabel(target: BasePart, text: string, color: Color3?, height: number?): TextLabel
+	return WorldLabel.new(target, text, 14, 2.6, {
+		color = color,
+		offset = Vector3.new(0, height or 4, 0),
+		maxDistance = 70,
+	})
 end
 
 -- The owner's best actor copy: highest tier, then best variant.
@@ -114,8 +105,8 @@ local function buildLot(index: number, folder: Folder): Lot
 	model.Parent = folder
 
 	local static = LotLook.static(model, base, index, color)
-	floatingLabel(static.claimPad, "Claim this lot", Vector3.new(0, 4, 0), 70)
-	floatingLabel(static.collectPad, "Collect Box Office", Vector3.new(0, 4, 0), 90)
+	floatingLabel(static.claimPad, "Claim this lot", Color3.fromRGB(120, 255, 140))
+	floatingLabel(static.collectPad, "Collect Box Office", GOLD)
 	static.cinemaAnchor:SetAttribute("LotIndex", index)
 
 	-- Billboard content (filled in by refresh).
@@ -213,19 +204,28 @@ local function render(lot: Lot)
 	local owner = lot.owner
 	local data = if owner ~= nil then DataService.getData(owner) else nil
 
-	-- Claim pad.
-	local claimLabel = (lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui):FindFirstChild("TextLabel") :: TextLabel
+	-- Claim pad: its label only while the lot is free (the owner's name is over their avatar).
+	local claimGui = lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui
+	claimGui.Enabled = owner == nil
 	if owner ~= nil then
 		lot.model:SetAttribute("OwnerUserId", owner.UserId)
 		lot.claimPad.Color = Color3.fromRGB(110, 110, 115)
 		lot.claimPad.Material = Enum.Material.SmoothPlastic
-		claimLabel.Text = owner.DisplayName .. "'s Studio"
 	else
 		lot.model:SetAttribute("OwnerUserId", nil)
 		lot.claimPad.Color = Color3.fromRGB(60, 200, 90)
 		lot.claimPad.Material = Enum.Material.Neon
-		claimLabel.Text = "Claim this lot"
 	end
+
+	-- The owner's giant avatar and name over the back of the lot.
+	local avatarKey = if owner ~= nil then tostring(owner.UserId) else "free"
+	section(lot, "Avatar", avatarKey, function(model)
+		if owner ~= nil then
+			task.spawn(StudioAvatar.build, model, lot.base, owner, function()
+				return lot.owner == owner and lot.keys.Avatar == avatarKey
+			end)
+		end
+	end)
 
 	-- Sound stages: one per stage the owner has (an empty lot shows one, grey). ON AIR while filming.
 	local progress: LotLook.Progress? = nil
@@ -275,7 +275,7 @@ local function render(lot: Lot)
 	section(lot, "Trophies", tostring(trophies), function(model)
 		local case = LotLook.trophies(model, lot.base, trophies)
 		if case ~= nil then
-			floatingLabel(case, `{trophies} Masterpiece{if trophies == 1 then "" else "s"}`, Vector3.new(0, 5, 0), 60)
+			floatingLabel(case, `{trophies} Masterpiece{if trophies == 1 then "" else "s"}`, GOLD, 5)
 		end
 	end)
 

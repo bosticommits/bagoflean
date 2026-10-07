@@ -33,22 +33,18 @@ gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 gui.Parent = playerGui
 
 Sfx.start()
-Hud.start(gui)
+local side = SideMenu.start(gui)
+local cashPlus = Hud.start(gui, side.wallet)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes", 15)
 if remotes ~= nil then
 	-- State first, so every screen sees synced data from its first frame.
 	ClientState.start(remotes)
 	Fx.start(remotes)
-	local studioButton, upgradesButton = CastingUi.start(gui)
-	if studioButton ~= nil then
-		StudioUi.start(gui, studioButton)
-	end
-	if upgradesButton ~= nil then
-		UpgradesUi.start(gui, upgradesButton)
-	end
-	local side = SideMenu.start(gui)
-	ShopUi.start(gui, side.shop)
+	CastingUi.start(gui, side.actors)
+	StudioUi.start(gui, side.studio)
+	UpgradesUi.start(gui, side.upgrade)
+	ShopUi.start(gui, side.shop, cashPlus)
 	RewardsUi.start(gui, side.rewards, side.codes)
 	Stands.start()
 	Tutorial.start(gui, remotes)

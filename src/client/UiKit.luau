@@ -2,8 +2,11 @@
 -- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
+local Actors = require(ReplicatedStorage.Shared.Actors)
 local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 
@@ -177,48 +180,33 @@ function UiKit.bounce(button: GuiButton, onHover: ((boolean) -> ())?)
 	end)
 end
 
--- Square picture button (design kit / reference games): a 3D icon (IconModels id) over a bright
--- tile, with an outlined label overlapping its bottom edge. Badges go on it like any button.
-function UiKit.makeIconTile(parent: Instance, iconId: string, text: string, color: Color3, size: UDim2, position: UDim2?): TextButton
+-- Floating picture button, like the reference games: a big outlined 3D icon (IconModels id)
+-- with no box behind it, and a chunky outlined white label overlapping its bottom edge. Badges
+-- and chips go on it like on any button.
+function UiKit.makeIconTile(parent: Instance, iconId: string, text: string, size: UDim2, position: UDim2?): TextButton
 	local tile = Instance.new("TextButton")
 	tile.Name = text .. "Button"
 	tile.AutoButtonColor = false
-	tile.BackgroundColor3 = color
+	tile.BackgroundTransparency = 1
 	tile.Size = size
 	tile.Position = position or UDim2.new()
 	tile.Text = ""
 	tile.Parent = parent
-	UiKit.corner(tile, 14)
-	UiKit.border(tile, 3)
-	-- Light top, deeper bottom, and a thin inner highlight along the top edge.
-	local shade = Instance.new("UIGradient")
-	shade.Name = "Shade"
-	shade.Rotation = 90
-	shade.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(170, 170, 170))
-	shade.Parent = tile
-	local shine = Instance.new("Frame")
-	shine.Name = "Shine"
-	shine.BackgroundColor3 = UiKit.WHITE
-	shine.BackgroundTransparency = 0.6
-	shine.BorderSizePixel = 0
-	shine.Position = UDim2.new(0.1, 0, 0, 4)
-	shine.Size = UDim2.new(0.8, 0, 0, 4)
-	shine.Parent = tile
-	UiKit.corner(shine, 2)
+	UiKit.corner(tile, 18) -- rounds the tutorial's highlight ring
 
 	local art = Instance.new("Frame")
 	art.Name = "Art"
 	art.BackgroundTransparency = 1
 	art.AnchorPoint = Vector2.new(0.5, 0)
-	art.Position = UDim2.new(0.5, 0, 0.04, 0)
-	art.Size = UDim2.fromScale(0.86, 0.7)
+	art.Position = UDim2.fromScale(0.5, 0)
+	art.Size = UDim2.fromScale(0.86, 0.8)
 	art.Parent = tile
-	local viewport = Icon3D.icon(art, iconId)
+	local viewport = Icon3D.outlined(art, iconId)
 
-	local label = UiKit.makeTitle(tile, text, UiKit.WHITE, UDim2.fromScale(1.1, 0.34), UDim2.fromScale(-0.05, 0.64), 2.5)
+	local label = UiKit.makeTitle(tile, text, UiKit.WHITE, UDim2.fromScale(1.3, 0.34), UDim2.fromScale(-0.15, 0.64), 3)
 	label.Name = "Label"
-	label.ZIndex = tile.ZIndex + 3
-	UiKit.textConstraint(label, 22)
+	label.ZIndex = tile.ZIndex + 5
+	UiKit.textConstraint(label, 24)
 
 	local stopWobble: (() -> ())? = nil
 	UiKit.bounce(tile, function(hovered)
@@ -238,6 +226,166 @@ function UiKit.makeIconTile(parent: Instance, iconId: string, text: string, colo
 	return tile
 end
 
+-- Small green pill on a button's top corner ("6/63", "86%"), like the reference Rebirth chip.
+-- Pass nil to hide it.
+function UiKit.chip(button: GuiObject, text: string?)
+	local chip = button:FindFirstChild("Chip") :: TextLabel?
+	if text == nil then
+		if chip ~= nil then
+			chip.Visible = false
+		end
+		return
+	end
+	if chip == nil then
+		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(52, 22), UDim2.new(), 1.5)
+		created.Name = "Chip"
+		created.BackgroundTransparency = 0
+		created.BackgroundColor3 = UiKit.GREEN
+		created.ZIndex = button.ZIndex + 6
+		UiKit.corner(created, 8)
+		UiKit.border(created, 2)
+		UiKit.textConstraint(created, 16)
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft = UDim.new(0, 4)
+		pad.PaddingRight = UDim.new(0, 4)
+		pad.Parent = created
+		chip = created
+	end
+	assert(chip ~= nil)
+	-- As wide as its text, poking just past the button's right edge (or inside the corner when
+	-- the button sits in a tight grid: the "ChipInset" attribute).
+	local width = math.max(30, 12 + 9 * #text)
+	chip.Size = UDim2.fromOffset(width, 22)
+	chip.Position = if button:GetAttribute("ChipInset") then UDim2.new(1, -(width + 4), 0, 4) else UDim2.new(1, -(width - 10), 0, -6)
+	chip.Text = text
+	chip.Visible = true
+end
+
+-- Green square "+" button (next to a currency, opens the shop).
+function UiKit.makePlusButton(parent: Instance, size: number, position: UDim2): TextButton
+	local plus = UiKit.makeButton(parent, "+", UiKit.GREEN, UDim2.fromOffset(size, size), position)
+	plus.Name = "Plus"
+	local round = plus:FindFirstChildOfClass("UICorner")
+	if round ~= nil then
+		round.CornerRadius = UDim.new(0, 8)
+	end
+	UiKit.textConstraint(plus, math.floor(size * 0.8))
+	return plus
+end
+
+-- Breathing pulse on something that wants a tap (a CLAIM button, today's reward). It grows about
+-- its centre. Things a list or grid layout places would spill into their neighbours, so those glow
+-- instead: their outline brightens and thickens a little. Stops when the object is destroyed.
+function UiKit.pulse(object: GuiObject, to: number?)
+	local info = TweenInfo.new(0.55, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+	local tweens: { Tween } = {}
+	local parent = object.Parent
+	if parent ~= nil and parent:FindFirstChildWhichIsA("UIGridStyleLayout") ~= nil then
+		local stroke = object:FindFirstChild("Outline")
+		if stroke ~= nil and stroke:IsA("UIStroke") then
+			table.insert(tweens, TweenService:Create(stroke, info, { Color = stroke.Color:Lerp(UiKit.WHITE, 0.6), Thickness = stroke.Thickness + 2 }))
+		end
+	else
+		-- UIScale grows an object from its anchor point: move the anchor to the centre first.
+		local anchor, size = object.AnchorPoint, object.Size
+		local dx, dy = 0.5 - anchor.X, 0.5 - anchor.Y
+		object.AnchorPoint = Vector2.new(0.5, 0.5)
+		object.Position += UDim2.new(size.X.Scale * dx, size.X.Offset * dx, size.Y.Scale * dy, size.Y.Offset * dy)
+		local scale = Instance.new("UIScale")
+		scale.Name = "Pulse"
+		scale.Parent = object
+		table.insert(tweens, TweenService:Create(scale, info, { Scale = to or 1.06 }))
+	end
+	for _, tween in tweens do
+		tween:Play()
+	end
+	object.Destroying:Connect(function()
+		for _, tween in tweens do
+			tween:Cancel()
+		end
+	end)
+end
+
+-- Green tick drawn from two outlined bars (claimed days, finished requests), filling `parent`'s
+-- middle.
+function UiKit.tick(parent: GuiObject, zIndex: number): Frame
+	local holder = Instance.new("Frame")
+	holder.Name = "Tick"
+	holder.BackgroundTransparency = 1
+	holder.AnchorPoint = Vector2.new(0.5, 0.5)
+	holder.Position = UDim2.fromScale(0.5, 0.5)
+	holder.Size = UDim2.fromScale(0.62, 0.62)
+	holder.ZIndex = zIndex
+	holder.Parent = parent
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.Parent = holder
+	local function bar(x: number, y: number, length: number, rotation: number)
+		local piece = Instance.new("Frame")
+		piece.AnchorPoint = Vector2.new(0.5, 0.5)
+		piece.Position = UDim2.fromScale(x, y)
+		piece.Size = UDim2.fromScale(length, 0.2)
+		piece.Rotation = rotation
+		piece.BackgroundColor3 = UiKit.GREEN
+		piece.ZIndex = zIndex
+		piece.Parent = holder
+		UiKit.corner(piece, 4)
+		UiKit.border(piece, 3)
+	end
+	bar(0.28, 0.63, 0.44, 45) -- short stroke, down to the corner
+	bar(0.62, 0.49, 0.8, -50) -- long stroke, up to the right
+	return holder
+end
+
+-- Outlined 3D icon at the left edge of a list row, vertically centred; the row's text starts after
+-- it (at size + 16).
+function UiKit.rowIcon(row: GuiObject, iconId: string, size: number): Frame
+	local art = Instance.new("Frame")
+	art.Name = "Icon"
+	art.BackgroundTransparency = 1
+	art.AnchorPoint = Vector2.new(0, 0.5)
+	art.Position = UDim2.new(0, 8, 0.5, 0)
+	art.Size = UDim2.fromOffset(size, size)
+	art.ZIndex = row.ZIndex + 1
+	art.Parent = row
+	Icon3D.outlined(art, iconId)
+	return art
+end
+
+-- Rarity look for anything showing an actor (key "ActorId:VariantId"): fill and edge in its tier
+-- color with a soft top-down shade, and the rainbow edge for the Icon tier, like the Collection.
+function UiKit.rarityStyle(frame: GuiObject, key: string, thickness: number)
+	local actor = Actors.getActor(string.split(key, ":")[1] or "")
+	local tier = if actor ~= nil then Actors.getTier(actor.tier) else nil
+	frame.BackgroundColor3 = if tier ~= nil then tier.color:Lerp(UiKit.NAVY, 0.45) else UiKit.DARK
+	local outline = UiKit.border(frame, thickness, if tier ~= nil then tier.color else UiKit.INK)
+	if tier ~= nil and tier.id == "Icon" then
+		outline.Color = UiKit.WHITE
+		local rainbow = Instance.new("UIGradient")
+		rainbow.Color = UiKit.RAINBOW
+		rainbow.Parent = outline
+	end
+	local shade = Instance.new("UIGradient")
+	shade.Rotation = 90
+	shade.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(120, 120, 140))
+	shade.Parent = frame
+end
+
+-- Small portrait tile for an actor key: the 3D figure on its rarity color.
+function UiKit.portrait(parent: Instance, key: string, size: UDim2, position: UDim2?): Frame
+	local parts = string.split(key, ":")
+	local tile = Instance.new("Frame")
+	tile.Name = "Portrait"
+	tile.Size = size
+	tile.Position = position or UDim2.new()
+	tile.Parent = parent
+	UiKit.corner(tile, 8)
+	UiKit.rarityStyle(tile, key, 2)
+	if Actors.getActor(parts[1] or "") ~= nil then
+		Icon3D.actor(tile, parts[1], parts[2])
+	end
+	return tile
+end
+
 -- Grey a button out (still tappable, so it can explain why) or give it back its color.
 function UiKit.setEnabled(button: TextButton, enabled: boolean, color: Color3)
 	button.BackgroundColor3 = if enabled then color else UiKit.DISABLED
@@ -248,13 +396,45 @@ end
 function UiKit.styleTab(button: TextButton, selected: boolean)
 	button.BackgroundColor3 = if selected then UiKit.WHITE else UiKit.TAB_OFF
 	button.TextColor3 = if selected then UiKit.NAVY else UiKit.WHITE
+	-- Hover darkening would turn the white chip grey under the mouse.
+	button.AutoButtonColor = not selected
 	local stroke = button:FindFirstChild("TextOutline")
 	if stroke ~= nil and stroke:IsA("UIStroke") then
 		stroke.Enabled = not selected
 	end
 end
 
--- Red notification badge on a button's top corner ("3" or "!"). Pass nil to hide it.
+-- One text size for a row of buttons (tabs): the largest that fits every label, so a long name
+-- ("Hollywood Casting") is not the only one shrunk.
+function UiKit.evenText(buttons: { TextButton }, maxSize: number)
+	local function apply()
+		local size = maxSize
+		for _, button in buttons do
+			local room = button.AbsoluteSize - Vector2.new(14, 6)
+			if room.X <= 0 or room.Y <= 0 then
+				return
+			end
+			while size > 8 do
+				local bounds = TextService:GetTextSize(button.Text, size, button.Font, Vector2.new(10000, 10000))
+				if bounds.X <= room.X and bounds.Y <= room.Y then
+					break
+				end
+				size -= 1
+			end
+		end
+		for _, button in buttons do
+			button.TextScaled = false
+			button.TextSize = size
+		end
+	end
+	for _, button in buttons do
+		button:GetPropertyChangedSignal("AbsoluteSize"):Connect(apply)
+	end
+	apply()
+end
+
+-- Red notification badge on a button's top corner ("3" or "!"). Pass nil to hide it. Buttons with
+-- the "BadgeInset" attribute (the side menu's) keep it inside their corner.
 function UiKit.badge(button: GuiObject, text: string?)
 	local badge = button:FindFirstChild("Badge") :: TextLabel?
 	if text == nil then
@@ -264,11 +444,12 @@ function UiKit.badge(button: GuiObject, text: string?)
 		return
 	end
 	if badge == nil then
-		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(24, 24), UDim2.new(1, -14, 0, -10), 1.5)
+		local position = if button:GetAttribute("BadgeInset") then UDim2.new(1, -24, 0, 0) else UDim2.new(1, -14, 0, -10)
+		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(24, 24), position, 1.5)
 		created.Name = "Badge"
 		created.BackgroundTransparency = 0
 		created.BackgroundColor3 = UiKit.CLOSE_RED
-		created.ZIndex = button.ZIndex + 2
+		created.ZIndex = button.ZIndex + 6
 		UiKit.corner(created, 12)
 		UiKit.border(created, 2)
 		local pad = Instance.new("UIPadding")
@@ -317,6 +498,36 @@ function UiKit.toast(gui: ScreenGui, text: string)
 end
 
 -- Layout ---------------------------------------------------------------------------------------
+-- A string that changes whenever `value` (plain data) does, so a screen can skip rebuilding
+-- when nothing it shows changed (a rebuilt 3D picture is blank until Roblox redraws it). Keys are
+-- sorted, so two syncs holding the same data always match whatever order their tables were built.
+function UiKit.signature(value: any): string
+	local out: { string } = {}
+	local function write(v: any)
+		if type(v) == "table" then
+			local keys = {}
+			for key in v do
+				table.insert(keys, key)
+			end
+			table.sort(keys, function(a, b)
+				return tostring(a) < tostring(b)
+			end)
+			table.insert(out, "{")
+			for _, key in keys do
+				table.insert(out, tostring(key))
+				table.insert(out, "=")
+				write(v[key])
+				table.insert(out, ";")
+			end
+			table.insert(out, "}")
+		else
+			table.insert(out, tostring(v))
+		end
+	end
+	write(value)
+	return table.concat(out)
+end
+
 -- Short screens (phones in landscape) get taller panels so lists have room to breathe.
 local COMPACT_HEIGHT = 500
 
@@ -460,10 +671,36 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	local function applyLayout()
 		local compact = UiKit.isCompact()
 		panel.Size = panelSize()
+		panel.Position = UDim2.fromScale(0.5, 0.5)
+		-- Keep clear of the side menu ("MenuRight", set by SideMenu) when the screen has room:
+		-- slide right, and on narrow screens get narrower, rather than cover the menu buttons.
+		local menuRight = gui:GetAttribute("MenuRight")
+		local screen = gui.AbsoluteSize
+		if typeof(menuRight) == "number" and screen.X > 0 then
+			local width = math.min(panel.Size.X.Scale * screen.X, limit.MaxSize.X)
+			local left = menuRight + 8
+			local room = screen.X - left - 8
+			if room >= width then
+				panel.Position = UDim2.new(0.5, math.max(0, left - (screen.X - width) / 2), 0.5, 0)
+			elseif room >= 300 then
+				panel.Size = UDim2.new(0, room, panel.Size.Y.Scale, 0)
+				panel.Position = UDim2.new(0, left + room / 2, 0.5, 0)
+			end
+		end
 		local barHeight = if compact then 40 else 54
 		titleBar.Size = UDim2.new(1, 0, 0, barHeight)
-		header.Size = UDim2.new(1, -70, 0, if compact then 30 else 40)
-		header.Position = UDim2.fromOffset(16, if compact then 5 else 6)
+		-- With a corner icon (UiKit.panelIcon) the title starts after it.
+		local headerX = 16
+		local icon = panel:FindFirstChild("PanelIcon")
+		if icon ~= nil and icon:IsA("Frame") then
+			local iconSize = if compact then 58 else 76
+			local left = if compact then -10 else -14
+			icon.Size = UDim2.fromOffset(iconSize, iconSize)
+			icon.Position = UDim2.fromOffset(left, (barHeight - 4) // 2 - iconSize // 2 - 3)
+			headerX = left + iconSize + 6
+		end
+		header.Size = UDim2.new(1, -(54 + headerX), 0, if compact then 30 else 40)
+		header.Position = UDim2.fromOffset(headerX, if compact then 5 else 6)
 		local closeSize = if compact then 32 else 40
 		close.Size = UDim2.fromOffset(closeSize, closeSize)
 		close.Position = UDim2.new(1, -(closeSize + 10), 0, (barHeight - 4 - closeSize) // 2)
@@ -480,12 +717,33 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		list.Size = UDim2.new(1, -20, 1, -(listTop + bottom))
 	end
 	UiKit.onViewportChanged(applyLayout)
+	gui:GetAttributeChangedSignal("MenuRight"):Connect(applyLayout)
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		if panel.Visible then
 			applyLayout()
 		end
 	end)
 	return panel, list, header
+end
+
+-- Big outlined 3D icon poking out of a panel's top-left corner, like the reference games' window
+-- art. makePanel's layout sizes it and moves the title to its right.
+function UiKit.panelIcon(panel: Frame, header: TextLabel, iconId: string): ViewportFrame
+	local old = panel:FindFirstChild("PanelIcon")
+	if old ~= nil then
+		old:Destroy()
+	end
+	local holder = Instance.new("Frame")
+	holder.Name = "PanelIcon"
+	holder.BackgroundTransparency = 1
+	holder.Size = UDim2.fromOffset(76, 76)
+	holder.Position = UDim2.fromOffset(-14, -16)
+	holder.ZIndex = header.ZIndex + 1
+	holder.Parent = panel
+	local viewport = Icon3D.outlined(holder, iconId)
+	header.Position = UDim2.fromOffset(68, header.Position.Y.Offset)
+	header.Size = UDim2.new(1, -122, 0, header.Size.Y.Offset)
+	return viewport
 end
 
 function UiKit.clear(list: ScrollingFrame)
