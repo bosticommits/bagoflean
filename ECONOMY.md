@@ -1,4 +1,4 @@
-# Movie Mogul economy
+# Hollywood RNG economy
 
 This is the progression curve the numbers in `src/shared/` are tuned to, and how to check it.
 Every number below comes from `tools/economy_sim.py`, which reads the Luau files directly and

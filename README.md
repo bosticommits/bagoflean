@@ -2,10 +2,10 @@
 
 Two separate projects live in this repo:
 
-1. **Movie Mogul**, a Roblox game built with Rojo. Design: [GAME_PLAN.md](GAME_PLAN.md).
+1. **Hollywood RNG** (working title Movie Mogul), a Roblox game built with Rojo. Design: [GAME_PLAN.md](GAME_PLAN.md).
 2. **A Roblox Limited trade advisor**, a Python terminal chatbot (see further down).
 
-## Movie Mogul (Roblox game)
+## Hollywood RNG (Roblox game)
 
 Status: milestones M0 to M5 are built and playtested in Studio: lots and cash, casting,
 movies, Index, agencies, upgrades, lot visuals, billboard, effects, sounds and the tutorial.

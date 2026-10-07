@@ -9,6 +9,7 @@
 -- DataService.grantPurchaseOnce, and acknowledges it only after the grant is saved.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shop = require(ReplicatedStorage.Shared.Shop)
@@ -81,8 +82,20 @@ local function grantPass(player: Player, pass: Shop.Pass, announce: boolean)
 	end
 end
 
+-- Roblox rule for paid random items: where a player's region restricts them, the shop must not
+-- offer Robux purchases that lead to random actors (Shop `randomItems`). If the policy cannot be
+-- read, treat the player as restricted rather than risk offering them.
+local function checkPolicy(player: Player)
+	local ok, policy = pcall(function()
+		return PolicyService:GetPolicyInfoForPlayerAsync(player)
+	end)
+	local restricted = not ok or type(policy) ~= "table" or policy.ArePaidRandomItemsRestricted ~= false
+	player:SetAttribute("PaidRandomRestricted", restricted)
+end
+
 -- Called once the player's data has loaded. Yields (ownership checks), so call it in a task.
 function ShopService.load(player: Player)
+	checkPolicy(player)
 	applyPasses(player)
 	player.CharacterAdded:Connect(function(character)
 		if player:GetAttribute("PassVIP") then

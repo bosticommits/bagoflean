@@ -39,10 +39,16 @@ local function fetchPrice(kind: string, id: number, key: string, onPrice: () -> 
 	end)
 end
 
+-- False for items that lead to random actors when this player's region restricts paid random
+-- items (the attribute is nil until the server has checked, which also counts as restricted).
+function ShopUi.offered(item: { randomItems: boolean? }): boolean
+	return not item.randomItems or Players.LocalPlayer:GetAttribute("PaidRandomRestricted") == false
+end
+
 -- Opens Roblox's purchase prompt for a developer product. Returns false if it is not set up yet.
 function ShopUi.promptProduct(key: string): boolean
 	local product = Shop.getProduct(key)
-	if product == nil or product.id == 0 then
+	if product == nil or product.id == 0 or not ShopUi.offered(product) then
 		return false
 	end
 	MarketplaceService:PromptProductPurchase(Players.LocalPlayer, product.id)
@@ -96,6 +102,10 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 				UiKit.makeTitle(row, "OWNED", UiKit.GOLD, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 				continue
 			end
+			if not ShopUi.offered(pass) then
+				makeLabel(row, "Not available", UiKit.MUTED, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
+				continue
+			end
 			local button = makeButton(row, priceText("pass", pass.id, pass.key), if pass.id == 0 then UiKit.DISABLED else UiKit.GREEN, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 			button.Activated:Connect(function()
 				if pass.id == 0 then
@@ -117,6 +127,10 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 				description = `{description} (you have {skips})`
 			end
 			local row = itemRow(product.name, description)
+			if not ShopUi.offered(product) then
+				makeLabel(row, "Not available", UiKit.MUTED, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
+				continue
+			end
 			local button = makeButton(row, priceText("product", product.id, product.key), if product.id == 0 then UiKit.DISABLED else UiKit.GREEN, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 			button.Activated:Connect(function()
 				if not ShopUi.promptProduct(product.key) then
@@ -132,7 +146,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 	end
 
 	player.AttributeChanged:Connect(function(name)
-		if string.sub(name, 1, 4) == "Pass" or name == "Rate" then
+		if string.sub(name, 1, 4) == "Pass" or name == "Rate" or name == "PaidRandomRestricted" then
 			rebuildIfOpen()
 		end
 	end)
