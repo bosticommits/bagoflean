@@ -216,6 +216,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 			art.Size = UDim2.fromScale(0.86, 0.5)
 			art.Parent = tile
 			local view = Icon3D.outlined(art, rewardIcon(reward), 0.95)
+			Icon3D.glow(view, if claimable then UiKit.GOLD else nil, if hidden then 0.4 else 1)
 			local parts = rewardParts(reward, rate())
 			local first = parts[1]
 			local amount = UiKit.makeTitle(tile, if hidden then "???" elseif first ~= nil then first.text else "", if hidden then UiKit.FAINT elseif first ~= nil then first.color else UiKit.WHITE, UDim2.fromScale(0.94, 0.2), UDim2.fromScale(0.03, 0.75), 2)
@@ -270,6 +271,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 			art.Size = UDim2.fromOffset(bannerHeight - 8, bannerHeight - 8)
 			art.Parent = banner
 			local view = Icon3D.outlined(art, "chest")
+			Icon3D.glow(view, UiKit.GOLD)
 			if claimable then
 				Icon3D.spin(view, 18)
 				UiKit.pulse(banner, 1.03)

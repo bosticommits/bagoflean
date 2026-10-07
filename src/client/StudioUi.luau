@@ -646,7 +646,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			art.Size = UDim2.fromScale(0.9, 0.56)
 			art.Parent = card
 			if actor ~= nil then
-				Icon3D.actor(art, actor.id, parts[2])
+				local tier = Actors.getTier(actor.tier)
+				Icon3D.glow(Icon3D.actor(art, actor.id, parts[2]), if tier ~= nil then tier.color else nil)
 			end
 			local name = UiKit.makeTitle(card, actorLabel(key), WHITE, UDim2.fromScale(0.94, 0.17), UDim2.fromScale(0.03, 0.6), 2)
 			name.ZIndex = 3

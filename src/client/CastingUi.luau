@@ -277,7 +277,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			art.Position = UDim2.fromScale(0.05, 0.03)
 			art.Size = UDim2.fromScale(0.9, 0.54)
 			art.Parent = card
-			Icon3D.actor(art, actor.id, "Normal", not seen)
+			Icon3D.glow(Icon3D.actor(art, actor.id, "Normal", not seen), tier.color, if seen then 1 else 0.5)
 
 			local name = UiKit.makeTitle(card, if seen then actor.name else "???", if seen then WHITE else UiKit.FAINT, UDim2.fromScale(0.94, 0.13), UDim2.fromScale(0.03, 0.57), 2)
 			name.ZIndex = 3

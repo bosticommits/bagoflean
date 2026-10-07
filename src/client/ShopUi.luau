@@ -147,7 +147,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			art.Position = UDim2.fromScale(0.5, 0.03)
 			art.Size = UDim2.fromScale(0.5, 0.42)
 			art.Parent = c
-			Icon3D.outlined(art, look.icon)
+			Icon3D.glow(Icon3D.outlined(art, look.icon))
 			local title = UiKit.makeTitle(c, name, UiKit.WHITE, UDim2.fromScale(0.94, 0.15), UDim2.fromScale(0.03, 0.44), 2.5)
 			title.Name = "Title"
 			title.ZIndex = 3
