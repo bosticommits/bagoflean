@@ -92,21 +92,17 @@ function Hud.start(gui: ScreenGui)
 
 	-- Event line under the HUD: the Award Night countdown (or the live event) and an active Lucky
 	-- Casting boost. Award Night follows the shared schedule on the server's clock.
-	local eventLabel = Instance.new("TextLabel")
+	-- Outlined text over the world, like "Current Event:" in the reference games; it turns into a
+	-- gold banner while Award Night is live.
+	local eventLabel = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(360, 32), UDim2.new(0.5, 0, 0, 92), 2.5)
 	eventLabel.Name = "EventLine"
 	eventLabel.AnchorPoint = Vector2.new(0.5, 0)
-	eventLabel.Position = UDim2.new(0.5, 0, 0, 100)
-	eventLabel.Size = UDim2.fromOffset(340, 30)
-	eventLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-	eventLabel.BackgroundTransparency = 0.3
-	eventLabel.TextColor3 = Color3.new(1, 1, 1)
-	eventLabel.TextScaled = true
-	eventLabel.Font = Enum.Font.GothamBold
-	eventLabel.Parent = gui
-	Instance.new("UICorner", eventLabel).CornerRadius = UDim.new(0, 10)
-	local textLimit = Instance.new("UITextSizeConstraint")
-	textLimit.MaxTextSize = 22
-	textLimit.Parent = eventLabel
+	eventLabel.BackgroundColor3 = UiKit.AWARD_GOLD
+	eventLabel.BackgroundTransparency = 1
+	UiKit.corner(eventLabel, 12)
+	local eventBorder = UiKit.border(eventLabel, 3)
+	eventBorder.Enabled = false
+	UiKit.textConstraint(eventLabel, 24)
 
 	task.spawn(function()
 		while eventLabel.Parent ~= nil do
@@ -115,10 +111,12 @@ function Hud.start(gui: ScreenGui)
 			local text
 			if active then
 				text = `AWARD NIGHT! x{Config.AwardNightLuckMultiplier} Luck & payouts  {clock(left)}`
-				eventLabel.BackgroundColor3 = Color3.fromRGB(150, 110, 20)
+				eventLabel.BackgroundTransparency = 0
+				eventBorder.Enabled = true
 			else
 				text = `Award Night in {clock(left)}`
-				eventLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+				eventLabel.BackgroundTransparency = 1
+				eventBorder.Enabled = false
 			end
 			local boostLeft = (player:GetAttribute("LuckBoostUntil") or 0) - now
 			if boostLeft > 0 then
@@ -135,15 +133,17 @@ function Hud.start(gui: ScreenGui)
 		if pending < 1 then
 			return
 		end
-		local away = makeLabel(0, 0, Color3.fromRGB(30, 20, 0))
+		local away = makeLabel(0, 34, UiKit.WHITE)
 		away.Name = "AwayEarnings"
 		away.Text = `Your cinema earned ${comma(pending)} while you were away! Collect it at the gold pad`
 		away.BackgroundTransparency = 0
-		away.BackgroundColor3 = Color3.fromRGB(255, 220, 90)
+		away.BackgroundColor3 = UiKit.NAVY
 		away.Position = UDim2.new(0, -60, 1, 38)
 		away.Size = UDim2.new(1, 120, 0, 34)
 		away.ZIndex = 4
-		Instance.new("UICorner", away).CornerRadius = UDim.new(0, 10)
+		UiKit.corner(away, 12)
+		UiKit.border(away, 3, UiKit.AWARD_GOLD)
+		UiKit.textConstraint(away, 22)
 		Sfx.play("jingle")
 		task.delay(7, function()
 			away:Destroy()

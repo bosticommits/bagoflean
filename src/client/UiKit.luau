@@ -402,6 +402,15 @@ function UiKit.clear(list: ScrollingFrame)
 	end
 end
 
+-- Turns a row into a plain heading or note: no fill, no outline.
+function UiKit.plainRow(row: Frame)
+	row.BackgroundTransparency = 1
+	local outline = row:FindFirstChild("Outline")
+	if outline ~= nil and outline:IsA("UIStroke") then
+		outline.Enabled = false
+	end
+end
+
 function UiKit.addRow(list: ScrollingFrame, order: number, height: number): Frame
 	local row = Instance.new("Frame")
 	row.LayoutOrder = order
