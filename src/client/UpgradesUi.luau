@@ -15,6 +15,15 @@ local makeLabel, makeButton = UiKit.makeLabel, UiKit.makeButton
 
 local UpgradesUi = {}
 
+-- 3D icon for each upgrade row (IconModels ids).
+local ICONS: { [string]: string } = {
+	Stages = "stage",
+	Cinema = "popcorn",
+	Offline = "moneybag",
+	Luck = "clover",
+	Clap = "clapper",
+}
+
 function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	local player = Players.LocalPlayer
 	local remotes = ReplicatedStorage:WaitForChild("Remotes", 15)
@@ -24,7 +33,8 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	end
 	local buyUpgrade = remotes:WaitForChild("BuyUpgrade") :: RemoteEvent
 
-	local panel, list = UiKit.makePanel(gui, "UpgradesPanel", "Upgrades", nil, nil, nil, UiKit.AWARD_GOLD)
+	local panel, list, header = UiKit.makePanel(gui, "UpgradesPanel", "Upgrades", nil, nil, nil, UiKit.AWARD_GOLD)
+	UiKit.panelIcon(panel, header, "arrow")
 
 	local function build()
 		UiKit.clear(list)
@@ -45,16 +55,17 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 			local level = Upgrades.level(stats, upgrade.id)
 			local maxed = level >= upgrade.maxLevel
 			local row = UiKit.addRow(list, order, 92)
-			local title = UiKit.makeTitle(row, `{upgrade.name}  Lv {level}/{upgrade.maxLevel}`, UiKit.WHITE, UDim2.new(0.62, 0, 0, 28), UDim2.fromOffset(10, 4))
+			UiKit.rowIcon(row, ICONS[upgrade.id] or "arrow", 66)
+			local title = UiKit.makeTitle(row, `{upgrade.name}  Lv {level}/{upgrade.maxLevel}`, UiKit.WHITE, UDim2.new(0.62, -72, 0, 28), UDim2.fromOffset(82, 4))
 			title.TextXAlignment = Enum.TextXAlignment.Left
-			local now = makeLabel(row, upgrade.effect(level), UiKit.MUTED, UDim2.new(0.62, 0, 0, 20), UDim2.fromOffset(10, 34))
+			local now = makeLabel(row, upgrade.effect(level), UiKit.MUTED, UDim2.new(0.62, -72, 0, 20), UDim2.fromOffset(82, 34))
 			now.TextXAlignment = Enum.TextXAlignment.Left
 
 			if maxed then
 				UiKit.makeTitle(row, "MAX", UiKit.GOLD, UDim2.new(0.34, 0, 0, 44), UDim2.new(0.64, 0, 0, 24))
 				continue
 			end
-			local nextEffect = makeLabel(row, "Next: " .. upgrade.effect(level + 1), UiKit.CASH_GREEN, UDim2.new(0.62, 0, 0, 20), UDim2.fromOffset(10, 62))
+			local nextEffect = makeLabel(row, "Next: " .. upgrade.effect(level + 1), UiKit.CASH_GREEN, UDim2.new(0.62, -72, 0, 20), UDim2.fromOffset(82, 62))
 			nextEffect.TextXAlignment = Enum.TextXAlignment.Left
 
 			local cost = upgrade.costs[level + 1]

@@ -1,7 +1,10 @@
 --!strict
--- Cash HUD: big outlined gold Cash beside a 3D coin, with the box office line under it. Reads server-owned attributes; it never sends amounts to the server.
+-- HUD: the wallet (3D coin + big outlined Cash with a green "+" to the shop, and Fame), and at the
+-- top centre the event countdown and the box office line. Reads server-owned attributes; it never
+-- sends amounts to the server.
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -31,17 +34,22 @@ local function clock(seconds: number): string
 end
 Hud.clock = clock
 
-function Hud.start(gui: ScreenGui)
+-- `wallet` is the empty frame the side menu reserves for Cash and Fame. Returns the green "+"
+-- button next to Cash (the shop opens on it).
+function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local player = Players.LocalPlayer
 
-	-- No box: outlined text floats over the world, as in the design kit.
+	-- Top centre: no box, outlined text floats over the world, as in the reference games. It moves
+	-- down on touch screens, where the wallet sits above it.
 	local frame = Instance.new("Frame")
 	frame.Name = "Hud"
 	frame.AnchorPoint = Vector2.new(0.5, 0)
-	frame.Position = UDim2.new(0.5, 0, 0, 8)
-	frame.Size = UDim2.fromOffset(320, 84)
+	frame.Size = UDim2.fromOffset(420, 70)
 	frame.BackgroundTransparency = 1
 	frame.Parent = gui
+	UiKit.onViewportChanged(function()
+		frame.Position = UDim2.new(0.5, 0, 0, if UserInputService.TouchEnabled then 84 else 8)
+	end)
 
 	local function makeLabel(y: number, height: number, color: Color3): TextLabel
 		local label = UiKit.makeTitle(frame, "", color, UDim2.new(1, 0, 0, height), UDim2.fromOffset(0, y), if height >= 40 then 3.5 else 2.5)
@@ -49,31 +57,40 @@ function Hud.start(gui: ScreenGui)
 		return label
 	end
 
-	local cashLabel = makeLabel(4, 48, UiKit.GOLD)
-	local pendingLabel = makeLabel(54, 24, UiKit.WHITE)
-	cashLabel.Text = "Loading..."
+	local pendingLabel = makeLabel(38, 24, UiKit.WHITE)
 	pendingLabel.Text = ""
 
-	-- A slowly turning 3D gold coin just left of the Cash number, wherever the number ends.
-	local coin = Instance.new("Frame")
-	coin.Name = "Coin"
-	coin.BackgroundTransparency = 1
-	coin.AnchorPoint = Vector2.new(1, 0.5)
-	coin.Size = UDim2.fromOffset(46, 46)
-	coin.Parent = frame
-	Icon3D.spin(Icon3D.icon(coin, "coin", 0.95), 20)
-	local function placeCoin()
-		coin.Position = UDim2.new(0.5, -cashLabel.TextBounds.X / 2 - 4, 0, 4 + 24)
-		coin.Visible = cashLabel.Text:sub(1, 1) == "$"
+	-- Wallet rows: icon, big outlined number, and for Cash a green "+".
+	local function walletRow(y: number, height: number, icon: string, color: Color3): (TextLabel, Frame)
+		local art = Instance.new("Frame")
+		art.Name = icon
+		art.BackgroundTransparency = 1
+		art.Size = UDim2.fromOffset(height + 6, height + 6)
+		art.Position = UDim2.fromOffset(-3, y - 3)
+		art.Parent = wallet
+		local label = UiKit.makeTitle(wallet, "", color, UDim2.fromOffset(200, height), UDim2.fromOffset(height + 8, y), if height >= 40 then 3.5 else 3)
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		UiKit.textConstraint(label, height)
+		return label, art
 	end
-	cashLabel:GetPropertyChangedSignal("TextBounds"):Connect(placeCoin)
-	placeCoin()
+	local cashLabel, coinArt = walletRow(0, 46, "coin", UiKit.GOLD)
+	Icon3D.spin(Icon3D.outlined(coinArt, "coin", 0.95), 20)
+	cashLabel.Text = "..."
+	local fameLabel, fameArt = walletRow(54, 34, "star", UiKit.WHITE)
+	Icon3D.outlined(fameArt, "star", 0.95)
+	local plus = UiKit.makePlusButton(wallet, 36, UDim2.fromOffset(0, 5))
+	local function placePlus()
+		plus.Position = UDim2.fromOffset(cashLabel.Position.X.Offset + cashLabel.TextBounds.X + 10, 5)
+	end
+	cashLabel:GetPropertyChangedSignal("TextBounds"):Connect(placePlus)
+	placePlus()
 
 	local function refresh()
 		if not player:GetAttribute("DataLoaded") then
 			return
 		end
 		cashLabel.Text = "$" .. comma(player:GetAttribute("Cash") or 0)
+		fameLabel.Text = "Fame " .. comma(player:GetAttribute("Fame") or 0)
 		local pending = player:GetAttribute("Pending") or 0
 		if player:GetAttribute("LotIndex") == nil then
 			pendingLabel.Text = "Claim a lot (green pad)"
@@ -95,12 +112,12 @@ function Hud.start(gui: ScreenGui)
 			return
 		end
 		Sfx.play("sweep")
-		local float = makeLabel(0, 30, UiKit.CASH_GREEN)
-		float.Text = "+$" .. comma(collected)
-		float.Position = UDim2.new(0, 0, 1, 0)
-		float.Size = UDim2.new(1, 0, 0, 30)
+		-- Rises from the Cash number.
+		local float = UiKit.makeTitle(wallet, "+$" .. comma(collected), UiKit.CASH_GREEN, UDim2.fromOffset(220, 32), UDim2.fromOffset(54, -6), 3)
+		float.TextXAlignment = Enum.TextXAlignment.Left
 		float.ZIndex = 3
-		TweenService:Create(float, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.new(0, 0, 1, 40), TextTransparency = 1 }):Play()
+		UiKit.textConstraint(float, 32)
+		TweenService:Create(float, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(54, -56), TextTransparency = 1 }):Play()
 		task.delay(1.3, function()
 			float:Destroy()
 		end)
@@ -110,15 +127,14 @@ function Hud.start(gui: ScreenGui)
 	-- Casting boost. Award Night follows the shared schedule on the server's clock.
 	-- Outlined text over the world, like "Current Event:" in the reference games; it turns into a
 	-- gold banner while Award Night is live.
-	local eventLabel = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(360, 32), UDim2.new(0.5, 0, 0, 92), 2.5)
+	local eventLabel = UiKit.makeTitle(frame, "", UiKit.WHITE, UDim2.new(1, 0, 0, 36), UDim2.fromOffset(0, 0), 3)
 	eventLabel.Name = "EventLine"
-	eventLabel.AnchorPoint = Vector2.new(0.5, 0)
 	eventLabel.BackgroundColor3 = UiKit.AWARD_GOLD
 	eventLabel.BackgroundTransparency = 1
 	UiKit.corner(eventLabel, 12)
 	local eventBorder = UiKit.border(eventLabel, 3)
 	eventBorder.Enabled = false
-	UiKit.textConstraint(eventLabel, 24)
+	UiKit.textConstraint(eventLabel, 32)
 
 	task.spawn(function()
 		while eventLabel.Parent ~= nil do
@@ -154,8 +170,8 @@ function Hud.start(gui: ScreenGui)
 		away.Text = `Your cinema earned ${comma(pending)} while you were away! Collect it at the gold pad`
 		away.BackgroundTransparency = 0
 		away.BackgroundColor3 = UiKit.NAVY
-		away.Position = UDim2.new(0, -60, 1, 38)
-		away.Size = UDim2.new(1, 120, 0, 34)
+		away.Position = UDim2.new(0, -40, 1, 8)
+		away.Size = UDim2.new(1, 80, 0, 34)
 		away.ZIndex = 4
 		UiKit.corner(away, 12)
 		UiKit.border(away, 3, UiKit.AWARD_GOLD)
@@ -178,6 +194,7 @@ function Hud.start(gui: ScreenGui)
 	if player:GetAttribute("DataLoaded") then
 		showAwayEarnings()
 	end
+	return plus
 end
 
 return Hud

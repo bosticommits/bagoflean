@@ -67,6 +67,52 @@ function Icon3D.icon(parent: GuiObject, id: string, fill: number?): ViewportFram
 	return viewport
 end
 
+-- A floating icon with a dark cartoon outline, like the reference games' button art: a black
+-- silhouette copy drawn a little bigger behind the icon, plus a soft drop shadow. Returns the
+-- front viewport; wobble and spin move the copies with it.
+function Icon3D.outlined(parent: GuiObject, id: string, fill: number?): ViewportFrame
+	local function copy(name: string, scale: number, offset: Vector2, transparency: number): ViewportFrame
+		local holderFrame = Instance.new("Frame")
+		holderFrame.Name = name
+		holderFrame.BackgroundTransparency = 1
+		holderFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		holderFrame.Position = UDim2.new(0.5, offset.X, 0.5, offset.Y)
+		holderFrame.Size = UDim2.fromScale(scale, scale)
+		holderFrame.ZIndex = parent.ZIndex
+		holderFrame.Parent = parent
+		local view = Icon3D.icon(holderFrame, id, fill)
+		view.ImageColor3 = Color3.fromRGB(11, 15, 31)
+		view.ImageTransparency = transparency
+		return view
+	end
+	copy("Shadow", 1.08, Vector2.new(3, 5), 0.55)
+	copy("Outline", 1.1, Vector2.zero, 0)
+	local front = Icon3D.icon(parent, id, fill)
+	front.ZIndex = parent.ZIndex + 2
+	return front
+end
+
+-- The models to move with `viewport`: its own, plus the outline and shadow copies next to it.
+local function linkedModels(viewport: ViewportFrame): { Model }
+	local models: { Model } = {}
+	local own = viewport:FindFirstChildOfClass("Model")
+	if own ~= nil then
+		table.insert(models, own)
+	end
+	local parent = viewport.Parent
+	if parent ~= nil then
+		for _, name in { "Shadow", "Outline" } do
+			local copyFrame = parent:FindFirstChild(name)
+			local view = if copyFrame ~= nil then copyFrame:FindFirstChildOfClass("ViewportFrame") else nil
+			local model = if view ~= nil then view:FindFirstChildOfClass("Model") else nil
+			if model ~= nil then
+				table.insert(models, model)
+			end
+		end
+	end
+	return models
+end
+
 -- An actor's figure filling `parent`. `silhouette` paints it solid black for undiscovered actors.
 function Icon3D.actor(parent: GuiObject, actorId: string, variantId: string?, silhouette: boolean?): ViewportFrame
 	local viewport = makeViewport(parent)
@@ -83,46 +129,49 @@ function Icon3D.actor(parent: GuiObject, actorId: string, variantId: string?, si
 	return viewport
 end
 
--- Turntable: spins the viewport's model around its own vertical axis (`rpm` turns per minute)
--- until the viewport is destroyed. Returns a function that stops it early.
-function Icon3D.spin(viewport: ViewportFrame, rpm: number): () -> ()
-	local model = viewport:FindFirstChildOfClass("Model")
-	if model == nil then
-		return function() end
+-- Turns the viewport's model (and its outline copies) by `angleAt(dt)` each frame until the
+-- viewport is destroyed or the returned stop function runs.
+local function animate(viewport: ViewportFrame, angleAt: (number) -> number): () -> ()
+	local models = linkedModels(viewport)
+	local pivots: { CFrame } = {}
+	for i, model in models do
+		pivots[i] = model:GetPivot()
 	end
-	local pivot = model:GetPivot()
-	local angle = 0
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function(dt: number)
 		if viewport.Parent == nil then
 			connection:Disconnect()
 			return
 		end
-		angle += dt * rpm / 60 * 2 * math.pi
-		model:PivotTo(pivot * CFrame.Angles(0, angle, 0))
+		local turn = CFrame.Angles(0, angleAt(dt), 0)
+		for i, model in models do
+			model:PivotTo(pivots[i] * turn)
+		end
 	end)
 	return function()
 		connection:Disconnect()
-		model:PivotTo(pivot)
+		for i, model in models do
+			model:PivotTo(pivots[i])
+		end
 	end
 end
 
--- Gentle back-and-forth sway (for a hovered button). Returns a function that stops it.
-function Icon3D.wobble(viewport: ViewportFrame): () -> ()
-	local model = viewport:FindFirstChildOfClass("Model")
-	if model == nil then
-		return function() end
-	end
-	local pivot = model:GetPivot()
-	local t = 0
-	local connection = RunService.RenderStepped:Connect(function(dt: number)
-		t += dt
-		model:PivotTo(pivot * CFrame.Angles(0, math.sin(t * 5) * math.rad(14), 0))
+-- Turntable: spins the model around its own vertical axis, `rpm` turns per minute.
+function Icon3D.spin(viewport: ViewportFrame, rpm: number): () -> ()
+	local angle = 0
+	return animate(viewport, function(dt)
+		angle += dt * rpm / 60 * 2 * math.pi
+		return angle
 	end)
-	return function()
-		connection:Disconnect()
-		model:PivotTo(pivot)
-	end
+end
+
+-- Gentle back-and-forth sway (for a hovered button).
+function Icon3D.wobble(viewport: ViewportFrame): () -> ()
+	local t = 0
+	return animate(viewport, function(dt)
+		t += dt
+		return math.sin(t * 5) * math.rad(14)
+	end)
 end
 
 return Icon3D

@@ -242,8 +242,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			outlinePad(pad)
 			return
 		end
-		local bar = gui:FindFirstChild("CastingBar")
-		local button = if bar ~= nil then bar:FindFirstChild(target) else nil
+		local button = gui:FindFirstChild(target, true)
 		if button == nil or not button:IsA("GuiObject") then
 			return
 		end

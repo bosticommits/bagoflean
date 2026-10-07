@@ -35,13 +35,13 @@ local function fmtOdds(chance: number): string
 	return "1 in " .. Hud.comma(math.floor(oneIn + 0.5))
 end
 
--- Returns the Studio and Upgrades buttons so those screens can attach to them.
-function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
+-- `actorsButton` (in the side menu) opens the Collection.
+function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	local player = Players.LocalPlayer
 	local remotes = ReplicatedStorage:WaitForChild("Remotes", 15)
 	if remotes == nil then
 		warn("[CastingUi] Remotes folder never arrived")
-		return nil, nil
+		return
 	end
 	local castRemote = remotes:WaitForChild("Cast") :: RemoteEvent
 	local castResult = remotes:WaitForChild("CastResult") :: RemoteEvent
@@ -55,43 +55,33 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		return player:GetAttribute("Fame") or 0
 	end
 
-	-- Bottom bar -------------------------------------------------------------------------------
+	-- Bottom centre: the big CAST button with the Odds icon beside it ---------------------------
 	local bar = Instance.new("Frame")
 	bar.Name = "CastingBar"
 	bar.AnchorPoint = Vector2.new(0.5, 1)
 	bar.BackgroundTransparency = 1
+	bar.Size = UDim2.fromOffset(340, 88)
 	bar.Parent = gui
-	local barLimit = Instance.new("UISizeConstraint")
-	barLimit.MaxSize = Vector2.new(600, 92)
-	barLimit.Parent = bar
+	local barScale = Instance.new("UIScale")
+	barScale.Parent = bar
 
-	-- Roblox draws the thumbstick (bottom left) and jump button (bottom right) over our UI on touch
-	-- devices. Landscape: leave both side zones clear. Portrait: sit above the control cluster.
-	local TOUCH_SIDE_ZONE = 150
+	-- Portrait touch screens: sit above the thumbstick and jump button.
 	local TOUCH_PORTRAIT_LIFT = 130
 	UiKit.onViewportChanged(function()
 		local viewport = UiKit.viewport()
-		if UserInputService.TouchEnabled and viewport.X >= viewport.Y then
-			bar.Position = UDim2.new(0.5, 0, 1, -16)
-			bar.Size = UDim2.new(1, -2 * TOUCH_SIDE_ZONE, 0, 76)
-		elseif UserInputService.TouchEnabled then
+		barScale.Scale = if UiKit.isCompact() then 0.82 else 1
+		if UserInputService.TouchEnabled and viewport.X < viewport.Y then
 			bar.Position = UDim2.new(0.5, 0, 1, -TOUCH_PORTRAIT_LIFT)
-			bar.Size = UDim2.new(0.96, 0, 0, 76)
 		else
-			bar.Position = UDim2.new(0.5, 0, 1, -16)
-			bar.Size = UDim2.new(0.92, 0, 0, 88)
+			bar.Position = UDim2.new(0.5, 0, 1, -14)
 		end
 	end)
 
-	local tileSize = UDim2.fromScale(0.17, 1)
-	local rosterButton = UiKit.makeIconTile(bar, "star", "Actors", UiKit.PURPLE, tileSize)
-	local studioButton = UiKit.makeIconTile(bar, "camera", "Studio", UiKit.FRESH_GREEN, tileSize, UDim2.fromScale(0.18, 0))
-	local castButton = makeButton(bar, "", UiKit.GREEN, UDim2.fromScale(0.28, 1), UDim2.fromScale(0.36, 0))
+	local castButton = makeButton(bar, "", UiKit.GREEN, UDim2.fromOffset(240, 84), UDim2.fromOffset(0, 2))
 	castButton.Name = "CastButton"
 	castButton:SetAttribute("Silent", true) -- the reveal has its own sounds
-	local oddsButton = UiKit.makeIconTile(bar, "dice", "Odds", UiKit.BLUE, tileSize, UDim2.fromScale(0.65, 0))
-	local upgradesButton = UiKit.makeIconTile(bar, "arrow", "Upgrade", UiKit.TEAL, tileSize, UDim2.fromScale(0.83, 0))
-	upgradesButton.Name = "UpgradesButton"
+	local oddsButton = UiKit.makeIconTile(bar, "dice", "Odds", UDim2.fromOffset(84, 84), UDim2.fromOffset(254, 2))
+	local rosterButton = actorsButton
 	-- The Cast button is the hero: thicker outline and text, a clapperboard, and a slow pulse.
 	local castOutline = castButton:FindFirstChild("Outline") :: UIStroke
 	castOutline.Thickness = 4
@@ -133,7 +123,8 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	refreshCastButton()
 
 	-- Odds panel (with agency selector) --------------------------------------------------------
-	local oddsPanel, oddsList = UiKit.makePanel(gui, "OddsPanel", "Casting odds", 108)
+	local oddsPanel, oddsList, oddsHeader = UiKit.makePanel(gui, "OddsPanel", "Casting odds", 108)
+	UiKit.panelIcon(oddsPanel, oddsHeader, "dice")
 	local agencyRow = Instance.new("Frame")
 	agencyRow.Name = "Agencies"
 	agencyRow.BackgroundTransparency = 1
@@ -205,6 +196,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 
 	-- Collection panel: Roster and Index tabs -------------------------------------------------
 	local collection, collectionList, collectionHeader = UiKit.makePanel(gui, "RosterPanel", "Collection", 108, nil, nil, UiKit.PURPLE)
+	UiKit.panelIcon(collection, collectionHeader, "star")
 	local collectionTab = "Roster"
 	local collectionTabs: { [string]: TextButton } = {}
 	local tabRow = Instance.new("Frame")
@@ -656,7 +648,17 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		end
 	end)
 
+	-- Green chip on the Actors icon: how much of the Index is found.
+	local function refreshChip()
+		local discovered = 0
+		for _ in ClientState.index do
+			discovered += 1
+		end
+		UiKit.chip(actorsButton, `{discovered}/{Actors.IndexSlots}`)
+	end
+	refreshChip()
 	ClientState.changed:Connect(function()
+		refreshChip()
 		if collection.Visible then
 			buildCollection()
 		end
@@ -673,8 +675,6 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	oddsButton.Activated:Connect(function()
 		UiKit.togglePanel(oddsPanel, buildOdds)
 	end)
-
-	return studioButton, upgradesButton
 end
 
 return CastingUi

@@ -13,6 +13,7 @@ local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local Icon3D = require(script.Parent.Icon3D)
 local ShopUi = require(script.Parent.ShopUi)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -38,6 +39,28 @@ local ERRORS: { [string]: string } = {
 }
 
 local GENRE_COLORS = UiKit.GENRE_COLORS
+
+-- 3D icon for each premiere result (Cinema rows and the premiere reveal).
+local RESULT_ICONS: { [string]: string } = {
+	Flop = "popcorn",
+	Hit = "ticket",
+	Blockbuster = "star",
+	Cult = "crown",
+	Masterpiece = "trophy",
+}
+
+-- A small outlined 3D icon at a fixed spot (for rows whose left edge is not free all the way down).
+local function smallIcon(parent: GuiObject, iconId: string, size: number, position: UDim2): Frame
+	local art = Instance.new("Frame")
+	art.Name = "Icon"
+	art.BackgroundTransparency = 1
+	art.Size = UDim2.fromOffset(size, size)
+	art.Position = position
+	art.ZIndex = parent.ZIndex + 1
+	art.Parent = parent
+	Icon3D.outlined(art, iconId)
+	return art
+end
 
 local StudioUi = {}
 
@@ -123,6 +146,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	-- Main panel -------------------------------------------------------------------------------
 	local panel, list, header = UiKit.makePanel(gui, "StudioPanel", "Studio", 108, nil, nil, UiKit.BLUE)
+	UiKit.panelIcon(panel, header, "movieCamera")
 
 	local tabRow = Instance.new("Frame")
 	tabRow.Name = "Tabs"
@@ -164,18 +188,24 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		for stage = 1, Config.StageLimit do
 			order += 1
 			if stage > stageCount() then
-				local row = UiKit.addRow(list, order, 52)
+				local row = UiKit.addRow(list, order, 58)
+				row.BackgroundColor3 = UiKit.DARK
+				UiKit.rowIcon(row, "lock", 46)
 				-- With the +1 Sound Stage pass, every locked stage is one more Sound Stage upgrade away.
 				local hasPass = state.passes ~= nil and state.passes.ExtraStage == true
 				local how = if stage <= Config.MaxStages or hasPass then "buy it in Upgrades" else "+1 Sound Stage pass in the Shop"
-				makeLabel(row, `Stage {stage}  -  locked ({how})`, UiKit.FAINT, UDim2.new(1, -20, 0.6, 0), UDim2.fromOffset(10, 10))
+				local lockedLabel = makeLabel(row, `Stage {stage}  -  locked ({how})`, UiKit.FAINT, UDim2.new(1, -74, 0.6, 0), UDim2.new(0, 64, 0.2, 0))
+				lockedLabel.TextXAlignment = Enum.TextXAlignment.Left
 				continue
 			end
 			local film = filmAt(stage)
 			if film == nil then
-				local row = UiKit.addRow(list, order, 64)
-				UiKit.makeTitle(row, `Stage {stage}  -  empty`, WHITE, UDim2.new(0.5, 0, 0.5, 0), UDim2.fromOffset(10, 14)).TextXAlignment = Enum.TextXAlignment.Left
-				local go = makeButton(row, "Start movie", UiKit.GREEN, UDim2.new(0.4, 0, 0, 44), UDim2.new(0.57, 0, 0.5, -22))
+				local row = UiKit.addRow(list, order, 76)
+				UiKit.rowIcon(row, "movieCamera", 62)
+				UiKit.makeTitle(row, `Stage {stage}  -  empty`, WHITE, UDim2.new(0.57, -84, 0, 34), UDim2.new(0, 78, 0.5, -17)).TextXAlignment = Enum.TextXAlignment.Left
+				local go = makeButton(row, "Start movie", UiKit.GREEN, UDim2.new(0.4, 0, 0, 48), UDim2.new(0.57, 0, 0.5, -24))
+				go.Name = "StartMovie"
+				UiKit.pulse(go, 1.05)
 				go.Activated:Connect(function()
 					openPicker(stage)
 				end)
@@ -183,15 +213,20 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			end
 			local length = Movies.getLength(film.length)
 			local row = UiKit.addRow(list, order, 132)
-			local title = UiKit.makeTitle(row, film.title, GENRE_COLORS[film.genre] or WHITE, UDim2.new(1, -20, 0, 30), UDim2.fromOffset(10, 6))
+			-- The cast's portraits in the top right; the text uses the rest of the width.
+			local castWidth = #film.cast * 54 + 6
+			for slot, key in film.cast do
+				UiKit.portrait(row, key, UDim2.fromOffset(50, 50), UDim2.new(1, -((#film.cast - slot + 1) * 54 + 4), 0, 8))
+			end
+			local title = UiKit.makeTitle(row, film.title, GENRE_COLORS[film.genre] or WHITE, UDim2.new(1, -(20 + castWidth), 0, 30), UDim2.fromOffset(10, 6))
 			title.TextXAlignment = Enum.TextXAlignment.Left
-			local sub = makeLabel(row, `Stage {stage}  -  {film.genre} {if length then length.name else film.length}`, UiKit.MUTED, UDim2.new(1, -20, 0, 18), UDim2.fromOffset(10, 38))
+			local sub = makeLabel(row, `Stage {stage}  -  {film.genre} {if length then length.name else film.length}`, UiKit.MUTED, UDim2.new(1, -(20 + castWidth), 0, 18), UDim2.fromOffset(10, 38))
 			sub.TextXAlignment = Enum.TextXAlignment.Left
 			local names = {}
 			for _, key in film.cast do
 				table.insert(names, actorLabel(key))
 			end
-			local cast = makeLabel(row, "Cast: " .. table.concat(names, ", "), WHITE, UDim2.new(1, -20, 0, 18), UDim2.fromOffset(10, 58))
+			local cast = makeLabel(row, "Cast: " .. table.concat(names, ", "), WHITE, UDim2.new(1, -(20 + castWidth), 0, 18), UDim2.fromOffset(10, 58))
 			cast.TextXAlignment = Enum.TextXAlignment.Left
 
 			local bar = Instance.new("Frame")
@@ -250,8 +285,10 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			end
 		end
 		order += 1
-		local summary = UiKit.addRow(list, order, 44)
-		makeLabel(summary, if #owned > 0 then "Owned: " .. table.concat(owned, ", ") else "No scripts yet - buy one below", UiKit.GOLD, UDim2.new(1, -20, 1, -8), UDim2.fromOffset(10, 4))
+		local summary = UiKit.addRow(list, order, 52)
+		UiKit.rowIcon(summary, "script", 42)
+		local ownedLabel = makeLabel(summary, if #owned > 0 then "Owned: " .. table.concat(owned, ", ") else "No scripts yet - buy one below", UiKit.GOLD, UDim2.new(1, -68, 1, -8), UDim2.fromOffset(58, 4))
+		ownedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 		local cash = player:GetAttribute("Cash") or 0
 		local fame = state.fame or 0
@@ -259,7 +296,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			order += 1
 			local row = UiKit.addRow(list, order, 96)
 			local lengthLocked = fame < length.fame
-			local title = UiKit.makeTitle(row, `{length.name}  -  {fmtTime(length.seconds)}`, if lengthLocked then UiKit.FAINT else WHITE, UDim2.new(0.5, 0, 0, 26), UDim2.fromOffset(10, 4))
+			smallIcon(row, if lengthLocked then "lock" else "script", 36, UDim2.fromOffset(6, 2))
+			local title = UiKit.makeTitle(row, `{length.name}  -  {fmtTime(length.seconds)}`, if lengthLocked then UiKit.FAINT else WHITE, UDim2.new(0.5, -40, 0, 26), UDim2.fromOffset(48, 6))
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			local costText = if lengthLocked then `needs Fame {Hud.comma(length.fame)}` else `${Hud.comma(length.cost)}  -  base ${Hud.comma(length.base)}`
 			local cost = makeLabel(row, costText, if lengthLocked then UiKit.WARN elseif cash >= length.cost then UiKit.GOLD else UiKit.WARN, UDim2.new(0.48, -10, 0, 22), UDim2.new(0.52, 0, 0, 6))
@@ -282,8 +320,10 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local function renderCinema()
 		local order = 0
 		order += 1
-		local top = UiKit.addRow(list, order, 44)
-		makeLabel(top, `Fame {Hud.comma(state.fame)}  -  royalties ${string.format("%.2f", state.rate)}/s`, UiKit.GOLD, UDim2.new(1, -20, 1, -8), UDim2.fromOffset(10, 4))
+		local top = UiKit.addRow(list, order, 52)
+		UiKit.rowIcon(top, "coin", 42)
+		local royalties = makeLabel(top, `Fame {Hud.comma(state.fame)}  -  royalties ${string.format("%.2f", state.rate)}/s`, UiKit.GOLD, UDim2.new(1, -68, 1, -8), UDim2.fromOffset(58, 4))
+		royalties.TextXAlignment = Enum.TextXAlignment.Left
 		if #state.cinema == 0 then
 			order += 1
 			local row = UiKit.addRow(list, order, 52)
@@ -294,12 +334,13 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local movie = state.cinema[index]
 			local result = Movies.getResult(movie.result)
 			order += 1
-			local row = UiKit.addRow(list, order, 56)
-			local name = UiKit.makeTitle(row, movie.title, GENRE_COLORS[movie.genre] or WHITE, UDim2.new(0.55, 0, 0, 26), UDim2.fromOffset(10, 4))
+			local row = UiKit.addRow(list, order, 60)
+			UiKit.rowIcon(row, RESULT_ICONS[movie.result] or "popcorn", 48)
+			local name = UiKit.makeTitle(row, movie.title, GENRE_COLORS[movie.genre] or WHITE, UDim2.new(0.55, -54, 0, 26), UDim2.fromOffset(64, 6))
 			name.TextXAlignment = Enum.TextXAlignment.Left
-			local detail = makeLabel(row, `{movie.genre}  -  ${Hud.comma(movie.payout)}`, UiKit.MUTED, UDim2.new(0.55, 0, 0, 18), UDim2.fromOffset(10, 32))
+			local detail = makeLabel(row, `{movie.genre}  -  ${Hud.comma(movie.payout)}`, UiKit.MUTED, UDim2.new(0.55, -54, 0, 18), UDim2.fromOffset(64, 34))
 			detail.TextXAlignment = Enum.TextXAlignment.Left
-			local tag = UiKit.makeTitle(row, if result then result.name else movie.result, if result then result.color else WHITE, UDim2.new(0.4, 0, 0, 30), UDim2.new(0.58, 0, 0, 12))
+			local tag = UiKit.makeTitle(row, if result then result.name else movie.result, if result then result.color else WHITE, UDim2.new(0.4, 0, 0, 30), UDim2.new(0.58, 0, 0.5, -15))
 			tag.TextXAlignment = Enum.TextXAlignment.Right
 		end
 	end
@@ -338,15 +379,38 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	-- Start-movie picker -----------------------------------------------------------------------
 	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130, UiKit.FRESH_GREEN)
+	UiKit.panelIcon(picker, pickerHeader, "clapper")
 	local footer = Instance.new("Frame")
 	footer.BackgroundTransparency = 1
 	footer.Position = UDim2.new(0, 10, 1, -126)
 	footer.Size = UDim2.new(1, -20, 0, 118)
 	footer.Parent = picker
-	local summaryLabel = UiKit.makeTitle(footer, "", WHITE, UDim2.new(1, 0, 0, 34), UDim2.fromOffset(0, 0))
-	local previewLabel = makeLabel(footer, "", UiKit.GOLD, UDim2.new(1, 0, 0, 26), UDim2.fromOffset(0, 36))
-	local clearButton = makeButton(footer, "Clear cast", UiKit.BURGUNDY, UDim2.new(0.3, 0, 0, 44), UDim2.fromOffset(0, 68))
-	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.new(0.66, 0, 0, 44), UDim2.new(0.34, 0, 0, 68))
+	-- Cast slots: the picked actors' portraits (tap one to take it out), then empty "+" slots.
+	local castSlots: { TextButton } = {}
+	for slot = 1, Config.MaxCast do
+		local slotButton = Instance.new("TextButton")
+		slotButton.Name = `CastSlot{slot}`
+		slotButton.Text = "+"
+		slotButton.TextColor3 = UiKit.FAINT
+		slotButton.Font = UiKit.DISPLAY_FONT
+		slotButton.TextScaled = true
+		slotButton.AutoButtonColor = false
+		slotButton.BackgroundColor3 = UiKit.DARK
+		slotButton.Size = UDim2.fromOffset(44, 44)
+		slotButton.Position = UDim2.fromOffset((slot - 1) * 50, 0)
+		slotButton.Parent = footer
+		corner(slotButton, 8)
+		UiKit.border(slotButton, 2)
+		UiKit.textConstraint(slotButton, 30)
+		castSlots[slot] = slotButton
+	end
+	local slotsWidth = Config.MaxCast * 50 + 6
+	local summaryLabel = UiKit.makeTitle(footer, "", WHITE, UDim2.new(1, -slotsWidth, 0, 40), UDim2.fromOffset(slotsWidth, 2))
+	summaryLabel.TextXAlignment = Enum.TextXAlignment.Left
+	UiKit.textConstraint(summaryLabel, 24)
+	local previewLabel = makeLabel(footer, "", UiKit.GOLD, UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48))
+	local clearButton = makeButton(footer, "Clear cast", UiKit.BURGUNDY, UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76))
+	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76))
 
 	local pickStage = 1
 	local pickScript: string? = nil
@@ -368,7 +432,18 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		for _, key in pickCast do
 			table.insert(names, actorLabel(key))
 		end
-		summaryLabel.Text = if #names > 0 then "Cast: " .. table.concat(names, ", ") else "Cast: tap actors below"
+		summaryLabel.Text = if #names > 0 then table.concat(names, ", ") else "Tap actors to cast them"
+		for slot, slotButton in castSlots do
+			local old = slotButton:FindFirstChild("Portrait")
+			if old ~= nil then
+				old:Destroy()
+			end
+			local key = pickCast[slot]
+			slotButton.Text = if key == nil then "+" else ""
+			if key ~= nil then
+				UiKit.portrait(slotButton, key, UDim2.fromScale(1, 1))
+			end
+		end
 		local genre: string? = nil
 		local lengthId: string? = nil
 		if pickScript ~= nil then
@@ -404,8 +479,17 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				if count > 0 then
 					anyScript = true
 					order += 1
-					local button = makeButton(pickerList, `{genre} {length.name}  x{count}  ({fmtTime(length.seconds)})`, if pickScript == key then UiKit.GREEN else UiKit.BLUE, UDim2.new(1, -8, 0, 40))
+					local picked = pickScript == key
+					local button = makeButton(pickerList, "", if picked then UiKit.GREEN else GENRE_COLORS[genre] or UiKit.BLUE, UDim2.new(1, -8, 0, 44))
 					button.LayoutOrder = order
+					if picked then
+						local outline = button:FindFirstChild("Outline") :: UIStroke
+						outline.Color = UiKit.GOLD
+						outline.Thickness = 4
+					end
+					smallIcon(button, "script", 38, UDim2.fromOffset(8, 3))
+					local label = UiKit.makeTitle(button, `{genre} {length.name}  x{count}  ({fmtTime(length.seconds)})`, WHITE, UDim2.new(1, -62, 1, -10), UDim2.fromOffset(54, 5), 2)
+					UiKit.textConstraint(label, 22)
 					button.Activated:Connect(function()
 						pickScript = key
 						buildPicker()
@@ -443,14 +527,66 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local row = UiKit.addRow(pickerList, order, 44)
 			makeLabel(row, "No free actors - cast some first", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
 		end
-		for _, entry in candidates do
-			order += 1
-			local actorId = string.split(entry.key, ":")[1]
-			local actor = Actors.getActor(actorId)
-			local star = if genre ~= nil and actor ~= nil and actor.genre == genre then " *" else ""
-			local button = makeButton(pickerList, `{actorLabel(entry.key)}   Power {fmtPower(entry.power)}{star}   free x{entry.free}`, UiKit.BLUE, UDim2.new(1, -8, 0, 40))
-			button.LayoutOrder = order
-			button.Activated:Connect(function()
+		-- Free actors as picture cards in their rarity colors, best first; tap one to cast it.
+		order += 1
+		local grid = Instance.new("Frame")
+		grid.Visible = #candidates > 0
+		grid.Name = "Actors"
+		grid.LayoutOrder = order
+		grid.BackgroundTransparency = 1
+		grid.Size = UDim2.new(1, -8, 0, 0)
+		grid.AutomaticSize = Enum.AutomaticSize.Y
+		grid.Parent = pickerList
+		local layout = Instance.new("UIGridLayout")
+		layout.CellSize = UDim2.new(1 / 3, -8, 0, if UiKit.isCompact() then 128 else 150)
+		layout.CellPadding = UDim2.fromOffset(10, 10)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = grid
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft = UDim.new(0, 3)
+		pad.PaddingTop = UDim.new(0, 8)
+		pad.Parent = grid
+		for slot, entry in candidates do
+			local parts = string.split(entry.key, ":")
+			local actor = Actors.getActor(parts[1])
+			local card = Instance.new("TextButton")
+			card.Name = entry.key
+			card.LayoutOrder = slot
+			card.Text = ""
+			card.AutoButtonColor = false
+			card.Parent = grid
+			corner(card, 12)
+			UiKit.rarityStyle(card, entry.key, 3)
+			local art = Instance.new("Frame")
+			art.Name = "Art"
+			art.BackgroundTransparency = 1
+			art.Position = UDim2.fromScale(0.05, 0.03)
+			art.Size = UDim2.fromScale(0.9, 0.56)
+			art.Parent = card
+			if actor ~= nil then
+				Icon3D.actor(art, actor.id, parts[2])
+			end
+			local name = UiKit.makeTitle(card, actorLabel(entry.key), WHITE, UDim2.fromScale(0.94, 0.17), UDim2.fromScale(0.03, 0.6), 2)
+			name.ZIndex = 3
+			UiKit.textConstraint(name, 18)
+			local power = UiKit.makeTitle(card, `Power {fmtPower(entry.power)}`, UiKit.GOLD, UDim2.fromScale(0.94, 0.15), UDim2.fromScale(0.03, 0.79), 2)
+			power.ZIndex = 3
+			UiKit.textConstraint(power, 18)
+			-- How many copies are free, and a tag when the actor's specialty matches the script.
+			UiKit.chip(card, `x{entry.free}`)
+			if genre ~= nil and actor ~= nil and actor.genre == genre then
+				local bonus = UiKit.makeTitle(card, `{genre} x{Movies.SpecialtyBonus}`, WHITE, UDim2.fromOffset(86, 22), UDim2.fromOffset(-6, -8), 1.5)
+				bonus.BackgroundTransparency = 0
+				bonus.BackgroundColor3 = GENRE_COLORS[genre] or UiKit.GOLD
+				bonus.Rotation = -4
+				bonus.ZIndex = 6
+				corner(bonus, 8)
+				UiKit.border(bonus, 2)
+				UiKit.textConstraint(bonus, 15)
+			end
+			UiKit.bounce(card)
+			card.Activated:Connect(function()
+				Sfx.play("click")
 				if #pickCast < Config.MaxCast then
 					table.insert(pickCast, entry.key)
 					buildPicker()
@@ -474,6 +610,15 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		pickCast = {}
 		buildPicker()
 	end)
+	for slot, slotButton in castSlots do
+		slotButton.Activated:Connect(function()
+			if pickCast[slot] ~= nil then
+				Sfx.play("click")
+				table.remove(pickCast, slot)
+				buildPicker()
+			end
+		end)
+	end
 	goButton.Activated:Connect(function()
 		if pickScript == nil or #pickCast < 1 then
 			UiKit.toast(gui, "Pick a script and at least one actor")
@@ -520,8 +665,32 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local castLabel = cardLabel(0.65, 0.09, 18)
 	local continueButton = makeButton(card, "Continue", UiKit.GREEN, UDim2.fromScale(0.6, 0.15), UDim2.fromScale(0.2, 0.8))
 	continueButton.ZIndex = 14
+	-- The result's 3D icon, spinning on top of the card.
+	local resultArt = Instance.new("Frame")
+	resultArt.Name = "ResultArt"
+	resultArt.BackgroundTransparency = 1
+	resultArt.AnchorPoint = Vector2.new(0.5, 0.85)
+	resultArt.Position = UDim2.fromScale(0.5, 0)
+	resultArt.Size = UDim2.fromScale(0.32, 0.32)
+	resultArt.ZIndex = 15
+	resultArt.Parent = card
+	local resultAspect = Instance.new("UIAspectRatioConstraint")
+	resultAspect.Parent = resultArt
+	local stopResultSpin: (() -> ())? = nil
+	local function clearResultArt()
+		if stopResultSpin ~= nil then
+			stopResultSpin()
+			stopResultSpin = nil
+		end
+		for _, child in resultArt:GetChildren() do
+			if not child:IsA("UIAspectRatioConstraint") then
+				child:Destroy()
+			end
+		end
+	end
 	continueButton.Activated:Connect(function()
 		overlay.Visible = false
+		clearResultArt()
 	end)
 
 	local premiereToken = 0
@@ -532,6 +701,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		end
 		premiereToken += 1
 		local mine = premiereToken
+		clearResultArt()
 		overlay.Visible = true
 		for _, child in card:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -555,6 +725,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				end
 			end
 			stroke.Color = res.color
+			clearResultArt()
+			stopResultSpin = Icon3D.spin(Icon3D.outlined(resultArt, RESULT_ICONS[res.id] or "popcorn"), 24)
 			resultLabel.Text = res.name:upper() .. "!"
 			Fx.premiere(res.id, res.color)
 			resultLabel.TextColor3 = res.color
@@ -677,6 +849,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				entry.skip.Text = if (state.skips or 0) > 0 then `Skip ({state.skips})` else "Skip"
 			end
 			if ready then
+				if not entry.ready then
+					UiKit.pulse(entry.button, 1.08)
+				end
 				entry.time.Text = "Finished!"
 				entry.button.Text = "PREMIERE!"
 				entry.button.BackgroundColor3 = UiKit.GREEN
