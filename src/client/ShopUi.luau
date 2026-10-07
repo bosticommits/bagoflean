@@ -57,7 +57,7 @@ end
 
 function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 	local player = Players.LocalPlayer
-	local panel, list = UiKit.makePanel(gui, "ShopPanel", "Shop")
+	local panel, list = UiKit.makePanel(gui, "ShopPanel", "Shop", nil, nil, nil, UiKit.RED)
 
 	local build: () -> ()
 	local function rebuildIfOpen()
@@ -81,13 +81,13 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 		local function section(text: string)
 			order += 1
 			local row = UiKit.addRow(list, order, 36)
-			row.BackgroundTransparency = 1
-			makeLabel(row, text, UiKit.GOLD, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+			UiKit.plainRow(row)
+			UiKit.makeTitle(row, text, UiKit.GOLD, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
 		end
 		local function itemRow(name: string, description: string): Frame
 			order += 1
 			local row = UiKit.addRow(list, order, 72)
-			local title = makeLabel(row, name, UiKit.WHITE, UDim2.new(0.62, 0, 0, 30), UDim2.fromOffset(10, 6))
+			local title = UiKit.makeTitle(row, name, UiKit.WHITE, UDim2.new(0.62, 0, 0, 30), UDim2.fromOffset(10, 6))
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			local sub = makeLabel(row, description, UiKit.MUTED, UDim2.new(0.62, 0, 0, 22), UDim2.fromOffset(10, 40))
 			sub.TextXAlignment = Enum.TextXAlignment.Left
@@ -99,14 +99,14 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 			local row = itemRow(pass.name, pass.description)
 			local owned = player:GetAttribute("Pass" .. pass.key) == true
 			if owned then
-				makeLabel(row, "OWNED", UiKit.GOLD, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
+				UiKit.makeTitle(row, "OWNED", UiKit.GOLD, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 				continue
 			end
 			if not ShopUi.offered(pass) then
 				makeLabel(row, "Not available", UiKit.MUTED, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 				continue
 			end
-			local button = makeButton(row, priceText("pass", pass.id, pass.key), if pass.id == 0 then Color3.fromRGB(70, 70, 80) else UiKit.GREEN, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
+			local button = makeButton(row, priceText("pass", pass.id, pass.key), if pass.id == 0 then UiKit.DISABLED else UiKit.GREEN, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 			button.Activated:Connect(function()
 				if pass.id == 0 then
 					UiKit.toast(gui, "Coming soon!")
@@ -131,7 +131,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 				makeLabel(row, "Not available", UiKit.MUTED, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 				continue
 			end
-			local button = makeButton(row, priceText("product", product.id, product.key), if product.id == 0 then Color3.fromRGB(70, 70, 80) else UiKit.GREEN, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
+			local button = makeButton(row, priceText("product", product.id, product.key), if product.id == 0 then UiKit.DISABLED else UiKit.GREEN, UDim2.new(0.32, 0, 0, 44), UDim2.new(0.66, 0, 0.5, -22))
 			button.Activated:Connect(function()
 				if not ShopUi.promptProduct(product.key) then
 					UiKit.toast(gui, "Coming soon!")
@@ -141,7 +141,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton)
 
 		order += 1
 		local note = UiKit.addRow(list, order, 30)
-		note.BackgroundTransparency = 1
+		UiKit.plainRow(note)
 		makeLabel(note, "Everything in the game can also be earned for free.", UiKit.MUTED, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0))
 	end
 

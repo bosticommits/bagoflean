@@ -209,7 +209,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			time.TextXAlignment = Enum.TextXAlignment.Left
 			local button = makeButton(row, "", UiKit.RED, UDim2.new(0.36, 0, 0, 30), UDim2.new(0.43, 0, 1, -34))
 			button:SetAttribute("Silent", true) -- plays its own clapper sound
-			local skip = makeButton(row, "Skip", Color3.fromRGB(150, 80, 200), UDim2.new(0.18, 0, 0, 30), UDim2.new(0.8, 0, 1, -34))
+			local skip = makeButton(row, "Skip", UiKit.PURPLE, UDim2.new(0.18, 0, 0, 30), UDim2.new(0.8, 0, 1, -34))
 			skip.Activated:Connect(function()
 				if (state.skips or 0) > 0 then
 					useSkip:FireServer(stage)

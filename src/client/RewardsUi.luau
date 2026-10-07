@@ -50,7 +50,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 	local claimStayGift = remotes:WaitForChild("ClaimStayGift") :: RemoteEvent
 	local sessionStart = os.clock()
 
-	local panel, list, header = UiKit.makePanel(gui, "RewardsPanel", "Rewards", 108)
+	local panel, list, header = UiKit.makePanel(gui, "RewardsPanel", "Rewards", 108, nil, nil, UiKit.PURPLE)
 	local tabRow = Instance.new("Frame")
 	tabRow.Name = "Tabs"
 	tabRow.BackgroundTransparency = 1
@@ -85,11 +85,18 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 			order += 1
 			local milestone = Rewards.Milestones[day] == true
 			local row = UiKit.addRow(list, order, if milestone then 84 else 56)
-			if milestone then
-				row.BackgroundColor3 = Color3.fromRGB(90, 70, 20)
-			end
 			local isToday = day == cycleDay
-			local title = makeLabel(row, `Day {day}`, if isToday or milestone then UiKit.GOLD else UiKit.WHITE, UDim2.new(0.2, 0, 0, 40), UDim2.fromOffset(10, 8))
+			-- Milestones get a gold frame, today's reward a green one, like the reference reward tracks.
+			local outline = row:FindFirstChild("Outline") :: UIStroke
+			if milestone then
+				row.BackgroundColor3 = UiKit.BURGUNDY
+				outline.Color = UiKit.AWARD_GOLD
+				outline.Thickness = 3
+			elseif isToday then
+				outline.Color = UiKit.GREEN
+				outline.Thickness = 3
+			end
+			local title = UiKit.makeTitle(row, `Day {day}`, if isToday or milestone then UiKit.GOLD else UiKit.WHITE, UDim2.new(0.2, 0, 0, 40), UDim2.fromOffset(10, 8))
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			-- Days after tomorrow stay a mystery, except milestones, which are the reason to come back.
 			local hidden = day > cycleDay + 1 and not milestone
@@ -112,7 +119,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 
 		order += 1
 		local footer = UiKit.addRow(list, order, 34)
-		footer.BackgroundTransparency = 1
+		UiKit.plainRow(footer)
 		local footerText = if canClaim then "Miss a day and the streak starts again" else `Next reward in {Hud.clock(untilTomorrow(state))}`
 		makeLabel(footer, footerText, UiKit.MUTED, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0))
 	end
@@ -128,27 +135,28 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 			end
 			order += 1
 			local row = UiKit.addRow(list, order, 92)
-			local title = makeLabel(row, request.text, UiKit.WHITE, UDim2.new(0.64, 0, 0, 28), UDim2.fromOffset(10, 6))
+			local title = UiKit.makeTitle(row, request.text, UiKit.WHITE, UDim2.new(0.64, 0, 0, 28), UDim2.fromOffset(10, 6))
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			local reward = makeLabel(row, "Reward: " .. Rewards.describe(request.reward, rate()), UiKit.MUTED, UDim2.new(0.64, 0, 0, 20), UDim2.fromOffset(10, 36))
 			reward.TextXAlignment = Enum.TextXAlignment.Left
 
 			local bar = Instance.new("Frame")
-			bar.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
+			bar.BackgroundColor3 = UiKit.DARK
 			bar.Position = UDim2.fromOffset(10, 66)
 			bar.Size = UDim2.new(0.64, -10, 0, 14)
 			bar.Parent = row
 			UiKit.corner(bar, 7)
+			UiKit.border(bar, 2)
 			local fill = Instance.new("Frame")
 			fill.BackgroundColor3 = UiKit.GREEN
 			fill.Size = UDim2.fromScale(math.clamp(entry.progress / request.target, 0, 1), 1)
 			fill.Parent = bar
 			UiKit.corner(fill, 7)
-			local count = makeLabel(bar, `{entry.progress}/{request.target}`, UiKit.WHITE, UDim2.fromScale(1, 1))
+			local count = UiKit.makeTitle(bar, `{entry.progress}/{request.target}`, UiKit.WHITE, UDim2.fromScale(1, 1), nil, 1.5)
 			count.ZIndex = 2
 
 			if entry.claimed then
-				makeLabel(row, "Done", UiKit.GREEN, UDim2.new(0.3, 0, 0, 40), UDim2.new(0.68, 0, 0.5, -20))
+				UiKit.makeTitle(row, "Done", UiKit.GREEN, UDim2.new(0.3, 0, 0, 40), UDim2.new(0.68, 0, 0.5, -20))
 			elseif entry.progress >= request.target then
 				local claim = makeButton(row, "CLAIM", UiKit.GREEN, UDim2.new(0.3, 0, 0, 44), UDim2.new(0.68, 0, 0.5, -22))
 				claim.Activated:Connect(function()
@@ -168,14 +176,16 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 		box.PlaceholderText = "Enter code"
 		box.Text = ""
 		box.ClearTextOnFocus = false
-		box.BackgroundColor3 = Color3.fromRGB(240, 240, 245)
-		box.TextColor3 = Color3.fromRGB(20, 20, 25)
+		box.BackgroundColor3 = UiKit.CREAM
+		box.TextColor3 = UiKit.NAVY
+		box.PlaceholderColor3 = UiKit.FAINT
 		box.TextScaled = true
-		box.Font = Enum.Font.GothamBold
+		box.Font = UiKit.DISPLAY_FONT
 		box.Position = UDim2.fromOffset(10, 40)
 		box.Size = UDim2.new(0.62, -10, 0, 44)
 		box.Parent = row
 		UiKit.corner(box, 10)
+		UiKit.border(box, 3)
 		UiKit.textConstraint(box :: any, 24)
 		local redeem = makeButton(row, "Redeem", UiKit.GREEN, UDim2.new(0.34, 0, 0, 44), UDim2.new(0.64, 0, 0, 40))
 		local message = makeLabel(row, "", UiKit.GOLD, UDim2.new(1, -20, 0, 24), UDim2.fromOffset(10, 90))
@@ -197,7 +207,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 		UiKit.clear(list)
 		codeMessage = nil
 		for name, button in tabButtons do
-			button.BackgroundColor3 = if name == tab then Color3.fromRGB(70, 130, 110) else UiKit.BLUE
+			UiKit.styleTab(button, name == tab)
 		end
 		header.Text = if welcome then "Welcome back!" else "Rewards"
 		local state = ClientState.rewards
@@ -214,7 +224,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 	end
 
 	for slot, name in tabNames do
-		local button = makeButton(tabRow, name, UiKit.BLUE, UDim2.new(0.32, 0, 1, 0), UDim2.new((slot - 1) * 0.34, 0, 0, 0))
+		local button = makeButton(tabRow, name, UiKit.TAB_OFF, UDim2.new(0.32, 0, 1, 0), UDim2.new((slot - 1) * 0.34, 0, 0, 0))
 		tabButtons[name] = button
 		button.Activated:Connect(function()
 			tab = name
@@ -284,19 +294,16 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 	gift.Visible = false
 	gift.ZIndex = 30
 	gift.Parent = gui
-	UiKit.corner(gift, 14)
+	UiKit.corner(gift, 18)
 	local giftLimit = Instance.new("UISizeConstraint")
 	giftLimit.MaxSize = Vector2.new(420, 260)
 	giftLimit.Parent = gift
-	local giftStroke = Instance.new("UIStroke")
-	giftStroke.Thickness = 4
-	giftStroke.Color = UiKit.GOLD
-	giftStroke.Parent = gift
-	local giftTitle = makeLabel(gift, "Wait! A gift before you go", UiKit.GOLD, UDim2.new(0.9, 0, 0.2, 0), UDim2.fromScale(0.05, 0.06))
+	UiKit.border(gift, 5, UiKit.AWARD_GOLD)
+	local giftTitle = UiKit.makeTitle(gift, "Wait! A gift before you go", UiKit.GOLD, UDim2.new(0.9, 0, 0.2, 0), UDim2.fromScale(0.05, 0.06))
 	UiKit.textConstraint(giftTitle, 30)
 	local giftText = makeLabel(gift, "", UiKit.WHITE, UDim2.new(0.9, 0, 0.24, 0), UDim2.fromScale(0.05, 0.32))
 	local giftClaim = makeButton(gift, "CLAIM", UiKit.GREEN, UDim2.fromScale(0.5, 0.24), UDim2.fromScale(0.25, 0.68))
-	local giftClose = makeButton(gift, "X", Color3.fromRGB(200, 60, 60), UDim2.fromOffset(36, 36), UDim2.new(1, -44, 0, 8))
+	local giftClose = makeButton(gift, "X", UiKit.CLOSE_RED, UDim2.fromOffset(36, 36), UDim2.new(1, -44, 0, 8))
 	for _, child in gift:GetChildren() do
 		if child:IsA("GuiObject") then
 			child.ZIndex = 31
