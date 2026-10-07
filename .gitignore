@@ -2,3 +2,6 @@ __pycache__/
 .rolimons_cache.json
 portfolio.json
 portfolio.json.tmp
+*.rbxl
+*.rbxlx
+sourcemap.json

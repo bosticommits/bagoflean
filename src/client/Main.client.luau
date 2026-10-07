@@ -1,0 +1,1 @@
+print("[MovieMogul] client started")
