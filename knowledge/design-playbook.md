@@ -148,6 +148,7 @@ Be honest. The owner would rather get 3 designs scored 9 than 8 designs scored 7
 
 ## 6. Owner taste log (newest first)
 What the owner liked, disliked or picked. Follow it.
+- 2026-10-07: **The owner's first 3 references** (`references/`): a worn heather-grey Halloween crewneck in a cozy room, the "We Dink at Dawn" grumpy-cat ringer tee (worn), and a folded Comfort Colors raccoon tee flat lay with a "Comfort Colors 1717" callout. The pattern: (1) **photos with a real person or real props in a warm, lived-in setting**; (2) **limited 2-3 colour vintage prints** with a worn texture; (3) **heather grey** garments; (4) **truthful product callouts** (naming the blank) that build trust. Next designs: try a hand-drawn ink style (one colour plus one accent) and heather-grey garments. Don't reuse "We Dink at Dawn" or the raccoon concept; those belong to other shops.
 - 2026-10-07: The owner wants designs to carry details that give them **authenticity** (what the product is, what it's for) and wants **much more convincing photos**: "people click mainly if the picture is convincing." Hence section 2b, the neck label and the photo upgrades.
 - 2026-10-06: The owner approved all 8 round-4 mascot designs straight away and said the older designs are "most definitely not going to sell". Keep the mascot style and don't go back to text plus icon.
 - 2026-10-06: The owner said rounds 1-3 "all seem fairly generic, nothing that would draw buyers" and asked for more convincing photos as well. That led to the mascot style and `photo_studio.py`.

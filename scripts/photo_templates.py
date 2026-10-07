@@ -103,6 +103,12 @@ def garment_mask(photo: np.ndarray, seed: tuple[int, int], tol: float = 38.0) ->
     chroma = sm / (lum[..., None] + 1)
     ref_chroma = ref / (luminance(ref[None, None])[0, 0] + 1)
     close |= (np.linalg.norm(chroma - ref_chroma, axis=2) < 0.12) & (lum > 25)
+    # never grow into the background (white shirt on white backdrop): estimate the backdrop
+    # colour from the image border and exclude anything within a few levels of it
+    border = np.concatenate([sm[0], sm[-1], sm[:, 0], sm[:, -1]])
+    backdrop = np.median(border, axis=0)
+    if np.linalg.norm(ref - backdrop) > 4:
+        close &= np.linalg.norm(sm - backdrop, axis=2) > min(10.0, np.linalg.norm(ref - backdrop) * 0.6)
     mask = np.zeros_like(close)
     stack = [(sy, sx)]
     while stack:
@@ -110,6 +116,16 @@ def garment_mask(photo: np.ndarray, seed: tuple[int, int], tol: float = 38.0) ->
         if 0 <= y < close.shape[0] and 0 <= x < close.shape[1] and close[y, x] and not mask[y, x]:
             mask[y, x] = True
             stack.extend(((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)))
+    # fill holes (logos, highlights) that the fill went around: everything not reachable from the border
+    outside = np.zeros_like(mask)
+    stack = [(y, x) for y in range(mask.shape[0]) for x in (0, mask.shape[1] - 1)] + \
+            [(y, x) for x in range(mask.shape[1]) for y in (0, mask.shape[0] - 1)]
+    while stack:
+        y, x = stack.pop()
+        if 0 <= y < mask.shape[0] and 0 <= x < mask.shape[1] and not mask[y, x] and not outside[y, x]:
+            outside[y, x] = True
+            stack.extend(((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)))
+    mask = ~outside
     m = Image.fromarray((mask * 255).astype(np.uint8))
     # close small holes, then pull the edge in a little so no background fringe gets recoloured
     m = m.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MinFilter(3))

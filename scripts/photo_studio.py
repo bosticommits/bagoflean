@@ -367,7 +367,46 @@ def hero(design: Image.Image, ptype: str, color_name: str, season: str, seed: in
         for (x, y, r, c) in [(260, 260, 70, (196, 28, 40)), (2040, 760, 60, (214, 168, 64))]:
             drop_shadow(canvas, sphere(r, c, holes=False), (x, y), offset=(10, 14), blur=10, strength=0.35)
     out = light_and_vignette(canvas.convert("RGB"))
+    blank_callout(out, ptype, (gx + g.width * 0.78, gy + g.height * 0.14))
     return out
+
+
+BLANK_NAMES = {"crewneck": ("Gildan", "18000", "crewneck"), "tee": ("Bella+Canvas", "3001", "tee"),
+               "tee-cc": ("Comfort", "Colors", "1717")}
+
+
+def blank_callout(img: Image.Image, ptype: str, target: tuple[float, float]) -> None:
+    """Round badge naming the real blank, with a hand-drawn arrow to the garment (truthful trust cue)."""
+    if ptype not in BLANK_NAMES:
+        return
+    d = ImageDraw.Draw(img)
+    cx, cy, r = W - 260, 250, 190
+    d.ellipse((cx - r + 8, cy - r + 12, cx + r + 8, cy + r + 12), fill=(0, 0, 0))  # flat shadow, softened below
+    shadow = img.crop((cx - r - 40, cy - r - 40, cx + r + 60, cy + r + 60)).filter(ImageFilter.GaussianBlur(14))
+    img.paste(shadow, (cx - r - 40, cy - r - 40))
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(52, 50, 48))
+    lines = BLANK_NAMES[ptype]
+    fnt = font("Righteous-Regular.ttf", 66)
+    for i, line in enumerate(lines):
+        size = 66
+        while d.textlength(line, font=font("Righteous-Regular.ttf", size)) > r * 1.55 and size > 30:
+            size -= 2
+        d.text((cx, cy + (i - 1) * 78), line, font=font("Righteous-Regular.ttf", size), fill=(246, 242, 234), anchor="mm")
+    # arrow: a gentle curve from under the badge towards the garment, with a two-stroke head
+    sx, sy = cx - r * 0.55, cy + r * 0.95
+    tx, ty = target
+    pts = []
+    for k in range(31):
+        t = k / 30
+        mx, my = (sx + tx) / 2 - 60, (sy + ty) / 2 + 80
+        x = (1 - t) ** 2 * sx + 2 * (1 - t) * t * mx + t ** 2 * tx
+        y = (1 - t) ** 2 * sy + 2 * (1 - t) * t * my + t ** 2 * ty
+        pts.append((x, y))
+    d.line(pts, fill=(52, 50, 48), width=9, joint="curve")
+    (x1, y1), (x2, y2) = pts[-4], pts[-1]
+    ang = math.atan2(y2 - y1, x2 - x1)
+    for da in (2.6, -2.6):
+        d.line((x2, y2, x2 + 46 * math.cos(ang + da), y2 + 46 * math.sin(ang + da)), fill=(52, 50, 48), width=9)
 
 
 def closeup(design: Image.Image, ptype: str, color_name: str, seed: int) -> Image.Image:
