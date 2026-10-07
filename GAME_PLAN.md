@@ -10,8 +10,9 @@ Look and feel: see [ART_STYLE.md](ART_STYLE.md).
 
 Status: **M0 to M5 built** (version 1, with placeholder part-based art), and the **M6 launch
 features** (Award Night, daily rewards, Studio Requests, codes, game passes, developer products,
-analytics). Icon, thumbnails and the publish checklist are still to do. Numbers are starting
-points, to be tuned in playtests. Sections 11 and 12 list the decisions made while building.
+analytics). Icon, thumbnails and the publish checklist are still to do. Prices, payouts and odds
+are tuned with a simulator against a target progression curve: see [ECONOMY.md](ECONOMY.md).
+Playtests should confirm them. Sections 11 and 12 list the decisions made while building.
 
 Why this game: it combines the loops behind the biggest 2025-26 hits. Grow a Garden has
 progress while offline and come-back-later payoffs. RNG games have rarity, luck, an index
@@ -47,10 +48,10 @@ spawn events. On top of that is a theme (filmmaking) that is not already crowded
 | Result | Chance | Payout |
 |---|---|---|
 | Flop | 20% | ×0.5 |
-| Hit | 55% | ×1 |
+| Hit | 55.25% | ×1 |
 | Blockbuster | 20% | ×3 |
 | Cult Classic | 4.5% | ×6, plus the poster becomes collectible |
-| Masterpiece | 0.5% | ×20, plus a server-wide announcement and a trophy on your lot |
+| Masterpiece | 0.25% (1 in 400) | ×20, plus a server-wide announcement and a trophy on your lot |
 
 Payout = script base × total Star Power × genre bonus × premiere result. It gives Cash and Fame.
 Finished movies go to your **cinema** and earn a small royalty every second, including
@@ -59,17 +60,17 @@ offline up to a cap (start at 4 h, raised by upgrades).
 ## 3. Casting rarity (actors)
 
 All actors are **original fictional characters**: no real celebrities, names or likenesses.
-Luck divides the "1 in N" chance (Luck ×2 turns 1/1,500 into 1/750).
+Luck divides the "1 in N" chance (Luck ×2 turns 1/5,000 into 1/2,500).
 
 | Tier | Example actors | Base chance | Star Power |
 |---|---|---|---|
 | Newcomer | Nervous Intern, Stunt Double | 1 in 2 | 1 |
-| Rising | Soap Opera Regular, Ad Model | 1 in 6 | 4 |
-| Pro | Action Veteran, Comedy Duo | 1 in 30 | 15 |
-| Star | Teen Heartthrob, Method Actor | 1 in 200 | 70 |
-| Superstar | Box Office King, Scream Queen | 1 in 1,500 | 400 |
-| Legend | Golden Age Diva | 1 in 15,000 | 2,500 |
-| Icon | The Mogul's Muse | 1 in 150,000 | 20,000 |
+| Rising | Soap Opera Regular, Ad Model | 1 in 6 | 3 |
+| Pro | Action Veteran, Comedy Duo | 1 in 40 | 8 |
+| Star | Teen Heartthrob, Method Actor | 1 in 500 | 20 |
+| Superstar | Box Office King, Scream Queen | 1 in 5,000 | 50 |
+| Legend | Golden Age Diva | 1 in 60,000 | 120 |
+| Icon | The Mogul's Muse | 1 in 1,000,000 | 300 |
 
 **Variants**, rolled on top of any actor: *Shiny* (1 in 40, ×2) and *Award-Winning*
 (1 in 800, ×5). Each variant has its own Index slot. Version 1 ships 21 actors (3 per tier),
@@ -148,18 +149,19 @@ exciting by M3, fix the core before adding anything else.
 
 - **Tier odds** are rolled rarest first, so every tier from Rising up hits its "1 in N" exactly.
   Newcomer gets the rest (about 80%, not "1 in 2"): both cannot be true at once.
-- **Agencies**: Open Casting $20 (Fame 0), Talent Agency $75 (Fame 100), Hollywood Casting
-  $400 (Fame 1,000). Removing bottom tiers rescales the rest of the pool, so better agencies
-  make rare tiers more likely (Icon: 1 in 150,000, 29,860 and 5,832).
+- **Agencies**: Open Casting $10 (Fame 0), Talent Agency $1,000 (Fame 3,500), Hollywood
+  Casting $100,000 (Fame 50,000). Removing bottom tiers rescales the rest of the pool, so better
+  agencies make rare tiers more likely (Icon: 1 in 1,000,000, 189,301 and 27,162).
 - **Actors are not used up.** A copy is busy while it is filming and returns after the
   premiere, so duplicates and extra stages matter.
 - **Fame** is a threshold, never spent: about the square root of each payout. It gates
-  agencies, Feature (40) and Epic (400) scripts, Horror and Romance (25), Sci-Fi (75), and
-  stages 2 to 4 (20, 100, 500).
+  agencies, Feature (1,800) and Epic (16,000) scripts, Horror and Romance (100), Sci-Fi (2,000),
+  and stages 2 to 4 (50, 2,800, 16,000).
 - **Index rewards**: a complete tier row gives +0.05 Luck; a complete genre set gives x1.15
   payout for that genre. Both are claimed in the Collection screen.
 - **Upgrades**: Sound Stage (to 4), Cinema Size (royalties x1.25 per level), Offline Earnings
-  (+2 h per level), Luck (+0.1 per level), Clapperboard (+1 s per tap per level).
+  (+2 h per level), Luck (+0.1 per level), Clapperboard (+0.5 s per tap per level, 2 s to 4 s).
+  Prices grow about 4 to 8 times per level so the last levels land around the end of week one.
 - **Cinema** keeps 10 movies; when full, the lowest-earning one is dropped.
 - **Tutorial**: about a minute. New players start with $100, and their first Short Film takes
   15 seconds. Steps complete from real game state, so returning players skip what they have done.
@@ -190,7 +192,7 @@ exciting by M3, fix the core before adding anything else.
   Ownership is checked on join and saved once confirmed, so an API outage never removes a pass.
 - **Developer products**: Lucky Casting (15 min), Skip Filming (a token; the stage's Skip button
   uses it, or prompts the purchase and uses it on arrival), Box Office Bag (30 min of income, at
-  least $1,000) and Box Office Vault (4 h, at least $10,000). Receipts use ProfileStore's
+  least $5,000) and Box Office Vault (4 h, at least $50,000). Receipts use ProfileStore's
   purchase-id pattern: the grant and the receipt id are saved together, and the purchase is only
   acknowledged after that save, so every purchase is granted exactly once.
 - **"Don't leave yet!" gift**: opening the Roblox menu (often the first step of leaving) shows a
