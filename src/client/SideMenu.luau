@@ -49,7 +49,8 @@ function SideMenu.start(gui: ScreenGui): Buttons
 	walletScale.Parent = wallet
 
 	UiKit.onViewportChanged(function()
-		local compact = UiKit.isCompact()
+		-- Short (phone landscape) or narrow screens get smaller icons.
+		local compact = UiKit.isCompact() or UiKit.viewport().X < 700
 		scale.Scale = if compact then 0.72 else 1
 		walletScale.Scale = if compact then 0.8 else 1
 		if UserInputService.TouchEnabled then
