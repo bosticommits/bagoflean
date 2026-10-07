@@ -14,6 +14,7 @@ local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local Screens = require(script.Parent.Screens)
 local ShopUi = require(script.Parent.ShopUi)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -910,6 +911,13 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		picker.Visible = false
 		UiKit.togglePanel(panel, render)
 		studioRequest:FireServer()
+	end)
+	Screens.register("Studio", function()
+		if not panel.Visible then
+			picker.Visible = false
+			UiKit.togglePanel(panel, render)
+			studioRequest:FireServer()
+		end
 	end)
 
 	-- Live countdowns: refresh timers in place (so buttons are never rebuilt under a tap). The loop

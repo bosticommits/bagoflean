@@ -39,8 +39,8 @@ sections 9, 11 and 12.
 | Folder | Runs on | Contents |
 |---|---|---|
 | `src/shared` | both | Config, actors and odds, movies, upgrades, shop items, rewards, events (pure rules, no state) |
-| `src/server` | server | Data (ProfileStore), economy, lots, casting, movies, upgrades, rewards, codes, shop, Award Night, analytics |
-| `src/client` | client | HUD, casting, studio, upgrades, shop, rewards and tutorial screens |
+| `src/server` | server | Data (ProfileStore), economy, lots, the town map, casting, movies, upgrades, rewards, codes, shop, Award Night, analytics |
+| `src/client` | client | HUD, casting, studio, upgrades, shop, rewards and tutorial screens, and the store stands' prompts |
 
 The server decides every roll, price, timer and payout. Remotes carry requests, never values.
 `src/server/ProfileStore.luau` is vendored from MadStudioRoblox/ProfileStore (Apache-2.0, see
@@ -53,7 +53,7 @@ Every pull request that touches the game runs two checks (`.github/workflows/gam
 - **Type check**: `luau-lsp` analyzes `src` with Roblox's types, catching typos, wrong property
   names, nil mistakes and unused variables.
 - **Rules tests**: `tests/luau` tests the shared game rules (odds, premieres, payouts, upgrades,
-  daily rewards, Award Night) in [Lune](https://lune-org.github.io/docs), outside Studio. They
+  daily rewards, Award Night) and the town layout in [Lune](https://lune-org.github.io/docs), outside Studio. They
   check that odds add up and prices rise, not exact numbers, so balance changes keep passing.
 
 Run them locally after `aftman install`, from the repo root:

@@ -351,13 +351,14 @@ IconModels.Ids = table.freeze({
 	"script", "chest", "lock",
 })
 
--- Build icon `id` into a new Model under `parent`. Unknown ids build an empty model.
-function IconModels.build(parent: Instance, id: string, base: CFrame?): Model
+-- Build icon `id` into a new Model under `parent`. Unknown ids build an empty model. `scale`
+-- enlarges it (the store stands on the map wear their icon about 2x).
+function IconModels.build(parent: Instance, id: string, base: CFrame?, scale: number?): Model
 	local model = Instance.new("Model")
 	model.Name = "Icon_" .. id
 	local builder = BUILDERS[id]
 	if builder ~= nil then
-		builder(Build.new(model, base or CFrame.identity))
+		builder(Build.new(model, base or CFrame.identity, scale))
 	end
 	Build.decorative(model)
 	model.Parent = parent

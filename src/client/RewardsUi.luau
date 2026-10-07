@@ -11,6 +11,7 @@ local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local Screens = require(script.Parent.Screens)
 local SideMenu = require(script.Parent.SideMenu)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -620,6 +621,16 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 			open("Codes")
 		end
 	end)
+	-- The Rewards, Requests and Codes stands on the map open their tab.
+	local function openTab(which: string): () -> ()
+		return function()
+			welcome = false
+			open(which)
+		end
+	end
+	Screens.register("Daily", openTab("Daily"))
+	Screens.register("Requests", openTab("Requests"))
+	Screens.register("Codes", openTab("Codes"))
 
 	-- The first sync after joining: if today's reward is waiting (and the tutorial is out of the way),
 	-- greet the player with the streak screen, like the games they know.

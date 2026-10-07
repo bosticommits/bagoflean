@@ -11,6 +11,7 @@ local Shop = require(ReplicatedStorage.Shared.Shop)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local Screens = require(script.Parent.Screens)
 local UiKit = require(script.Parent.UiKit)
 
 local makeLabel, makeButton = UiKit.makeLabel, UiKit.makeButton
@@ -305,6 +306,11 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			end)
 		end)
 	end
+	Screens.register("Shop", function()
+		if not panel.Visible then
+			UiKit.togglePanel(panel, build)
+		end
+	end)
 end
 
 return ShopUi

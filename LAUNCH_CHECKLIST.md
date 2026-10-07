@@ -48,7 +48,7 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
       shows real art.
 - [ ] Script posters for the 5 genres and 4 script sizes. *Done when:* the script shop
       and cinema show art, not plain text.
-- [ ] Server hub between the 6 lots (paths, sky, lighting, a few landmarks).
+- [x] Server hub between the 6 lots (paths, sky, lighting, a few landmarks).
       *Done when:* the map looks finished from any lot.
 - [ ] Music: a lobby track and a premiere sting, licensed or from Roblox's library.
       *Done when:* every sound and track has a known, allowed source.
