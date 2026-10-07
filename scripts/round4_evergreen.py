@@ -36,6 +36,7 @@ Image.MAX_IMAGE_PIXELS = None  # our own 2x canvases are large on purpose
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from etsy_agent.brandmark import print_seal  # noqa: E402
 from etsy_agent.compliance import AI_DISCLOSURE, listing_problems  # noqa: E402
 from etsy_agent.niche import PICKLEBALL  # noqa: E402
 from etsy_agent.render import make_mockup  # noqa: E402
@@ -74,6 +75,12 @@ class Layer:
 
     def sub(self, box):
         return Layer(box, self.ss)
+
+    def clean(self) -> "Layer":
+        """Same-size layer merged *after* the speck texture, for small lettering (authenticity details)."""
+        if not hasattr(self, "_clean"):
+            self._clean = Layer((self.ox, self.oy, self.ox + self.img.width / self.ss, self.oy + self.img.height / self.ss), self.ss)
+        return self._clean
 
     def put(self, other: "Layer"):
         composite(self.img, other.img, round((other.ox - self.ox) * self.ss), round((other.oy - self.oy) * self.ss))
@@ -590,13 +597,19 @@ def distress(img, seed, density=1.0):
 
 def finish(L: Layer, seed, width_frac=0.87, top=110, max_h=5150, texture=1.0) -> Image.Image:
     art = L.img
+    clean = getattr(L, "_clean", None)
     box = art.getbbox()
+    if clean is not None and clean.img.getbbox():
+        cb = clean.img.getbbox()
+        box = (min(box[0], cb[0]), min(box[1], cb[1]), max(box[2], cb[2]), max(box[3], cb[3]))
     art = art.crop(box)
     scale = min(W * width_frac / art.width, (max_h - top) / art.height)
     tw, th = round(art.width * scale), round(art.height * scale)
     art = art.convert("RGBa").resize((tw * 2, th * 2), Image.BOX).convert("RGBA")
     if texture:
         art = distress(art, seed, texture)
+    if clean is not None:
+        art.alpha_composite(clean.img.crop(box).convert("RGBa").resize((tw * 2, th * 2), Image.BOX).convert("RGBA"))
     art = art.convert("RGBa").reduce(2).convert("RGBA")
     a = art.getchannel("A").point(lambda v: 0 if v < 28 else (255 if v > 228 else v))
     art.putalpha(a)
@@ -610,6 +623,27 @@ def png_bytes(img):
     buf = io.BytesIO()
     img.save(buf, format="PNG", dpi=(300, 300), optimize=True)
     return buf.getvalue()
+
+
+# --------------------------------------------------------------------------- authenticity details (playbook 2b)
+DETAIL_FONT = "BowlbyOneSC-Regular.ttf"  # heavy: 81+ px gives 60+ px caps with 24+ px strokes
+SEAL_W = 880  # print_seal lettering is ~0.072 x width, so 880 px gives ~63 px caps
+
+
+def detail_line(L, text, size, color, cx, top, star=None, star_gap=110, track=None):
+    """Small spaced caps on the clean layer, optional 4-point sparkles at both ends. Returns the bottom y."""
+    t = text_img(L, text, DETAIL_FONT, size, color, track=size * 0.14 if track is None else track)
+    L.clean().put_img_top(t, cx, top)
+    h = t.height / L.ss
+    if star:
+        for sgn in (-1, 1):
+            sparkle(L.clean(), cx + sgn * (t.width / L.ss / 2 + star_gap), top + h / 2, 0.62 * h, star)
+    return top + h
+
+
+def brand_seal(L, cx, cy, color, width=SEAL_W):
+    """The Dink District print seal centred on (cx, cy), on the clean layer."""
+    L.clean().put_img(print_seal(round(width * L.ss), color, min_px=round(24 * L.ss)), cx, cy)
 
 
 # =========================================================================== designs
@@ -689,6 +723,10 @@ def grandma(ss):
     t = text_img(L, "Got Game!", "Pacifico-Regular.ttf", 820, NAVY)
     t = extrude(t, round(L.k(28)), round(L.k(40)), CORAL)
     L.put_img_top(t, cx, 3800)
+
+    # ---- authenticity details: what she is (purpose line) and who made it (seal beside the art)
+    detail_line(L, "OPEN PLAY CHAMPION", 120, NAVY, cx, 3800 + t.height / L.ss + 100, star=CORAL)
+    brand_seal(L, *P(1.75, 1.05), NAVY)
     return L
 
 
@@ -790,6 +828,11 @@ def knees(ss):
     arc = arc_text(L, "PICKLEBALL", "Shrikhand-Regular.ttf", 600, 0, 0, 9000, CORAL, stroke=28, track=10, up=False)
     arc = (extrude(arc[0], 0, round(L.k(45)), NAVY), arc[1])
     place_arc(L, arc, cx, 4570 - 9000)
+
+    # ---- authenticity details: a made-up tournament "division" for the knee-brace crowd, and the seal
+    pb_bottom = L.img.getbbox()[3] / L.ss
+    detail_line(L, "KNEE BRACE DIVISION", 120, NAVY, cx, pb_bottom + 100, star=CORAL)
+    brand_seal(L, *P(-2.05, 1.6), NAVY)
     return L
 
 
@@ -855,6 +898,13 @@ def kitchen(ss):
     L.put_img_top(sub, cx, 3720)
     for sgn in (-1, 1):
         sparkle(L, cx + sgn * (sub.width / L.ss / 2 + 150), 3720 + 95, 75, LIME)
+
+    # ---- authenticity details: a station number on the chef's hat band (0-0-2, the first score
+    # call of every game) and the brand seal under the department line
+    tag = text_img(L, "No. 0-0-2", DETAIL_FONT, 84, NAVY, track=6)
+    RR(*P(0.0, -0.9), 1.02 * R, 0.34 * R, 0.08 * R).draw(L.clean(), WHITE)  # keep specks off the band behind it
+    L.clean().put_img(tag, *P(0.0, -0.9))
+    brand_seal(L, cx, 3720 + sub.height / L.ss + 140 + SEAL_W / 2, CREAM)
     return L
 
 
@@ -911,6 +961,8 @@ def retired(ss):
     L.put(G)
     sparkle(L, *P(2.3, -1.45), 0.16 * R, CREAM)
     sparkle(L, *P(0.85, -1.62), 0.1 * R, CREAM)
+    # authenticity detail: the brand seal in the open space left of the starburst (balances the tray)
+    brand_seal(L, 640, 1820, CREAM)
 
     # ---- diner sign bottom
     ry = 3720
@@ -948,7 +1000,7 @@ LISTINGS = {
             "A vintage cartoon pickleball granny with cat-eye glasses, a pearl necklace, a sweatband and white gloves, "
             "mid-swing with her paddle, under arched 'Grandma's' and a big script 'Got Game!'. Printed with a subtle worn, "
             "vintage texture on a soft garment-dyed Comfort Colors tee."),
-        "alt_text": "Retro cartoon pickleball grandma with glasses, pearls and a paddle under the words Grandma's Got Game on a pink tee.",
+        "alt_text": "Retro cartoon pickleball grandma with glasses, pearls and a paddle under the words Grandma's Got Game on a pink tee, with an Open Play Champion tagline.",
         "products": [{"type": "tee-cc", "colors": ["Blossom", "Ivory", "Chalky Mint", "Butter"]}],
         "occasion": "year-round (Mother's Day, birthdays, Christmas)",
     },
@@ -964,7 +1016,7 @@ LISTINGS = {
              "Anyone whose doctor and whose paddle disagree"],
             "A vintage cartoon pickleball mascot in knee braces with wobbly knees, a sweatband and a bandage, giving a thumbs-up "
             "and holding a heart-shaped paddle. 'My knees say NO!' above and 'My heart says PICKLEBALL' below, with a subtle worn texture."),
-        "alt_text": "Cartoon pickleball in knee braces holding a heart-shaped paddle with the words My knees say no, my heart says pickleball on a mint tee.",
+        "alt_text": "Cartoon pickleball in knee braces holding a heart-shaped paddle with the words My knees say no, my heart says pickleball on a mint tee, with a Knee Brace Division tagline.",
         "products": [{"type": "tee-cc", "colors": ["Chalky Mint", "Ivory", "Butter", "Blossom"]}],
         "occasion": "year-round (birthdays, Father's Day, Mother's Day)",
     },

@@ -203,6 +203,14 @@ class Art:
         self.w, self.h, self.s = w, h, SCALE
         self.img = Image.new("RGBA", (w * self.s, h * self.s), (0, 0, 0, 0))
         self.d = ImageDraw.Draw(self.img)
+        self._ov = None
+
+    def overlay(self) -> "Art":
+        """A same-size layer composited on top *after* the distress pass, for small lettering
+        (authenticity details) that the speck texture would break up."""
+        if self._ov is None:
+            self._ov = Art(self.w, self.h)
+        return self._ov
 
     def prim(self, p, color, grow=0.0):
         draw_prim(self.d, p, color, grow, self.s)
@@ -261,6 +269,9 @@ class Art:
         img = self.img
         if distress_amount:
             img = distress(img, seed, distress_amount, self.s)
+        if self._ov is not None:
+            img = img.copy() if img is self.img else img
+            img.alpha_composite(self._ov.img)
         if self.s > 1:
             img = img.convert("RGBa").reduce(self.s).convert("RGBA")
         a = np.array(img)
@@ -394,6 +405,40 @@ def fit_size(text, fname, width, tracking=0.0):
     f = font(fname, 1000)
     adv = f.getlength(text) + tracking * (len(text) - 1)
     return 1000 * width / adv
+
+
+# ------------------------------------------------------------------ authenticity details (playbook 2b)
+DETAIL_FONT = "bowlby"  # heavy: at 81+ px the caps are 60+ px tall with 24+ px strokes (Righteous would be ~12 px)
+CLUB = "NORTH POLE PICKLEBALL CLUB"  # the holiday collection's made-up club (no real organisation)
+
+
+def detail_text(text, size, color=CREAM, tracking=None):
+    """Small spaced caps for brand, club and purpose lines. size 110 gives ~82 px caps."""
+    tr = size * 0.14 if tracking is None else tracking
+    return text_layer(text, DETAIL_FONT, size, color, ow=0, contour=None, tracking=tr)
+
+
+def under_smile(line_layer, hook_layer, hook_sag):
+    """Bend a detail line so it runs parallel under a hook word warped with warp_arc(up=False).
+    Returns (layer, sag in print px)."""
+    sag = hook_sag * (line_layer.width / hook_layer.width) ** 2
+    return warp_arc(line_layer, sag, up=False), sag
+
+
+def place_under_hook(art: Art, hook, hook_top, hook_sag, text, size, color=CREAM, gap=95, star=GOLD):
+    """Detail line centred under a smile-warped hook word, with small stars at its ends.
+    Drawn on the overlay so the speck texture doesn't break the small letters. Returns its bottom y."""
+    ln = detail_text(text, size, color)
+    flat_h = ln.height / SCALE
+    ln, sag = under_smile(ln, hook, hook_sag)
+    # the hook's lowest point is its centre; keep `gap` below it there
+    top = hook_top + hook.height / SCALE + gap - sag
+    art.overlay().paste_center(ln, W / 2, top)
+    if star:
+        half = ln.width / SCALE / 2
+        for sgn in (-1, 1):
+            art.part(star_part(W / 2 + sgn * (half + 115), top + flat_h / 2, 62, star))
+    return top + ln.height / SCALE
 
 
 def arc_text(art: Art, text, fname, size, cx, cy, radius, center_deg, fill, ow=OW, contour=None, cw=CW,
@@ -627,7 +672,8 @@ def design_merry() -> bytes:
     art.paste_center(merry, W / 2, 110)
     mh = merry.height / SCALE
     # sparkles and snow around the character
-    deco = [sparkle(520, 1650, 150), sparkle(3980, 1500, 120), sparkle(700, 3550, 110), sparkle(3900, 3450, 150),
+    # (the two low sparkles beside the legs gave way to the EST. / 2026 marks)
+    deco = [sparkle(520, 1650, 150), sparkle(3980, 1500, 120),
             snowflake(380, 2550, 120), snowflake(4140, 2550, 135, ang=15), sparkle(330, 1150, 85), sparkle(4200, 1050, 95)]
     for p in deco:
         art.part(p)
@@ -637,8 +683,16 @@ def design_merry() -> bytes:
     dk = text_layer("DINKMAS", "shrikhand", fit_size("DINKMAS", "shrikhand", 3700), LIME, shadow=RED, shadow_dist=75)
     dk = warp_arc(dk, 160, up=False)
     feet_bottom = cy + 1.48 * R + 0.56 * 0.64 * R
-    art.paste_center(dk, W / 2, feet_bottom - 210)
+    dk_top = feet_bottom - 210
+    art.paste_center(dk, W / 2, dk_top)
     art.figure(mascot_merry(W / 2, cy, R))
+    # authenticity details: the club line under the hook, and EST. / 2026 either side of the legs
+    place_under_hook(art, dk, dk_top, 160, CLUB, 112)
+    ov = art.overlay()
+    y_est = cy + 1.12 * R
+    for word, x in (("EST.", 700), ("2026", W - 700)):
+        t = detail_text(word, 150)
+        ov.paste(t, x - t.width / SCALE / 2, y_est - t.height / SCALE / 2)
     return art
 
 
@@ -743,15 +797,22 @@ def design_dashing() -> Art:
     cx, cy = W / 2 + 110, dash_bottom + 1.95 * R - 40
     # motion lines and snow behind the runner
     art.part(motion_lines(cx - 1.75 * R, [(cy - 0.55 * R, 520), (cy - 0.12 * R, 780), (cy + 0.32 * R, 460)]))
-    for p in [snowflake(430, cy - 1.15 * R, 120), snowflake(4140, cy - 0.35 * R, 115, ang=15), sparkle(4060, cy + 0.75 * R, 120),
-              sparkle(380, cy + 0.85 * R, 100), sparkle(3700, cy - 1.75 * R, 80), sparkle(820, cy - 1.75 * R, 70)]:
+    for p in [snowflake(430, cy - 1.15 * R, 120), snowflake(4140, cy - 0.35 * R, 115, ang=15),
+              sparkle(3700, cy - 1.75 * R, 80), sparkle(820, cy - 1.75 * R, 70)]:
         art.part(p)
+    # EST. / 2026 where the two low sparkles were (same marks as Merry Dinkmas: one holiday collection)
+    for word, x in (("EST.", 560), ("2026", W - 470)):
+        t = detail_text(word, 150)
+        art.overlay().paste(t, x - t.width / SCALE / 2, cy + 0.8 * R - t.height / SCALE / 2)
     rib_top = cy + 1.66 * R
     rib = ribbon_layer("THROUGH THE", "bowlby", 2500, 400, arc=70, tracking=60)
     kit = text_layer("KITCHEN", "racing", fit_size("KITCHEN", "racing", 3750), LIME, shadow=RED, shadow_dist=75)
     kit = warp_arc(kit, 150, up=False)
-    art.paste_center(kit, W / 2, rib_top + rib.height / SCALE - 150)
+    kit_top = rib_top + rib.height / SCALE - 150
+    art.paste_center(kit, W / 2, kit_top)
     art.paste_center(rib, W / 2, rib_top)
+    # authenticity detail: the holiday club line under the hook
+    place_under_hook(art, kit, kit_top, 150, CLUB, 112)
     # snow puffs kicked up behind the back foot
     art.figure([puff(cx - 1.55 * R, cy + 1.42 * R, 90), puff(cx - 2.0 * R, cy + 1.58 * R, 66)])
     art.figure(mascot_dashing(cx, cy, R))
@@ -821,6 +882,21 @@ def design_badge() -> Art:
     # ribbon across the lower disc
     rib = ribbon_layer("DINKER", "bowlby", 3150, 590, arc=100, tracking=40)
     art.paste_center(rib, bx, by + 330)
+    # authenticity detail: the holiday club line on an arc just outside the badge's lower edge,
+    # like the outer lettering of a club crest, with gold stars at its ends
+    size, tr = 112, 112 * 0.14
+    f = font(DETAIL_FONT, size)
+    cap = -f.getbbox("H", anchor="ls")[1]
+    rad = r_out + OW + CW + 95 + cap / 2
+    arc_text(art.overlay(), CLUB, DETAIL_FONT, size, bx, by, rad, 90, CREAM, ow=0, contour=None, bottom=True, tracking=tr)
+    half = math.degrees((sum(f.getlength(ch) + tr for ch in CLUB) - tr) / rad) / 2
+    for sgn in (-1, 1):
+        a = math.radians(90 + sgn * (half + 3.2))
+        art.part(star_part(bx + rad * math.cos(a), by + rad * math.sin(a), 62, GOLD, ang=-sgn * (half + 3.2)))
+    # EST. / 2026 under the ribbon tails (same marks as the other holiday designs)
+    for word, sgn in (("EST.", -1), ("2026", 1)):
+        t = detail_text(word, 150)
+        art.overlay().paste(t, bx + sgn * 1640 - t.width / SCALE / 2, 3560 - t.height / SCALE / 2)
     return art
 
 
@@ -939,12 +1015,29 @@ KNIT_FONT = {
 }
 
 
-def knit_word(text, stretch=()):
-    """Compose KNIT_FONT glyphs (1-stitch gaps); stretch = row indexes to duplicate for taller type."""
-    rows = [""] * 10
+# Small knit font for authenticity details ("EST. 2026"): 5 rows, 1-stitch strokes (44 px, still printable).
+KNIT_SMALL = {
+    "E": ["###", "#..", "###", "#..", "###"],
+    "S": ["###", "#..", "###", "..#", "###"],
+    "T": ["###", ".#.", ".#.", ".#.", ".#."],
+    ".": [".", ".", ".", ".", "#"],
+    "2": ["###", "..#", "###", "#..", "###"],
+    "0": ["###", "#.#", "#.#", "#.#", "###"],
+    "6": ["###", "#..", "###", "#.#", "###"],
+    " ": ["..", "..", "..", "..", ".."],
+}
+
+BALL_SMALL = [".LLL.", "LOLOL", "LLLLL", "LOLOL", ".LLL."]
+
+
+def knit_word(text, stretch=(), font=None):
+    """Compose knit glyphs (1-stitch gaps); stretch = row indexes to duplicate for taller type."""
+    font = font or KNIT_FONT
+    n = len(next(iter(font.values())))
+    rows = [""] * n
     for i, ch in enumerate(text):
-        g = KNIT_FONT[ch]
-        for r in range(10):
+        g = font[ch]
+        for r in range(n):
             rows[r] += g[r] + ("." if i < len(text) - 1 else "")
     out = []
     for r, row in enumerate(rows):
@@ -1017,8 +1110,8 @@ class Knit:
             for c in range(margin, self.cols - margin):
                 self.put(c, r, color)
 
-    def text(self, text, r0, color, shadow=None, stretch=()):
-        rows = knit_word(text, stretch)
+    def text(self, text, r0, color, shadow=None, stretch=(), font=None):
+        rows = knit_word(text, stretch, font)
         wc = len(rows[0])
         c0 = (self.cols - wc) // 2
         if shadow:
@@ -1072,7 +1165,14 @@ def design_sweater() -> Art:
     for dc in (left_c + 6, right_c + 6):
         k.sprite(MOTIFS["snow"], dc, r + 1)
     r += len(m) + 1
-    k.band(r, ["tree", "ball", "holly", "snow", "ball", "snow", "holly", "ball", "tree"])
+    r = k.band(r, ["tree", "ball", "holly", "snow", "ball", "snow", "holly", "ball", "tree"])
+    # authenticity detail, knitted like the rest (TTF type looks wrong on a stitch grid):
+    # an "EST. 2026" row in the small knit font, between two little knit pickleballs
+    r += 2
+    _, wc = k.text("EST. 2026", r, CREAM, font=KNIT_SMALL)
+    c_txt = (k.cols - wc) // 2
+    for c0 in (c_txt - 4 - len(BALL_SMALL[0]), c_txt + wc + 4):
+        k.sprite(BALL_SMALL, c0, r)
     k.render(art)
     return art
 

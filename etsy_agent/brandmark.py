@@ -58,8 +58,12 @@ def _arc_text(d: ImageDraw.ImageDraw, canvas: Image.Image, text: str, fnt, cx, c
         ang += step + (gap / r) if top else -(step + gap / r)
 
 
-def _emblem(d: ImageDraw.ImageDraw, cx, cy, s):
-    """Crossed paddles with a ball, as a single-colour silhouette with knocked-out separations."""
+def _emblem(d: ImageDraw.ImageDraw, cx, cy, s, min_gap=0.0, holes=True, ball_center=False):
+    """Crossed paddles with a ball, as a single-colour silhouette with knocked-out separations.
+
+    min_gap: smallest knock-out width (canvas px) so separations survive printing; holes=False
+    leaves the ball solid. ball_center=True puts a bigger ball (4 holes of at least min_gap) on the
+    crossing point, like crossed bats and a ball; above the paddles a small solid ball reads as a head."""
     def face_pts(fx, fy, ux, uy, px, py, grow=0.0):
         fw, fh = 0.25 * s + grow, 0.33 * s + grow
         pts = []
@@ -71,7 +75,7 @@ def _emblem(d: ImageDraw.ImageDraw, cx, cy, s):
             pts.append((fx + px * ex + ux * ey, fy + py * ex + uy * ey))
         return pts
 
-    gap = 0.05 * s
+    gap = max(0.05 * s, min_gap)
     for ang in (-34, 34):  # the second paddle is drawn on top, with a knocked-out edge
         a = math.radians(ang)
         ux, uy = math.sin(a), -math.cos(a)          # axis from handle end to face
@@ -90,11 +94,25 @@ def _emblem(d: ImageDraw.ImageDraw, cx, cy, s):
         d.polygon(face_pts(fx, fy, ux, uy, px, py), fill=255)
         # grip end cap
         d.ellipse((bx - hw * 1.5, by - hw * 1.5, bx + hw * 1.5, by + hw * 1.5), fill=255)
+    if ball_center:
+        # big enough that a centre hole plus a ring of 6 keeps holes and the ink between them >= min_gap
+        br = max(0.32 * s, 7.0 * min_gap / 2)
+        d.ellipse((cx - br - gap, cy - br - gap, cx + br + gap, cy + br + gap), fill=0)
+        d.ellipse((cx - br, cy - br, cx + br, cy + br), fill=255)
+        hr = max(min_gap / 2, 0.14 * br)
+        for k in range(7):
+            a = math.radians(-90 + 60 * k)
+            rr = 0 if k == 6 else 0.56 * br
+            hx, hy = cx + rr * math.cos(a), cy + rr * math.sin(a)
+            d.ellipse((hx - hr, hy - hr, hx + hr, hy + hr), fill=0)
+        return
     # ball between the paddle faces, with knocked-out holes
     br = 0.17 * s
     bx, by = cx, cy - 0.95 * s
     d.ellipse((bx - br - gap, by - br - gap, bx + br + gap, by + br + gap), fill=0)
     d.ellipse((bx - br, by - br, bx + br, by + br), fill=255)
+    if not holes:
+        return
     for hx, hy in [(0, 0), (-0.45, -0.3), (0.45, -0.3), (-0.45, 0.35), (0.45, 0.35), (0, -0.62), (0, 0.65)]:
         hr = br * 0.13
         d.ellipse((bx + hx * br - hr, by + hy * br - hr, bx + hx * br + hr, by + hy * br + hr), fill=0)
@@ -123,6 +141,47 @@ def seal(width: int, color: str, top_text: str = "DINK DISTRICT", bottom_text: s
                 sy + (rr if k % 2 == 0 else rr * 0.45) * math.sin(math.radians(-90 + k * 36))) for k in range(10)]
         d.polygon(pts, fill=255)
     _emblem(d, c, c + inner * 0.3, inner * 0.6)
+    return _flat(m, (width, width), color)
+
+
+def print_seal(width: int, color: str, top_text: str = "DINK DISTRICT", bottom_text: str = EST,
+               font: str = "BowlbyOneSC-Regular.ttf", min_px: int = 24, tracking: float = 0.06) -> Image.Image:
+    """Print-safe version of seal() for shirt fronts.
+
+    seal() is drawn for small sizes (neck labels): at 360-420 px its lettering is ~20 px tall
+    and its strokes ~5 px, which DTG cannot print. print_seal() uses a heavy font, rings and
+    knock-outs of at least `min_px`, and sizes the lettering from the width. Lettering cap height
+    is about 0.072 * width, so use width >= 840 for the playbook's 60 px minimum. The ball is solid
+    (no holes) unless the holes would be at least min_px wide.
+    """
+    W = width * SS
+    m = Image.new("L", (W, W), 0)
+    d = ImageDraw.Draw(m)
+    c, R = W / 2, W / 2
+    mp = min_px * SS
+    ring = max(mp, W * 0.034)
+    d.ellipse((0, 0, W, W), fill=255)
+    d.ellipse((ring, ring, W - ring, W - ring), fill=0)
+    fnt = _font(font, W * 0.097)
+    cap = -fnt.getbbox("H", anchor="ls")[1]
+    pad = max(mp, W * 0.03)
+    band_r = R - ring - pad - cap / 2
+    inner = band_r - cap / 2 - pad
+    iw = max(mp, ring * 0.85)
+    d.ellipse((c - inner, c - inner, c + inner, c + inner), fill=255)
+    d.ellipse((c - inner + iw, c - inner + iw, c + inner - iw, c + inner - iw), fill=0)
+    _arc_text(d, m, top_text, fnt, c, c, band_r, -90, top=True, tracking=tracking)
+    _arc_text(d, m, bottom_text, fnt, c, c, band_r, 90, top=False, tracking=tracking)
+    for side in (-1, 1):  # stars between the two arcs
+        sx, sy = c + side * band_r, c
+        rr = cap * 0.42
+        pts = [(sx + (rr if k % 2 == 0 else rr * 0.5) * math.cos(math.radians(-90 + k * 36)),
+                sy + (rr if k % 2 == 0 else rr * 0.5) * math.sin(math.radians(-90 + k * 36))) for k in range(10)]
+        d.polygon(pts, fill=255)
+    s = (inner - iw) * 0.95
+    # with the ball on the crossing the emblem runs from the paddle tops (~0.69 s up) to the grip caps
+    # (~0.6 s down), so centre it a little below the middle
+    _emblem(d, c, c + 0.04 * s, s, min_gap=mp, ball_center=True)
     return _flat(m, (width, width), color)
 
 
