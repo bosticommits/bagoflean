@@ -28,15 +28,16 @@ export type Variant = {
 
 local Actors = {}
 
--- Ordered common to rare.
+-- Ordered common to rare. Colors are the rarity colors in ART_STYLE.md section 4. Icon is prismatic:
+-- the UI draws it as a rainbow (UiKit.RAINBOW) and uses this pink where one color is needed.
 Actors.Tiers = {
-	{ id = "Newcomer", name = "Newcomer", oneIn = 2, starPower = 1, color = Color3.fromRGB(170, 170, 180) },
-	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 3, color = Color3.fromRGB(90, 200, 120) },
-	{ id = "Pro", name = "Pro", oneIn = 40, starPower = 8, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "Star", name = "Star", oneIn = 500, starPower = 20, color = Color3.fromRGB(180, 100, 255) },
-	{ id = "Superstar", name = "Superstar", oneIn = 5000, starPower = 50, color = Color3.fromRGB(255, 150, 60) },
-	{ id = "Legend", name = "Legend", oneIn = 50000, starPower = 120, color = Color3.fromRGB(255, 80, 80) },
-	{ id = "Icon", name = "Icon", oneIn = 500000, starPower = 300, color = Color3.fromRGB(255, 215, 0) },
+	{ id = "Newcomer", name = "Newcomer", oneIn = 2, starPower = 1, color = Color3.fromRGB(167, 169, 172) },
+	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 3, color = Color3.fromRGB(76, 199, 100) },
+	{ id = "Pro", name = "Pro", oneIn = 40, starPower = 8, color = Color3.fromRGB(58, 141, 255) },
+	{ id = "Star", name = "Star", oneIn = 500, starPower = 20, color = Color3.fromRGB(160, 77, 255) },
+	{ id = "Superstar", name = "Superstar", oneIn = 5000, starPower = 50, color = Color3.fromRGB(255, 194, 26) },
+	{ id = "Legend", name = "Legend", oneIn = 60000, starPower = 120, color = Color3.fromRGB(255, 90, 46) },
+	{ id = "Icon", name = "Icon", oneIn = 600000, starPower = 300, color = Color3.fromRGB(255, 95, 210) },
 } :: { Tier }
 
 Actors.List = {
@@ -73,7 +74,7 @@ Actors.List = {
 Actors.Variants = {
 	{ id = "Normal", name = "Normal", oneIn = nil, multiplier = 1, color = Color3.fromRGB(230, 230, 235) },
 	{ id = "Shiny", name = "Shiny", oneIn = 40, multiplier = 2, color = Color3.fromRGB(120, 230, 255) },
-	{ id = "Award", name = "Award-Winning", oneIn = 800, multiplier = 5, color = Color3.fromRGB(255, 215, 0) },
+	{ id = "Award", name = "Award-Winning", oneIn = 800, multiplier = 5, color = Color3.fromRGB(245, 184, 46) },
 } :: { Variant }
 
 Actors.IndexSlots = #Actors.List * #Actors.Variants
@@ -89,8 +90,8 @@ export type Agency = {
 -- Plan section 3: better agencies cost more per roll and remove the bottom tier(s).
 Actors.Agencies = {
 	{ id = "Open", name = "Open Casting", cost = 10, fame = 0, minTier = 1 },
-	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 2500, minTier = 2 },
-	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 45000, minTier = 3 },
+	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 3500, minTier = 2 },
+	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 50000, minTier = 3 },
 } :: { Agency }
 
 local agencyById: { [string]: Agency } = {}

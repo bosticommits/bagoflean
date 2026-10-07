@@ -9,7 +9,9 @@ Two separate projects live in this repo:
 
 Status: milestones M0 to M5 are built and playtested in Studio: lots and cash, casting,
 movies, Index, agencies, upgrades, lot visuals, billboard, effects, sounds and the tutorial.
-Art is still placeholder parts. See GAME_PLAN.md sections 9 and 11.
+The M6 launch features are built too: Award Night, daily rewards, Studio Requests, codes, game
+passes, developer products and analytics. Art is still placeholder parts. See GAME_PLAN.md
+sections 9, 11 and 12.
 
 ### Setup
 
@@ -36,13 +38,26 @@ Art is still placeholder parts. See GAME_PLAN.md sections 9 and 11.
 
 | Folder | Runs on | Contents |
 |---|---|---|
-| `src/shared` | both | Config, actors and odds, movies, upgrades (pure rules, no state) |
-| `src/server` | server | Data (ProfileStore), economy, lots, casting, movies, upgrades |
-| `src/client` | client | HUD, casting, studio, upgrades, and tutorial screens |
+| `src/shared` | both | Config, actors and odds, movies, upgrades, shop items, rewards, events (pure rules, no state) |
+| `src/server` | server | Data (ProfileStore), economy, lots, casting, movies, upgrades, rewards, codes, shop, Award Night, analytics |
+| `src/client` | client | HUD, casting, studio, upgrades, shop, rewards and tutorial screens |
 
 The server decides every roll, price, timer and payout. Remotes carry requests, never values.
 `src/server/ProfileStore.luau` is vendored from MadStudioRoblox/ProfileStore (Apache-2.0, see
 `LICENSE-ProfileStore`).
+
+### Setting up purchases
+
+The shop lists every pass and product, but shows "Soon" until it has a real Roblox id.
+
+1. Publish the place, then open the experience on the Creator Hub > **Monetization**.
+2. Create the 5 game passes (2x Luck, Auto-Collect, +1 Sound Stage, Faster Filming, VIP) and the
+   4 developer products (Lucky Casting, Skip Filming, Box Office Bag, Box Office Vault), with a
+   price and an icon each.
+3. Paste each id into `src/shared/Shop.luau` (the `id = 0` fields) and publish again.
+
+Test purchases in Studio are free and go through the same server code. Prices are read from
+Roblox, so the shop always shows what the prompt will charge.
 
 ### Before you publish
 

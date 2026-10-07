@@ -32,8 +32,8 @@ Movies.Genres = { "Action", "Comedy", "Horror", "Romance", "Sci-Fi" }
 Movies.Lengths = {
 	{ id = "Short", name = "Short Film", seconds = 2 * 60, base = 12, cost = 15, fame = 0 },
 	{ id = "Indie", name = "Indie", seconds = 10 * 60, base = 55, cost = 60, fame = 0 },
-	{ id = "Feature", name = "Feature", seconds = 45 * 60, base = 220, cost = 250, fame = 1400 },
-	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 780, cost = 900, fame = 12000 },
+	{ id = "Feature", name = "Feature", seconds = 45 * 60, base = 220, cost = 250, fame = 1800},
+	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 780, cost = 900, fame = 16000},
 } :: { Length }
 
 -- Fame needed before a genre's scripts can be bought (plan section 6: Fame unlocks genres).
@@ -42,7 +42,7 @@ Movies.GenreFame = {
 	Comedy = 0,
 	Horror = 100,
 	Romance = 100,
-	["Sci-Fi"] = 1500,
+	["Sci-Fi"] = 2000,
 } :: { [string]: number }
 
 -- Ordered worst to best.

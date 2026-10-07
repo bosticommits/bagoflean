@@ -44,9 +44,21 @@ export type PlayerData = {
 	rewards: { [string]: boolean }, -- claimed Index rewards: "tier:<id>" / "genre:<name>"
 	trophies: number, -- Masterpiece premieres ever (shown on the lot)
 	tutorialDone: boolean,
+	-- M6 launch features
+	passes: { [string]: boolean }, -- game passes confirmed owned (Shop pass key -> true)
+	luckBoostUntil: number, -- os.time() the Lucky Casting boost ends
+	skips: number, -- unused Skip Filming tokens
+	daily: { day: number, streak: number }, -- last UTC day a daily reward was claimed
+	requests: { day: number, list: { Request } }, -- today's Studio Requests
+	codes: { [string]: boolean }, -- redeemed codes
+	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
+	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
+	funnel: number, -- highest onboarding funnel step logged (analytics)
 }
 
-local CURRENT_VERSION = 4
+export type Request = { id: string, progress: number, claimed: boolean }
+
+local CURRENT_VERSION = 5
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -65,7 +77,20 @@ local TEMPLATE: PlayerData = {
 	rewards = {},
 	trophies = 0,
 	tutorialDone = false,
+	passes = {},
+	luckBoostUntil = 0,
+	skips = 0,
+	daily = { day = 0, streak = 0 },
+	requests = { day = 0, list = {} },
+	codes = {},
+	purchaseIds = {},
+	stayGiftDay = 0,
+	funnel = 99, -- profiles from before M6 are not new players; load() sets 0 for new ones
 }
+
+-- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
+-- on a later join, never years later, so a short log is enough to grant each one exactly once.
+local PURCHASE_ID_LOG = 100
 
 local playerStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
 
@@ -91,7 +116,7 @@ local function migrate(data: any)
 	if type(data.tutorialDone) ~= "boolean" then
 		data.tutorialDone = false
 	end
-	for _, field in { "accrued", "fame", "trophies" } do
+	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
 		end
@@ -99,7 +124,7 @@ local function migrate(data: any)
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end
-	for _, field in { "scripts", "upgrades", "rewards" } do
+	for _, field in { "scripts", "upgrades", "rewards", "passes", "codes", "purchaseIds" } do
 		if type(data[field]) ~= "table" then
 			data[field] = {}
 		end
@@ -108,6 +133,12 @@ local function migrate(data: any)
 		if type(data[field]) ~= "table" then
 			data[field] = {}
 		end
+	end
+	if type(data.daily) ~= "table" or type(data.daily.day) ~= "number" or type(data.daily.streak) ~= "number" then
+		data.daily = { day = 0, streak = 0 }
+	end
+	if type(data.requests) ~= "table" or type(data.requests.day) ~= "number" or type(data.requests.list) ~= "table" then
+		data.requests = { day = 0, list = {} }
 	end
 	data.version = CURRENT_VERSION
 end
@@ -147,6 +178,7 @@ function DataService.load(player: Player): PlayerData?
 		-- Brand-new profile: royalties start now, and a little starting Cash for the tutorial.
 		profile.Data.lastCollect = os.time()
 		profile.Data.cash = Config.StartingCash
+		profile.Data.funnel = 0 -- a new player: log their onboarding funnel
 	end
 	migrate(profile.Data)
 
@@ -170,6 +202,51 @@ function DataService.getData(player: Player): PlayerData?
 		return nil
 	end
 	return profile.Data :: PlayerData
+end
+
+-- Yields. Developer product receipts (ProfileStore's purchase-id pattern): applies `grant` to the
+-- player's data at most once per purchase id, and returns true only once a save containing both the
+-- grant and the id has reached the DataStore. `grant` must not yield, so the two land in one save.
+-- On false the receipt stays unprocessed; if the grant did happen, the logged id stops a second one.
+function DataService.grantPurchaseOnce(player: Player, purchaseId: string, grant: (PlayerData) -> ()): boolean
+	local profile = profiles[player]
+	if profile == nil or not profile:IsActive() then
+		return false
+	end
+	local data = profile.Data :: PlayerData
+	if table.find(data.purchaseIds, purchaseId) == nil then
+		local ok, err = pcall(function()
+			grant(data)
+		end)
+		if not ok then
+			warn(`[DataService] purchase {purchaseId} grant failed: {err}`)
+			return false
+		end
+		table.insert(data.purchaseIds, purchaseId)
+		while #data.purchaseIds > PURCHASE_ID_LOG do
+			table.remove(data.purchaseIds, 1)
+		end
+	end
+
+	local saved = false
+	local function check(lastSaved: any)
+		local ids = if type(lastSaved) == "table" then lastSaved.purchaseIds else nil
+		if type(ids) == "table" and table.find(ids, purchaseId) ~= nil then
+			saved = true
+		end
+	end
+	check(profile.LastSavedData)
+	local connection = profile.OnAfterSave:Connect(check)
+	if not saved then
+		profile:Save()
+	end
+	local waited = 0
+	while not saved and profile:IsActive() and waited < RELEASE_WAIT_SECONDS * 2 do
+		task.wait(0.1)
+		waited += 0.1
+	end
+	connection:Disconnect()
+	return saved
 end
 
 -- Kept so callers state intent; ProfileStore saves changes to Profile.Data on its own.
