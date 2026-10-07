@@ -8,8 +8,10 @@ that everyone on the server can see.
 
 Look and feel: see [ART_STYLE.md](ART_STYLE.md).
 
-Status: **M0 to M5 built** (version 1, with placeholder part-based art). Numbers are starting
-points, to be tuned in playtests. Section 11 lists the decisions made while building.
+Status: **M0 to M5 built** (version 1, with placeholder part-based art), and the **M6 launch
+features** (Award Night, daily rewards, Studio Requests, codes, game passes, developer products,
+analytics). Icon, thumbnails and the publish checklist are still to do. Numbers are starting
+points, to be tuned in playtests. Sections 11 and 12 list the decisions made while building.
 
 Why this game: it combines the loops behind the biggest 2025-26 hits. Grow a Garden has
 progress while offline and come-back-later payoffs. RNG games have rarity, luck, an index
@@ -164,3 +166,39 @@ exciting by M3, fix the core before adding anything else.
 - **Sounds** come from Roblox's own UI sound library (creator: Roblox). Effects use built-in
   textures only. Lots are plain parts: there is no mesh or uploaded art yet.
 - **Saving** uses ProfileStore (vendored), as planned.
+
+## 12. As built (M6 launch features)
+
+- **Award Night** runs on a fixed clock: the first 3 minutes of every half hour (UTC :00 and :30),
+  the same on every server. Casting Luck x2 and premiere payouts x2. The HUD shows a countdown,
+  and the server announces the start. A premiere claimed during Award Night is doubled, so
+  players can save finished movies for it.
+- **Luck stacking** for Casting Calls: Luck upgrades and Index rewards, then x2 for each of the 2x
+  Luck pass, an active Lucky Casting boost, and Award Night. Premieres use the upgrade Luck only.
+  The odds panel always shows the current, boosted odds.
+- **Daily rewards**: a 21-day streak that repeats, with big milestone days at 7, 14 and 21
+  ("play N days in a row to unlock this rare reward"); days after tomorrow show "???"; missing a UTC day starts again at day 1. Days
+  come from the server clock, so changing the device clock does nothing. A "Welcome back!" screen
+  opens by itself when a reward is waiting (not during the tutorial).
+- **Studio Requests**: 3 a day from a pool of 6 (the same 3 for everyone), reset at UTC midnight.
+- **Cash rewards scale**: each one is "at least $X, or N minutes of your box office income if
+  that is more", so they stay worth having late in the game.
+- **Codes** live in `src/server/Codes.luau` (server only). Each works once per player. A code can be
+  switched off without an update through the `GameConfig` DataStore (see `LiveConfig.luau`).
+- **Game passes**: 2x Luck, Auto-Collect (banks the box office every 10 s), +1 Sound Stage (a 5th
+  stage), Faster Filming (films take 75% of the time), VIP (head tag, chat tag, starred marquee).
+  Ownership is checked on join and saved once confirmed, so an API outage never removes a pass.
+- **Developer products**: Lucky Casting (15 min), Skip Filming (a token; the stage's Skip button
+  uses it, or prompts the purchase and uses it on arrival), Box Office Bag (30 min of income, at
+  least $1,000) and Box Office Vault (4 h, at least $10,000). Receipts use ProfileStore's
+  purchase-id pattern: the grant and the receipt id are saved together, and the purchase is only
+  acknowledged after that save, so every purchase is granted exactly once.
+- **"Don't leave yet!" gift**: opening the Roblox menu (often the first step of leaving) shows a
+  gift behind the menu: x2 Luck for 10 minutes plus some Cash. Once per UTC day, and only after
+  5 minutes of play in that session, both checked on the server, so it cannot be farmed.
+- **Welcome back**: on joining, a banner says what the cinema earned while the player was away.
+- No Robux purchase gives a random item, so no paid-random-item rules apply yet.
+- **Analytics** (server only): every Cash source and sink (batched per minute), the onboarding
+  funnel for new players (joined, lot, first cast, script, film, premiere, collect, tutorial), and
+  custom events for rare pulls, premieres, daily claims, requests, codes and purchases.
+

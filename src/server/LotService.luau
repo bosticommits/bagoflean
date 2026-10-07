@@ -8,8 +8,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
 
 local LOT_SIZE = 56
@@ -261,7 +264,8 @@ local function render(lot: Lot)
 	local claimLabel = (lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui).TextLabel :: TextLabel
 	if owner ~= nil then
 		lot.model:SetAttribute("OwnerUserId", owner.UserId)
-		lot.marquee.Text = string.upper(owner.DisplayName) .. " PICTURES"
+		local vip = data ~= nil and data.passes.VIP == true
+		lot.marquee.Text = (if vip then "★ " else "") .. string.upper(owner.DisplayName) .. " PICTURES" .. (if vip then " ★" else "")
 		lot.claimPad.Color = Color3.fromRGB(110, 110, 115)
 		lot.claimPad.Material = Enum.Material.SmoothPlastic
 		claimLabel.Text = owner.DisplayName .. "'s Studio"
@@ -274,8 +278,9 @@ local function render(lot: Lot)
 	end
 
 	-- Sound stages: one hangar per stage the owner has (an empty lot shows one, dimmed).
-	local stageSlots = { { 20, -3 }, { 20, 10 }, { -20, 10 }, { -20, -2 } }
-	local stages = if data ~= nil then data.stageCount else 1
+	-- The fifth slot is for the +1 Sound Stage pass (Config.StageLimit).
+	local stageSlots = { { 20, -3 }, { 20, 10 }, { -20, 10 }, { -20, -2 }, { -20, -14 } }
+	local stages = if data ~= nil then Upgrades.stages(data) else 1
 	for i = 1, math.min(stages, #stageSlots) do
 		local slot = stageSlots[i]
 		local hangar = part(lot.dynamic, "SoundStage", Vector3.new(11, 9, 11), lot.at(slot[1], 5.5, slot[2]), if owner ~= nil then Color3.fromRGB(205, 200, 185) else Color3.fromRGB(120, 120, 125), Enum.Material.Concrete)
@@ -332,6 +337,7 @@ local function claim(player: Player, lot: Lot)
 	lot.owner = player
 	player:SetAttribute("LotIndex", lot.index)
 	render(lot)
+	Analytics.onboarding(player, Analytics.Steps.ClaimedLot)
 end
 
 -- Re-render the player's lot after anything it shows changed (cast, premiere, stage upgrade).
@@ -380,8 +386,8 @@ function LotService.start()
 		lot.collectPad.Touched:Connect(function(hit)
 			local player = playerFromHit(hit)
 			-- Only the lot's owner earns from its cinema.
-			if player ~= nil and lot.owner == player then
-				EconomyService.collect(player)
+			if player ~= nil and lot.owner == player and EconomyService.collect(player) > 0 then
+				QuestTracker.track(player, "collect")
 			end
 		end)
 	end

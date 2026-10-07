@@ -7,12 +7,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Events = require(ReplicatedStorage.Shared.Events)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local LotService = require(script.Parent.LotService)
+local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
 
 local random = Random.new()
@@ -26,6 +29,7 @@ local studioSync = Remotes.get("StudioSync")
 local premiereResult = Remotes.get("PremiereResult")
 local studioError = Remotes.get("StudioError")
 local tutorialDone = Remotes.get("TutorialDone")
+local useSkip = Remotes.get("UseSkip")
 
 local lastAction: { [Player]: { [string]: number } } = {}
 local lastCooldownReply: { [Player]: number } = {}
@@ -71,7 +75,11 @@ local function snapshot(player: Player): { [string]: any }?
 	end
 	return {
 		serverNow = os.time(),
-		stageCount = data.stageCount,
+		stageCount = data.stageCount, -- bought stages (the Sound Stage upgrade level)
+		stages = Upgrades.stages(data), -- stages usable now, with the +1 Sound Stage pass
+		passes = data.passes,
+		skips = data.skips,
+		luckBoostUntil = data.luckBoostUntil,
 		fame = data.fame,
 		rate = EconomyService.rate(data),
 		scripts = data.scripts,
@@ -173,7 +181,7 @@ local function onBuyScript(player: Player, genre: any, lengthId: any)
 		studioError:FireClient(player, "fame")
 		return
 	end
-	if not EconomyService.spendCash(player, length.cost) then
+	if not EconomyService.spendCash(player, length.cost, "Script:" .. length.id) then
 		studioError:FireClient(player, "cash")
 		return
 	end
@@ -181,6 +189,8 @@ local function onBuyScript(player: Player, genre: any, lengthId: any)
 	data.scripts[key] = (data.scripts[key] or 0) + 1
 	DataService.markDirty(player)
 	MovieService.sync(player)
+	Analytics.onboarding(player, Analytics.Steps.FirstScript)
+	QuestTracker.track(player, "script")
 end
 
 local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any, rawCast: any)
@@ -192,7 +202,7 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 		studioError:FireClient(player, "loading")
 		return
 	end
-	if not isInt(stage, 1, Config.MaxStages) or stage > data.stageCount then
+	if not isInt(stage, 1, Config.StageLimit) or stage > Upgrades.stages(data) then
 		studioError:FireClient(player, "invalid")
 		return
 	end
@@ -231,6 +241,9 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 	if lengthId == "Short" and #data.cinema == 0 and #data.films == 0 and data.trophies == 0 then
 		seconds = math.min(seconds, Config.FirstFilmSeconds)
 	end
+	if data.passes.FastFilming then
+		seconds = math.max(1, math.floor(seconds * Config.FastFilmingMultiplier))
+	end
 	local now = os.time()
 	table.insert(data.films, {
 		stage = stage,
@@ -243,6 +256,7 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 	})
 	DataService.markDirty(player)
 	MovieService.sync(player)
+	Analytics.onboarding(player, Analytics.Steps.FirstFilm)
 end
 
 local function onClap(player: Player, stage: any)
@@ -253,7 +267,7 @@ local function onClap(player: Player, stage: any)
 	if data == nil then
 		return
 	end
-	if not isInt(stage, 1, Config.MaxStages) then
+	if not isInt(stage, 1, Config.StageLimit) then
 		studioError:FireClient(player, "invalid")
 		return
 	end
@@ -266,6 +280,7 @@ local function onClap(player: Player, stage: any)
 	film.endTime = math.max(now, film.endTime - Upgrades.clapSeconds(data))
 	DataService.markDirty(player)
 	MovieService.sync(player)
+	QuestTracker.track(player, "clap")
 end
 
 local function onPremiere(player: Player, stage: any)
@@ -277,7 +292,7 @@ local function onPremiere(player: Player, stage: any)
 		studioError:FireClient(player, "loading")
 		return
 	end
-	if not isInt(stage, 1, Config.MaxStages) then
+	if not isInt(stage, 1, Config.StageLimit) then
 		studioError:FireClient(player, "invalid")
 		return
 	end
@@ -301,6 +316,11 @@ local function onPremiere(player: Player, stage: any)
 	local result = Movies.rollResult(random, CastingService.getLuck(player))
 	local genreBonus = Upgrades.genreBonus(data, film.genre)
 	local payout = Movies.payout(length, power, result, genreBonus)
+	-- Award Night doubles premiere payouts (plan section 5).
+	local awardNight = Events.awardNight(os.time())
+	if awardNight then
+		payout *= Config.AwardNightPayoutMultiplier
+	end
 	local fame = Movies.fame(payout)
 
 	table.remove(data.films, filmIndex) -- frees the stage and the cast copies
@@ -323,7 +343,7 @@ local function onPremiere(player: Player, stage: any)
 		table.remove(data.cinema, weakest)
 	end
 	data.fame += fame
-	EconomyService.addCash(player, payout)
+	EconomyService.addCash(player, payout, "Gameplay", "Premiere")
 
 	premiereResult:FireClient(player, {
 		title = film.title,
@@ -335,12 +355,19 @@ local function onPremiere(player: Player, stage: any)
 		fame = fame,
 		power = power,
 		genreBonus = genreBonus,
+		awardNight = awardNight,
 	})
 	if result.id == "Masterpiece" then
 		data.trophies += 1
 	end
 	MovieService.sync(player)
 	LotService.refresh(player)
+	Analytics.onboarding(player, Analytics.Steps.FirstPremiere)
+	Analytics.event(player, "Premiere", 1, result.id, film.length)
+	QuestTracker.track(player, "premiere")
+	if result.multiplier >= 3 then
+		QuestTracker.track(player, "hit")
+	end
 	if result.id == "Masterpiece" then
 		Remotes.announce(`{player.DisplayName}'s "{film.title}" is a MASTERPIECE!`)
 		LotService.celebrate(player, "masterpiece")
@@ -359,6 +386,39 @@ local function onTutorialDone(player: Player)
 	data.tutorialDone = true
 	DataService.markDirty(player)
 	MovieService.sync(player)
+	Analytics.onboarding(player, Analytics.Steps.TutorialDone)
+end
+
+-- Spends a Skip Filming token to finish the film on `stage` now. Tokens come from the Skip Filming
+-- product, daily rewards and codes; the client prompts the purchase when it has none.
+local function onUseSkip(player: Player, stage: any)
+	if not allow(player, "skip", Config.ActionCooldown) then
+		return
+	end
+	local data = DataService.getData(player)
+	if data == nil then
+		studioError:FireClient(player, "loading")
+		return
+	end
+	if not isInt(stage, 1, Config.StageLimit) then
+		studioError:FireClient(player, "invalid")
+		return
+	end
+	local film = findFilm(data, stage)
+	local now = os.time()
+	if film == nil or film.endTime <= now then
+		MovieService.sync(player)
+		return
+	end
+	if data.skips < 1 then
+		studioError:FireClient(player, "noskip")
+		return
+	end
+	data.skips -= 1
+	film.endTime = now
+	DataService.markDirty(player)
+	MovieService.sync(player)
+	Analytics.event(player, "SkipUsed", 1, film.length)
 end
 
 function MovieService.start()
@@ -372,6 +432,7 @@ function MovieService.start()
 	clapRemote.OnServerEvent:Connect(onClap)
 	premiereRemote.OnServerEvent:Connect(onPremiere)
 	tutorialDone.OnServerEvent:Connect(onTutorialDone)
+	useSkip.OnServerEvent:Connect(onUseSkip)
 end
 
 function MovieService.forget(player: Player)
