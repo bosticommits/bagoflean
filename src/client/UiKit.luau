@@ -3,6 +3,7 @@
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
@@ -236,7 +237,7 @@ function UiKit.chip(button: GuiObject, text: string?)
 		return
 	end
 	if chip == nil then
-		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(52, 22), UDim2.new(1, -30, 0, -6), 1.5)
+		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(52, 22), UDim2.new(), 1.5)
 		created.Name = "Chip"
 		created.BackgroundTransparency = 0
 		created.BackgroundColor3 = UiKit.GREEN
@@ -251,6 +252,10 @@ function UiKit.chip(button: GuiObject, text: string?)
 		chip = created
 	end
 	assert(chip ~= nil)
+	-- As wide as its text, poking just past the button's right edge.
+	local width = math.max(30, 12 + 9 * #text)
+	chip.Size = UDim2.fromOffset(width, 22)
+	chip.Position = UDim2.new(1, -(width - 10), 0, -6)
 	chip.Text = text
 	chip.Visible = true
 end
@@ -267,16 +272,36 @@ function UiKit.makePlusButton(parent: Instance, size: number, position: UDim2): 
 	return plus
 end
 
--- Breathing scale on something that wants a tap (a CLAIM button, today's reward). Stops when the
--- object is destroyed.
+-- Breathing pulse on something that wants a tap (a CLAIM button, today's reward). It grows about
+-- its centre. Things a list or grid layout places would spill into their neighbours, so those glow
+-- instead: their outline brightens and thickens a little. Stops when the object is destroyed.
 function UiKit.pulse(object: GuiObject, to: number?)
-	local scale = Instance.new("UIScale")
-	scale.Name = "Pulse"
-	scale.Parent = object
-	local tween = TweenService:Create(scale, TweenInfo.new(0.55, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Scale = to or 1.06 })
-	tween:Play()
-	scale.Destroying:Connect(function()
-		tween:Cancel()
+	local info = TweenInfo.new(0.55, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+	local tweens: { Tween } = {}
+	local parent = object.Parent
+	if parent ~= nil and parent:FindFirstChildWhichIsA("UIGridStyleLayout") ~= nil then
+		local stroke = object:FindFirstChild("Outline")
+		if stroke ~= nil and stroke:IsA("UIStroke") then
+			table.insert(tweens, TweenService:Create(stroke, info, { Color = stroke.Color:Lerp(UiKit.WHITE, 0.6), Thickness = stroke.Thickness + 2 }))
+		end
+	else
+		-- UIScale grows an object from its anchor point: move the anchor to the centre first.
+		local anchor, size = object.AnchorPoint, object.Size
+		local dx, dy = 0.5 - anchor.X, 0.5 - anchor.Y
+		object.AnchorPoint = Vector2.new(0.5, 0.5)
+		object.Position += UDim2.new(size.X.Scale * dx, size.X.Offset * dx, size.Y.Scale * dy, size.Y.Offset * dy)
+		local scale = Instance.new("UIScale")
+		scale.Name = "Pulse"
+		scale.Parent = object
+		table.insert(tweens, TweenService:Create(scale, info, { Scale = to or 1.06 }))
+	end
+	for _, tween in tweens do
+		tween:Play()
+	end
+	object.Destroying:Connect(function()
+		for _, tween in tweens do
+			tween:Cancel()
+		end
 	end)
 end
 
@@ -370,13 +395,45 @@ end
 function UiKit.styleTab(button: TextButton, selected: boolean)
 	button.BackgroundColor3 = if selected then UiKit.WHITE else UiKit.TAB_OFF
 	button.TextColor3 = if selected then UiKit.NAVY else UiKit.WHITE
+	-- Hover darkening would turn the white chip grey under the mouse.
+	button.AutoButtonColor = not selected
 	local stroke = button:FindFirstChild("TextOutline")
 	if stroke ~= nil and stroke:IsA("UIStroke") then
 		stroke.Enabled = not selected
 	end
 end
 
--- Red notification badge on a button's top corner ("3" or "!"). Pass nil to hide it.
+-- One text size for a row of buttons (tabs): the largest that fits every label, so a long name
+-- ("Hollywood Casting") is not the only one shrunk.
+function UiKit.evenText(buttons: { TextButton }, maxSize: number)
+	local function apply()
+		local size = maxSize
+		for _, button in buttons do
+			local room = button.AbsoluteSize - Vector2.new(14, 6)
+			if room.X <= 0 or room.Y <= 0 then
+				return
+			end
+			while size > 8 do
+				local bounds = TextService:GetTextSize(button.Text, size, button.Font, Vector2.new(10000, 10000))
+				if bounds.X <= room.X and bounds.Y <= room.Y then
+					break
+				end
+				size -= 1
+			end
+		end
+		for _, button in buttons do
+			button.TextScaled = false
+			button.TextSize = size
+		end
+	end
+	for _, button in buttons do
+		button:GetPropertyChangedSignal("AbsoluteSize"):Connect(apply)
+	end
+	apply()
+end
+
+-- Red notification badge on a button's top corner ("3" or "!"). Pass nil to hide it. Buttons with
+-- the "BadgeInset" attribute (the side menu's) keep it inside their corner.
 function UiKit.badge(button: GuiObject, text: string?)
 	local badge = button:FindFirstChild("Badge") :: TextLabel?
 	if text == nil then
@@ -386,7 +443,8 @@ function UiKit.badge(button: GuiObject, text: string?)
 		return
 	end
 	if badge == nil then
-		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(24, 24), UDim2.new(1, -14, 0, -10), 1.5)
+		local position = if button:GetAttribute("BadgeInset") then UDim2.new(1, -24, 0, 0) else UDim2.new(1, -14, 0, -10)
+		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(24, 24), position, 1.5)
 		created.Name = "Badge"
 		created.BackgroundTransparency = 0
 		created.BackgroundColor3 = UiKit.CLOSE_RED
@@ -582,6 +640,22 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	local function applyLayout()
 		local compact = UiKit.isCompact()
 		panel.Size = panelSize()
+		panel.Position = UDim2.fromScale(0.5, 0.5)
+		-- Keep clear of the side menu ("MenuRight", set by SideMenu) when the screen has room:
+		-- slide right, and on narrow screens get narrower, rather than cover the menu buttons.
+		local menuRight = gui:GetAttribute("MenuRight")
+		local screen = gui.AbsoluteSize
+		if typeof(menuRight) == "number" and screen.X > 0 then
+			local width = math.min(panel.Size.X.Scale * screen.X, limit.MaxSize.X)
+			local left = menuRight + 8
+			local room = screen.X - left - 8
+			if room >= width then
+				panel.Position = UDim2.new(0.5, math.max(0, left - (screen.X - width) / 2), 0.5, 0)
+			elseif room >= 300 then
+				panel.Size = UDim2.new(0, room, panel.Size.Y.Scale, 0)
+				panel.Position = UDim2.new(0, left + room / 2, 0.5, 0)
+			end
+		end
 		local barHeight = if compact then 40 else 54
 		titleBar.Size = UDim2.new(1, 0, 0, barHeight)
 		-- With a corner icon (UiKit.panelIcon) the title starts after it.
@@ -612,6 +686,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		list.Size = UDim2.new(1, -20, 1, -(listTop + bottom))
 	end
 	UiKit.onViewportChanged(applyLayout)
+	gui:GetAttributeChangedSignal("MenuRight"):Connect(applyLayout)
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		if panel.Visible then
 			applyLayout()

@@ -3,6 +3,11 @@
 -- loose columns (Shop, Rewards, Codes / Actors, Studio, Upgrade), red badges for things to claim,
 -- and the wallet (Cash and Fame) under them. Phones in landscape keep the bottom left clear for the
 -- thumbstick, so there the wallet moves to the top centre.
+--
+-- Everything scales with the screen: up to 1.25x on tall screens, and down until the menu fits
+-- above the wallet on short ones. The layout is published on the ScreenGui for the other screens:
+-- "HudTop" (where the top-centre HUD starts) and "MenuRight" (the menu's right edge, which panels
+-- keep clear of when there is room).
 local UserInputService = game:GetService("UserInputService")
 
 local UiKit = require(script.Parent.UiKit)
@@ -10,8 +15,12 @@ local UiKit = require(script.Parent.UiKit)
 local SideMenu = {}
 
 local BUTTON = 84
-local GAP = 6
+local GAP = 12
 local STAGGER = BUTTON // 2 -- the second column starts half a button lower, like the reference
+local MENU_WIDTH = 2 * BUTTON + GAP
+local MENU_HEIGHT = 3 * (BUTTON + GAP) + STAGGER
+local OVERHANG = 22 -- labels and the Actors chip reach this far past the second column
+local WALLET_WIDTH = 260
 local WALLET_HEIGHT = 96
 
 export type Buttons = {
@@ -27,9 +36,8 @@ export type Buttons = {
 function SideMenu.start(gui: ScreenGui): Buttons
 	local menu = Instance.new("Frame")
 	menu.Name = "SideMenu"
-	menu.AnchorPoint = Vector2.new(0, 0.5)
 	menu.BackgroundTransparency = 1
-	menu.Size = UDim2.fromOffset(2 * BUTTON + GAP, 3 * (BUTTON + GAP) + STAGGER)
+	menu.Size = UDim2.fromOffset(MENU_WIDTH, MENU_HEIGHT)
 	menu.Parent = gui
 	local scale = Instance.new("UIScale")
 	scale.Parent = menu
@@ -37,33 +45,53 @@ function SideMenu.start(gui: ScreenGui): Buttons
 	local function button(column: number, row: number, icon: string, text: string): TextButton
 		local x = (column - 1) * (BUTTON + GAP)
 		local y = (row - 1) * (BUTTON + GAP) + (column - 1) * STAGGER
-		return UiKit.makeIconTile(menu, icon, text, UDim2.fromOffset(BUTTON, BUTTON), UDim2.fromOffset(x, y))
+		local tile = UiKit.makeIconTile(menu, icon, text, UDim2.fromOffset(BUTTON, BUTTON), UDim2.fromOffset(x, y))
+		-- Badges sit inside the corner, so they never land on the label of the button above.
+		tile:SetAttribute("BadgeInset", true)
+		return tile
 	end
 
 	local wallet = Instance.new("Frame")
 	wallet.Name = "Wallet"
 	wallet.BackgroundTransparency = 1
-	wallet.Size = UDim2.fromOffset(260, WALLET_HEIGHT)
+	wallet.Size = UDim2.fromOffset(WALLET_WIDTH, WALLET_HEIGHT)
 	wallet.Parent = gui
 	local walletScale = Instance.new("UIScale")
 	walletScale.Parent = wallet
 
-	UiKit.onViewportChanged(function()
-		-- Short (phone landscape) or narrow screens get smaller icons.
-		local compact = UiKit.isCompact() or UiKit.viewport().X < 700
-		scale.Scale = if compact then 0.72 else 1
-		walletScale.Scale = if compact then 0.8 else 1
+	local function layout()
+		local area = gui.AbsoluteSize
+		if area.X < 1 or area.Y < 1 then
+			area = UiKit.viewport()
+		end
+		local grow = math.clamp(area.Y / 880, 1, 1.25)
+		local walletSize = math.clamp(area.Y / 880, if area.Y < 500 then 0.8 else 1, 1.25)
+		walletScale.Scale = walletSize
+		local top = 8
+		local size, hudTop
 		if UserInputService.TouchEnabled then
-			-- Thumbstick bottom left: menu sits high on the left, wallet at the top centre.
-			menu.Position = UDim2.new(0, 10, 0.42, 0)
+			-- Thumbstick bottom left: the menu hangs from the top left, the wallet sits top centre.
+			local room = area.Y * 0.74 - top
+			size = math.clamp(math.min(grow, room / MENU_HEIGHT), 0.5, 1.25)
+			menu.Position = UDim2.fromOffset(10, top)
 			wallet.AnchorPoint = Vector2.new(0.5, 0)
 			wallet.Position = UDim2.new(0.5, 0, 0, 4)
+			hudTop = 4 + math.ceil(WALLET_HEIGHT * walletSize) + 2
 		else
-			menu.Position = UDim2.new(0, 14, 0.4, 0)
+			-- The menu fills the space above the wallet (bottom left), centred in it.
+			local room = area.Y - top - WALLET_HEIGHT * walletSize - 32
+			size = math.clamp(math.min(grow, room / MENU_HEIGHT), 0.5, 1.25)
+			menu.Position = UDim2.fromOffset(14, top + math.max(0, math.floor((room - MENU_HEIGHT * size) / 2)))
 			wallet.AnchorPoint = Vector2.new(0, 1)
 			wallet.Position = UDim2.new(0, 16, 1, -16)
+			hudTop = 8
 		end
-	end)
+		scale.Scale = size
+		gui:SetAttribute("HudTop", hudTop)
+		gui:SetAttribute("MenuRight", menu.Position.X.Offset + math.ceil((MENU_WIDTH + OVERHANG) * size))
+	end
+	UiKit.onViewportChanged(layout)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 
 	return {
 		shop = button(1, 1, "popcorn", "Shop"),

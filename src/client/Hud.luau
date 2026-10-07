@@ -4,7 +4,6 @@
 -- sends amounts to the server.
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -39,17 +38,21 @@ Hud.clock = clock
 function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local player = Players.LocalPlayer
 
-	-- Top centre: no box, outlined text floats over the world, as in the reference games. It moves
-	-- down on touch screens, where the wallet sits above it.
+	-- Top centre: no box, outlined text floats over the world, as in the reference games. It starts
+	-- where the side menu says ("HudTop"): under the wallet on touch screens, where the wallet sits
+	-- at the top.
 	local frame = Instance.new("Frame")
 	frame.Name = "Hud"
 	frame.AnchorPoint = Vector2.new(0.5, 0)
 	frame.Size = UDim2.fromOffset(420, 70)
 	frame.BackgroundTransparency = 1
 	frame.Parent = gui
-	UiKit.onViewportChanged(function()
-		frame.Position = UDim2.new(0.5, 0, 0, if UserInputService.TouchEnabled then 84 else 8)
-	end)
+	local function placeFrame()
+		local top = gui:GetAttribute("HudTop")
+		frame.Position = UDim2.new(0.5, 0, 0, if typeof(top) == "number" then top else 8)
+	end
+	gui:GetAttributeChangedSignal("HudTop"):Connect(placeFrame)
+	placeFrame()
 
 	local function makeLabel(y: number, height: number, color: Color3): TextLabel
 		local label = UiKit.makeTitle(frame, "", color, UDim2.new(1, 0, 0, height), UDim2.fromOffset(0, y), if height >= 40 then 3.5 else 2.5)
@@ -79,10 +82,14 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local fameLabel, fameArt = walletRow(54, 34, "star", UiKit.WHITE)
 	Icon3D.outlined(fameArt, "star", 0.95)
 	local plus = UiKit.makePlusButton(wallet, 36, UDim2.fromOffset(0, 5))
+	-- Just after the number. TextBounds is in screen pixels, so undo the wallet's scale first.
 	local function placePlus()
-		plus.Position = UDim2.fromOffset(cashLabel.Position.X.Offset + cashLabel.TextBounds.X + 10, 5)
+		local scale = if wallet.Size.X.Offset > 0 then wallet.AbsoluteSize.X / wallet.Size.X.Offset else 1
+		local width = cashLabel.TextBounds.X / math.max(scale, 0.01)
+		plus.Position = UDim2.fromOffset(cashLabel.Position.X.Offset + math.ceil(width) + 10, 5)
 	end
 	cashLabel:GetPropertyChangedSignal("TextBounds"):Connect(placePlus)
+	wallet:GetPropertyChangedSignal("AbsoluteSize"):Connect(placePlus)
 	placePlus()
 
 	local function refresh()

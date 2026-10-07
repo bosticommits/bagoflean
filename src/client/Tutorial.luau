@@ -88,12 +88,16 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	}
 
 	-- Banner ------------------------------------------------------------------------------------
-	-- Below the Cash HUD and the Award Night line (which ends 124 px down), so it covers neither.
-	local TOP_POSITION = UDim2.new(0.5, 0, 0, 132)
+	-- Below the top HUD (it starts at the side menu's "HudTop"; the event line, the box office line
+	-- and the "while you were away" note under them end 124 px lower), so it covers none of them.
+	local function topPosition(): UDim2
+		local hudTop = gui:GetAttribute("HudTop")
+		return UDim2.new(0.5, 0, 0, (if typeof(hudTop) == "number" then hudTop else 8) + 124)
+	end
 	local banner = Instance.new("Frame")
 	banner.Name = "Tutorial"
 	banner.AnchorPoint = Vector2.new(0.5, 0)
-	banner.Position = TOP_POSITION
+	banner.Position = topPosition()
 	banner.Size = UDim2.new(0.9, 0, 0, 58)
 	banner.BackgroundColor3 = UiKit.NAVY
 	banner.BackgroundTransparency = 0.05
@@ -352,6 +356,11 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	-- While a panel is open the banner would cover its title and close button, so it docks at the
 	-- bottom of the screen instead (over the button bar, which is not needed while a panel is up).
 	local docked = false
+	gui:GetAttributeChangedSignal("HudTop"):Connect(function()
+		if not docked then
+			banner.Position = topPosition()
+		end
+	end)
 	task.spawn(function()
 		while not finished do
 			local panelOpen = false
@@ -368,7 +377,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					banner.Position = UDim2.new(0.5, 0, 1, -12)
 				else
 					banner.AnchorPoint = Vector2.new(0.5, 0)
-					banner.Position = TOP_POSITION
+					banner.Position = topPosition()
 				end
 			end
 			task.wait(0.2)

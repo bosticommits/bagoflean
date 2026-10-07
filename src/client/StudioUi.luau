@@ -170,6 +170,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	local render: () -> ()
 	local openPicker: (stage: number) -> ()
+	local refreshTimers: () -> ()
 
 	local function stageSignature(): string
 		if state == nil then
@@ -193,9 +194,13 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				UiKit.rowIcon(row, "lock", 46)
 				-- With the +1 Sound Stage pass, every locked stage is one more Sound Stage upgrade away.
 				local hasPass = state.passes ~= nil and state.passes.ExtraStage == true
-				local how = if stage <= Config.MaxStages or hasPass then "buy it in Upgrades" else "+1 Sound Stage pass in the Shop"
-				local lockedLabel = makeLabel(row, `Stage {stage}  -  locked ({how})`, UiKit.FAINT, UDim2.new(1, -74, 0.6, 0), UDim2.new(0, 64, 0.2, 0))
-				lockedLabel.TextXAlignment = Enum.TextXAlignment.Left
+				local how = if stage <= Config.MaxStages or hasPass then "Buy it in Upgrades" else "Unlock with the +1 Sound Stage pass in the Shop"
+				local lockedTitle = UiKit.makeTitle(row, `Stage {stage}  -  locked`, UiKit.MUTED, UDim2.new(1, -74, 0, 26), UDim2.fromOffset(64, 5))
+				lockedTitle.TextXAlignment = Enum.TextXAlignment.Left
+				UiKit.textConstraint(lockedTitle, 22)
+				local lockedHow = makeLabel(row, how, UiKit.FAINT, UDim2.new(1, -74, 0, 18), UDim2.fromOffset(64, 33))
+				lockedHow.TextXAlignment = Enum.TextXAlignment.Left
+				UiKit.textConstraint(lockedHow, 16)
 				continue
 			end
 			local film = filmAt(stage)
@@ -306,10 +311,14 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				local count = state.scripts[Movies.scriptKey(genre, length.id)] or 0
 				local needFame = math.max(length.fame, Movies.GenreFame[genre] or 0)
 				local locked = fame < needFame
-				local text = if locked then `{genre}\nFame {needFame}` elseif count > 0 then `{genre} ({count})` else genre
+				local text = if locked then `{genre}\nFame {needFame}` else genre
 				local usable = not locked and cash >= length.cost
 				local button = makeButton(row, text, GENRE_COLORS[genre], UDim2.new(0.19, 0, 0, 40), UDim2.new((slot - 1) * 0.2 + 0.005, 0, 0, 44))
 				UiKit.setEnabled(button, usable, GENRE_COLORS[genre])
+				-- Owned copies as a green chip on the corner, like the menu's counters.
+				if count > 0 and not locked then
+					UiKit.chip(button, `x{count}`)
+				end
 				button.Activated:Connect(function()
 					buyScript:FireServer(genre, length.id)
 				end)
@@ -366,6 +375,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			renderCinema()
 		end
 		renderedSignature = stageSignature()
+		-- Fill the new stage rows' timers and buttons now rather than at the next tick.
+		refreshTimers()
 	end
 
 	for slot, name in tabNames do
@@ -434,14 +445,18 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		end
 		summaryLabel.Text = if #names > 0 then table.concat(names, ", ") else "Tap actors to cast them"
 		for slot, slotButton in castSlots do
-			local old = slotButton:FindFirstChild("Portrait")
-			if old ~= nil then
-				old:Destroy()
-			end
+			-- Only a slot whose actor changed gets a new portrait, so the others do not redraw.
 			local key = pickCast[slot]
-			slotButton.Text = if key == nil then "+" else ""
-			if key ~= nil then
-				UiKit.portrait(slotButton, key, UDim2.fromScale(1, 1))
+			if slotButton:GetAttribute("Key") ~= key then
+				slotButton:SetAttribute("Key", key)
+				local old = slotButton:FindFirstChild("Portrait")
+				if old ~= nil then
+					old:Destroy()
+				end
+				slotButton.Text = if key == nil then "+" else ""
+				if key ~= nil then
+					UiKit.portrait(slotButton, key, UDim2.fromScale(1, 1))
+				end
 			end
 		end
 		local genre: string? = nil
@@ -463,8 +478,89 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		UiKit.setEnabled(goButton, ready, UiKit.GREEN)
 	end
 
+	-- The picker's script buttons and actor cards stay between taps and are updated in place, so
+	-- their 3D pictures are not rebuilt (which made them blink) every time an actor is picked.
+	local scriptButtons: { [string]: TextButton } = {}
+	type ActorCard = { card: TextButton, power: TextLabel, bonus: TextLabel }
+	local actorCards: { [string]: ActorCard } = {}
+	local actorGrid: Frame? = nil
+	local noActorsRow: Frame? = nil
+	-- What the picker was built from (owned scripts, actors with free copies): a sync that changes
+	-- neither only refreshes it.
+	local pickerBuiltFor = ""
+	local function pickerSignature(): string
+		local parts = {}
+		if state ~= nil then
+			for key, count in state.scripts do
+				if count > 0 then
+					table.insert(parts, `s{key}={count}`)
+				end
+			end
+		end
+		local busy = busyCopies()
+		for key, count in roster do
+			local free = count - (busy[key] or 0)
+			if free > 0 then
+				table.insert(parts, `a{key}={free}`)
+			end
+		end
+		table.sort(parts)
+		return table.concat(parts, "|")
+	end
+
+	local function refreshPicker()
+		local genre = if pickScript ~= nil then string.split(pickScript, ":")[1] else nil
+		for key, button in scriptButtons do
+			local picked = key == pickScript
+			button.BackgroundColor3 = if picked then UiKit.GREEN else GENRE_COLORS[string.split(key, ":")[1]] or UiKit.BLUE
+			local outline = button:FindFirstChild("Outline")
+			if outline ~= nil and outline:IsA("UIStroke") then
+				outline.Color = if picked then UiKit.GOLD else UiKit.INK
+				outline.Thickness = if picked then 4 else 3
+			end
+		end
+		-- Free copies left after the cast so far; actors with none left hide. Best power first.
+		local busy = busyCopies()
+		local shown: { { key: string, power: number } } = {}
+		for key, entry in actorCards do
+			local free = (roster[key] or 0) - (busy[key] or 0) - pickedCount(key)
+			local power = Movies.actorPower(key, genre or "")
+			entry.card.Visible = free > 0
+			entry.power.Text = `Power {fmtPower(power)}`
+			UiKit.chip(entry.card, `x{math.max(free, 0)}`)
+			local actor = Actors.getActor(string.split(key, ":")[1])
+			local matches = genre ~= nil and actor ~= nil and actor.genre == genre
+			entry.bonus.Visible = matches
+			if genre ~= nil and matches then
+				entry.bonus.Text = `{genre} x{Movies.SpecialtyBonus}`
+				entry.bonus.BackgroundColor3 = GENRE_COLORS[genre] or UiKit.GOLD
+			end
+			if free > 0 then
+				table.insert(shown, { key = key, power = power })
+			end
+		end
+		table.sort(shown, function(a, b)
+			if a.power ~= b.power then
+				return a.power > b.power
+			end
+			return a.key < b.key
+		end)
+		for index, item in shown do
+			actorCards[item.key].card.LayoutOrder = index
+		end
+		if actorGrid ~= nil then
+			actorGrid.Visible = #shown > 0
+		end
+		if noActorsRow ~= nil then
+			noActorsRow.Visible = #shown == 0
+		end
+		updatePickerFooter()
+	end
+
 	buildPicker = function()
 		UiKit.clear(pickerList)
+		table.clear(scriptButtons)
+		table.clear(actorCards)
 		pickerHeader.Text = `Start movie  -  Stage {pickStage}`
 		local order = 0
 
@@ -479,21 +575,16 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				if count > 0 then
 					anyScript = true
 					order += 1
-					local picked = pickScript == key
-					local button = makeButton(pickerList, "", if picked then UiKit.GREEN else GENRE_COLORS[genre] or UiKit.BLUE, UDim2.new(1, -8, 0, 44))
+					local button = makeButton(pickerList, "", GENRE_COLORS[genre] or UiKit.BLUE, UDim2.new(1, -8, 0, 44))
 					button.LayoutOrder = order
-					if picked then
-						local outline = button:FindFirstChild("Outline") :: UIStroke
-						outline.Color = UiKit.GOLD
-						outline.Thickness = 4
-					end
 					smallIcon(button, "script", 38, UDim2.fromOffset(8, 3))
 					local label = UiKit.makeTitle(button, `{genre} {length.name}  x{count}  ({fmtTime(length.seconds)})`, WHITE, UDim2.new(1, -62, 1, -10), UDim2.fromOffset(54, 5), 2)
 					UiKit.textConstraint(label, 22)
 					button.Activated:Connect(function()
 						pickScript = key
-						buildPicker()
+						refreshPicker()
 					end)
+					scriptButtons[key] = button
 				end
 			end
 		end
@@ -507,36 +598,22 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		local h2 = UiKit.addRow(pickerList, order, 28)
 		UiKit.makeTitle(h2, `2. Cast (up to {Config.MaxCast})`, UiKit.GOLD, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
 
-		local genre = if pickScript ~= nil then string.split(pickScript, ":")[1] else nil
-		local busy = busyCopies()
-		local candidates: { { key: string, power: number, free: number } } = {}
-		for key, count in roster do
-			local free = count - (busy[key] or 0) - pickedCount(key)
-			if free > 0 then
-				table.insert(candidates, { key = key, power = Movies.actorPower(key, genre or ""), free = free })
-			end
-		end
-		table.sort(candidates, function(a, b)
-			if a.power ~= b.power then
-				return a.power > b.power
-			end
-			return a.key < b.key
-		end)
-		if #candidates == 0 then
-			order += 1
-			local row = UiKit.addRow(pickerList, order, 44)
-			makeLabel(row, "No free actors - cast some first", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
-		end
-		-- Free actors as picture cards in their rarity colors, best first; tap one to cast it.
+		order += 1
+		local emptyRow = UiKit.addRow(pickerList, order, 44)
+		makeLabel(emptyRow, "No free actors - cast some first", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
+		noActorsRow = emptyRow
+
+		-- Every actor with a copy not busy filming gets a picture card in its rarity colors; tap one
+		-- to cast it. refreshPicker hides the ones whose copies are all in the cast.
 		order += 1
 		local grid = Instance.new("Frame")
-		grid.Visible = #candidates > 0
 		grid.Name = "Actors"
 		grid.LayoutOrder = order
 		grid.BackgroundTransparency = 1
 		grid.Size = UDim2.new(1, -8, 0, 0)
 		grid.AutomaticSize = Enum.AutomaticSize.Y
 		grid.Parent = pickerList
+		actorGrid = grid
 		local layout = Instance.new("UIGridLayout")
 		layout.CellSize = UDim2.new(1 / 3, -8, 0, if UiKit.isCompact() then 128 else 150)
 		layout.CellPadding = UDim2.fromOffset(10, 10)
@@ -546,17 +623,20 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		pad.PaddingLeft = UDim.new(0, 3)
 		pad.PaddingTop = UDim.new(0, 8)
 		pad.Parent = grid
-		for slot, entry in candidates do
-			local parts = string.split(entry.key, ":")
+		local busy = busyCopies()
+		for key, count in roster do
+			if count - (busy[key] or 0) <= 0 then
+				continue
+			end
+			local parts = string.split(key, ":")
 			local actor = Actors.getActor(parts[1])
 			local card = Instance.new("TextButton")
-			card.Name = entry.key
-			card.LayoutOrder = slot
+			card.Name = key
 			card.Text = ""
 			card.AutoButtonColor = false
 			card.Parent = grid
 			corner(card, 12)
-			UiKit.rarityStyle(card, entry.key, 3)
+			UiKit.rarityStyle(card, key, 3)
 			local art = Instance.new("Frame")
 			art.Name = "Art"
 			art.BackgroundTransparency = 1
@@ -566,36 +646,35 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			if actor ~= nil then
 				Icon3D.actor(art, actor.id, parts[2])
 			end
-			local name = UiKit.makeTitle(card, actorLabel(entry.key), WHITE, UDim2.fromScale(0.94, 0.17), UDim2.fromScale(0.03, 0.6), 2)
+			local name = UiKit.makeTitle(card, actorLabel(key), WHITE, UDim2.fromScale(0.94, 0.17), UDim2.fromScale(0.03, 0.6), 2)
 			name.ZIndex = 3
 			UiKit.textConstraint(name, 18)
-			local power = UiKit.makeTitle(card, `Power {fmtPower(entry.power)}`, UiKit.GOLD, UDim2.fromScale(0.94, 0.15), UDim2.fromScale(0.03, 0.79), 2)
+			local power = UiKit.makeTitle(card, "", UiKit.GOLD, UDim2.fromScale(0.94, 0.15), UDim2.fromScale(0.03, 0.79), 2)
 			power.ZIndex = 3
 			UiKit.textConstraint(power, 18)
-			-- How many copies are free, and a tag when the actor's specialty matches the script.
-			UiKit.chip(card, `x{entry.free}`)
-			if genre ~= nil and actor ~= nil and actor.genre == genre then
-				local bonus = UiKit.makeTitle(card, `{genre} x{Movies.SpecialtyBonus}`, WHITE, UDim2.fromOffset(86, 22), UDim2.fromOffset(-6, -8), 1.5)
-				bonus.BackgroundTransparency = 0
-				bonus.BackgroundColor3 = GENRE_COLORS[genre] or UiKit.GOLD
-				bonus.Rotation = -4
-				bonus.ZIndex = 6
-				corner(bonus, 8)
-				UiKit.border(bonus, 2)
-				UiKit.textConstraint(bonus, 15)
-			end
+			-- Tag shown when the actor's specialty matches the picked script.
+			local bonus = UiKit.makeTitle(card, "", WHITE, UDim2.fromOffset(86, 22), UDim2.fromOffset(-6, -8), 1.5)
+			bonus.BackgroundTransparency = 0
+			bonus.Rotation = -4
+			bonus.ZIndex = 6
+			bonus.Visible = false
+			corner(bonus, 8)
+			UiKit.border(bonus, 2)
+			UiKit.textConstraint(bonus, 15)
 			UiKit.bounce(card)
 			card.Activated:Connect(function()
 				Sfx.play("click")
 				if #pickCast < Config.MaxCast then
-					table.insert(pickCast, entry.key)
-					buildPicker()
+					table.insert(pickCast, key)
+					refreshPicker()
 				else
 					UiKit.toast(gui, `A movie takes at most {Config.MaxCast} actors`)
 				end
 			end)
+			actorCards[key] = { card = card, power = power, bonus = bonus }
 		end
-		updatePickerFooter()
+		pickerBuiltFor = pickerSignature()
+		refreshPicker()
 	end
 
 	openPicker = function(stage: number)
@@ -608,14 +687,14 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	clearButton.Activated:Connect(function()
 		pickCast = {}
-		buildPicker()
+		refreshPicker()
 	end)
 	for slot, slotButton in castSlots do
 		slotButton.Activated:Connect(function()
 			if pickCast[slot] ~= nil then
 				Sfx.play("click")
 				table.remove(pickCast, slot)
-				buildPicker()
+				refreshPicker()
 			end
 		end)
 	end
@@ -783,10 +862,18 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		state = ClientState.studio
 		syncedAt = ClientState.syncedAt
 		roster = ClientState.roster
-		if kind ~= "studio" then
-			if picker.Visible then
-				buildPicker()
+		local function syncPicker()
+			if not picker.Visible then
+				return
 			end
+			if pickerSignature() ~= pickerBuiltFor then
+				buildPicker()
+			else
+				refreshPicker()
+			end
+		end
+		if kind ~= "studio" then
+			syncPicker()
 			return
 		end
 		if panel.Visible then
@@ -795,9 +882,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				render()
 			end
 		end
-		if picker.Visible then
-			buildPicker()
-		end
+		syncPicker()
 		-- A Skip Filming bought from a stage's Skip button is used on that stage right away.
 		local skipStage = pendingSkipStage
 		if skipStage ~= nil and state ~= nil and (state.skips or 0) > 0 then
@@ -829,7 +914,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	-- Live countdowns: refresh timers in place (so buttons are never rebuilt under a tap). The loop
 	-- only runs while the panel is open.
-	local function refreshTimers()
+	refreshTimers = function()
 		if tab ~= "Stages" or state == nil then
 			return
 		end

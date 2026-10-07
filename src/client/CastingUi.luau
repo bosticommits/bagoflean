@@ -134,15 +134,18 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	local agencyButtons: { [string]: TextButton } = {}
 
 	local buildOdds: () -> ()
+	local agencyTabs: { TextButton } = {}
 	for slot, agency in Actors.Agencies do
 		local button = makeButton(agencyRow, agency.name, UiKit.TAB_OFF, UDim2.new(0.32, 0, 1, 0), UDim2.new((slot - 1) * 0.34, 0, 0, 0))
 		agencyButtons[agency.id] = button
+		table.insert(agencyTabs, button)
 		button.Activated:Connect(function()
 			agencyId = agency.id
 			refreshCastButton()
 			buildOdds()
 		end)
 	end
+	UiKit.evenText(agencyTabs, 24)
 
 	buildOdds = function()
 		UiKit.clear(oddsList)

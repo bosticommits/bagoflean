@@ -153,16 +153,20 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 		else
 			titleText, subText = `{state.daily.streak} day streak`, `Come back tomorrow for Day {cycleDay % #Rewards.Daily + 1}`
 		end
-		local hero = UiKit.addRow(list, 1, 78)
+		-- Short screens get a slimmer hero row, so the first week's tiles fit under it.
+		local compact = UiKit.isCompact()
+		local heroHeight = if compact then 60 else 78
+		local hero = UiKit.addRow(list, 1, heroHeight)
 		hero.BackgroundColor3 = UiKit.PURPLE:Lerp(UiKit.NAVY, 0.45)
-		local heroTitle = UiKit.makeTitle(hero, titleText, UiKit.GOLD, UDim2.new(0.58, -12, 0, 34), UDim2.fromOffset(12, 7), 2.5)
+		local heroTitle = UiKit.makeTitle(hero, titleText, UiKit.GOLD, UDim2.new(0.58, -12, 0, if compact then 28 else 34), UDim2.fromOffset(12, if compact then 4 else 7), 2.5)
 		heroTitle.TextXAlignment = Enum.TextXAlignment.Left
 		UiKit.textConstraint(heroTitle, 32)
-		local heroSub = makeLabel(hero, subText, UiKit.WHITE, UDim2.new(0.58, -12, 0, 22), UDim2.fromOffset(12, 46))
+		local heroSub = makeLabel(hero, subText, UiKit.WHITE, UDim2.new(0.58, -12, 0, 20), UDim2.fromOffset(12, if compact then 35 else 46))
 		heroSub.TextXAlignment = Enum.TextXAlignment.Left
 		UiKit.textConstraint(heroSub, 18)
 		if canClaim then
-			local claimButton = makeButton(hero, `CLAIM DAY {cycleDay}!`, UiKit.GREEN, UDim2.new(0.4, -6, 0, 56), UDim2.new(0.6, 0, 0.5, -28))
+			local buttonHeight = heroHeight - 20
+			local claimButton = makeButton(hero, `CLAIM DAY {cycleDay}!`, UiKit.GREEN, UDim2.new(0.4, -6, 0, buttonHeight), UDim2.new(0.6, 0, 0.5, -buttonHeight // 2))
 			claimButton.Name = "ClaimDaily"
 			UiKit.textConstraint(claimButton, 28)
 			UiKit.pulse(claimButton)
@@ -175,8 +179,8 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 
 		local columns = if listWidth() >= 430 then 6 else 3
 		local cellWidth = (listWidth() - (columns - 1) * 6) / columns
-		local cellHeight = math.floor(math.clamp(cellWidth * 1.3, 100, 150))
-		local bannerHeight = if UiKit.isCompact() then 96 else 108
+		local cellHeight = math.floor(if compact then math.clamp(cellWidth * 1.15, 92, 130) else math.clamp(cellWidth * 1.3, 100, 150))
+		local bannerHeight = if compact then 96 else 108
 		local order = 1
 		local todayWeek: Frame? = nil -- the week holding today's reward, scrolled into view on open
 
@@ -450,10 +454,26 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 
 	local codeMessage: TextLabel? = nil
 	local function renderCodes()
-		local row = UiKit.addRow(list, 1, 124)
-		UiKit.rowIcon(row, "ticket", 84)
-		local left = 100
-		makeLabel(row, "Have a code? Find them on our socials.", UiKit.MUTED, UDim2.new(1, -(left + 10), 0, 24), UDim2.fromOffset(left, 8))
+		local compact = UiKit.isCompact()
+		-- The code box as a card: a big ticket, a title, the box with Redeem, and the answer.
+		local iconSize = if compact then 64 else 96
+		local titleY = iconSize + 8
+		local boxY = titleY + (if compact then 34 else 40)
+		local boxHeight = if compact then 42 else 48
+		local messageY = boxY + boxHeight + 8
+		local card = UiKit.addRow(list, 1, messageY + 30)
+		card.BackgroundColor3 = UiKit.PURPLE:Lerp(UiKit.NAVY, 0.55)
+		local art = Instance.new("Frame")
+		art.Name = "Icon"
+		art.BackgroundTransparency = 1
+		art.AnchorPoint = Vector2.new(0.5, 0)
+		art.Position = UDim2.new(0.5, 0, 0, 6)
+		art.Size = UDim2.fromOffset(iconSize, iconSize)
+		art.ZIndex = card.ZIndex + 1
+		art.Parent = card
+		Icon3D.outlined(art, "ticket")
+		local title = UiKit.makeTitle(card, "Redeem a code", UiKit.GOLD, UDim2.new(1, -20, 0, if compact then 28 else 32), UDim2.fromOffset(10, titleY), 2.5)
+		UiKit.textConstraint(title, 30)
 		local box = Instance.new("TextBox")
 		box.PlaceholderText = "Enter code"
 		box.Text = ""
@@ -463,14 +483,19 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 		box.PlaceholderColor3 = UiKit.FAINT
 		box.TextScaled = true
 		box.Font = UiKit.DISPLAY_FONT
-		box.Position = UDim2.fromOffset(left, 40)
-		box.Size = UDim2.new(0.6, -left, 0, 44)
-		box.Parent = row
+		box.Position = UDim2.fromOffset(16, boxY)
+		box.Size = UDim2.new(0.62, -22, 0, boxHeight)
+		box.Parent = card
 		UiKit.corner(box, 10)
 		UiKit.border(box, 3)
 		UiKit.textConstraint(box :: any, 24)
-		local redeem = makeButton(row, "Redeem", UiKit.GREEN, UDim2.new(0.38, -10, 0, 44), UDim2.new(0.62, 0, 0, 40))
-		local message = makeLabel(row, "", UiKit.GOLD, UDim2.new(1, -(left + 10), 0, 24), UDim2.fromOffset(left, 92))
+		local boxPad = Instance.new("UIPadding")
+		boxPad.PaddingLeft = UDim.new(0, 10)
+		boxPad.PaddingRight = UDim.new(0, 10)
+		boxPad.Parent = box
+		local redeem = makeButton(card, "Redeem", UiKit.GREEN, UDim2.new(0.38, -16, 0, boxHeight), UDim2.new(0.62, 0, 0, boxY))
+		local message = makeLabel(card, "", UiKit.GOLD, UDim2.new(1, -32, 0, 22), UDim2.fromOffset(16, messageY))
+		UiKit.outline(message, 1.5)
 		codeMessage = message
 		local function submit()
 			if box.Text ~= "" then
@@ -483,6 +508,41 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 				submit()
 			end
 		end)
+
+		-- What codes can give, as pictures.
+		local pictureSize = if compact then 52 else 64
+		local gives = UiKit.addRow(list, 2, pictureSize + 64)
+		local heading = makeLabel(gives, "Codes can give", UiKit.MUTED, UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 6))
+		UiKit.textConstraint(heading, 18)
+		local kinds = {
+			{ icon = "moneybag", text = "Cash", color = UiKit.GOLD },
+			{ icon = "clover", text = "Luck boosts", color = UiKit.CASH_GREEN },
+			{ icon = "script", text = "Free scripts", color = UiKit.WHITE },
+		}
+		for index, kind in kinds do
+			local slot = Instance.new("Frame")
+			slot.BackgroundTransparency = 1
+			slot.Position = UDim2.new((index - 1) / #kinds, 0, 0, 28)
+			slot.Size = UDim2.new(1 / #kinds, 0, 1, -32)
+			slot.Parent = gives
+			local pictureArt = Instance.new("Frame")
+			pictureArt.BackgroundTransparency = 1
+			pictureArt.AnchorPoint = Vector2.new(0.5, 0)
+			pictureArt.Position = UDim2.fromScale(0.5, 0)
+			pictureArt.Size = UDim2.fromOffset(pictureSize, pictureSize)
+			pictureArt.ZIndex = gives.ZIndex + 1
+			pictureArt.Parent = slot
+			Icon3D.outlined(pictureArt, kind.icon)
+			local label = UiKit.makeTitle(slot, kind.text, kind.color, UDim2.new(1, -8, 0, 22), UDim2.new(0, 4, 0, pictureSize + 2), 2)
+			UiKit.textConstraint(label, 20)
+		end
+
+		-- Where new ones come from.
+		local hint = UiKit.addRow(list, 3, 56)
+		UiKit.rowIcon(hint, "star", 42)
+		local hintLabel = makeLabel(hint, "New codes come with updates and on our socials", UiKit.MUTED, UDim2.new(1, -72, 1, -14), UDim2.fromOffset(60, 7))
+		hintLabel.TextXAlignment = Enum.TextXAlignment.Left
+		UiKit.textConstraint(hintLabel, 18)
 	end
 
 	local function tickCountdown()
