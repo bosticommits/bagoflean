@@ -62,3 +62,39 @@ colors only (no text, particles or lights).
 
 The Blender scripts also run with the `bpy` Python package (Python 3.11) instead of the Blender
 app; see the top of `art/blender/mmkit.py`.
+
+## Store art: logo, thumbnails and icon
+
+`art/blender/store/` renders the Roblox store images in Blender from the game's own lot and actor
+models (through `art/preview/dump.luau`), so the art shows what players can really get. The
+finished images are in `art/store/`.
+
+| Script | What it makes |
+|---|---|
+| `logo.py` | The 3D "HOLLYWOOD RNG" logo with a clapperboard and a die, on a transparent background |
+| `thumbnail.py` | Main thumbnail: a shocked player pulls the Icon actor (The Mogul's Muse, 1 in 1,000,000) on a max-level lot |
+| `thumbnail_lots.py` | Second thumbnail: the same lot on day one and fully upgraded ("noob" to "mogul") |
+| `icon.py` | The icon: a close-up of the main thumbnail's scene |
+| `words.py` | The chunky 3D words laid on top ("1 IN 1,000,000!", "ICON", "RNG", "NOOB", "MOGUL", the arrow) |
+| `compose.py` | Lays the words on the renders and writes the finished PNGs |
+| `kit.py` | Shared helpers: the part importer, materials, 3D words, props, and the player's faces |
+
+It needs the `bpy` Python package (Python 3.11) with `shapely` and `Pillow`, and Lune. From the
+repo root:
+
+```
+pip install bpy shapely pillow
+export LUNE=/path/to/lune STORE_OUT=/tmp/store
+for s in words logo icon thumbnail thumbnail_lots; do
+  python -c "import bpy, runpy, sys; runpy.run_path(sys.argv[1], run_name='__main__')" art/blender/store/$s.py
+done
+python art/blender/store/compose.py    # writes $STORE_OUT/final/*.png
+```
+
+For quick test renders set `STORE_SCALE=50 STORE_SAMPLES=24`. Everything renders with Cycles on
+the CPU; the main thumbnail takes about 15 minutes on 4 cores.
+
+To upload them: on the Creator Dashboard open the game, then **Configure → Places**, click the
+start place, and use **Icon** (`hollywood-rng-icon-512.png`) and **Thumbnails** (the 1920 x 1080
+PNGs). Roblox can rotate several thumbnails and show each player the one that works best. Keep
+important things away from the bottom edge of a thumbnail, where Roblox may draw player counts.
