@@ -5,9 +5,13 @@ local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local LotService = require(script.Parent.LotService)
+local MovieService = require(script.Parent.MovieService)
+local Remotes = require(script.Parent.Remotes)
 
 LotService.start()
 CastingService.start()
+MovieService.start()
+Remotes.publish()
 
 local function onPlayerAdded(player: Player)
 	local data = DataService.load(player)
@@ -33,6 +37,7 @@ local function onPlayerRemoving(player: Player)
 	LotService.release(player)
 	EconomyService.forget(player)
 	CastingService.forget(player)
+	MovieService.forget(player)
 	DataService.release(player)
 end
 

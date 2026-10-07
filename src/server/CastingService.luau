@@ -7,25 +7,16 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local Remotes = require(script.Parent.Remotes)
 
 local random = Random.new()
 local lastCast: { [Player]: number } = {}
 local lastRosterRequest: { [Player]: number } = {}
 
-local remotes = Instance.new("Folder")
-remotes.Name = "Remotes"
-local castRemote = Instance.new("RemoteEvent")
-castRemote.Name = "Cast"
-castRemote.Parent = remotes
-local castResult = Instance.new("RemoteEvent")
-castResult.Name = "CastResult"
-castResult.Parent = remotes
-local rosterRequest = Instance.new("RemoteEvent")
-rosterRequest.Name = "RosterRequest"
-rosterRequest.Parent = remotes
-local rosterSync = Instance.new("RemoteEvent")
-rosterSync.Name = "RosterSync"
-rosterSync.Parent = remotes
+local castRemote = Remotes.get("Cast")
+local castResult = Remotes.get("CastResult")
+local rosterRequest = Remotes.get("RosterRequest")
+local rosterSync = Remotes.get("RosterSync")
 
 local CastingService = {}
 
@@ -89,6 +80,9 @@ local function onCast(player: Player)
 		count = count,
 	})
 	sendRoster(player)
+	if actor.tier == "Legend" or actor.tier == "Icon" then
+		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
+	end
 end
 
 local function onRosterRequest(player: Player)
@@ -102,7 +96,6 @@ local function onRosterRequest(player: Player)
 end
 
 function CastingService.start()
-	remotes.Parent = ReplicatedStorage
 	castRemote.OnServerEvent:Connect(onCast)
 	rosterRequest.OnServerEvent:Connect(onRosterRequest)
 end

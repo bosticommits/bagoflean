@@ -1,5 +1,9 @@
 --!strict
 -- The only place Cash changes. Clients never send amounts; they can only ask to collect.
+--
+-- Cinema royalties: the rate is a free trickle plus a share of every movie in the cinema. Because
+-- the rate changes when a movie premieres, earnings are banked into `data.accrued` at the old
+-- rate first (see accrue), then the rate changes. The bank is capped at OfflineCapSeconds of income.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -9,9 +13,30 @@ local lastCollectAttempt: { [Player]: number } = {}
 
 local EconomyService = {}
 
+-- Cash per second the cinema earns right now.
+function EconomyService.rate(data: DataService.PlayerData): number
+	local rate = Config.CinemaIncomePerSecond
+	for _, movie in data.cinema do
+		rate += movie.payout * Config.RoyaltyRate
+	end
+	return rate
+end
+
+local function bankedAt(data: DataService.PlayerData, now: number): number
+	local elapsed = math.max(now - data.lastCollect, 0)
+	local rate = EconomyService.rate(data)
+	return math.min(data.accrued + elapsed * rate, Config.OfflineCapSeconds * rate)
+end
+
+-- Moves royalties earned so far into the bank. Call before anything that changes the rate.
+function EconomyService.accrue(data: DataService.PlayerData)
+	local now = os.time()
+	data.accrued = bankedAt(data, now)
+	data.lastCollect = now
+end
+
 function EconomyService.pending(data: DataService.PlayerData): number
-	local elapsed = math.clamp(os.time() - data.lastCollect, 0, Config.OfflineCapSeconds)
-	return math.floor(elapsed * Config.CinemaIncomePerSecond)
+	return math.floor(bankedAt(data, os.time()))
 end
 
 -- Mirror server-owned numbers to attributes so the HUD can read them. Read-only for clients.
@@ -22,6 +47,8 @@ function EconomyService.refresh(player: Player)
 	end
 	player:SetAttribute("Cash", data.cash)
 	player:SetAttribute("Pending", EconomyService.pending(data))
+	player:SetAttribute("Rate", math.floor(EconomyService.rate(data) * 100) / 100)
+	player:SetAttribute("Fame", data.fame)
 end
 
 -- Server-only API for later milestones (premiere payouts, rewards).
@@ -61,11 +88,12 @@ function EconomyService.collect(player: Player): number
 	if data == nil then
 		return 0
 	end
-	local amount = EconomyService.pending(data)
+	EconomyService.accrue(data)
+	local amount = math.floor(data.accrued)
 	if amount <= 0 then
 		return 0
 	end
-	data.lastCollect = os.time()
+	data.accrued -= amount -- keep the fractional remainder
 	EconomyService.addCash(player, amount)
 	return amount
 end

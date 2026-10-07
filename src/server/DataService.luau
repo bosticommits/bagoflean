@@ -6,22 +6,54 @@ local Players = game:GetService("Players")
 
 local ProfileStore = require(script.Parent.ProfileStore)
 
+-- A movie being filmed. Times are os.time() stamps, so filming continues while offline.
+export type Film = {
+	stage: number,
+	title: string,
+	genre: string,
+	length: string,
+	cast: { string }, -- "actorId:variantId" keys; these copies are busy until the premiere
+	startTime: number,
+	endTime: number,
+}
+
+-- A premiered movie sitting in the cinema earning royalties.
+export type CinemaMovie = {
+	title: string,
+	genre: string,
+	result: string,
+	payout: number,
+	time: number,
+}
+
 export type PlayerData = {
 	version: number,
 	cash: number,
-	lastCollect: number, -- os.time() of the last cinema collect
-	roster: { [string]: number }, -- "actorId:variantId" -> copies owned (spent on movies in M3)
+	lastCollect: number, -- os.time() royalties were last banked into `accrued`
+	accrued: number, -- banked cinema royalties waiting for the collect pad
+	fame: number, -- never resets; unlocks things in M4
+	stageCount: number,
+	roster: { [string]: number }, -- "actorId:variantId" -> copies owned
 	index: { [string]: boolean }, -- "actorId:variantId" -> ever discovered (kept through Sequel)
+	scripts: { [string]: number }, -- "genre:lengthId" -> unused scripts
+	films: { Film },
+	cinema: { CinemaMovie },
 }
 
-local CURRENT_VERSION = 1
+local CURRENT_VERSION = 2
 
 local TEMPLATE: PlayerData = {
 	version = CURRENT_VERSION,
 	cash = 0,
 	lastCollect = 0, -- replaced with the join time for brand-new profiles in load()
+	accrued = 0,
+	fame = 0,
+	stageCount = 1,
 	roster = {},
 	index = {},
+	scripts = {},
+	films = {},
+	cinema = {},
 }
 
 local playerStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
@@ -44,6 +76,24 @@ local function migrate(data: any)
 	end
 	if type(data.index) ~= "table" then
 		data.index = {}
+	end
+	for _, field in { "accrued", "fame" } do
+		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
+			data[field] = 0
+		end
+	end
+	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
+		data.stageCount = 1
+	end
+	for _, field in { "scripts" } do
+		if type(data[field]) ~= "table" then
+			data[field] = {}
+		end
+	end
+	for _, field in { "films", "cinema" } do
+		if type(data[field]) ~= "table" then
+			data[field] = {}
+		end
 	end
 	data.version = CURRENT_VERSION
 end
