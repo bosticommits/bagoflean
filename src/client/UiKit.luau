@@ -1,17 +1,37 @@
 --!strict
 -- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
+-- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
+-- thick dark outlines, chunky bright buttons and outlined white display text.
 local Sfx = require(script.Parent.Sfx)
 
 local UiKit = {}
 
-UiKit.DARK = Color3.fromRGB(25, 25, 35)
-UiKit.PANEL = Color3.fromRGB(38, 38, 52)
+-- Palette from the design kit and ART_STYLE.md: navy panels, near-black outlines, bright fills.
+UiKit.INK = Color3.fromRGB(11, 15, 31) -- every outline and text stroke
+UiKit.NAVY = Color3.fromRGB(27, 35, 64)
+UiKit.DARK = Color3.fromRGB(20, 26, 51)
+UiKit.PANEL = UiKit.NAVY
+UiKit.ROW = Color3.fromRGB(42, 50, 85)
 UiKit.WHITE = Color3.new(1, 1, 1)
-UiKit.MUTED = Color3.fromRGB(170, 170, 185)
-UiKit.GOLD = Color3.fromRGB(255, 220, 90)
-UiKit.GREEN = Color3.fromRGB(70, 160, 90)
-UiKit.RED = Color3.fromRGB(230, 70, 70)
-UiKit.BLUE = Color3.fromRGB(70, 90, 160)
+UiKit.MUTED = Color3.fromRGB(169, 177, 204)
+UiKit.FAINT = Color3.fromRGB(107, 115, 147) -- locked and unknown text
+UiKit.GOLD = Color3.fromRGB(255, 210, 63) -- Cash, rewards and highlights
+UiKit.AWARD_GOLD = Color3.fromRGB(245, 184, 46)
+UiKit.GREEN = Color3.fromRGB(63, 203, 69) -- go / claim buttons
+UiKit.CASH_GREEN = Color3.fromRGB(124, 240, 138) -- "+$X" pops
+UiKit.RED = Color3.fromRGB(200, 32, 47) -- carpet red
+UiKit.CLOSE_RED = Color3.fromRGB(229, 38, 47)
+UiKit.WARN = Color3.fromRGB(255, 138, 102) -- "needs Fame" text
+UiKit.BLUE = Color3.fromRGB(46, 134, 222)
+UiKit.PURPLE = Color3.fromRGB(160, 77, 255)
+UiKit.BURGUNDY = Color3.fromRGB(122, 31, 43)
+UiKit.CREAM = Color3.fromRGB(244, 231, 207)
+UiKit.FRESH_GREEN = Color3.fromRGB(91, 191, 90)
+UiKit.DISABLED = Color3.fromRGB(74, 82, 114)
+UiKit.TAB_OFF = Color3.fromRGB(52, 64, 106)
+
+UiKit.DISPLAY_FONT = Enum.Font.FredokaOne -- titles, numbers, buttons
+UiKit.BODY_FONT = Enum.Font.GothamBold -- labels and help text
 
 UiKit.GENRE_COLORS = {
 	Action = Color3.fromRGB(235, 120, 60),
@@ -21,16 +41,50 @@ UiKit.GENRE_COLORS = {
 	["Sci-Fi"] = Color3.fromRGB(70, 190, 230),
 } :: { [string]: Color3 }
 
+-- The Icon tier is prismatic: a rainbow for gradients, strokes and banners.
+UiKit.RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 90, 46)),
+	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 194, 26)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(76, 199, 100)),
+	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(58, 141, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 77, 255)),
+})
+
 function UiKit.corner(parent: Instance, radius: number)
 	local c = Instance.new("UICorner")
 	c.CornerRadius = UDim.new(0, radius)
 	c.Parent = parent
 end
 
+-- Caps scaled text size. Calling it again updates the cap instead of stacking a second constraint.
 function UiKit.textConstraint(label: TextLabel | TextButton, maxSize: number)
-	local c = Instance.new("UITextSizeConstraint")
+	local c = label:FindFirstChildOfClass("UITextSizeConstraint") or Instance.new("UITextSizeConstraint")
 	c.MaxTextSize = maxSize
 	c.Parent = label
+end
+
+-- Thick dark outline around an object's edge (frames, buttons, rows).
+function UiKit.border(parent: GuiObject, thickness: number?, color: Color3?): UIStroke
+	local stroke = Instance.new("UIStroke")
+	stroke.Name = "Outline"
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Color = color or UiKit.INK
+	stroke.Thickness = thickness or 3
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
+	stroke.Parent = parent
+	return stroke
+end
+
+-- Cartoon outlined text: the dark stroke around the letters that keeps them readable on any color.
+function UiKit.outline(label: TextLabel | TextButton, thickness: number?): UIStroke
+	local stroke = Instance.new("UIStroke")
+	stroke.Name = "TextOutline"
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	stroke.Color = UiKit.INK
+	stroke.Thickness = thickness or 2
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
+	stroke.Parent = label
+	return stroke
 end
 
 function UiKit.makeLabel(parent: Instance, text: string, color: Color3, size: UDim2, position: UDim2?): TextLabel
@@ -41,12 +95,21 @@ function UiKit.makeLabel(parent: Instance, text: string, color: Color3, size: UD
 	label.Text = text
 	label.TextColor3 = color
 	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
+	label.Font = UiKit.BODY_FONT
 	label.Parent = parent
 	UiKit.textConstraint(label, 28)
 	return label
 end
 
+-- Big outlined display text (titles, Cash, results).
+function UiKit.makeTitle(parent: Instance, text: string, color: Color3, size: UDim2, position: UDim2?, strokeThickness: number?): TextLabel
+	local label = UiKit.makeLabel(parent, text, color, size, position)
+	label.Font = UiKit.DISPLAY_FONT
+	UiKit.outline(label, strokeThickness or 2.5)
+	return label
+end
+
+-- Chunky button: bright fill, dark outline, outlined white label and a darker lower band.
 function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: UDim2, position: UDim2?): TextButton
 	local button = Instance.new("TextButton")
 	button.AutoButtonColor = true
@@ -56,10 +119,23 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 	button.Text = text
 	button.TextColor3 = UiKit.WHITE
 	button.TextScaled = true
-	button.Font = Enum.Font.GothamBold
+	button.Font = UiKit.DISPLAY_FONT
 	button.Parent = parent
-	UiKit.corner(button, 10)
+	UiKit.corner(button, 12)
 	UiKit.textConstraint(button, 26)
+	UiKit.border(button, 3)
+	UiKit.outline(button, 2)
+	-- Shading: full color on top, a slightly darker lower band (the kit's "chunky" bevel).
+	local shade = Instance.new("UIGradient")
+	shade.Name = "Shade"
+	shade.Rotation = 90
+	shade.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0.7, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0.74, Color3.fromRGB(205, 205, 205)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(205, 205, 205)),
+	})
+	shade.Parent = button
 	-- Every button clicks, unless it plays its own sound (set the "Silent" attribute).
 	button.Activated:Connect(function()
 		if not button:GetAttribute("Silent") then
@@ -69,18 +145,69 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 	return button
 end
 
+-- Grey a button out (still tappable, so it can explain why) or give it back its color.
+function UiKit.setEnabled(button: TextButton, enabled: boolean, color: Color3)
+	button.BackgroundColor3 = if enabled then color else UiKit.DISABLED
+	button.TextColor3 = if enabled then UiKit.WHITE else UiKit.MUTED
+end
+
+-- Tab look: the selected tab is a white chip with navy text, the others dark.
+function UiKit.styleTab(button: TextButton, selected: boolean)
+	button.BackgroundColor3 = if selected then UiKit.WHITE else UiKit.TAB_OFF
+	button.TextColor3 = if selected then UiKit.NAVY else UiKit.WHITE
+	local stroke = button:FindFirstChild("TextOutline")
+	if stroke ~= nil and stroke:IsA("UIStroke") then
+		stroke.Enabled = not selected
+	end
+end
+
+-- Red notification badge on a button's top corner ("3" or "!"). Pass nil to hide it.
+function UiKit.badge(button: GuiObject, text: string?)
+	local badge = button:FindFirstChild("Badge") :: TextLabel?
+	if text == nil then
+		if badge ~= nil then
+			badge.Visible = false
+		end
+		return
+	end
+	if badge == nil then
+		local created = UiKit.makeTitle(button, "", UiKit.WHITE, UDim2.fromOffset(24, 24), UDim2.new(1, -14, 0, -10), 1.5)
+		created.Name = "Badge"
+		created.BackgroundTransparency = 0
+		created.BackgroundColor3 = UiKit.CLOSE_RED
+		created.ZIndex = button.ZIndex + 2
+		UiKit.corner(created, 12)
+		UiKit.border(created, 2)
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0, 3)
+		pad.PaddingBottom = UDim.new(0, 3)
+		pad.Parent = created
+		badge = created
+	end
+	assert(badge ~= nil)
+	badge.Text = text
+	badge.Visible = true
+end
+
 -- Bottom-of-screen message that fades after two seconds.
 local toastLabel: TextLabel? = nil
 local toastToken = 0
 function UiKit.toast(gui: ScreenGui, text: string)
 	local label = toastLabel
 	if label == nil then
-		label = UiKit.makeLabel(gui, "", UiKit.WHITE, UDim2.fromOffset(320, 40), UDim2.new(0.5, -160, 1, -140))
+		label = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(340, 44), UDim2.new(0.5, -170, 1, -144))
 		label.Name = "Toast"
-		label.BackgroundTransparency = 0.2
-		label.BackgroundColor3 = UiKit.DARK
+		label.BackgroundTransparency = 0.05
+		label.BackgroundColor3 = UiKit.NAVY
 		label.ZIndex = 20
-		UiKit.corner(label, 10)
+		UiKit.corner(label, 12)
+		UiKit.border(label, 3)
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0, 6)
+		pad.PaddingBottom = UDim.new(0, 6)
+		pad.PaddingLeft = UDim.new(0, 10)
+		pad.PaddingRight = UDim.new(0, 10)
+		pad.Parent = label
 		toastLabel = label
 	end
 	assert(label ~= nil)
@@ -149,10 +276,11 @@ function UiKit.togglePanel(panel: Frame, build: () -> ())
 	end
 end
 
--- A centered window with a title, close button and scrolling list.
+-- A centered window with a colored title bar, close button and scrolling list.
 -- `topOffset` leaves room under the header for a tab row; `modal` panels sit above the others and
--- are not closed by togglePanel; `bottomReserve` leaves room under the list for a footer.
-function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?, bottomReserve: number?): (Frame, ScrollingFrame, TextLabel)
+-- are not closed by togglePanel; `bottomReserve` leaves room under the list for a footer;
+-- `accent` colors the title bar (burgundy by default).
+function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?, bottomReserve: number?, accent: Color3?): (Frame, ScrollingFrame, TextLabel)
 	local top = topOffset or 60
 	local bottom = bottomReserve or 10
 	local panel = Instance.new("Frame")
@@ -160,10 +288,12 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	panel.BackgroundColor3 = UiKit.PANEL
+	panel.BackgroundTransparency = 0.06 -- a hint of the world behind, like the reference games
 	panel.Visible = false
 	panel.ZIndex = if modal then 5 else 1
 	panel.Parent = gui
-	UiKit.corner(panel, 14)
+	UiKit.corner(panel, 16)
+	UiKit.border(panel, 4)
 	local limit = Instance.new("UISizeConstraint")
 	limit.MaxSize = Vector2.new(560, 640)
 	limit.Parent = panel
@@ -171,10 +301,40 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		table.insert(exclusivePanels, panel)
 	end
 
-	local header = UiKit.makeLabel(panel, title, UiKit.WHITE, UDim2.new(1, -70, 0, 44), UDim2.fromOffset(14, 8))
+	-- Title bar: rounded on top, square at the bottom, with a dark line under it.
+	local titleBar = Instance.new("Frame")
+	titleBar.Name = "TitleBar"
+	titleBar.BackgroundColor3 = accent or UiKit.BURGUNDY
+	titleBar.BorderSizePixel = 0
+	titleBar.Size = UDim2.new(1, 0, 0, 54)
+	titleBar.Parent = panel
+	UiKit.corner(titleBar, 16)
+	local squareBottom = Instance.new("Frame")
+	squareBottom.Name = "SquareBottom"
+	squareBottom.BackgroundColor3 = titleBar.BackgroundColor3
+	squareBottom.BorderSizePixel = 0
+	squareBottom.AnchorPoint = Vector2.new(0, 1)
+	squareBottom.Position = UDim2.fromScale(0, 1)
+	squareBottom.Size = UDim2.new(1, 0, 0, 16)
+	squareBottom.Parent = titleBar
+	titleBar:GetPropertyChangedSignal("BackgroundColor3"):Connect(function()
+		squareBottom.BackgroundColor3 = titleBar.BackgroundColor3
+	end)
+	local edge = Instance.new("Frame")
+	edge.Name = "Edge"
+	edge.BackgroundColor3 = UiKit.INK
+	edge.BorderSizePixel = 0
+	edge.AnchorPoint = Vector2.new(0, 1)
+	edge.Position = UDim2.fromScale(0, 1)
+	edge.Size = UDim2.new(1, 0, 0, 4)
+	edge.Parent = titleBar
+
+	local header = UiKit.makeTitle(panel, title, UiKit.WHITE, UDim2.new(1, -70, 0, 40), UDim2.fromOffset(16, 6))
 	header.TextXAlignment = Enum.TextXAlignment.Left
-	local close = UiKit.makeButton(panel, "X", Color3.fromRGB(200, 60, 60), UDim2.fromOffset(44, 44), UDim2.new(1, -54, 0, 8))
+	header.ZIndex = 2
+	local close = UiKit.makeButton(panel, "X", UiKit.CLOSE_RED, UDim2.fromOffset(40, 40), UDim2.new(1, -50, 0, 6))
 	close.Name = "Close"
+	close.ZIndex = 2
 	close.Activated:Connect(function()
 		panel.Visible = false
 	end)
@@ -182,33 +342,43 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "List"
 	list.BackgroundTransparency = 1
+	list.BorderSizePixel = 0
 	list.Position = UDim2.fromOffset(10, top)
 	list.Size = UDim2.new(1, -20, 1, -(top + bottom))
 	list.ScrollBarThickness = 6
+	list.ScrollBarImageColor3 = UiKit.MUTED
 	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	list.CanvasSize = UDim2.new()
 	list.Parent = panel
 	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 6)
+	layout.Padding = UDim.new(0, 8)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = list
+	-- Room for the row outlines, which draw outside each row.
+	local inset = Instance.new("UIPadding")
+	inset.PaddingTop = UDim.new(0, 4)
+	inset.PaddingLeft = UDim.new(0, 3)
+	inset.PaddingBottom = UDim.new(0, 4)
+	inset.Parent = list
 
 	-- Slimmer chrome on short screens: smaller header, close button and tab row give the list room.
 	-- Re-applied on every open too, because callers add their tab row ("Tabs" or "Agencies") after us.
 	local function applyLayout()
 		local compact = UiKit.isCompact()
 		panel.Size = panelSize()
-		header.Size = UDim2.new(1, -70, 0, if compact then 34 else 44)
-		header.Position = UDim2.fromOffset(14, if compact then 4 else 8)
-		local closeSize = if compact then 34 else 44
+		local barHeight = if compact then 40 else 54
+		titleBar.Size = UDim2.new(1, 0, 0, barHeight)
+		header.Size = UDim2.new(1, -70, 0, if compact then 30 else 40)
+		header.Position = UDim2.fromOffset(16, if compact then 5 else 6)
+		local closeSize = if compact then 32 else 40
 		close.Size = UDim2.fromOffset(closeSize, closeSize)
-		close.Position = UDim2.new(1, -(closeSize + 10), 0, if compact then 4 else 8)
+		close.Position = UDim2.new(1, -(closeSize + 10), 0, (barHeight - 4 - closeSize) // 2)
 		local listTop = top
 		local tabs = panel:FindFirstChild("Tabs") or panel:FindFirstChild("Agencies")
 		if tabs ~= nil and tabs:IsA("Frame") then
-			tabs.Position = UDim2.fromOffset(10, if compact then 42 else 58)
-			tabs.Size = UDim2.new(1, -20, 0, if compact then 32 else 42)
-			listTop = if compact then top - 28 else top
+			tabs.Position = UDim2.fromOffset(12, if compact then 46 else 62)
+			tabs.Size = UDim2.new(1, -24, 0, if compact then 30 else 40)
+			listTop = if compact then top - 26 else top
 		elseif compact then
 			listTop = top - 12
 		end
@@ -232,14 +402,23 @@ function UiKit.clear(list: ScrollingFrame)
 	end
 end
 
+-- Turns a row into a plain heading or note: no fill, no outline.
+function UiKit.plainRow(row: Frame)
+	row.BackgroundTransparency = 1
+	local outline = row:FindFirstChild("Outline")
+	if outline ~= nil and outline:IsA("UIStroke") then
+		outline.Enabled = false
+	end
+end
+
 function UiKit.addRow(list: ScrollingFrame, order: number, height: number): Frame
 	local row = Instance.new("Frame")
 	row.LayoutOrder = order
 	row.Size = UDim2.new(1, -8, 0, height)
-	row.BackgroundColor3 = UiKit.DARK
-	row.BackgroundTransparency = 0.3
+	row.BackgroundColor3 = UiKit.ROW
 	row.Parent = list
-	UiKit.corner(row, 8)
+	UiKit.corner(row, 10)
+	UiKit.border(row, 2)
 	return row
 end
 

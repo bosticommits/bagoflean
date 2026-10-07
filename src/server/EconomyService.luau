@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 
 local lastCollectAttempt: { [Player]: number } = {}
@@ -52,26 +53,28 @@ function EconomyService.refresh(player: Player)
 	player:SetAttribute("Fame", data.fame)
 end
 
--- Server-only API for later milestones (premiere payouts, rewards).
-function EconomyService.addCash(player: Player, amount: number): boolean
+-- Server-only. `tx` and `sku` label the source for analytics (see Analytics.economy).
+function EconomyService.addCash(player: Player, amount: number, tx: string?, sku: string?): boolean
 	local data = DataService.getData(player)
 	if data == nil or amount ~= amount or amount <= 0 or amount == math.huge then
 		return false
 	end
 	data.cash += math.floor(amount)
 	DataService.markDirty(player)
+	Analytics.economy(player, true, math.floor(amount), data.cash, tx or "Gameplay", sku or "Other")
 	EconomyService.refresh(player)
 	return true
 end
 
 -- Removes Cash if the player can afford it. Returns whether it was spent.
-function EconomyService.spendCash(player: Player, amount: number): boolean
+function EconomyService.spendCash(player: Player, amount: number, sku: string?): boolean
 	local data = DataService.getData(player)
 	if data == nil or amount ~= amount or amount <= 0 or data.cash < amount then
 		return false
 	end
 	data.cash -= math.floor(amount)
 	DataService.markDirty(player)
+	Analytics.economy(player, false, math.floor(amount), data.cash, "Shop", sku or "Other")
 	EconomyService.refresh(player)
 	return true
 end
@@ -95,7 +98,8 @@ function EconomyService.collect(player: Player): number
 		return 0
 	end
 	data.accrued -= amount -- keep the fractional remainder
-	EconomyService.addCash(player, amount)
+	EconomyService.addCash(player, amount, "Gameplay", "BoxOffice")
+	Analytics.onboarding(player, Analytics.Steps.FirstCollect)
 	return amount
 end
 

@@ -28,15 +28,16 @@ export type Variant = {
 
 local Actors = {}
 
--- Ordered common to rare.
+-- Ordered common to rare. Colors are the rarity colors in ART_STYLE.md section 4. Icon is prismatic:
+-- the UI draws it as a rainbow (UiKit.RAINBOW) and uses this pink where one color is needed.
 Actors.Tiers = {
-	{ id = "Newcomer", name = "Newcomer", oneIn = 2, starPower = 1, color = Color3.fromRGB(170, 170, 180) },
-	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 4, color = Color3.fromRGB(90, 200, 120) },
-	{ id = "Pro", name = "Pro", oneIn = 30, starPower = 15, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "Star", name = "Star", oneIn = 200, starPower = 70, color = Color3.fromRGB(180, 100, 255) },
-	{ id = "Superstar", name = "Superstar", oneIn = 1500, starPower = 400, color = Color3.fromRGB(255, 150, 60) },
-	{ id = "Legend", name = "Legend", oneIn = 15000, starPower = 2500, color = Color3.fromRGB(255, 80, 80) },
-	{ id = "Icon", name = "Icon", oneIn = 150000, starPower = 20000, color = Color3.fromRGB(255, 215, 0) },
+	{ id = "Newcomer", name = "Newcomer", oneIn = 2, starPower = 1, color = Color3.fromRGB(167, 169, 172) },
+	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 4, color = Color3.fromRGB(76, 199, 100) },
+	{ id = "Pro", name = "Pro", oneIn = 30, starPower = 15, color = Color3.fromRGB(58, 141, 255) },
+	{ id = "Star", name = "Star", oneIn = 200, starPower = 70, color = Color3.fromRGB(160, 77, 255) },
+	{ id = "Superstar", name = "Superstar", oneIn = 1500, starPower = 400, color = Color3.fromRGB(255, 194, 26) },
+	{ id = "Legend", name = "Legend", oneIn = 15000, starPower = 2500, color = Color3.fromRGB(255, 90, 46) },
+	{ id = "Icon", name = "Icon", oneIn = 150000, starPower = 20000, color = Color3.fromRGB(255, 95, 210) },
 } :: { Tier }
 
 Actors.List = {
@@ -73,7 +74,7 @@ Actors.List = {
 Actors.Variants = {
 	{ id = "Normal", name = "Normal", oneIn = nil, multiplier = 1, color = Color3.fromRGB(230, 230, 235) },
 	{ id = "Shiny", name = "Shiny", oneIn = 40, multiplier = 2, color = Color3.fromRGB(120, 230, 255) },
-	{ id = "Award", name = "Award-Winning", oneIn = 800, multiplier = 5, color = Color3.fromRGB(255, 215, 0) },
+	{ id = "Award", name = "Award-Winning", oneIn = 800, multiplier = 5, color = Color3.fromRGB(245, 184, 46) },
 } :: { Variant }
 
 Actors.IndexSlots = #Actors.List * #Actors.Variants

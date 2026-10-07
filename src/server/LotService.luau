@@ -12,8 +12,11 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local ActorModels = require(ReplicatedStorage.Shared.Models.ActorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
+local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
 
 local LOT_SPACING = 80
@@ -217,7 +220,7 @@ local function render(lot: Lot)
 	local data = if owner ~= nil then DataService.getData(owner) else nil
 
 	-- Claim pad.
-	local claimLabel = (lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui).TextLabel :: TextLabel
+	local claimLabel = (lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui):FindFirstChild("TextLabel") :: TextLabel
 	if owner ~= nil then
 		lot.model:SetAttribute("OwnerUserId", owner.UserId)
 		lot.claimPad.Color = Color3.fromRGB(110, 110, 115)
@@ -238,7 +241,7 @@ local function render(lot: Lot)
 			filming[film.stage] = true
 		end
 		progress = {
-			stages = data.stageCount,
+			stages = Upgrades.stages(data), -- includes the +1 Sound Stage pass
 			cinema = data.upgrades.Cinema or 0,
 			office = data.upgrades.Offline or 0,
 			trophies = data.trophies,
@@ -262,7 +265,10 @@ local function render(lot: Lot)
 	end)
 	local marquee = lot.marquee
 	if marquee ~= nil then
-		marquee.Text = if owner ~= nil then string.upper(owner.DisplayName) .. " PICTURES" else "STUDIO FOR LEASE"
+		local vip = data ~= nil and data.passes.VIP == true
+		marquee.Text = if owner ~= nil
+			then (if vip then "★ " else "") .. string.upper(owner.DisplayName) .. " PICTURES" .. (if vip then " ★" else "")
+			else "STUDIO FOR LEASE"
 	end
 
 	local officeLevel = if progress ~= nil then progress.office else 0
@@ -321,6 +327,7 @@ local function claim(player: Player, lot: Lot)
 	lot.owner = player
 	player:SetAttribute("LotIndex", lot.index)
 	render(lot)
+	Analytics.onboarding(player, Analytics.Steps.ClaimedLot)
 end
 
 -- Re-render the player's lot after anything it shows changed (cast, premiere, stage upgrade).
@@ -369,8 +376,8 @@ function LotService.start()
 		lot.collectPad.Touched:Connect(function(hit)
 			local player = playerFromHit(hit)
 			-- Only the lot's owner earns from its cinema.
-			if player ~= nil and lot.owner == player then
-				EconomyService.collect(player)
+			if player ~= nil and lot.owner == player and EconomyService.collect(player) > 0 then
+				QuestTracker.track(player, "collect")
 			end
 		end)
 	end

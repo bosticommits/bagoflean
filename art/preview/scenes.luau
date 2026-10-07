@@ -89,7 +89,7 @@ function scenes.lotMid(folder, load, roblox)
 end
 
 function scenes.lotMax(folder, load, roblox)
-	lot(folder, load, roblox, { stages = 4, cinema = 6, office = 5, trophies = 7, filming = { true, false, true, true }, star = "PhantomAuteur", variant = "Award" })
+	lot(folder, load, roblox, { stages = 5, cinema = 6, office = 5, trophies = 7, filming = { true, false, true, true, true }, star = "PhantomAuteur", variant = "Award" })
 end
 
 -- All six lots placed the way LotService places them, at mixed progress, to check facing.
@@ -102,7 +102,7 @@ function scenes.map(folder, load, roblox)
 		{ stages = 2, cinema = 2, office = 1, trophies = 1, filming = { true }, star = "ActionVeteran", variant = "Normal" },
 		{ stages = 3, cinema = 4, office = 3, trophies = 3, filming = { true, true }, star = "ScreamQueen", variant = "Shiny" },
 		{ stages = 4, cinema = 5, office = 4, trophies = 5, filming = { false, true }, star = "SciFiVisionary", variant = "Normal" },
-		{ stages = 4, cinema = 6, office = 5, trophies = 9, filming = { true, true, true, true }, star = "MogulsMuse", variant = "Award" },
+		{ stages = 5, cinema = 6, office = 5, trophies = 9, filming = { true, true, true, true, true }, star = "MogulsMuse", variant = "Award" },
 	}
 	for index = 1, 6 do
 		local col = (index - 1) % 3

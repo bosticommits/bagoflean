@@ -9,6 +9,7 @@ export type Stats = {
 	upgrades: { [string]: number },
 	stageCount: number,
 	rewards: { [string]: boolean },
+	passes: { [string]: boolean }?, -- owned game passes (see Shop)
 }
 
 export type Upgrade = {
@@ -104,6 +105,13 @@ function Upgrades.luck(stats: Stats): number
 		end
 	end
 	return Config.BaseLuck + 0.1 * Upgrades.level(stats, "Luck") + Config.TierRewardLuck * tierRewards
+end
+
+-- Sound stages the player can film on: bought stages plus the +1 Sound Stage pass.
+function Upgrades.stages(stats: Stats): number
+	local passes = stats.passes
+	local bonus = if passes ~= nil and passes.ExtraStage then Config.PassStages else 0
+	return math.min(stats.stageCount + bonus, Config.StageLimit)
 end
 
 function Upgrades.clapSeconds(stats: Stats): number

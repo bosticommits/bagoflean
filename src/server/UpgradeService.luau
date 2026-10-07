@@ -74,7 +74,7 @@ local function onBuyUpgrade(player: Player, id: any)
 	end
 	-- Bank royalties at the current rate and cap first: Cinema and Offline change both.
 	EconomyService.accrue(data)
-	if not EconomyService.spendCash(player, upgrade.costs[level + 1]) then
+	if not EconomyService.spendCash(player, upgrade.costs[level + 1], "Upgrade:" .. upgrade.id) then
 		studioError:FireClient(player, "cash")
 		return
 	end

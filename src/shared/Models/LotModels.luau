@@ -26,16 +26,26 @@ LotModels.Layout = table.freeze({
 	pedestal = Vector3.new(8.5, 0, -3),
 	trophyCase = Vector3.new(9, 0, -12),
 	office = Vector3.new(-19, 0, -19),
-	billboard = Vector3.new(19, 0, -20),
+	billboard = Vector3.new(20, 0, 24.4),
+	billboardLift = 8, -- tall posts so the board shows over the back stage
 	cinemaFront = 4.5,
 	stages = {
 		Vector3.new(-20, 0, -2),
 		Vector3.new(20, 0, -2),
 		Vector3.new(-20, 0, 13),
 		Vector3.new(20, 0, 13),
+		Vector3.new(20.2, 0, -17), -- the +1 Sound Stage pass
+	},
+	-- Where each stage's film camera stands, relative to the stage.
+	cameras = {
+		Vector3.new(4, 0, -9.4),
+		Vector3.new(-4, 0, -9.4),
+		Vector3.new(4, 0, -9.4),
+		Vector3.new(-4, 0, -9.4),
+		Vector3.new(-7.5, 0, 0),
 	},
 	lamps = { Vector3.new(-11, 0, -24.5), Vector3.new(11, 0, -24.5), Vector3.new(-12.5, 0, -9), Vector3.new(12.5, 0, -9) },
-	palms = { Vector3.new(-24.5, 0, 24.5), Vector3.new(24.5, 0, 24.5), Vector3.new(-14, 0, 24), Vector3.new(14, 0, 24) },
+	palms = { Vector3.new(-24.5, 0, 24.5), Vector3.new(-14, 0, 24) },
 	stanchionX = 3.8,
 	stanchionFromZ = -13,
 	stanchionToZ = 2,
@@ -463,11 +473,13 @@ end
 -- Billboard -------------------------------------------------------------------------------------
 
 -- Tall billboard on two posts. Returns the board (put a SurfaceGui on its Front face).
-function LotModels.billboard(b: Builder): BasePart
+function LotModels.billboard(root: Builder, lift: number?): BasePart
+	local up = lift or 0
 	for _, x in { -4.5, 4.5 } do
-		b:block("BillboardFoot", v(1.8, 1, 1.8), v(x, 0.5, 0.4), P.Charcoal)
-		b:block("BillboardPost", v(0.9, 12, 0.9), v(x, 7, 0.4), P.Steel, METAL)
+		root:block("BillboardFoot", v(1.8, 1, 1.8), v(x, 0.5, 0.4), P.Charcoal)
+		root:block("BillboardPost", v(0.9, 12 + up, 0.9), v(x, 7 + up / 2, 0.4), P.Steel, METAL)
 	end
+	local b = root:sub(v(0, up, 0))
 	b:block("Catwalk", v(13, 0.3, 1.6), v(0, 10.9, -0.6), P.Steel, METAL)
 	b:block("BillboardBack", v(14, 9, 0.6), v(0, 15.5, 0.4), P.Burgundy)
 	local board = b:block("Billboard", v(13, 8, 0.4), v(0, 15.5, 0), P.Navy)
@@ -496,11 +508,11 @@ end
 
 -- Glass-topped trophy cabinet. Shows up to `shown` trophies.
 function LotModels.trophyCase(b: Builder, shown: number)
-	local w = 2 + shown * 1.6
+	local w = 2 + shown * 1.5
 	b:block("CaseBase", v(w, 1.6, 2.4), v(0, 0.8, 0), P.Wood)
 	b:block("CaseTrim", v(w + 0.2, 0.3, 2.6), v(0, 1.65, 0), P.Burgundy)
 	for i = 1, shown do
-		LotModels.trophy(b:sub(v(-w / 2 + 1 + (i - 1) * 1.6 + 0.8, 1.8, 0)))
+		LotModels.trophy(b:sub(v(-w / 2 + 1 + (i - 1) * 1.5 + 0.75, 1.8, 0)))
 	end
 end
 

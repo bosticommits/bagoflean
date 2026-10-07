@@ -57,7 +57,7 @@ function LotLook.static(model: Model, base: CFrame, lotNumber: number, accent: C
 	end
 	LotModels.ticketKiosk(b:sub(L.kiosk + Vector3.new(0, 1, 0)))
 	LotModels.stanchions(b:sub(Vector3.new(0, 1, 0)), L.stanchionFromZ, L.stanchionToZ, L.stanchionX)
-	local billboard = LotModels.billboard(b:sub(L.billboard + Vector3.new(0, 1, 0)))
+	local billboard = LotModels.billboard(b:sub(L.billboard + Vector3.new(0, 1, 0)), L.billboardLift)
 
 	local pads = Build.new(model, base)
 	local claimPad = pads:block("ClaimPad", Vector3.new(10, 0.4, 8), L.claimPad + Vector3.new(0, 1.4, 0), Color3.fromRGB(60, 200, 90), Enum.Material.Neon)
@@ -86,9 +86,8 @@ function LotLook.stages(parent: Instance, base: CFrame, progress: Progress?, acc
 			filming = progress ~= nil and progress.filming[i] == true,
 		})
 		if progress ~= nil then
-			-- A film camera out front, on the side nearer the middle of the lot.
-			local inward = if L.stages[i].X > 0 then -4 else 4
-			LotModels.filmCamera(Build.new(parent, at(base, L.stages[i] + Vector3.new(inward, 1, -9.4))))
+			-- A film camera beside the door, on the side nearer the middle of the lot.
+			LotModels.filmCamera(Build.new(parent, at(base, L.stages[i] + L.cameras[i] + Vector3.new(0, 1, 0))))
 		end
 	end
 end
