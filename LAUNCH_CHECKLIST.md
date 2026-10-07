@@ -112,8 +112,11 @@ reach everything.
 
 ## 8. Store listing and publish
 
-- [ ] Game icon (512x512) in the art style. *Done when:* it reads clearly at small size.
+- [x] Game icon (512x512) in the art style. *Done when:* it reads clearly at small size.
+      (Rendered in Blender: `art/store/hollywood-rng-icon-512.png`.)
 - [ ] 3 to 5 thumbnails showing casting, a premiere and a big lot. *Done when:* uploaded.
+      (Two are ready in `art/store/`: the Icon pull and noob to mogul lots. Upload steps in
+      `art/README.md`.)
 - [x] Short description: what you do in one line, then the hook (offline filming, rare
       actors, Masterpiece premieres). *Done when:* written and checked for spelling.
       See [STORE_LISTING.md](STORE_LISTING.md).
