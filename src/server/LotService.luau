@@ -261,7 +261,7 @@ local function render(lot: Lot)
 	local data = if owner ~= nil then DataService.getData(owner) else nil
 
 	-- Claim pad and marquee.
-	local claimLabel = (lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui).TextLabel :: TextLabel
+	local claimLabel = (lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui):FindFirstChild("TextLabel") :: TextLabel
 	if owner ~= nil then
 		lot.model:SetAttribute("OwnerUserId", owner.UserId)
 		local vip = data ~= nil and data.passes.VIP == true

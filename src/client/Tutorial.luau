@@ -31,8 +31,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	end
 	local function count(t: { [any]: any }?): number
 		local n = 0
-		for _ in t or {} do
-			n += 1
+		if t ~= nil then
+			for _ in t do
+				n += 1
+			end
 		end
 		return n
 	end
@@ -163,8 +165,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		glow.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 		glow.Parent = pad
 		outline = glow
-		outlineTween = TweenService:Create(glow, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { FillTransparency = 0.15 })
-		outlineTween:Play()
+		local tween = TweenService:Create(glow, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { FillTransparency = 0.15 })
+		outlineTween = tween
+		tween:Play()
 	end
 
 	-- The pad to point at: the player's own collect pad, or the nearest free claim pad.
@@ -231,8 +234,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			label.Parent = board
 			UiKit.corner(label, 12)
 			arrow = board
-			highlightTween = TweenService:Create(board, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { StudsOffset = Vector3.new(0, 5.5, 0) })
-			highlightTween:Play()
+			local tween = TweenService:Create(board, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { StudsOffset = Vector3.new(0, 5.5, 0) })
+			highlightTween = tween
+			tween:Play()
 			outlinePad(pad)
 			return
 		end
@@ -255,8 +259,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		pulse.Thickness = 4
 		pulse.Parent = button
 		highlight = pulse
-		highlightTween = TweenService:Create(pulse, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Thickness = 8, Transparency = 0.5 })
-		highlightTween:Play()
+		local tween = TweenService:Create(pulse, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Thickness = 8, Transparency = 0.5 })
+		highlightTween = tween
+		tween:Play()
 	end
 
 	-- Driver --------------------------------------------------------------------------------------

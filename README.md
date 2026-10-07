@@ -46,6 +46,25 @@ The server decides every roll, price, timer and payout. Remotes carry requests, 
 `src/server/ProfileStore.luau` is vendored from MadStudioRoblox/ProfileStore (Apache-2.0, see
 `LICENSE-ProfileStore`).
 
+### Checks
+
+Every pull request that touches the game runs two checks (`.github/workflows/game-checks.yml`):
+
+- **Type check**: `luau-lsp` analyzes `src` with Roblox's types, catching typos, wrong property
+  names, nil mistakes and unused variables.
+- **Rules tests**: `tests/luau` tests the shared game rules (odds, premieres, payouts, upgrades,
+  daily rewards, Award Night) in [Lune](https://lune-org.github.io/docs), outside Studio. They
+  check that odds add up and prices rise, not exact numbers, so balance changes keep passing.
+
+Run them locally after `aftman install`, from the repo root:
+```
+rojo sourcemap default.project.json -o sourcemap.json
+luau-lsp analyze --definitions=globalTypes.d.luau --sourcemap=sourcemap.json --ignore=src/server/ProfileStore.luau src
+lune run tests/luau/run
+```
+`globalTypes.d.luau` is luau-lsp's Roblox definitions file
+([download](https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/1.70.1/scripts/globalTypes.None.d.luau)).
+
 ### Setting up purchases
 
 The shop lists every pass and product, but shows "Soon" until it has a real Roblox id.

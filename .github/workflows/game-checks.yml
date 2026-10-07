@@ -1,0 +1,47 @@
+name: Game checks
+
+# Type-checks the Roblox game and runs its rules tests on every push and pull request that
+# touches the game. Tool versions match aftman.toml.
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml"]
+  pull_request:
+    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml"]
+
+permissions:
+  contents: read
+
+env:
+  ROJO_VERSION: 7.7.0
+  LUNE_VERSION: 0.10.2
+  LUAU_LSP_VERSION: 1.70.1
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rojo, Lune and luau-lsp
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP/bin"
+          curl -fsSLo rojo.zip "https://github.com/rojo-rbx/rojo/releases/download/v${ROJO_VERSION}/rojo-${ROJO_VERSION}-linux-x86_64.zip"
+          curl -fsSLo lune.zip "https://github.com/lune-org/lune/releases/download/v${LUNE_VERSION}/lune-${LUNE_VERSION}-linux-x86_64.zip"
+          curl -fsSLo luau-lsp.zip "https://github.com/JohnnyMorganz/luau-lsp/releases/download/${LUAU_LSP_VERSION}/luau-lsp-linux-x86_64.zip"
+          curl -fsSLo globalTypes.d.luau "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/${LUAU_LSP_VERSION}/scripts/globalTypes.None.d.luau"
+          for z in *.zip; do unzip -oq "$z"; done
+          chmod +x rojo lune luau-lsp
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Type check (luau-lsp)
+        run: |
+          rojo sourcemap default.project.json -o sourcemap.json
+          luau-lsp analyze \
+            --definitions="$RUNNER_TEMP/bin/globalTypes.d.luau" \
+            --sourcemap=sourcemap.json \
+            --ignore="src/server/ProfileStore.luau" \
+            src
+
+      - name: Rules tests (Lune)
+        run: lune run tests/luau/run

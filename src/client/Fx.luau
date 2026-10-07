@@ -26,17 +26,18 @@ local fxGui: ScreenGui? = nil
 local random = Random.new()
 
 local function overlay(): ScreenGui
-	local gui = fxGui
-	if gui == nil or gui.Parent == nil then
-		gui = Instance.new("ScreenGui")
-		gui.Name = "MovieMogulFx"
-		gui.IgnoreGuiInset = true
-		gui.DisplayOrder = 20 -- above the game UI, never blocks input (no Active frames)
-		gui.ResetOnSpawn = false
-		gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-		fxGui = gui
+	local existing = fxGui
+	if existing ~= nil and existing.Parent ~= nil then
+		return existing
 	end
-	return gui :: ScreenGui
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "MovieMogulFx"
+	gui.IgnoreGuiInset = true
+	gui.DisplayOrder = 20 -- above the game UI, never blocks input (no Active frames)
+	gui.ResetOnSpawn = false
+	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+	fxGui = gui
+	return gui
 end
 
 -- A quick full-screen tint that fades out.

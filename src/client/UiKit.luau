@@ -195,20 +195,21 @@ local toastToken = 0
 function UiKit.toast(gui: ScreenGui, text: string)
 	local label = toastLabel
 	if label == nil then
-		label = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(340, 44), UDim2.new(0.5, -170, 1, -144))
-		label.Name = "Toast"
-		label.BackgroundTransparency = 0.05
-		label.BackgroundColor3 = UiKit.NAVY
-		label.ZIndex = 20
-		UiKit.corner(label, 12)
-		UiKit.border(label, 3)
+		local created = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(340, 44), UDim2.new(0.5, -170, 1, -144))
+		created.Name = "Toast"
+		created.BackgroundTransparency = 0.05
+		created.BackgroundColor3 = UiKit.NAVY
+		created.ZIndex = 20
+		UiKit.corner(created, 12)
+		UiKit.border(created, 3)
 		local pad = Instance.new("UIPadding")
 		pad.PaddingTop = UDim.new(0, 6)
 		pad.PaddingBottom = UDim.new(0, 6)
 		pad.PaddingLeft = UDim.new(0, 10)
 		pad.PaddingRight = UDim.new(0, 10)
-		pad.Parent = label
-		toastLabel = label
+		pad.Parent = created
+		toastLabel = created
+		label = created
 	end
 	assert(label ~= nil)
 	toastToken += 1

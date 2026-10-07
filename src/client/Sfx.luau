@@ -18,7 +18,7 @@ local SOUNDS: { [string]: { id: number, volume: number } } = {
 }
 
 local group: SoundGroup? = nil
-local templates: { [string]: Sound } = {}
+local templates: { [string]: Sound? } = {}
 
 local Sfx = {}
 
