@@ -1,0 +1,131 @@
+{
+  "coffee-then-pickleball-mug": {
+    "product_id": "6ac3b75b67c0aee73102e27e",
+    "image_id": "6ac3b759a1ff58c9216ab6ce",
+    "type": "mug",
+    "published": true
+  },
+  "dear-santa-fix-my-backhand": {
+    "product_id": "6ac3b7654d063463e50af3f9",
+    "image_id": "6ac3b75f015bfd73d8c30d30",
+    "type": "crewneck",
+    "published": true
+  },
+  "doctors-orders-pickleball-rx": {
+    "product_id": "6ac3b77708f25859d20c5894",
+    "image_id": "6ac3b773e9772ab8f9eaa59e",
+    "type": "tee",
+    "published": true
+  },
+  "gobble-gobble-dink-dink": {
+    "product_id": "6ac3b78f67c0aee73102e293",
+    "image_id": "6ac3b787500873451082d72a",
+    "type": "crewneck",
+    "published": true
+  },
+  "just-one-more-game-clock": {
+    "product_id": "6ac3b7a5e6b0fccbca039566",
+    "image_id": "6ac3b7a16e7c41320b84e20d",
+    "type": "tee",
+    "published": true
+  },
+  "kitchen-inspector-sticker": {
+    "product_id": "6ac3b7b3d94c3d847705faa8",
+    "image_id": "6ac3b7b09e1ac80e0fb81a17",
+    "type": "sticker",
+    "published": true
+  },
+  "kitchen-violators-naughty-list": {
+    "product_id": "6ac3b7be9721b65eba053a37",
+    "image_id": "6ac3b7b71f666bb296472834",
+    "type": "crewneck",
+    "published": true
+  },
+  "merry-dinkmas-christmas": {
+    "product_id": "6ac3b7d8ff369fe79909cca3",
+    "image_id": "6ac4cfe9d35b18022554e348",
+    "type": "crewneck",
+    "published": true,
+    "design": "merry-dinkmas-mascot"
+  },
+  "mine-yours-doubles-oops": {
+    "product_id": "6ac3b7e61176c5078c0f7202",
+    "image_id": "6ac3b7e025211155cda46f09",
+    "type": "tee",
+    "published": true
+  },
+  "pickleball-2027-resolutions": {
+    "product_id": "6ac3b8005b2bb4be0e00f916",
+    "image_id": "6ac3b7f9a5e4315b8b146515",
+    "type": "tee",
+    "published": true
+  },
+  "pickleball-grandma-sweet-sneaky": {
+    "product_id": "6ac3b8154d063463e50af443",
+    "image_id": "6ac3b80d537a57bd1826814a",
+    "type": "tee",
+    "published": true
+  },
+  "pickleball-grandpa-dinking-since-retirement": {
+    "product_id": "6ac3b82a1176c5078c0f7229",
+    "image_id": "6ac3b824445193c46c9826f1",
+    "type": "tee",
+    "published": true
+  },
+  "retirement-schedule-pickleball": {
+    "product_id": "6ac3b83b7b698e041f0991a3",
+    "image_id": "6ac3b8360e497e3680b1f4e1",
+    "type": "tee",
+    "published": true
+  },
+  "santas-favorite-dinker": {
+    "product_id": "6ac3b84b4d063463e50af45a",
+    "image_id": "6ac4d01cbd13a0a77612190d",
+    "type": "crewneck",
+    "published": true,
+    "design": "santas-favorite-dinker-badge"
+  },
+  "whats-the-score-mug": {
+    "product_id": "6ac3b858b9ed4b8e70088007",
+    "image_id": "6ac3b856654438e4a5b4872b",
+    "type": "mug",
+    "published": true
+  },
+  "jingle-all-the-way-to-the-kitchen": {
+    "product_id": "6ac4bd707fb2cc1a75029d14",
+    "image_id": "6ac4d027bd13a0a776121911",
+    "type": "crewneck",
+    "published": true,
+    "design": "jingle-kitchen-knit-sweater"
+  },
+  "dashing-through-the-kitchen": {
+    "product_id": "6ac4d047b6d3488ca205e4a2",
+    "image_id": "6ac4d042ff7531a9b6940d24",
+    "type": "crewneck",
+    "published": true
+  },
+  "grandmas-got-game": {
+    "product_id": "6ac4d052de736a3ee90c4b59",
+    "image_id": "6ac4d04d9bf7e88aef90b980",
+    "type": "tee-cc",
+    "published": true
+  },
+  "knees-say-no-heart-says-pickleball": {
+    "product_id": "6ac4d05db6d3488ca205e4f9",
+    "image_id": "6ac4d058ff7531a9b6940d27",
+    "type": "tee-cc",
+    "published": true
+  },
+  "kitchen-staff-only-chef": {
+    "product_id": "6ac4d068de736a3ee90c4b6e",
+    "image_id": "6ac4d064f5f4cdac21d1521c",
+    "type": "tee-cc",
+    "published": true
+  },
+  "retired-now-serving-full-time": {
+    "product_id": "6ac4d076b6d3488ca205e51a",
+    "image_id": "6ac4d0700146b83bfff6294a",
+    "type": "tee-cc",
+    "published": true
+  }
+}

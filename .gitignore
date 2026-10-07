@@ -1,0 +1,13 @@
+output/
+__pycache__/
+*.pyc
+.venv/
+.env
+photos/
+designs-*/*/thumbs.png
+
+# owner reference screenshots and unlicensed test photos stay local (repo is public)
+references/*.jpg
+references/*.png
+references/*.webp
+photo_templates/test-*

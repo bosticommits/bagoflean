@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4500 5400" width="4500" height="5400">
+<path d="M1700 820 L 2800 820 L 2690 1755 Q 2250 1867 1810 1755 Z" fill="#4A2C2A"/>
+<path d="M2767 960 q 363 47 275 327 q -66 206 -363 234" fill="none" stroke="#4A2C2A" stroke-width="99" stroke-linecap="round"/>
+<path d="M2008 760 c -110 -140 110 -234 0 -393" fill="none" stroke="#4A2C2A" stroke-width="55" stroke-linecap="round" opacity="0.7"/>
+<path d="M2250 760 c -110 -140 110 -234 0 -393" fill="none" stroke="#4A2C2A" stroke-width="55" stroke-linecap="round" opacity="0.7"/>
+<path d="M2492 760 c -110 -140 110 -234 0 -393" fill="none" stroke="#4A2C2A" stroke-width="55" stroke-linecap="round" opacity="0.7"/>
+<circle cx="2250" cy="1240" r="286.0" fill="#FFFFFF"/>
+<circle cx="2250" cy="1240" r="264" fill="#D9F03C"/>
+<circle cx="2250.0" cy="1240.0" r="22.4" fill="#9FB82A"/>
+<circle cx="2346.0" cy="1295.4" r="22.4" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1350.9" r="22.4" fill="#9FB82A"/>
+<circle cx="2154.0" cy="1295.4" r="22.4" fill="#9FB82A"/>
+<circle cx="2154.0" cy="1184.6" r="22.4" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1129.1" r="22.4" fill="#9FB82A"/>
+<circle cx="2346.0" cy="1184.6" r="22.4" fill="#9FB82A"/>
+<circle cx="2450.6" cy="1240.0" r="22.4" fill="#9FB82A"/>
+<circle cx="2423.8" cy="1340.3" r="22.4" fill="#9FB82A"/>
+<circle cx="2350.3" cy="1413.8" r="22.4" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1440.6" r="22.4" fill="#9FB82A"/>
+<circle cx="2149.7" cy="1413.8" r="22.4" fill="#9FB82A"/>
+<circle cx="2076.2" cy="1340.3" r="22.4" fill="#9FB82A"/>
+<circle cx="2049.4" cy="1240.0" r="22.4" fill="#9FB82A"/>
+<circle cx="2076.2" cy="1139.7" r="22.4" fill="#9FB82A"/>
+<circle cx="2149.7" cy="1066.2" r="22.4" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1039.4" r="22.4" fill="#9FB82A"/>
+<circle cx="2350.3" cy="1066.2" r="22.4" fill="#9FB82A"/>
+<circle cx="2423.8" cy="1139.7" r="22.4" fill="#9FB82A"/>
+<path d="M2044.1 1200.4 A211.2 211.2 0 0 1 2210.4 1034.1" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="18.5" stroke-linecap="round"/>
+<text x="2250.0" y="2409.4" font-family="Rubik Mono One" font-size="647.1" fill="#4A2C2A" text-anchor="middle" >COFFEE</text>
+<text x="2250.0" y="3165.5" font-family="Pacifico" font-size="733.6" fill="#2A9D8F" text-anchor="middle" >then</text>
+<text x="2250.0" y="3615.0" font-family="Rubik Mono One" font-size="458.8" fill="#4A2C2A" text-anchor="middle" >PICKLEBALL</text>
+</svg>

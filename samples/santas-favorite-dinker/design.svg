@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4500 5400" width="4500" height="5400">
+<circle cx="2250" cy="1170" r="430.0" fill="#1d1d1d"/>
+<circle cx="2250" cy="1170" r="430" fill="#D9F03C"/>
+<circle cx="2250.0" cy="1170.0" r="36.6" fill="#9FB82A"/>
+<circle cx="2406.4" cy="1260.3" r="36.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1350.6" r="36.6" fill="#9FB82A"/>
+<circle cx="2093.6" cy="1260.3" r="36.6" fill="#9FB82A"/>
+<circle cx="2093.6" cy="1079.7" r="36.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="989.4" r="36.6" fill="#9FB82A"/>
+<circle cx="2406.4" cy="1079.7" r="36.6" fill="#9FB82A"/>
+<circle cx="2576.8" cy="1170.0" r="36.6" fill="#9FB82A"/>
+<circle cx="2533.0" cy="1333.4" r="36.6" fill="#9FB82A"/>
+<circle cx="2413.4" cy="1453.0" r="36.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1496.8" r="36.6" fill="#9FB82A"/>
+<circle cx="2086.6" cy="1453.0" r="36.6" fill="#9FB82A"/>
+<circle cx="1967.0" cy="1333.4" r="36.6" fill="#9FB82A"/>
+<circle cx="1923.2" cy="1170.0" r="36.6" fill="#9FB82A"/>
+<circle cx="1967.0" cy="1006.6" r="36.6" fill="#9FB82A"/>
+<circle cx="2086.6" cy="887.0" r="36.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="843.2" r="36.6" fill="#9FB82A"/>
+<circle cx="2413.4" cy="887.0" r="36.6" fill="#9FB82A"/>
+<circle cx="2533.0" cy="1006.6" r="36.6" fill="#9FB82A"/>
+<path d="M1914.6 1105.5 A344.0 344.0 0 0 1 2185.5 834.6" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="30.1" stroke-linecap="round"/>
+<path d="M1842 976 C 1949 353, 2508 224, 2874 632 L 2658 976 Z" fill="#D62839"/>
+<rect x="1786" y="890" width="929" height="181" rx="90" fill="#FFFFFF"/>
+<circle cx="2874" cy="632" r="120" fill="#FFFFFF"/>
+<text x="2250.0" y="2284.8" font-family="Lobster" font-size="562.7" fill="#FFF6E8" text-anchor="middle" >Santa’s Favorite</text>
+<text x="2250.0" y="3092.1" font-family="Bowlby One SC" font-size="915.1" fill="#FFF6E8" text-anchor="middle" stroke="#FFF6E8" stroke-width="90" stroke-linejoin="round">DINKER</text>
+<text x="2250.0" y="3092.1" font-family="Bowlby One SC" font-size="915.1" fill="#E5383B" text-anchor="middle" >DINKER</text>
+<polygon points="1000.0,1030.0 1031.7,1106.3 1114.1,1112.9 1051.4,1166.7 1070.5,1247.1 1000.0,1204.0 929.5,1247.1 948.6,1166.7 885.9,1112.9 968.3,1106.3" fill="#F2C14E"/>
+<polygon points="600.0,1400.0 618.5,1444.5 666.6,1448.4 630.0,1479.7 641.1,1526.6 600.0,1501.5 558.9,1526.6 570.0,1479.7 533.4,1448.4 581.5,1444.5" fill="#7BC67E"/>
+<polygon points="3500.0,1030.0 3531.7,1106.3 3614.1,1112.9 3551.4,1166.7 3570.5,1247.1 3500.0,1204.0 3429.5,1247.1 3448.6,1166.7 3385.9,1112.9 3468.3,1106.3" fill="#F2C14E"/>
+<polygon points="3900.0,1400.0 3918.5,1444.5 3966.6,1448.4 3930.0,1479.7 3941.1,1526.6 3900.0,1501.5 3858.9,1526.6 3870.0,1479.7 3833.4,1448.4 3881.5,1444.5" fill="#7BC67E"/>
+</svg>

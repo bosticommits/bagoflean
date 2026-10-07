@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4500 5400" width="4500" height="5400">
+<defs><path id="arc" d="M-2150 5300 A4400 4400 0 0 1 6650 5300"/></defs>
+<g transform="translate(45 45)"><text font-family="Alfa Slab One" font-size="399" fill="#1D2B45"><textPath href="#arc" startOffset="50%" text-anchor="middle">PALM SPRINGS</textPath></text></g>
+<text font-family="Alfa Slab One" font-size="399" fill="#C8102E"><textPath href="#arc" startOffset="50%" text-anchor="middle">PALM SPRINGS</textPath></text>
+<g transform="translate(1913.3 2625.1) rotate(46) scale(0.78)">
+<rect x="-95" y="-560" width="190" height="600" rx="60" fill="#1D2B45"/>
+<line x1="-95" y1="-470" x2="95" y2="-520" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-380" x2="95" y2="-430" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-290" x2="95" y2="-340" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-200" x2="95" y2="-250" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-110" x2="95" y2="-160" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<rect x="-120" y="-30" width="240" height="70" rx="30" fill="#1D2B45"/>
+<rect x="-380" y="-1500" width="760" height="980" rx="300" fill="#C8102E" stroke="#1D2B45" stroke-width="70"/>
+</g>
+<g transform="translate(2586.7 2625.1) rotate(-46) scale(0.78)">
+<rect x="-95" y="-560" width="190" height="600" rx="60" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="140"/>
+<rect x="-380" y="-1500" width="760" height="980" rx="300" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="210"/>
+<rect x="-95" y="-560" width="190" height="600" rx="60" fill="#1D2B45"/>
+<line x1="-95" y1="-470" x2="95" y2="-520" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-380" x2="95" y2="-430" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-290" x2="95" y2="-340" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-200" x2="95" y2="-250" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<line x1="-95" y1="-110" x2="95" y2="-160" stroke="#1D2B45" stroke-width="26" stroke-opacity="0.55"/>
+<rect x="-120" y="-30" width="240" height="70" rx="30" fill="#1D2B45"/>
+<rect x="-380" y="-1500" width="760" height="980" rx="300" fill="#C8102E" stroke="#1D2B45" stroke-width="70"/>
+</g>
+<circle cx="2250" cy="1550" r="260.0" fill="#1D2B45"/>
+<circle cx="2250" cy="1550" r="230" fill="#D9F03C"/>
+<circle cx="2250.0" cy="1550.0" r="19.6" fill="#9FB82A"/>
+<circle cx="2333.7" cy="1598.3" r="19.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1646.6" r="19.6" fill="#9FB82A"/>
+<circle cx="2166.3" cy="1598.3" r="19.6" fill="#9FB82A"/>
+<circle cx="2166.3" cy="1501.7" r="19.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1453.4" r="19.6" fill="#9FB82A"/>
+<circle cx="2333.7" cy="1501.7" r="19.6" fill="#9FB82A"/>
+<circle cx="2424.8" cy="1550.0" r="19.6" fill="#9FB82A"/>
+<circle cx="2401.4" cy="1637.4" r="19.6" fill="#9FB82A"/>
+<circle cx="2337.4" cy="1701.4" r="19.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1724.8" r="19.6" fill="#9FB82A"/>
+<circle cx="2162.6" cy="1701.4" r="19.6" fill="#9FB82A"/>
+<circle cx="2098.6" cy="1637.4" r="19.6" fill="#9FB82A"/>
+<circle cx="2075.2" cy="1550.0" r="19.6" fill="#9FB82A"/>
+<circle cx="2098.6" cy="1462.6" r="19.6" fill="#9FB82A"/>
+<circle cx="2162.6" cy="1398.6" r="19.6" fill="#9FB82A"/>
+<circle cx="2250.0" cy="1375.2" r="19.6" fill="#9FB82A"/>
+<circle cx="2337.4" cy="1398.6" r="19.6" fill="#9FB82A"/>
+<circle cx="2401.4" cy="1462.6" r="19.6" fill="#9FB82A"/>
+<path d="M2070.6 1515.5 A184.0 184.0 0 0 1 2215.5 1370.6" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="16.1" stroke-linecap="round"/>
+<text x="2250.0" y="3392.7" font-family="Bowlby One SC" font-size="389.7" fill="#1D2B45" text-anchor="middle" >PICKLEBALL CLUB</text>
+</svg>
