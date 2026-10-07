@@ -2,27 +2,26 @@
 
 From where the game is today (7 Oct 2026) to a public, publishable release.
 Work top to bottom. Each step has a "done when" so it is clear when to tick it.
-Design details live in [GAME_PLAN.md](GAME_PLAN.md); the look lives in `ART_STYLE.md`
-(on the `art-pipeline` branch).
+Design details live in [GAME_PLAN.md](GAME_PLAN.md); the look lives in
+[ART_STYLE.md](ART_STYLE.md).
 
 ## Where we are now
 
-- M0 to M5 are built: lots and cash, casting, movies, Index, agencies, upgrades, lot
-  visuals, billboard, effects, sounds and the tutorial.
-- That work sits on the stacked branches `m0-rojo-setup` to `m5-polish`. None of it is in
-  `main` yet, and `main`'s GAME_PLAN still says "nothing built".
-- Art is placeholder parts. The Blender art pipeline has started (`art-pipeline` branch:
-  style guide and a gold trophy).
-- Not built yet: Award Night, daily rewards, Studio Requests, codes, game passes and
-  developer products, Sequel, analytics.
+- In `main`: M0 to M5 (lots, casting, movies, Index, upgrades, lot visuals, effects, sounds,
+  tutorial), the art guide and first trophy model, the M6 launch features (passes, products,
+  Award Night, daily rewards, codes, quests, analytics) and the restyled UI.
+- Owned by other threads right now: lot and actor models, economy balance, icon and
+  thumbnails.
+- Still open: final name, real art, playtests and tuning, device checks, the testing in
+  section 7, and the store page.
 
 ---
 
 ## 1. Lock in what is built
 
-- [ ] Merge `m5-polish` (it contains M0 to M5) into `main`. *Done when:* `main` has `src/`
+- [x] Merge `m5-polish` (it contains M0 to M5) into `main`. *Done when:* `main` has `src/`
       and the updated GAME_PLAN.
-- [ ] Merge `art-pipeline` into `main`. *Done when:* `ART_STYLE.md` is on `main`.
+- [x] Merge `art-pipeline` into `main`. *Done when:* `ART_STYLE.md` is on `main`.
 - [ ] Decide the final name ("Movie Mogul" or another). *Done when:* the name is in
       GAME_PLAN section 10 as decided and in `Config.GameName`.
 
@@ -56,7 +55,7 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 
 ## 4. UI
 
-- [ ] Restyle every screen to ART_STYLE.md: HUD, casting, roster, studio, script shop,
+- [x] Restyle every screen to ART_STYLE.md: HUD, casting, roster, studio, script shop,
       Index, upgrades, tutorial. *Done when:* all screens share one look and rarity colors.
 - [ ] Phone check on a small Android and an iPhone, portrait and landscape.
       *Done when:* every button is easy to tap and nothing is hidden behind controls.
@@ -67,14 +66,14 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 
 ## 5. Retention (M6)
 
-- [ ] Award Night every 30 minutes: 3 minutes of more Luck and double premiere payouts.
+- [x] Award Night every 30 minutes: 3 minutes of more Luck and double premiere payouts.
       *Done when:* it starts on time on every server, with a countdown players can see.
-- [ ] Server announcement when anyone pulls Legend or Icon or gets a Masterpiece.
+- [x] Server announcement when anyone pulls Legend or Icon or gets a Masterpiece.
       *Done when:* everyone on the server sees the message.
-- [ ] Daily login rewards. *Done when:* they cannot be claimed twice by changing the
+- [x] Daily login rewards. *Done when:* they cannot be claimed twice by changing the
       device clock or rejoining.
-- [ ] 3 daily Studio Requests (small quests). *Done when:* they reset once a day and pay out.
-- [ ] Codes for social posts. *Done when:* each code works once per player and can be
+- [x] 3 daily Studio Requests (small quests). *Done when:* they reset once a day and pay out.
+- [x] Codes for social posts. *Done when:* each code works once per player and can be
       switched off without a game update.
 
 ## 6. Monetization (M6)
@@ -82,11 +81,11 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 Rules from the plan: odds always visible, no buying a specific rare actor, free players can
 reach everything.
 
-- [ ] Game passes: 2x Luck, Auto-Collect, +1 Sound Stage, Faster Filming, VIP cosmetics.
+- [x] Game passes: 2x Luck, Auto-Collect, +1 Sound Stage, Faster Filming, VIP cosmetics.
       *Done when:* each works right after buying and after rejoining.
-- [ ] Developer products: Lucky Casting (15 min), skip filming, Cash packs.
+- [x] Developer products: Lucky Casting (15 min), skip filming, Cash packs.
       *Done when:* each purchase is granted exactly once, even if the player leaves mid-buy.
-- [ ] Shop screen and in-context prompts (for example, offer a skip on a long filming timer).
+- [x] Shop screen and in-context prompts (for example, offer a skip on a long filming timer).
       *Done when:* buying never blocks normal play and every price is shown before buying.
 - [ ] Check prices against similar games. *Done when:* every item has a price written down
       with a reason.
@@ -101,7 +100,7 @@ reach everything.
       memory does not keep climbing over a 30-minute session.
 - [ ] No errors in the output during a full play session. *Done when:* a clean log is saved.
 - [ ] Duplicate-script check from the README. *Done when:* it prints no `DUPLICATE` lines.
-- [ ] Analytics: tutorial steps, first roll, first premiere, day-1 return, purchases.
+- [ ] Analytics (events are built; check they arrive): tutorial steps, first roll, first premiere, day-1 return, purchases.
       *Done when:* events show up in the Creator Dashboard.
 - [ ] Private test with 10 to 20 players for a few days. *Done when:* their top problems
       are fixed.
