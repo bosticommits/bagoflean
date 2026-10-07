@@ -12,8 +12,8 @@ Design details live in [GAME_PLAN.md](GAME_PLAN.md); the look lives in
   Award Night, daily rewards, codes, quests, analytics) and the restyled UI.
 - Owned by other threads right now: lot and actor models, economy balance, icon and
   thumbnails.
-- Still open: final name, real art, playtests and tuning, device checks, the testing in
-  section 7, and the store page.
+- Still open: final name, real art, playtests and tuning, device checks, the Studio tests
+  in section 7, and filling in the store page on the Creator Dashboard.
 
 ---
 
@@ -85,6 +85,9 @@ reach everything.
       *Done when:* each works right after buying and after rejoining.
 - [x] Developer products: Lucky Casting (15 min), skip filming, Cash packs.
       *Done when:* each purchase is granted exactly once, even if the player leaves mid-buy.
+- [x] Hide Robux items that lead to random actors (2x Luck, Lucky Casting, Cash packs) for
+      players whose region restricts paid random items. *Done when:* the shop shows them as
+      "Not available" for those players (Roblox PolicyService rule).
 - [x] Shop screen and in-context prompts (for example, offer a skip on a long filming timer).
       *Done when:* buying never blocks normal play and every price is shown before buying.
 - [ ] Check prices against similar games. *Done when:* every item has a price written down
@@ -94,8 +97,10 @@ reach everything.
 
 - [ ] Saving: join, play, leave, rejoin; two servers at once; server shutdown.
       *Done when:* no Cash, actors or Index entries are lost or duplicated.
-- [ ] Cheating: every remote is checked by the server and rate limited.
+- [x] Cheating: every remote is checked by the server and rate limited.
       *Done when:* a security review finds no way to get free Cash, rolls or timers.
+      (Reviewed 7 Oct: all 16 remote handlers check types, ranges, ownership and cooldowns. Note for
+      tuning: an autoclicker on the clapperboard films about 5x faster.)
 - [ ] Performance on a low-end phone with 6 full lots. *Done when:* it stays smooth and
       memory does not keep climbing over a 30-minute session.
 - [ ] No errors in the output during a full play session. *Done when:* a clean log is saved.
@@ -109,9 +114,11 @@ reach everything.
 
 - [ ] Game icon (512x512) in the art style. *Done when:* it reads clearly at small size.
 - [ ] 3 to 5 thumbnails showing casting, a premiere and a big lot. *Done when:* uploaded.
-- [ ] Short description: what you do in one line, then the hook (offline filming, rare
+- [x] Short description: what you do in one line, then the hook (offline filming, rare
       actors, Masterpiece premieres). *Done when:* written and checked for spelling.
-- [ ] Genre, max players, supported devices, and age questionnaire filled in.
+      See [STORE_LISTING.md](STORE_LISTING.md).
+- [ ] Genre, max players (**6**, one per lot), supported devices, and age questionnaire
+      filled in, using the answers in STORE_LISTING.md.
       *Done when:* every Creator Dashboard field is complete.
 - [ ] Social links (group, Discord or X) for the codes. *Done when:* linked on the game page.
 - [ ] Run the publish checklist (the `roblox-publish-checklist` skill).
