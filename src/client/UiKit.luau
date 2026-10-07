@@ -259,7 +259,10 @@ end
 function UiKit.makePlusButton(parent: Instance, size: number, position: UDim2): TextButton
 	local plus = UiKit.makeButton(parent, "+", UiKit.GREEN, UDim2.fromOffset(size, size), position)
 	plus.Name = "Plus"
-	UiKit.corner(plus, 6)
+	local round = plus:FindFirstChildOfClass("UICorner")
+	if round ~= nil then
+		round.CornerRadius = UDim.new(0, 8)
+	end
 	UiKit.textConstraint(plus, math.floor(size * 0.8))
 	return plus
 end
