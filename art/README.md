@@ -56,7 +56,7 @@ python3 art/preview/render.py /tmp/lot.json /tmp/lot.png --view 34
 art/preview/actor_sheet.sh   # all actors -> art/previews/actors_sheet.png
 ```
 
-Scenes are listed in `art/preview/scenes.luau` (`stage`, `cinema`, `office`, `props`, `actors`,
+Scenes are listed in `art/preview/scenes.luau` (`stage`, `cinema`, `office`, `props`, `actors`, `icons`,
 `actor <Id>`, `lotEmpty`, `lotStarter`, `lotMid`, `lotMax`, `map`). The renderer draws shapes and
 colors only (no text, particles or lights).
 

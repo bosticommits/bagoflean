@@ -1,5 +1,5 @@
 --!strict
--- Cash HUD: big outlined gold Cash with the box office line under it. Reads server-owned attributes; it never sends amounts to the server.
+-- Cash HUD: big outlined gold Cash beside a 3D coin, with the box office line under it. Reads server-owned attributes; it never sends amounts to the server.
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
+local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -52,6 +53,21 @@ function Hud.start(gui: ScreenGui)
 	local pendingLabel = makeLabel(54, 24, UiKit.WHITE)
 	cashLabel.Text = "Loading..."
 	pendingLabel.Text = ""
+
+	-- A slowly turning 3D gold coin just left of the Cash number, wherever the number ends.
+	local coin = Instance.new("Frame")
+	coin.Name = "Coin"
+	coin.BackgroundTransparency = 1
+	coin.AnchorPoint = Vector2.new(1, 0.5)
+	coin.Size = UDim2.fromOffset(46, 46)
+	coin.Parent = frame
+	Icon3D.spin(Icon3D.icon(coin, "coin", 0.95), 20)
+	local function placeCoin()
+		coin.Position = UDim2.new(0.5, -cashLabel.TextBounds.X / 2 - 4, 0, 4 + 24)
+		coin.Visible = cashLabel.Text:sub(1, 1) == "$"
+	end
+	cashLabel:GetPropertyChangedSignal("TextBounds"):Connect(placeCoin)
+	placeCoin()
 
 	local function refresh()
 		if not player:GetAttribute("DataLoaded") then

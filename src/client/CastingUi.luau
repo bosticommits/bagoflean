@@ -4,6 +4,7 @@
 -- The client only asks; the server charges Cash, checks Fame, and decides every result.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -14,6 +15,7 @@ local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -60,7 +62,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	bar.BackgroundTransparency = 1
 	bar.Parent = gui
 	local barLimit = Instance.new("UISizeConstraint")
-	barLimit.MaxSize = Vector2.new(560, 80)
+	barLimit.MaxSize = Vector2.new(600, 92)
 	barLimit.Parent = bar
 
 	-- Roblox draws the thumbstick (bottom left) and jump button (bottom right) over our UI on touch
@@ -71,35 +73,62 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		local viewport = UiKit.viewport()
 		if UserInputService.TouchEnabled and viewport.X >= viewport.Y then
 			bar.Position = UDim2.new(0.5, 0, 1, -16)
-			bar.Size = UDim2.new(1, -2 * TOUCH_SIDE_ZONE, 0, 64)
+			bar.Size = UDim2.new(1, -2 * TOUCH_SIDE_ZONE, 0, 76)
 		elseif UserInputService.TouchEnabled then
 			bar.Position = UDim2.new(0.5, 0, 1, -TOUCH_PORTRAIT_LIFT)
-			bar.Size = UDim2.new(0.96, 0, 0, 64)
+			bar.Size = UDim2.new(0.96, 0, 0, 76)
 		else
 			bar.Position = UDim2.new(0.5, 0, 1, -16)
-			bar.Size = UDim2.new(0.92, 0, 0, 72)
+			bar.Size = UDim2.new(0.92, 0, 0, 88)
 		end
 	end)
 
-	local rosterButton = makeButton(bar, "Roster", UiKit.PURPLE, UDim2.fromScale(0.17, 1))
-	local studioButton = makeButton(bar, "Studio", UiKit.FRESH_GREEN, UDim2.fromScale(0.17, 1), UDim2.fromScale(0.18, 0))
-	studioButton.Name = "StudioButton"
+	local tileSize = UDim2.fromScale(0.17, 1)
+	local rosterButton = UiKit.makeIconTile(bar, "star", "Actors", UiKit.PURPLE, tileSize)
+	local studioButton = UiKit.makeIconTile(bar, "camera", "Studio", UiKit.FRESH_GREEN, tileSize, UDim2.fromScale(0.18, 0))
 	local castButton = makeButton(bar, "", UiKit.GREEN, UDim2.fromScale(0.28, 1), UDim2.fromScale(0.36, 0))
 	castButton.Name = "CastButton"
 	castButton:SetAttribute("Silent", true) -- the reveal has its own sounds
-	local oddsButton = makeButton(bar, "Odds", UiKit.BLUE, UDim2.fromScale(0.17, 1), UDim2.fromScale(0.65, 0))
-	local upgradesButton = makeButton(bar, "Upgrade", UiKit.AWARD_GOLD, UDim2.fromScale(0.17, 1), UDim2.fromScale(0.83, 0))
+	local oddsButton = UiKit.makeIconTile(bar, "dice", "Odds", UiKit.BLUE, tileSize, UDim2.fromScale(0.65, 0))
+	local upgradesButton = UiKit.makeIconTile(bar, "arrow", "Upgrade", UiKit.TEAL, tileSize, UDim2.fromScale(0.83, 0))
 	upgradesButton.Name = "UpgradesButton"
-	-- The Cast button is the hero: thicker outline and text.
+	-- The Cast button is the hero: thicker outline and text, a clapperboard, and a slow pulse.
 	local castOutline = castButton:FindFirstChild("Outline") :: UIStroke
-	local castTextOutline = castButton:FindFirstChild("TextOutline") :: UIStroke
 	castOutline.Thickness = 4
-	castTextOutline.Thickness = 3
-	UiKit.textConstraint(castButton, 30)
+	local castLabel = UiKit.makeTitle(castButton, "CAST!", WHITE, UDim2.fromScale(0.6, 0.52), UDim2.fromScale(0.37, 0.08), 3)
+	castLabel.Name = "Label"
+	castLabel.ZIndex = castButton.ZIndex + 3
+	UiKit.textConstraint(castLabel, 34)
+	local costLabel = UiKit.makeTitle(castButton, "", UiKit.GOLD, UDim2.fromScale(0.6, 0.32), UDim2.fromScale(0.37, 0.6), 2)
+	costLabel.Name = "Cost"
+	costLabel.ZIndex = castButton.ZIndex + 3
+	UiKit.textConstraint(costLabel, 22)
+	local clapper = Instance.new("Frame")
+	clapper.Name = "Art"
+	clapper.BackgroundTransparency = 1
+	clapper.AnchorPoint = Vector2.new(0.5, 0.5)
+	clapper.Position = UDim2.fromScale(0.2, 0.45)
+	clapper.Size = UDim2.fromScale(0.36, 1.25)
+	clapper.Parent = castButton
+	local clapperView = Icon3D.icon(clapper, "clapper")
+	local stopWobble: (() -> ())? = nil
+	UiKit.bounce(castButton, function(hovered)
+		if stopWobble ~= nil then
+			stopWobble()
+			stopWobble = nil
+		end
+		if hovered then
+			stopWobble = Icon3D.wobble(clapperView)
+		end
+	end)
+	local pulse = Instance.new("UIScale")
+	pulse.Name = "Pulse"
+	pulse.Parent = clapper
+	TweenService:Create(pulse, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Scale = 1.12 }):Play()
 
 	local function refreshCastButton()
 		local agency = currentAgency()
-		castButton.Text = "CAST  $" .. Hud.comma(agency.cost)
+		costLabel.Text = "$" .. Hud.comma(agency.cost)
 	end
 	refreshCastButton()
 
@@ -185,30 +214,31 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	tabRow.Size = UDim2.new(1, -20, 0, 42)
 	tabRow.Parent = collection
 
-	local function chip(row: Frame, text: string, color: Color3, found: boolean, slot: number)
-		local label = UiKit.makeTitle(row, text, if found then WHITE else UiKit.FAINT, UDim2.fromScale(0.14, 0.7), UDim2.fromScale(0.5 + (slot - 1) * 0.16, 0.15), 1.5)
+	-- Actor cards, three to a row (one row per tier): the 3D figure in a frame of its rarity
+	-- color, or a black silhouette and "???" until discovered, like the reference games' Index.
+	local function variantChip(card: Frame, text: string, color: Color3, found: boolean, slot: number)
+		local label = UiKit.makeTitle(card, text, if found then WHITE else UiKit.FAINT, UDim2.fromScale(0.28, 0.13), UDim2.fromScale(0.05 + (slot - 1) * 0.31, 0.83), 1.5)
 		label.BackgroundTransparency = if found then 0 else 0.4
 		label.BackgroundColor3 = if found then color:Lerp(UiKit.NAVY, 0.35) else UiKit.DARK
-		corner(label, 8)
+		label.ZIndex = 3
+		corner(label, 6)
 		UiKit.border(label, 2, if found then color else UiKit.INK)
+		textConstraint(label, 16)
 	end
 
-	local function actorRowLabels(row: Frame, actor: Actors.Actor, seen: boolean)
-		local name = makeLabel(row, if seen then actor.name else "???", if seen then WHITE else UiKit.FAINT, UDim2.fromScale(0.5, 0.6), UDim2.fromOffset(10, 2))
-		name.TextXAlignment = Enum.TextXAlignment.Left
-		local genre = makeLabel(row, if seen then actor.genre else "", if seen then UiKit.GENRE_COLORS[actor.genre] or UiKit.MUTED else UiKit.MUTED, UDim2.fromScale(0.5, 0.35), UDim2.new(0, 10, 0.62, 0))
-		genre.TextXAlignment = Enum.TextXAlignment.Left
-	end
-
-	-- Discovered actors get a border in their rarity color (Icon: rainbow); unknown ones stay dark.
-	local function rarityBorder(row: Frame, tier: Actors.Tier, seen: boolean)
-		local outline = row:FindFirstChild("Outline") :: UIStroke
+	local function rarityFrame(card: Frame, tier: Actors.Tier, seen: boolean)
+		local outline = card:FindFirstChild("Outline") :: UIStroke
 		if not seen then
-			row.BackgroundColor3 = UiKit.DARK
+			card.BackgroundColor3 = UiKit.DARK
 			return
 		end
+		card.BackgroundColor3 = tier.color:Lerp(UiKit.NAVY, 0.45)
 		outline.Thickness = 3
 		outline.Color = tier.color
+		local glow = Instance.new("UIGradient")
+		glow.Rotation = 90
+		glow.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(120, 120, 140))
+		glow.Parent = card
 		if tier.id == "Icon" then
 			outline.Color = WHITE
 			local rainbow = Instance.new("UIGradient")
@@ -217,26 +247,77 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		end
 	end
 
+	-- `chipText(variant, found)` labels each variant chip (owned count, or found / not found).
+	local function tierCards(order: number, tier: Actors.Tier, chipText: (key: string, found: boolean) -> string)
+		local grid = Instance.new("Frame")
+		grid.Name = "Cards_" .. tier.id
+		grid.LayoutOrder = order
+		grid.BackgroundTransparency = 1
+		grid.Size = UDim2.new(1, -8, 0, 0)
+		grid.AutomaticSize = Enum.AutomaticSize.Y
+		grid.Parent = collectionList
+		local layout = Instance.new("UIGridLayout")
+		layout.CellSize = UDim2.new(1 / 3, -8, 0, if UiKit.isCompact() then 150 else 176)
+		layout.CellPadding = UDim2.fromOffset(10, 8)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = grid
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft = UDim.new(0, 3)
+		pad.PaddingTop = UDim.new(0, 3)
+		pad.Parent = grid
+		for slot, actor in Actors.actorsInTier(tier.id) do
+			local seen = Upgrades.actorDiscovered(ClientState.index, actor.id)
+			local card = Instance.new("Frame")
+			card.Name = actor.id
+			card.LayoutOrder = slot
+			card.Parent = grid
+			corner(card, 12)
+			UiKit.border(card, 2)
+			rarityFrame(card, tier, seen)
+
+			local art = Instance.new("Frame")
+			art.Name = "Art"
+			art.BackgroundTransparency = 1
+			art.Position = UDim2.fromScale(0.05, 0.03)
+			art.Size = UDim2.fromScale(0.9, 0.54)
+			art.Parent = card
+			Icon3D.actor(art, actor.id, "Normal", not seen)
+
+			local name = UiKit.makeTitle(card, if seen then actor.name else "???", if seen then WHITE else UiKit.FAINT, UDim2.fromScale(0.94, 0.13), UDim2.fromScale(0.03, 0.57), 2)
+			name.ZIndex = 3
+			textConstraint(name, 18)
+			local genre = makeLabel(card, if seen then actor.genre else tier.name, if seen then UiKit.GENRE_COLORS[actor.genre] or UiKit.MUTED else UiKit.FAINT, UDim2.fromScale(0.94, 0.1), UDim2.fromScale(0.03, 0.71))
+			genre.ZIndex = 3
+			textConstraint(genre, 14)
+			for chipSlot, variant in Actors.Variants do
+				local key = Actors.key(actor.id, variant.id)
+				local found = ClientState.index[key] == true
+				variantChip(card, chipText(key, found), variant.color, found, chipSlot)
+			end
+		end
+	end
+
+	local function tierHeader(order: number, tier: Actors.Tier, height: number, text: string): Frame
+		local head = UiKit.addRow(collectionList, order, height)
+		head.BackgroundColor3 = tier.color
+		local shade = Instance.new("UIGradient")
+		shade.Rotation = 90
+		shade.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190))
+		shade.Parent = head
+		UiKit.makeTitle(head, text, WHITE, UDim2.new(0.5, 0, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+		return head
+	end
+
 	local function renderRoster()
 		local order = 0
 		-- Common first, so a new player sees what they own without scrolling past a wall of "???".
 		for _, tier in Actors.Tiers do
 			order += 1
-			local head = UiKit.addRow(collectionList, order, 30)
-			head.BackgroundColor3 = tier.color
-			UiKit.makeTitle(head, tier.name, WHITE, UDim2.fromScale(1, 1), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
-			for _, actor in Actors.actorsInTier(tier.id) do
-				order += 1
-				local row = UiKit.addRow(collectionList, order, 48)
-				local seen = Upgrades.actorDiscovered(ClientState.index, actor.id)
-				actorRowLabels(row, actor, seen)
-				rarityBorder(row, tier, seen)
-				for slot, variant in Actors.Variants do
-					local key = Actors.key(actor.id, variant.id)
-					local found = ClientState.index[key] == true
-					chip(row, if found then "x" .. (ClientState.roster[key] or 0) else "-", variant.color, found, slot)
-				end
-			end
+			tierHeader(order, tier, 32, tier.name)
+			order += 1
+			tierCards(order, tier, function(key, found)
+				return if found then "x" .. (ClientState.roster[key] or 0) else "-"
+			end)
 		end
 	end
 
@@ -264,22 +345,12 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 			local found, total = Upgrades.tierProgress(ClientState.index, tier.id)
 			local rewardId = "tier:" .. tier.id
 			order += 1
-			local head = UiKit.addRow(collectionList, order, 40)
-			head.BackgroundColor3 = tier.color
-			UiKit.makeTitle(head, `{tier.name}  {found}/{total}`, WHITE, UDim2.new(0.4, 0, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+			local head = tierHeader(order, tier, 44, `{tier.name}  {found}/{total}`)
 			rewardControl(head, rewardId, found == total, rewards[rewardId] == true, `+{Config.TierRewardLuck} Luck`)
-			for _, actor in Actors.actorsInTier(tier.id) do
-				order += 1
-				local row = UiKit.addRow(collectionList, order, 44)
-				local seen = Upgrades.actorDiscovered(ClientState.index, actor.id)
-				actorRowLabels(row, actor, seen)
-				rarityBorder(row, tier, seen)
-				for slot, variant in Actors.Variants do
-					local key = Actors.key(actor.id, variant.id)
-					local hasIt = ClientState.index[key] == true
-					chip(row, if hasIt then "+" else "-", variant.color, hasIt, slot)
-				end
-			end
+			order += 1
+			tierCards(order, tier, function(_key, hasIt)
+				return if hasIt then "+" else "-"
+			end)
 		end
 
 		order += 1
@@ -341,13 +412,13 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	local card = Instance.new("Frame")
 	card.AnchorPoint = Vector2.new(0.5, 0.5)
 	card.Position = UDim2.fromScale(0.5, 0.5)
-	card.Size = UDim2.fromScale(0.85, 0.6)
+	card.Size = UDim2.fromScale(0.85, 0.72)
 	card.BackgroundColor3 = PANEL
 	card.ZIndex = 11
 	card.Parent = overlay
 	corner(card, 20)
 	local cardLimit = Instance.new("UISizeConstraint")
-	cardLimit.MaxSize = Vector2.new(440, 480)
+	cardLimit.MaxSize = Vector2.new(440, 600)
 	cardLimit.Parent = card
 	-- The card's frame glows in the rarity color; the Icon tier gets a rainbow.
 	local stroke = UiKit.border(card, 6, WHITE)
@@ -362,14 +433,89 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		textConstraint(label, size)
 		return label
 	end
-	local tagLabel = cardLabel(0.04, 0.1, 22) -- NEW! / variant
-	local nameLabel = cardLabel(0.16, 0.2, 40)
-	local tierLabel = cardLabel(0.38, 0.1, 26)
-	local detailLabel = cardLabel(0.5, 0.1, 22)
-	local powerLabel = cardLabel(0.6, 0.1, 22)
+	local tagLabel = cardLabel(0.03, 0.08, 22) -- NEW! / variant
+	local nameLabel = cardLabel(0.5, 0.11, 38)
+	local tierLabel = cardLabel(0.61, 0.07, 26)
+	local detailLabel = cardLabel(0.68, 0.06, 20)
+	local powerLabel = cardLabel(0.74, 0.06, 20)
 
-	local againButton = makeButton(card, "Cast again", UiKit.GREEN, UDim2.fromScale(0.44, 0.15), UDim2.fromScale(0.04, 0.8))
-	local doneButton = makeButton(card, "Continue", UiKit.BLUE, UDim2.fromScale(0.44, 0.15), UDim2.fromScale(0.52, 0.8))
+	-- The actor (or a spinning clapperboard while casting) turns on a turntable in the card.
+	local art = Instance.new("Frame")
+	art.Name = "Art"
+	art.BackgroundTransparency = 1
+	art.AnchorPoint = Vector2.new(0.5, 0)
+	art.Position = UDim2.fromScale(0.5, 0.1)
+	art.Size = UDim2.fromScale(0.8, 0.4)
+	art.ZIndex = 12
+	art.Parent = card
+	local stopSpin: (() -> ())? = nil
+	local function showArt(build: (Frame) -> ViewportFrame, rpm: number): ViewportFrame
+		if stopSpin ~= nil then
+			stopSpin()
+			stopSpin = nil
+		end
+		art:ClearAllChildren()
+		local view = build(art)
+		stopSpin = Icon3D.spin(view, rpm)
+		return view
+	end
+
+	-- Light rays behind the card in the rarity color, slowly turning: six bars through the
+	-- centre make twelve rays, each fading out toward its tip.
+	local rays = Instance.new("Frame")
+	rays.Name = "Rays"
+	rays.BackgroundTransparency = 1
+	rays.AnchorPoint = Vector2.new(0.5, 0.5)
+	rays.Position = UDim2.fromScale(0.5, 0.45)
+	rays.Size = UDim2.fromScale(1.4, 1.4)
+	rays.ZIndex = 10
+	rays.Parent = overlay
+	local rayAspect = Instance.new("UIAspectRatioConstraint")
+	rayAspect.Parent = rays
+	local rayBars: { Frame } = {}
+	for i = 1, 6 do
+		local rayBar = Instance.new("Frame")
+		rayBar.AnchorPoint = Vector2.new(0.5, 0.5)
+		rayBar.Position = UDim2.fromScale(0.5, 0.5)
+		rayBar.Size = UDim2.fromScale(0.09, 1)
+		rayBar.BorderSizePixel = 0
+		rayBar.ZIndex = 10
+		rayBar.Parent = rays
+		local fade = Instance.new("UIGradient")
+		fade.Rotation = 90
+		fade.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.5, 0.35),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		fade.Parent = rayBar
+		rayBars[i] = rayBar
+	end
+	local function setRays(color: Color3?, strength: number)
+		rays.Visible = color ~= nil
+		for _, bar in rayBars do
+			bar.BackgroundColor3 = color or WHITE
+			bar.BackgroundTransparency = 1 - strength
+		end
+	end
+	overlay:GetPropertyChangedSignal("Visible"):Connect(function()
+		if not overlay.Visible and stopSpin ~= nil then
+			stopSpin()
+			stopSpin = nil
+		end
+	end)
+	RunService.RenderStepped:Connect(function()
+		if not (overlay.Visible and rays.Visible) then
+			return
+		end
+		local angle = os.clock() * 12
+		for i, bar in rayBars do
+			bar.Rotation = angle + i * 30
+		end
+	end)
+
+	local againButton = makeButton(card, "Cast again", UiKit.GREEN, UDim2.fromScale(0.44, 0.13), UDim2.fromScale(0.04, 0.83))
+	local doneButton = makeButton(card, "Continue", UiKit.BLUE, UDim2.fromScale(0.44, 0.13), UDim2.fromScale(0.52, 0.83))
 	againButton.ZIndex = 12
 	doneButton.ZIndex = 12
 
@@ -391,6 +537,11 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		nameLabel.Visible = true
 		nameLabel.Text = "Casting..."
 		nameLabel.TextColor3 = WHITE
+		art.Visible = true
+		showArt(function(frame)
+			return Icon3D.icon(frame, "clapper", 0.9)
+		end, 90)
+		setRays(nil, 0)
 		Sfx.play("whoosh")
 	end
 
@@ -411,12 +562,23 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		nameLabel.TextColor3 = WHITE
 		stroke.Color = UiKit.FAINT
 		rainbow.Enabled = false
+		-- Build-up: the new actor's silhouette spins fast, then stops spinning to show who it is.
+		art.Visible = true
+		showArt(function(frame)
+			return Icon3D.actor(frame, actor.id, variant.id, true)
+		end, 150)
+		setRays(nil, 0)
 
 		task.delay(0.7, function()
 			if revealToken ~= mine then
 				return
 			end
 			setCardVisible(true)
+			showArt(function(frame)
+				return Icon3D.actor(frame, actor.id, variant.id)
+			end, 12)
+			local rank = table.find(Actors.Tiers, tier) or 1
+			setRays(if variant.id == "Normal" then tier.color else variant.color, math.clamp(0.25 + rank * 0.1, 0, 0.9))
 			stroke.Color = if tier.id == "Icon" then WHITE else tier.color
 			rainbow.Enabled = tier.id == "Icon"
 			nameLabel.Text = actor.name
@@ -435,8 +597,8 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 			end
 			tagLabel.Text = tag
 			Fx.castReveal(tier.id, variant.id)
-			card.Size = UDim2.fromScale(0.7, 0.5)
-			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, 0.6) }):Play()
+			card.Size = UDim2.fromScale(0.7, 0.6)
+			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, 0.72) }):Play()
 		end)
 	end
 

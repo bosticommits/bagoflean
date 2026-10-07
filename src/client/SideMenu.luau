@@ -1,12 +1,13 @@
 --!strict
--- Left-side button column: Shop, Rewards and Codes, with a red count badge for things to claim.
+-- Left-side column of picture tiles: Shop, Rewards and Codes, with a red count badge for things
+-- to claim.
 -- Sits mid-left, clear of the touch thumbstick (bottom left) and the Roblox top bar.
 local UiKit = require(script.Parent.UiKit)
 
 local SideMenu = {}
 
-local BUTTON = 76
-local GAP = 10
+local BUTTON = 80
+local GAP = 12
 
 export type Buttons = { shop: TextButton, rewards: TextButton, codes: TextButton }
 
@@ -19,16 +20,14 @@ function SideMenu.start(gui: ScreenGui): Buttons
 	column.BackgroundTransparency = 1
 	column.Parent = gui
 
-	local function button(order: number, text: string, color: Color3): TextButton
-		local b = UiKit.makeButton(column, text, color, UDim2.fromOffset(BUTTON, BUTTON), UDim2.fromOffset(0, (order - 1) * (BUTTON + GAP)))
-		b.Name = text .. "Button"
-		return b
+	local function button(order: number, icon: string, text: string, color: Color3): TextButton
+		return UiKit.makeIconTile(column, icon, text, color, UDim2.fromOffset(BUTTON, BUTTON), UDim2.fromOffset(0, (order - 1) * (BUTTON + GAP)))
 	end
 
 	return {
-		shop = button(1, "Shop", UiKit.RED),
-		rewards = button(2, "Rewards", UiKit.PURPLE),
-		codes = button(3, "Codes", UiKit.BLUE),
+		shop = button(1, "popcorn", "Shop", UiKit.AWARD_GOLD),
+		rewards = button(2, "gift", "Rewards", UiKit.PURPLE),
+		codes = button(3, "ticket", "Codes", UiKit.BLUE),
 	}
 end
 
