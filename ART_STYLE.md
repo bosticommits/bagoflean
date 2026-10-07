@@ -164,7 +164,12 @@ the Hollywood sign letters, cars.
 - Collision is done in Roblox with simple invisible parts, not the mesh.
 
 **Working example:** `art/blender/trophy_gold.py` (604 triangles, 2 studs tall, Roblox
-asset 100325620206746). Copy it as the starting point for new models.
+asset 100325620206746). New models use the shared helpers in `art/blender/mmkit.py`
+(palette, vertex-color bake, previews, export); `palm_tree.py` is a short example.
+
+**Using a mesh in the game:** put the imported MeshPart in `ReplicatedStorage.LotMeshes` under
+the name the code looks for (see `art/README.md`). Code-built models call `Build.mesh` and fall
+back to their part version until the mesh is there.
 
 ## 13. References
 
