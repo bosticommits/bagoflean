@@ -6,6 +6,8 @@ for the **premiere**, where a box-office roll decides between Flop and Masterpie
 Every actor you discover fills your Index, and your studio lot grows into a Hollywood empire
 that everyone on the server can see.
 
+Look and feel: see [ART_STYLE.md](ART_STYLE.md).
+
 Status: **M0 to M5 built** (version 1, with placeholder part-based art). Numbers are starting
 points, to be tuned in playtests. Section 11 lists the decisions made while building.
 
@@ -138,7 +140,6 @@ exciting by M3, fix the core before adding anything else.
 ## 10. Open questions
 
 - Final game name ("Movie Mogul", "Studio Tycoon RNG", "Hollywood RNG"...)
-- Art style (bright cartoon is the safe pick for this audience)
 - Whether to add light player interaction later (visiting lots, co-starring in premieres)
 
 ## 11. As built (decisions made during M0 to M5)

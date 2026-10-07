@@ -6,3 +6,6 @@ portfolio.json.tmp
 *.rbxlx
 sourcemap.json
 .claude/settings.local.json
+
+# Blender exports (rebuildable from art/blender scripts)
+art/exports/
