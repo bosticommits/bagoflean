@@ -635,6 +635,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			card.Name = key
 			card.Text = ""
 			card.AutoButtonColor = false
+			card:SetAttribute("ChipInset", true) -- cards touch: keep the copies chip inside
 			card.Parent = grid
 			corner(card, 12)
 			UiKit.rarityStyle(card, key, 3)
@@ -653,8 +654,10 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local power = UiKit.makeTitle(card, "", UiKit.GOLD, UDim2.fromScale(0.94, 0.15), UDim2.fromScale(0.03, 0.79), 2)
 			power.ZIndex = 3
 			UiKit.textConstraint(power, 18)
-			-- Tag shown when the actor's specialty matches the picked script.
-			local bonus = UiKit.makeTitle(card, "", WHITE, UDim2.fromOffset(86, 22), UDim2.fromOffset(-6, -8), 1.5)
+			-- Tag shown when the actor's specialty matches the picked script, over the foot of the
+			-- picture (the owned-copies chip has the top corner).
+			local bonus = UiKit.makeTitle(card, "", WHITE, UDim2.fromOffset(86, 22), UDim2.new(0.5, 0, 0.6, -2), 1.5)
+			bonus.AnchorPoint = Vector2.new(0.5, 1)
 			bonus.BackgroundTransparency = 0
 			bonus.Rotation = -4
 			bonus.ZIndex = 6

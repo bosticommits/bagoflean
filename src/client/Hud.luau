@@ -15,6 +15,8 @@ local UiKit = require(script.Parent.UiKit)
 
 local Hud = {}
 
+local WALLET_CARD_MIN = 150
+
 local function comma(n: number): string
 	local s = tostring(math.floor(n))
 	local formatted = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
@@ -39,29 +41,57 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local player = Players.LocalPlayer
 
 	-- Top centre: no box, outlined text floats over the world, as in the reference games. It starts
-	-- where the side menu says ("HudTop"): under the wallet on touch screens, where the wallet sits
-	-- at the top.
+	-- where the side menu says ("HudTop"). On touch screens the wallet takes the top centre, so the
+	-- event lines move to the top right corner ("HudRight"), smaller on short screens, where they
+	-- stay clear of the player's character.
 	local frame = Instance.new("Frame")
 	frame.Name = "Hud"
-	frame.AnchorPoint = Vector2.new(0.5, 0)
 	frame.Size = UDim2.fromOffset(420, 70)
 	frame.BackgroundTransparency = 1
 	frame.Parent = gui
+	local frameScale = Instance.new("UIScale")
+	frameScale.Parent = frame
+	local labels: { TextLabel } = {}
 	local function placeFrame()
 		local top = gui:GetAttribute("HudTop")
-		frame.Position = UDim2.new(0.5, 0, 0, if typeof(top) == "number" then top else 8)
+		local right = gui:GetAttribute("HudRight") == true
+		if right then
+			frame.AnchorPoint = Vector2.new(1, 0)
+			frame.Position = UDim2.new(1, -12, 0, 8)
+		else
+			frame.AnchorPoint = Vector2.new(0.5, 0)
+			frame.Position = UDim2.new(0.5, 0, 0, if typeof(top) == "number" then top else 8)
+		end
+		frameScale.Scale = if right and UiKit.isCompact() then 0.72 else 1
+		for _, label in labels do
+			label.TextXAlignment = if right then Enum.TextXAlignment.Right else Enum.TextXAlignment.Center
+		end
 	end
 	gui:GetAttributeChangedSignal("HudTop"):Connect(placeFrame)
-	placeFrame()
+	gui:GetAttributeChangedSignal("HudRight"):Connect(placeFrame)
 
 	local function makeLabel(y: number, height: number, color: Color3): TextLabel
 		local label = UiKit.makeTitle(frame, "", color, UDim2.new(1, 0, 0, height), UDim2.fromOffset(0, y), if height >= 40 then 3.5 else 2.5)
 		UiKit.textConstraint(label, height)
+		table.insert(labels, label)
 		return label
 	end
 
 	local pendingLabel = makeLabel(38, 24, UiKit.WHITE)
 	pendingLabel.Text = ""
+
+	-- A soft dark card behind the wallet, so the numbers read over bright signs in the world.
+	local card = Instance.new("Frame")
+	card.Name = "Card"
+	card.BackgroundColor3 = UiKit.NAVY
+	card.BackgroundTransparency = 0.3
+	card.Position = UDim2.fromOffset(-8, -6)
+	card.Size = UDim2.fromOffset(WALLET_CARD_MIN, 100)
+	card.ZIndex = 0
+	card.Parent = wallet
+	UiKit.corner(card, 18)
+	local cardStroke = UiKit.border(card, 3)
+	cardStroke.Transparency = 0.2
 
 	-- Wallet rows: icon, big outlined number, and for Cash a green "+".
 	local function walletRow(y: number, height: number, icon: string, color: Color3): (TextLabel, Frame)
@@ -86,8 +116,13 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local function placePlus()
 		local scale = if wallet.Size.X.Offset > 0 then wallet.AbsoluteSize.X / wallet.Size.X.Offset else 1
 		local width = cashLabel.TextBounds.X / math.max(scale, 0.01)
-		plus.Position = UDim2.fromOffset(cashLabel.Position.X.Offset + math.ceil(width) + 10, 5)
+		local plusX = cashLabel.Position.X.Offset + math.ceil(width) + 10
+		plus.Position = UDim2.fromOffset(plusX, 5)
+		local fameWidth = fameLabel.TextBounds.X / math.max(scale, 0.01)
+		local right = math.max(plusX + 36, fameLabel.Position.X.Offset + math.ceil(fameWidth))
+		card.Size = UDim2.fromOffset(math.max(WALLET_CARD_MIN, right + 18), 100)
 	end
+	fameLabel:GetPropertyChangedSignal("TextBounds"):Connect(placePlus)
 	cashLabel:GetPropertyChangedSignal("TextBounds"):Connect(placePlus)
 	wallet:GetPropertyChangedSignal("AbsoluteSize"):Connect(placePlus)
 	placePlus()
@@ -142,6 +177,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local eventBorder = UiKit.border(eventLabel, 3)
 	eventBorder.Enabled = false
 	UiKit.textConstraint(eventLabel, 32)
+	table.insert(labels, eventLabel)
+	UiKit.onViewportChanged(placeFrame)
 
 	task.spawn(function()
 		while eventLabel.Parent ~= nil do
@@ -177,7 +214,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		away.Text = `Your cinema earned ${comma(pending)} while you were away! Collect it at the gold pad`
 		away.BackgroundTransparency = 0
 		away.BackgroundColor3 = UiKit.NAVY
-		away.Position = UDim2.new(0, -40, 1, 8)
+		away.Position = if gui:GetAttribute("HudRight") == true then UDim2.new(0, -80, 1, 8) else UDim2.new(0, -40, 1, 8)
+		away.TextXAlignment = Enum.TextXAlignment.Center
 		away.Size = UDim2.new(1, 80, 0, 34)
 		away.ZIndex = 4
 		UiKit.corner(away, 12)

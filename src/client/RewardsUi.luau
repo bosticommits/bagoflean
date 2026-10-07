@@ -554,7 +554,27 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 		end
 	end
 
+	-- What the screen was last built for. A sync that changes nothing it shows (the server sends a
+	-- fresh one every time the screen opens) keeps what is there, pictures and typed code included.
+	local builtFor: string? = nil
+	local function signature(): string
+		local shown: { [string]: any } = {}
+		for key, value in ClientState.rewards or {} do
+			if key ~= "serverNow" and key ~= "receivedAt" then
+				shown[key] = value
+			end
+		end
+		return `{tab}|{welcome}|{math.floor(rate())}|{UiKit.isCompact()}|{math.floor(listWidth())}|{UiKit.signature(shown)}`
+	end
+
 	local function render()
+		local wanted = signature()
+		if wanted == builtFor then
+			scrollToToday = false -- still where the player left it
+			tickCountdown()
+			return
+		end
+		builtFor = wanted
 		UiKit.clear(list)
 		codeMessage = nil
 		countdown = nil

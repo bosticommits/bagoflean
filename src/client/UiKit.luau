@@ -2,6 +2,7 @@
 -- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
@@ -252,10 +253,11 @@ function UiKit.chip(button: GuiObject, text: string?)
 		chip = created
 	end
 	assert(chip ~= nil)
-	-- As wide as its text, poking just past the button's right edge.
+	-- As wide as its text, poking just past the button's right edge (or inside the corner when
+	-- the button sits in a tight grid: the "ChipInset" attribute).
 	local width = math.max(30, 12 + 9 * #text)
 	chip.Size = UDim2.fromOffset(width, 22)
-	chip.Position = UDim2.new(1, -(width - 10), 0, -6)
+	chip.Position = if button:GetAttribute("ChipInset") then UDim2.new(1, -(width + 4), 0, 4) else UDim2.new(1, -(width - 10), 0, -6)
 	chip.Text = text
 	chip.Visible = true
 end
@@ -497,6 +499,13 @@ function UiKit.toast(gui: ScreenGui, text: string)
 end
 
 -- Layout ---------------------------------------------------------------------------------------
+-- A string that changes whenever `value` (plain data) does, so a screen can skip rebuilding
+-- when nothing it shows changed (a rebuilt 3D picture is blank until Roblox redraws it).
+function UiKit.signature(value: any): string
+	local ok, encoded = pcall(HttpService.JSONEncode, HttpService, value)
+	return if ok then encoded else tostring(os.clock())
+end
+
 -- Short screens (phones in landscape) get taller panels so lists have room to breathe.
 local COMPACT_HEIGHT = 500
 

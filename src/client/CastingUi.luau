@@ -363,7 +363,20 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end
 
+	-- What the collection was last built for: a sync that changes nothing it shows keeps the cards
+	-- (rebuilt 3D pictures are blank until Roblox redraws them).
+	local collectionBuiltFor: string? = nil
 	local function buildCollection()
+		local studio = ClientState.studio
+		local wanted = `{collectionTab}|{UiKit.isCompact()}|{UiKit.signature({
+			roster = ClientState.roster,
+			index = ClientState.index,
+			rewards = if studio ~= nil then studio.rewards else nil,
+		})}`
+		if wanted == collectionBuiltFor then
+			return
+		end
+		collectionBuiltFor = wanted
 		-- Keep the scroll position across rebuilds (data refreshes while the panel is open).
 		local scroll = collectionList.CanvasPosition
 		task.defer(function()

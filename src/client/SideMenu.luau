@@ -6,8 +6,9 @@
 --
 -- Everything scales with the screen: up to 1.25x on tall screens, and down until the menu fits
 -- above the wallet on short ones. The layout is published on the ScreenGui for the other screens:
--- "HudTop" (where the top-centre HUD starts) and "MenuRight" (the menu's right edge, which panels
--- keep clear of when there is room).
+-- "HudTop" (where the top HUD starts), "HudRight" (true when the event line belongs at the top
+-- right, on touch screens) and "MenuRight" (the right edge of the menu and wallet, which panels keep
+-- clear of when there is room).
 local UserInputService = game:GetService("UserInputService")
 
 local UiKit = require(script.Parent.UiKit)
@@ -69,7 +70,8 @@ function SideMenu.start(gui: ScreenGui): Buttons
 		walletScale.Scale = walletSize
 		local top = 8
 		local size, hudTop
-		if UserInputService.TouchEnabled then
+		local touch = UserInputService.TouchEnabled
+		if touch then
 			-- Thumbstick bottom left: the menu hangs from the top left, the wallet sits top centre.
 			local room = area.Y * 0.74 - top
 			size = math.clamp(math.min(grow, room / MENU_HEIGHT), 0.5, 1.25)
@@ -88,7 +90,14 @@ function SideMenu.start(gui: ScreenGui): Buttons
 		end
 		scale.Scale = size
 		gui:SetAttribute("HudTop", hudTop)
-		gui:SetAttribute("MenuRight", menu.Position.X.Offset + math.ceil((MENU_WIDTH + OVERHANG) * size))
+		-- On touch screens the event line moves to the top right, off the player's character.
+		gui:SetAttribute("HudRight", touch)
+		local menuRight = menu.Position.X.Offset + math.ceil((MENU_WIDTH + OVERHANG) * size)
+		if not touch then
+			-- The wallet under the menu is wider than it: panels keep clear of the Cash number too.
+			menuRight = math.max(menuRight, 16 + math.ceil(WALLET_WIDTH * walletSize))
+		end
+		gui:SetAttribute("MenuRight", menuRight)
 	end
 	UiKit.onViewportChanged(layout)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
