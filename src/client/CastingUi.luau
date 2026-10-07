@@ -16,6 +16,7 @@ local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local Screens = require(script.Parent.Screens)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -672,6 +673,16 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	end)
 	oddsButton.Activated:Connect(function()
 		UiKit.togglePanel(oddsPanel, buildOdds)
+	end)
+	Screens.register("Actors", function()
+		if not collection.Visible then
+			UiKit.togglePanel(collection, buildCollection)
+		end
+	end)
+	Screens.register("Odds", function()
+		if not oddsPanel.Visible then
+			UiKit.togglePanel(oddsPanel, buildOdds)
+		end
 	end)
 
 	return studioButton, upgradesButton

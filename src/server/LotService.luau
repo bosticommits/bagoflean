@@ -12,16 +12,13 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local ActorModels = require(ReplicatedStorage.Shared.Models.ActorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
+local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
-
-local LOT_SPACING = 80
-local COLUMNS = 3
-local ROW_OFFSET_Z = 70
 
 -- One accent color per lot (sound stage roofs, cinema canopy) so neighbors are easy to tell apart.
 local LOT_COLORS = {
@@ -107,11 +104,8 @@ local function rarestOwned(data: DataService.PlayerData): (Actors.Actor?, Actors
 end
 
 local function buildLot(index: number, folder: Folder): Lot
-	local col = (index - 1) % COLUMNS
-	local row = (index - 1) // COLUMNS
-	local center = Vector3.new((col - 1) * LOT_SPACING, 0, if row == 0 then -ROW_OFFSET_Z else ROW_OFFSET_Z)
-	-- Lots face the middle of the map: turn the back row around so lot-space -Z points at the street.
-	local base = CFrame.new(center) * (if row == 0 then CFrame.Angles(0, math.pi, 0) else CFrame.identity)
+	-- Lots face the boulevard in the middle of the map (MapModels builds the town around them).
+	local base = MapModels.lotBase(index)
 	local color = LOT_COLORS[index] or LOT_COLORS[1]
 
 	local model = Instance.new("Model")

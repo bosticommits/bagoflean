@@ -1,7 +1,8 @@
 --!strict
 -- Loads the game's shared modules outside Roblox (in Lune) and gives specs a tiny test API.
--- Only src/shared is tested here: those modules are pure rules, so they need just a few Roblox
--- globals (Color3, Random, script.Parent requires), which are stubbed below.
+-- Only src/shared is tested here: the rules modules need just a few Roblox globals (Color3,
+-- Random, script.Parent requires), and the code-built models (src/shared/Models) build into
+-- Lune's own Instance tree, so they get Lune's Roblox types too.
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local roblox = require("@lune/roblox")
@@ -49,11 +50,17 @@ Harness.Random = RandomShim
 local cache: { [string]: any } = {}
 local loadShared: (name: string) -> any
 
-local folder = setmetatable({}, {
-	__index = function(_, name: string)
-		return { __sharedModule = name }
-	end,
-})
+-- `script.Parent` for a module in `dir` ("" for src/shared itself, "Models" for its subfolder).
+local function folderAt(dir: string): any
+	return setmetatable({}, {
+		__index = function(_, name: string)
+			if name == "Parent" then
+				return folderAt(string.match(dir, "^(.*)/[^/]+$") or "")
+			end
+			return { __sharedModule = if dir == "" then name else `{dir}/{name}` }
+		end,
+	})
+end
 
 local function requireShim(ref: any): any
 	if type(ref) == "table" and ref.__sharedModule ~= nil then
@@ -69,14 +76,16 @@ function loadShared(name: string): any
 	end
 	local path = `{SHARED_DIR}/{name}.luau`
 	local source = fs.readFile(path)
+	local environment: { [string]: any } = {}
+	for key, value in roblox :: any do
+		environment[key] = value -- Vector3, CFrame, Instance, Enum... for the models
+	end
+	environment.script = { Name = string.match(name, "[^/]+$"), Parent = folderAt(string.match(name, "^(.*)/[^/]+$") or "") }
+	environment.require = requireShim
+	environment.Random = RandomShim
 	local chunk = luau.load(source, {
 		debugName = path,
-		environment = {
-			script = { Name = name, Parent = folder },
-			require = requireShim,
-			Color3 = roblox.Color3,
-			Random = RandomShim,
-		},
+		environment = environment,
 	})
 	local result = chunk()
 	cache[name] = result
