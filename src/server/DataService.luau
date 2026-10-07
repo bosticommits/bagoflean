@@ -54,6 +54,10 @@ export type PlayerData = {
 	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
 	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
 	funnel: number, -- highest onboarding funnel step logged (analytics)
+	-- Special events: what was picked up in the latest one ("coin3", "crate", "spotlight"), so
+	-- rejoining or changing servers during it cannot pick the same thing up twice.
+	eventKey: string, -- "<event id>:<start time>"; claims from older events are dropped
+	eventClaims: { [string]: boolean },
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
@@ -86,6 +90,8 @@ local TEMPLATE: PlayerData = {
 	purchaseIds = {},
 	stayGiftDay = 0,
 	funnel = 99, -- profiles from before M6 are not new players; load() sets 0 for new ones
+	eventKey = "",
+	eventClaims = {},
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -124,7 +130,10 @@ local function migrate(data: any)
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end
-	for _, field in { "scripts", "upgrades", "rewards", "passes", "codes", "purchaseIds" } do
+	if type(data.eventKey) ~= "string" then
+		data.eventKey = ""
+	end
+	for _, field in { "scripts", "upgrades", "rewards", "passes", "codes", "purchaseIds", "eventClaims" } do
 		if type(data[field]) ~= "table" then
 			data[field] = {}
 		end

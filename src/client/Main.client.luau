@@ -11,6 +11,7 @@ local RewardsUi = require(script.Parent.RewardsUi)
 local Sfx = require(script.Parent.Sfx)
 local ShopUi = require(script.Parent.ShopUi)
 local SideMenu = require(script.Parent.SideMenu)
+local SpecialEventsUi = require(script.Parent.SpecialEventsUi)
 local Stands = require(script.Parent.Stands)
 local StudioUi = require(script.Parent.StudioUi)
 local Tutorial = require(script.Parent.Tutorial)
@@ -48,6 +49,7 @@ if remotes ~= nil then
 	RewardsUi.start(gui, side.rewards, side.codes)
 	Stands.start()
 	Tutorial.start(gui, remotes)
+	SpecialEventsUi.start(gui, remotes)
 else
 	warn("[MovieMogul] Remotes folder never arrived")
 end

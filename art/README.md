@@ -69,7 +69,8 @@ art/preview/actor_sheet.sh   # all actors -> art/previews/actors_sheet.png
 ```
 
 Scenes are listed in `art/preview/scenes.luau` (`stage`, `cinema`, `office`, `props`, `actors`, `icons`,
-`actor <Id>`, `lotEmpty`, `lotStarter`, `lotMid`, `lotMax`, `map` for the whole town). The renderer draws shapes and
+`actor <Id>`, `lotEmpty`, `lotStarter`, `lotMid`, `lotMax`, `map` for the whole town, `events` for
+the special event props). The renderer draws shapes and
 colors only (no text, particles or lights).
 
 The Blender scripts also run with the `bpy` Python package (Python 3.11) instead of the Blender

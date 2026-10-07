@@ -68,6 +68,9 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 
 - [x] Award Night every 30 minutes: 3 minutes of more Luck and double premiere payouts.
       *Done when:* it starts on time on every server, with a countdown players can see.
+- [ ] Special events every 15 minutes (Lucky Star, Cash Rain, Mystery Crate, Spotlight, Golden
+      Hour), built. *Done when:* each one is played in Studio with the test buttons and its
+      banner, effect and reward all work, on PC and on a phone screen.
 - [x] Server announcement when anyone pulls Legend or Icon or gets a Masterpiece.
       *Done when:* everyone on the server sees the message.
 - [x] Daily login rewards. *Done when:* they cannot be claimed twice by changing the

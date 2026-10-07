@@ -7,9 +7,10 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py                    # typical player, 300 runs
     python3 tools/economy_sim.py --player casual     # also: hardcore
     python3 tools/economy_sim.py --luck-pass         # owns the 2x Luck pass
+    python3 tools/economy_sim.py --no-events         # the same week without special events
 
-The sim includes Award Night, daily rewards, Studio Requests, codes, the "don't leave yet" gift,
-Lucky Casting boosts and Skip tokens. It does not model game passes other than 2x Luck, or
+The sim includes Award Night, special events, daily rewards, Studio Requests, codes, the "don't
+leave yet" gift, Lucky Casting boosts and Skip tokens. It does not model game passes other than 2x Luck, or
 Robux cash packs. Treat it as the shape of the curve, not a promise: playtests decide.
 
 ## The curve in plain words
@@ -39,20 +40,20 @@ Median time, from 100 runs. "Slow 10%" is the unlucky end.
 |---|---|---|
 | Sound stage 2 | day 1, 8 min played | 10 min |
 | Horror and Romance scripts | day 1, 7 min | 9 min |
-| First Star actor | day 1, 21 min | 31 min |
-| Feature scripts | day 1, 37 min | 42 min |
-| Sci-Fi scripts | day 1, 40 min | 45 min |
-| Sound stage 3 | day 1, 51 min | 58 min |
-| Talent Agency | day 1, 56 min | day 2 |
-| First Superstar | day 2 (72 min) | day 3 |
-| First Masterpiece | day 2 (77 min) | day 6 |
-| Epic scripts | day 3 (145 min) | day 4 |
-| Sound stage 4 | day 4 (150 min) | day 4 |
+| First Star actor | day 1, 19 min | 29 min |
+| Feature scripts | day 1, 37 min | 40 min |
+| Sci-Fi scripts | day 1, 39 min | 44 min |
+| Sound stage 3 | day 1, 49 min | 55 min |
+| Talent Agency | day 1, 55 min | day 2 |
+| First Superstar | day 2 (70 min) | day 3 |
+| First Masterpiece | day 2 (82 min) | day 6 |
+| Epic scripts | day 3 (142 min) | day 4 |
+| Sound stage 4 | day 3 (147 min) | day 4 |
 | Cinema, Offline, Clapperboard maxed | day 4 | day 5 |
-| First Legend | day 5 (56% of players in week one) | |
-| Hollywood Casting | day 6 (260 min) | day 7 |
-| All upgrades maxed | day 6 (67% in week one) | |
-| First Icon | 5% of players in week one | |
+| First Legend | day 5 (about 60% of players in week one) | |
+| Hollywood Casting | day 6 (258 min) | day 7 |
+| All upgrades maxed | day 6 (65% in week one) | |
+| First Icon | 3 to 6% of players in week one (it varies from run to run) | |
 
 Other players:
 - **Casual** (25 min on day one, then 20 min a day): Talent Agency on day 3, first Superstar on
@@ -107,11 +108,31 @@ income on day one, which is a poor buy for Robux. Daily rewards, requests and co
 they are; they come to about 1 to 5% of a week's cash, enough to feel good without skipping
 progression.
 
+## Special events
+
+Every 15 minutes one of five special events runs for 90 to 120 seconds, in every server at the
+same moment (`src/shared/SpecialEvents.luau`): Lucky Star (x2 casting Luck for everyone), Cash
+Rain (16 coins round town, each worth $15 or 15 seconds of cinema income, whichever is more),
+Mystery Crate (a free cast at the best unlocked agency with x3 Luck), Spotlight (a 5-minute
+Lucky Casting boost for visiting one player's studio) and Golden Hour (films shoot twice as fast).
+Nothing about them is sold, and every player on a server gets the same chance.
+
+The sim's player takes part in every event it is online for: half the Cash Rain coins, the
+crate, the Spotlight visit. Compared with the same week with events switched off
+(`--no-events`), the typical player reaches each milestone 1 to 3 minutes of play sooner, and a
+hardcore player about 5% sooner (Hollywood Casting at 335 instead of 354 minutes played). Event
+cash is about 0.1% of a week's earnings, and the chance of a Legend or Icon in week one moves no
+more than run-to-run noise. They are there to make the town feel alive and to give a reason to
+stay a few more minutes, not to change the pace.
+
 ## What to watch in playtests
 
 - Cast rate. If real players cast much faster than one every 3 seconds (auto-clickers),
   Superstar and Legend come sooner. The first fix would be rarer odds, not higher prices.
 - Holding finished Epics for Award Night doubles them. The sim's player does this when an Award
   Night falls inside the session, which slows Fame slightly.
+- Special events: if they feel rare, `SpecialEvents.SlotSeconds` can drop to 10 minutes; if Cash
+  Rain coins are all grabbed in seconds, spread `CoinSpots` further. A crowded server shares one
+  crate and one Spotlight studio, but every player gets their own pickup.
 - After week one income keeps growing slowly. The Sequel (rebirth) in M7 is the planned long-term
   sink.
