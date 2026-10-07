@@ -3,7 +3,10 @@ return table.freeze({
 
 	LotCount = 6,
 
-	StartingCash = 0,
+	-- New players start with enough for the tutorial: a few casts and a Short Film script.
+	StartingCash = 100,
+	-- A player's very first Short Film finishes this fast, so the tutorial fits in about a minute.
+	FirstFilmSeconds = 15,
 	-- Cinema earns while you are away, up to the cap (plan section 2: start at 4 h).
 	-- Base income is the free trickle; each finished movie adds RoyaltyRate x its payout per second.
 	CinemaIncomePerSecond = 1,

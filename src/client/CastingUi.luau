@@ -12,7 +12,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
+local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
 local corner, textConstraint, makeLabel, makeButton = UiKit.corner, UiKit.textConstraint, UiKit.makeLabel, UiKit.makeButton
@@ -84,6 +86,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 	studioButton.Name = "StudioButton"
 	local castButton = makeButton(bar, "", UiKit.RED, UDim2.fromScale(0.28, 1), UDim2.fromScale(0.36, 0))
 	castButton.Name = "CastButton"
+	castButton:SetAttribute("Silent", true) -- the reveal has its own sounds
 	local oddsButton = makeButton(bar, "Odds", UiKit.BLUE, UDim2.fromScale(0.17, 1), UDim2.fromScale(0.65, 0))
 	local upgradesButton = makeButton(bar, "Upgrade", Color3.fromRGB(150, 110, 50), UDim2.fromScale(0.17, 1), UDim2.fromScale(0.83, 0))
 	upgradesButton.Name = "UpgradesButton"
@@ -354,6 +357,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 		nameLabel.Visible = true
 		nameLabel.Text = "Casting..."
 		nameLabel.TextColor3 = WHITE
+		Sfx.play("whoosh")
 	end
 
 	local function showReveal(result: any)
@@ -394,6 +398,7 @@ function CastingUi.start(gui: ScreenGui): (TextButton?, TextButton?)
 				tagLabel.TextColor3 = if result.isNew then UiKit.GOLD else UiKit.MUTED
 			end
 			tagLabel.Text = tag
+			Fx.castReveal(tier.id, variant.id)
 			card.Size = UDim2.fromScale(0.7, 0.5)
 			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, 0.6) }):Play()
 		end)

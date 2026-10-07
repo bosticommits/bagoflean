@@ -12,6 +12,7 @@ local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local LotService = require(script.Parent.LotService)
 local Remotes = require(script.Parent.Remotes)
 
 local random = Random.new()
@@ -24,6 +25,7 @@ local premiereRemote = Remotes.get("Premiere")
 local studioSync = Remotes.get("StudioSync")
 local premiereResult = Remotes.get("PremiereResult")
 local studioError = Remotes.get("StudioError")
+local tutorialDone = Remotes.get("TutorialDone")
 
 local lastAction: { [Player]: { [string]: number } } = {}
 local lastCooldownReply: { [Player]: number } = {}
@@ -77,6 +79,8 @@ local function snapshot(player: Player): { [string]: any }?
 		cinema = data.cinema,
 		upgrades = data.upgrades,
 		rewards = data.rewards,
+		trophies = data.trophies,
+		tutorialDone = data.tutorialDone,
 	}
 end
 
@@ -221,6 +225,12 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 	if data.scripts[scriptKey] <= 0 then
 		data.scripts[scriptKey] = nil
 	end
+	-- A player's very first movie, if it is a Short Film, finishes fast so the tutorial fits in a
+	-- minute. Only ever the first one: nothing in the cinema and nothing else filming.
+	local seconds = length.seconds
+	if lengthId == "Short" and #data.cinema == 0 and #data.films == 0 and data.trophies == 0 then
+		seconds = math.min(seconds, Config.FirstFilmSeconds)
+	end
 	local now = os.time()
 	table.insert(data.films, {
 		stage = stage,
@@ -229,7 +239,7 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 		length = lengthId,
 		cast = cast,
 		startTime = now,
-		endTime = now + length.seconds,
+		endTime = now + seconds,
 	})
 	DataService.markDirty(player)
 	MovieService.sync(player)
@@ -326,10 +336,29 @@ local function onPremiere(player: Player, stage: any)
 		power = power,
 		genreBonus = genreBonus,
 	})
+	if result.id == "Masterpiece" then
+		data.trophies += 1
+	end
 	MovieService.sync(player)
+	LotService.refresh(player)
 	if result.id == "Masterpiece" then
 		Remotes.announce(`{player.DisplayName}'s "{film.title}" is a MASTERPIECE!`)
+		LotService.celebrate(player, "masterpiece")
 	end
+end
+
+-- The client finished or skipped the tutorial. No arguments, idempotent.
+local function onTutorialDone(player: Player)
+	if not allow(player, "tutorial", 1, true) then
+		return
+	end
+	local data = DataService.getData(player)
+	if data == nil or data.tutorialDone then
+		return
+	end
+	data.tutorialDone = true
+	DataService.markDirty(player)
+	MovieService.sync(player)
 end
 
 function MovieService.start()
@@ -342,6 +371,7 @@ function MovieService.start()
 	startFilm.OnServerEvent:Connect(onStartFilm)
 	clapRemote.OnServerEvent:Connect(onClap)
 	premiereRemote.OnServerEvent:Connect(onPremiere)
+	tutorialDone.OnServerEvent:Connect(onTutorialDone)
 end
 
 function MovieService.forget(player: Player)

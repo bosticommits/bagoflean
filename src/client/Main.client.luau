@@ -4,8 +4,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CastingUi = require(script.Parent.CastingUi)
 local ClientState = require(script.Parent.ClientState)
+local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local Sfx = require(script.Parent.Sfx)
 local StudioUi = require(script.Parent.StudioUi)
+local Tutorial = require(script.Parent.Tutorial)
 local UpgradesUi = require(script.Parent.UpgradesUi)
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -24,12 +27,14 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 gui.Parent = playerGui
 
+Sfx.start()
 Hud.start(gui)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes", 15)
 if remotes ~= nil then
 	-- State first, so every screen sees synced data from its first frame.
 	ClientState.start(remotes)
+	Fx.start(remotes)
 	local studioButton, upgradesButton = CastingUi.start(gui)
 	if studioButton ~= nil then
 		StudioUi.start(gui, studioButton)
@@ -37,6 +42,7 @@ if remotes ~= nil then
 	if upgradesButton ~= nil then
 		UpgradesUi.start(gui, upgradesButton)
 	end
+	Tutorial.start(gui, remotes)
 else
 	warn("[MovieMogul] Remotes folder never arrived")
 end

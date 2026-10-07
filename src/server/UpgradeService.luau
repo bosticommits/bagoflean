@@ -8,6 +8,7 @@ local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local LotService = require(script.Parent.LotService)
 local MovieService = require(script.Parent.MovieService)
 local Remotes = require(script.Parent.Remotes)
 
@@ -84,6 +85,9 @@ local function onBuyUpgrade(player: Player, id: any)
 	end
 	DataService.markDirty(player)
 	refreshStats(player)
+	if upgrade.id == "Stages" then
+		LotService.refresh(player) -- a new sound stage appears on the lot
+	end
 end
 
 local function onClaimReward(player: Player, id: any)

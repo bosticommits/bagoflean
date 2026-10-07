@@ -8,6 +8,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local LotService = require(script.Parent.LotService)
 local Remotes = require(script.Parent.Remotes)
 
 local random = Random.new()
@@ -99,8 +100,10 @@ local function onCast(player: Player, agencyId: any)
 		count = count,
 	})
 	sendRoster(player)
+	LotService.refresh(player) -- the billboard may have a new top star
 	if actor.tier == "Legend" or actor.tier == "Icon" then
 		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
+		LotService.celebrate(player, "pull")
 	end
 end
 

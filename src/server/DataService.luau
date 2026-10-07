@@ -3,7 +3,9 @@
 -- session locking, autosave, and save-on-shutdown. This module is the only code that touches it.
 -- In Studio without DataStore access, ProfileStore falls back to a mock store by itself.
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local ProfileStore = require(script.Parent.ProfileStore)
 
 -- A movie being filmed. Times are os.time() stamps, so filming continues while offline.
@@ -40,9 +42,11 @@ export type PlayerData = {
 	cinema: { CinemaMovie },
 	upgrades: { [string]: number }, -- upgrade id -> level (Stages lives in stageCount)
 	rewards: { [string]: boolean }, -- claimed Index rewards: "tier:<id>" / "genre:<name>"
+	trophies: number, -- Masterpiece premieres ever (shown on the lot)
+	tutorialDone: boolean,
 }
 
-local CURRENT_VERSION = 3
+local CURRENT_VERSION = 4
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -59,6 +63,8 @@ local TEMPLATE: PlayerData = {
 	cinema = {},
 	upgrades = {},
 	rewards = {},
+	trophies = 0,
+	tutorialDone = false,
 }
 
 local playerStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
@@ -82,7 +88,10 @@ local function migrate(data: any)
 	if type(data.index) ~= "table" then
 		data.index = {}
 	end
-	for _, field in { "accrued", "fame" } do
+	if type(data.tutorialDone) ~= "boolean" then
+		data.tutorialDone = false
+	end
+	for _, field in { "accrued", "fame", "trophies" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
 		end
@@ -135,7 +144,9 @@ function DataService.load(player: Player): PlayerData?
 	profile:AddUserId(userId)
 	profile:Reconcile()
 	if profile.Data.lastCollect == 0 then
-		profile.Data.lastCollect = os.time() -- new profile: royalties start now
+		-- Brand-new profile: royalties start now, and a little starting Cash for the tutorial.
+		profile.Data.lastCollect = os.time()
+		profile.Data.cash = Config.StartingCash
 	end
 	migrate(profile.Data)
 

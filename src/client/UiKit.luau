@@ -1,5 +1,7 @@
 --!strict
--- Small helpers shared by the placeholder screens. Real visuals come in M5.
+-- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
+local Sfx = require(script.Parent.Sfx)
+
 local UiKit = {}
 
 UiKit.DARK = Color3.fromRGB(25, 25, 35)
@@ -58,6 +60,12 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 	button.Parent = parent
 	UiKit.corner(button, 10)
 	UiKit.textConstraint(button, 26)
+	-- Every button clicks, unless it plays its own sound (set the "Silent" attribute).
+	button.Activated:Connect(function()
+		if not button:GetAttribute("Silent") then
+			Sfx.play("click")
+		end
+	end)
 	return button
 end
 

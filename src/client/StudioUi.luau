@@ -10,7 +10,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
+local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
 local makeLabel, makeButton, corner = UiKit.makeLabel, UiKit.makeButton, UiKit.corner
@@ -193,6 +195,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local time = makeLabel(row, "", UiKit.GOLD, UDim2.new(0.38, 0, 0, 26), UDim2.new(0, 10, 1, -32))
 			time.TextXAlignment = Enum.TextXAlignment.Left
 			local button = makeButton(row, "", UiKit.RED, UDim2.new(0.55, 0, 0, 30), UDim2.new(0.43, 0, 1, -34))
+			button:SetAttribute("Silent", true) -- plays its own clapper sound
 			table.insert(timers, { stage = stage, time = time, fill = fill, button = button, ready = false })
 			button.Activated:Connect(function()
 				-- Look the film up now: this row is updated in place, so `film` may be stale.
@@ -202,6 +205,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				end
 				if current.endTime - serverNow() > 0 then
 					clapRemote:FireServer(stage)
+					Sfx.play("clap", 0.9 + math.random() * 0.25)
 				else
 					premiereRemote:FireServer(stage)
 				end
@@ -517,6 +521,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		resultLabel.Visible = true
 		resultLabel.TextColor3 = WHITE
 		resultLabel.Text = "The reviews are in..."
+		Sfx.play("whoosh", 0.8)
 		task.delay(1.2, function()
 			if premiereToken ~= mine then
 				return
@@ -528,6 +533,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			end
 			stroke.Color = res.color
 			resultLabel.Text = res.name:upper() .. "!"
+			Fx.premiere(res.id, res.color)
 			resultLabel.TextColor3 = res.color
 			payoutLabel.Text = `+${Hud.comma(result.payout)}`
 			if (result.genreBonus or 1) > 1 then
@@ -546,7 +552,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	-- Announcement banner ----------------------------------------------------------------------
-	local banner = makeLabel(gui, "", Color3.fromRGB(30, 20, 0), UDim2.new(0.9, 0, 0, 36), UDim2.new(0.05, 0, 0, 104))
+	local banner = makeLabel(gui, "", Color3.fromRGB(30, 20, 0), UDim2.new(0.9, 0, 0, 36), UDim2.new(0.05, 0, 0, 168))
 	banner.Name = "Banner"
 	banner.BackgroundTransparency = 0
 	banner.BackgroundColor3 = UiKit.GOLD

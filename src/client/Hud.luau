@@ -1,6 +1,9 @@
 --!strict
 -- Placeholder HUD. Reads server-owned attributes; it never sends amounts to the server.
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Sfx = require(script.Parent.Sfx)
 
 local Hud = {}
 
@@ -56,7 +59,34 @@ function Hud.start(gui: ScreenGui)
 		end
 	end
 
-	player.AttributeChanged:Connect(refresh)
+	-- Collect feedback: pending royalties only ever drop when they are collected, so a drop means
+	-- Cash just received that amount. Float "+$X" under the HUD and play a sweep.
+	local lastPending = player:GetAttribute("Pending") or 0
+	local function onPending()
+		local pending = player:GetAttribute("Pending") or 0
+		local collected = lastPending - pending
+		lastPending = pending
+		if collected < 1 then
+			return
+		end
+		Sfx.play("sweep")
+		local float = makeLabel(0, 0, Color3.fromRGB(120, 255, 140))
+		float.Text = "+$" .. comma(collected)
+		float.Position = UDim2.new(0, 0, 1, 0)
+		float.Size = UDim2.new(1, 0, 0, 30)
+		float.ZIndex = 3
+		TweenService:Create(float, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.new(0, 0, 1, 40), TextTransparency = 1 }):Play()
+		task.delay(1.3, function()
+			float:Destroy()
+		end)
+	end
+
+	player.AttributeChanged:Connect(function(name)
+		if name == "Pending" then
+			onPending()
+		end
+		refresh()
+	end)
 	refresh()
 end
 

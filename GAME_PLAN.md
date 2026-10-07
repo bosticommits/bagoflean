@@ -6,7 +6,8 @@ for the **premiere**, where a box-office roll decides between Flop and Masterpie
 Every actor you discover fills your Index, and your studio lot grows into a Hollywood empire
 that everyone on the server can see.
 
-Status: **draft, nothing built yet.** Numbers are starting points, to be tuned in playtests.
+Status: **M0 to M5 built** (version 1, with placeholder part-based art). Numbers are starting
+points, to be tuned in playtests. Section 11 lists the decisions made while building.
 
 Why this game: it combines the loops behind the biggest 2025-26 hits. Grow a Garden has
 progress while offline and come-back-later payoffs. RNG games have rarity, luck, an index
@@ -139,3 +140,26 @@ exciting by M3, fix the core before adding anything else.
 - Final game name ("Movie Mogul", "Studio Tycoon RNG", "Hollywood RNG"...)
 - Art style (bright cartoon is the safe pick for this audience)
 - Whether to add light player interaction later (visiting lots, co-starring in premieres)
+
+## 11. As built (decisions made during M0 to M5)
+
+- **Tier odds** are rolled rarest first, so every tier from Rising up hits its "1 in N" exactly.
+  Newcomer gets the rest (about 80%, not "1 in 2"): both cannot be true at once.
+- **Agencies**: Open Casting $20 (Fame 0), Talent Agency $75 (Fame 100), Hollywood Casting
+  $400 (Fame 1,000). Removing bottom tiers rescales the rest of the pool, so better agencies
+  make rare tiers more likely (Icon: 1 in 150,000, 29,860 and 5,832).
+- **Actors are not used up.** A copy is busy while it is filming and returns after the
+  premiere, so duplicates and extra stages matter.
+- **Fame** is a threshold, never spent: about the square root of each payout. It gates
+  agencies, Feature (40) and Epic (400) scripts, Horror and Romance (25), Sci-Fi (75), and
+  stages 2 to 4 (20, 100, 500).
+- **Index rewards**: a complete tier row gives +0.05 Luck; a complete genre set gives x1.15
+  payout for that genre. Both are claimed in the Collection screen.
+- **Upgrades**: Sound Stage (to 4), Cinema Size (royalties x1.25 per level), Offline Earnings
+  (+2 h per level), Luck (+0.1 per level), Clapperboard (+1 s per tap per level).
+- **Cinema** keeps 10 movies; when full, the lowest-earning one is dropped.
+- **Tutorial**: about a minute. New players start with $100, and their first Short Film takes
+  15 seconds. Steps complete from real game state, so returning players skip what they have done.
+- **Sounds** come from Roblox's own UI sound library (creator: Roblox). Effects use built-in
+  textures only. Lots are plain parts: there is no mesh or uploaded art yet.
+- **Saving** uses ProfileStore (vendored), as planned.

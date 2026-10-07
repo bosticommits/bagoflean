@@ -7,8 +7,9 @@ Two separate projects live in this repo:
 
 ## Movie Mogul (Roblox game)
 
-Status: milestones M0 to M4 are built and playtested (lots and cash, casting, movies, Index,
-agencies, upgrades). M5 (polish and tutorial) is in progress. See GAME_PLAN.md section 9.
+Status: milestones M0 to M5 are built and playtested in Studio: lots and cash, casting,
+movies, Index, agencies, upgrades, lot visuals, billboard, effects, sounds and the tutorial.
+Art is still placeholder parts. See GAME_PLAN.md sections 9 and 11.
 
 ### Setup
 
