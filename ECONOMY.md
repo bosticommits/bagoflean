@@ -112,18 +112,19 @@ progression.
 
 Every 15 minutes one of five special events runs for 90 to 120 seconds, in every server at the
 same moment (`src/shared/SpecialEvents.luau`): Lucky Star (x2 casting Luck for everyone), Cash
-Rain (16 coins round town, each worth $15 or 15 seconds of cinema income, whichever is more),
+Rain (16 coins round town, each worth the most of $25, a tenth of the player's Fame, or 20
+seconds of cinema income; Fame stands in for progress because most income comes from premieres),
 Mystery Crate (a free cast at the best unlocked agency with x3 Luck), Spotlight (a 5-minute
 Lucky Casting boost for visiting one player's studio) and Golden Hour (films shoot twice as fast).
 Nothing about them is sold, and every player on a server gets the same chance.
 
 The sim's player takes part in every event it is online for: half the Cash Rain coins, the
 crate, the Spotlight visit. Compared with the same week with events switched off
-(`--no-events`), the typical player reaches each milestone 1 to 3 minutes of play sooner, and a
-hardcore player about 5% sooner (Hollywood Casting at 335 instead of 354 minutes played). Event
-cash is about 0.1% of a week's earnings, and the chance of a Legend or Icon in week one moves no
-more than run-to-run noise. They are there to make the town feel alive and to give a reason to
-stay a few more minutes, not to change the pace.
+(`--no-events`), the typical player reaches most milestones a few minutes of play sooner, and a
+hardcore player about 5% sooner (Hollywood Casting at 337 instead of 354 minutes played). Event
+cash is about 1% of a first session's earnings and 0.2 to 0.4% of a week's, and the chance of a
+Legend or Icon in week one moves no more than run-to-run noise. They are there to make the town
+feel alive and to give a reason to stay a few more minutes, not to change the pace.
 
 ## What to watch in playtests
 

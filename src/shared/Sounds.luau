@@ -69,7 +69,11 @@ Sounds.Slots = {
 
 	-- Server events
 	awardNight = slot("jingle", 0.9), -- Award Night starts
+	eventTeaser = slot("indicator"), -- "SPECIAL EVENT IN 10" ticks down
 	eventStart = slot("stinger", 0.85), -- a special event starts (banner)
+	eventWhoosh = slot("whoosh", 0.8), -- the banner slam; the Lucky Star falling and flying off
+	eventImpact = slot("stinger", 0.75), -- the Lucky Star hits the ground
+	eventSweep = slot("sweep"), -- the Spotlight switching on, the Golden Hour sunset
 	eventPickup = slot("pop", 1.3), -- picking up a Cash Rain coin or crate
 	eventEnd = slot("sweep", 0.8), -- a special event ends
 } :: { [string]: Slot }

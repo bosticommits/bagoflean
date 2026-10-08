@@ -145,7 +145,9 @@ def load_tuning() -> dict:
             "gap": _special(specials_text, "Gap"),
             "luck": _special(specials_text, "LuckMultiplier"),
             "coins": int(_special(specials_text, "CoinCount")),
-            "coin_reward": _reward(re.search(r"SpecialEvents.CoinReward = (\{[^\n]*\})", specials_text).group(1)),
+            "coin_cash": _special(specials_text, "CoinCash"),
+            "coin_cinema_seconds": _special(specials_text, "CoinCinemaSeconds"),
+            "coin_fame_share": _special(specials_text, "CoinFameShare"),
             "crate_luck": _special(specials_text, "CrateLuckMultiplier"),
             "spotlight_reward": _reward(re.search(r"SpecialEvents.SpotlightReward = (\{[^\n]*\})", specials_text).group(1)),
             "film_speed": _special(specials_text, "FilmSpeed"),
@@ -464,8 +466,10 @@ class Player:
         self.special_done = (event_id, starts)
         self.mark("First special event")
         if event_id == "CashRain":
+            # SpecialEvents.coinCash: the most of a floor, cinema income, or a share of Fame.
+            coin = max(sp["coin_cash"], self.rate() * sp["coin_cinema_seconds"], self.fame * sp["coin_fame_share"])
             for _ in range(sp["coins"] // 2):
-                self.grant(sp["coin_reward"])
+                self.grant({"cash": coin})
         elif event_id == "MysteryCrate":
             agency = [a for a in self.g.t["agencies"] if self.fame >= a["fame"]][-1]
             self.roll(agency, self.cast_luck() * sp["crate_luck"])

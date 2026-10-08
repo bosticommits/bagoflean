@@ -3,6 +3,7 @@
 -- top centre the event countdown and the box office line. Reads server-owned attributes; it never
 -- sends amounts to the server.
 local Players = game:GetService("Players")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -179,6 +180,18 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	eventBorder.Enabled = false
 	UiKit.textConstraint(eventLabel, 32)
 	table.insert(labels, eventLabel)
+	-- Always one line: TextScaled wraps a long line (Award Night and Lucky Casting at once) onto
+	-- two and spills out of the gold pill, so the size is picked to fit the width instead.
+	eventLabel.TextScaled = false
+	eventLabel.TextWrapped = false
+	local function fitEventLine()
+		local room = frame.Size.X.Offset - 28 -- the pill's round ends and the outlines
+		local size = 32
+		while size > 12 and TextService:GetTextSize(eventLabel.Text, size, eventLabel.Font, Vector2.new(4000, 100)).X > room do
+			size -= 1
+		end
+		eventLabel.TextSize = size
+	end
 	UiKit.onViewportChanged(placeFrame)
 
 	task.spawn(function()
@@ -190,21 +203,24 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 				Sfx.play("awardNight")
 			end
 			wasActive = active
+			local boostLeft = (player:GetAttribute("LuckBoostUntil") or 0) - now
 			local text
-			if active then
+			if active and boostLeft > 0 then
+				-- Both at once: the short form, so it stays big enough to read.
+				text = `AWARD NIGHT {clock(left)}  +  Lucky Casting {clock(boostLeft)}`
+			elseif active then
 				text = `AWARD NIGHT! x{Config.AwardNightLuckMultiplier} Luck & payouts  {clock(left)}`
-				eventLabel.BackgroundTransparency = 0
-				eventBorder.Enabled = true
+			elseif boostLeft > 0 then
+				text = `Award Night in {clock(left)}  -  Lucky Casting {clock(boostLeft)}`
 			else
 				text = `Award Night in {clock(left)}`
-				eventLabel.BackgroundTransparency = 1
-				eventBorder.Enabled = false
 			end
-			local boostLeft = (player:GetAttribute("LuckBoostUntil") or 0) - now
-			if boostLeft > 0 then
-				text ..= `  -  Lucky Casting {clock(boostLeft)}`
+			eventLabel.BackgroundTransparency = if active then 0 else 1
+			eventBorder.Enabled = active
+			if text ~= eventLabel.Text then
+				eventLabel.Text = text
+				fitEventLine()
 			end
-			eventLabel.Text = text
 			task.wait(0.5)
 		end
 	end)

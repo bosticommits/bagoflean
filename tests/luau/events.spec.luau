@@ -55,13 +55,19 @@ test("rewards are real and modest", function()
 	expect(SpecialEvents.CrateLuckMultiplier > 1 and SpecialEvents.CrateLuckMultiplier <= 5, "crate luck")
 	expect(SpecialEvents.FilmSpeed > 1 and SpecialEvents.FilmSpeed <= 3, "Golden Hour speed")
 	expect(SpecialEvents.CrateLandSeconds < SpecialEvents.get("MysteryCrate").seconds / 2, "the crate lands early")
-	-- A whole Cash Rain is worth about a day-one daily reward: real, but never a shortcut.
-	local rate = 50 -- Cash per second of box office
-	local rain = Rewards.cashAmount(SpecialEvents.CoinReward, rate) * SpecialEvents.CoinCount
-	local daily = Rewards.cashAmount(Rewards.Daily[1], rate)
-	expect(rain > 0 and rain <= daily * 2, `a Cash Rain gives {rain}, a day-one reward {daily}`)
 	expect((SpecialEvents.SpotlightReward.luckMinutes or 0) > 0, "Spotlight gives Luck")
-	equal(Rewards.describe(SpecialEvents.CoinReward, 0), "$15", "coin text")
+	-- Cash Rain coins grow with the player: never less than the floor, then cinema income or Fame.
+	local floor = SpecialEvents.CoinCash
+	equal(SpecialEvents.coinCash(0, 0), floor, "a new player's coin")
+	expect(SpecialEvents.coinCash(1000, 0) > floor, "coins follow cinema income")
+	expect(SpecialEvents.coinCash(0, 50000) > SpecialEvents.coinCash(0, 5000), "coins follow Fame")
+	equal(SpecialEvents.coinCash(0 / 0, 0 / 0), floor, "bad numbers pay the floor")
+	equal(SpecialEvents.coinCash(math.huge, 0), floor, "bad numbers pay the floor")
+	-- A whole Cash Rain stays a treat, not a shortcut: at a Fame where income is ~3,000 Cash a
+	-- minute (end of day one in the economy sim), all 16 coins are a few minutes of income at most.
+	local rain = SpecialEvents.coinCash(110 / 60, 4000) * SpecialEvents.CoinCount
+	expect(rain > 2917 / 2 and rain <= 2917 * 4, `a day-one Cash Rain gives {rain}`)
+	equal(Rewards.describe({ cash = SpecialEvents.coinCash(0, 12345) }, 0), "$1,234", "coin text")
 end)
 
 test("the schedule keeps clear of Award Night and the slot edges", function()

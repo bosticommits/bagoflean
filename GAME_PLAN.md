@@ -210,7 +210,8 @@ exciting by M3, fix the core before adding anything else.
   - *Lucky Star*: a giant gold star crashes into the plaza (shockwave, camera shake) and hovers
     over the fountain. x2 casting Luck for everyone, stacking with everything else.
   - *Cash Rain*: money falls from the sky and 16 gold coins land round town, each under a beam.
-    Each coin is $15 or 15 seconds of box office income (more), once per player.
+    Each coin grows with the player (at least $25, else a tenth of their Fame or 20 seconds of
+    box office income, whichever is more), once per player.
   - *Mystery Crate*: a crate parachutes onto the boulevard under a purple beam. Reaching it once
     it lands gives a free cast at the best unlocked agency with x3 Luck.
   - *Spotlight*: a pillar of light and two searchlights on a random player's studio. The owner

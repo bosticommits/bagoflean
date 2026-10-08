@@ -291,7 +291,7 @@ local function luckyStar(run: Run, late: boolean)
 	local leaveFrom: number? = nil
 	local height = STAR_HOVER
 	if not late then
-		Sfx.play("whoosh", 0.7)
+		Sfx.play("eventWhoosh", 0.875)
 	end
 
 	local function impact()
@@ -308,8 +308,7 @@ local function luckyStar(run: Run, late: boolean)
 		burst(folder, Vector3.new(0, ground + 4, 0), { PALE_GOLD, GOLD }, 60, true)
 		Fx.flash(PALE_GOLD, 0.55)
 		shake(0.9, 1.4)
-		Sfx.play("stinger", 0.75)
-		Sfx.play("sweep", 0.8)
+		Sfx.play("eventImpact")
 	end
 
 	run.step = function(_now: number, _dt: number)
@@ -340,7 +339,7 @@ local function luckyStar(run: Run, late: boolean)
 	run.onEnd = function()
 		leaveFrom = os.clock()
 		glitter.Enabled = false
-		Sfx.play("whoosh", 1.2)
+		Sfx.play("eventWhoosh", 1.5)
 	end
 end
 
@@ -417,7 +416,7 @@ local function cashRain(run: Run, late: boolean)
 				coin.state = "asked"
 				hide(coin)
 				burst(folder, coin.at, { GOLD, PALE_GOLD }, 18)
-				Sfx.play("pop", 1 + random:NextNumber(0, 0.25))
+				Sfx.play("eventPickup", 0.77 + random:NextNumber(0, 0.2))
 				sendClaim("coin", index)
 			end
 		end
@@ -493,7 +492,7 @@ local function mysteryCrate(run: Run, late: boolean)
 		end
 		if not quiet then
 			burst(folder, base + Vector3.new(0, 1, 0), { Color3.fromRGB(226, 180, 255), Color3.new(1, 1, 1) }, 30)
-			Sfx.play("pop", 0.8)
+			Sfx.play("eventPickup", 0.6)
 		end
 	end
 	local function open(quiet: boolean)
@@ -502,7 +501,7 @@ local function mysteryCrate(run: Run, late: boolean)
 		if not quiet then
 			burst(folder, base + Vector3.new(0, 5, 0), { GOLD, Color3.fromRGB(226, 180, 255) }, 40, true)
 			Fx.confetti(60)
-			Sfx.play("stinger")
+			Sfx.play("reward")
 		end
 	end
 	if late and workspace:GetServerTimeNow() >= landAt then
@@ -598,7 +597,7 @@ local function spotlight(run: Run, late: boolean)
 	local rewarded = mine
 
 	if not late then
-		Sfx.play("sweep")
+		Sfx.play("eventSweep")
 	end
 	run.step = function(_now: number, _dt: number)
 		local t = os.clock()
@@ -662,7 +661,7 @@ local function goldenHour(run: Run, late: boolean)
 	dust.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.3, 0.2), NumberSequenceKeypoint.new(1, 1) })
 
 	if not late then
-		Sfx.play("sweep", 0.7)
+		Sfx.play("eventSweep", 0.7)
 	end
 	run.onEnd = function()
 		dust.Enabled = false

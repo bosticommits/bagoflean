@@ -16,6 +16,7 @@ local EventWorld = require(script.Parent.EventWorld)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local Music = require(script.Parent.Music)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -27,6 +28,7 @@ local INFO_HEIGHT = 26
 local HEIGHT = TITLE_HEIGHT + 2 + INFO_HEIGHT
 local ICON = 54 -- the spinning icons either side of the title
 local INTRO_SECONDS = 3 -- the slam in the middle of the screen, before it moves to the top
+local SLAM_MIN_LEFT = 8 -- after waiting for a panel to close, still slam if this much is left
 local LATE_SECONDS = 4 -- arriving later than this into an event skips its entrance
 local TEASER_COLORS = { Color3.fromRGB(255, 240, 150), Color3.fromRGB(255, 160, 40) }
 
@@ -211,14 +213,20 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		return false
 	end
 
-	-- States: "hidden", "teaser" (counting down), "intro" (the slam), "docked" (at the top).
+	-- States: "hidden", "teaser" (counting down), "waiting" (a panel is open, so the slam waits for
+	-- it to close), "intro" (the slam), "docked" (at the top).
 	local mode = "hidden"
 	local live: EventWorld.Live? = nil
 	local token = 0
 	local dockedAt = 0
+	local grow: Tween? = nil -- the slam's growth, stopped if it docks early
 
 	local function dock(animated: boolean)
 		mode = "docked"
+		if grow ~= nil then
+			grow:Cancel()
+			grow = nil
+		end
 		banner.ZIndex = 7
 		dockedAt = dockTop()
 		local target = UDim2.new(0.5, 0, 0, dockedAt)
@@ -247,37 +255,51 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		end)
 	end
 
-	local function showEvent(state: EventWorld.Live, late: boolean)
+	-- The slam: big in the middle of the screen, then up to the top.
+	local function slam(event: SpecialEvents.Event)
 		token += 1
 		local mine = token
-		local event = state.event
-		title.Text = `SPECIAL EVENT: {event.name}`
-		gradient.Color = gradientOf(event.colors)
-		info.Text = escape(event.tagline)
-		setIcons(event.icon)
-		banner.Visible = true
-		if late then
-			dock(false)
-			return
-		end
-		-- The slam: big in the middle of the screen, then up to the top.
 		mode = "intro"
-		banner.ZIndex = 15 -- above any open panel, for a moment
+		banner.Visible = true
+		banner.ZIndex = 15 -- above the HUD and the tutorial, for a moment
 		banner.Position = UDim2.new(0.5, 0, 0.3, -HEIGHT / 2)
 		scale.Scale = 0.2
 		title.Rotation = -8
-		TweenService:Create(scale, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = introScale() }):Play()
+		local growth = TweenService:Create(scale, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = introScale() })
+		grow = growth
+		growth:Play()
 		TweenService:Create(title, TweenInfo.new(0.6, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), { Rotation = 0 }):Play()
-		Sfx.play("stinger")
-		Sfx.play("whoosh")
+		Sfx.play("eventStart")
+		Sfx.play("eventWhoosh", 1.25)
 		Fx.flash(event.colors[#event.colors], 0.3)
 		Fx.confetti(45, { event.colors[1], event.colors[#event.colors], UiKit.WHITE })
-		chat(`<font color="#FFD23F">SPECIAL EVENT: {event.name}!</font> {escape(event.tagline)}`)
 		task.delay(INTRO_SECONDS, function()
 			if token == mine and mode == "intro" then
 				dock(true)
 			end
 		end)
+	end
+
+	local function showEvent(state: EventWorld.Live, late: boolean)
+		token += 1
+		local event = state.event
+		title.Text = `SPECIAL EVENT: {event.name}`
+		gradient.Color = gradientOf(event.colors)
+		info.Text = escape(event.tagline)
+		setIcons(event.icon)
+		if late then
+			banner.Visible = true
+			dock(false)
+			return
+		end
+		chat(`<font color="#FFD23F">SPECIAL EVENT: {event.name}!</font> {escape(event.tagline)}`)
+		if panelOpen() then
+			-- Not on top of a menu (or the "Welcome back!" rewards that open as a player joins).
+			mode = "waiting"
+			banner.Visible = false
+			return
+		end
+		slam(event)
 	end
 
 	local lastTeaser = -1
@@ -295,7 +317,7 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		title.Text = `SPECIAL EVENT IN {whole}`
 		if whole ~= lastTeaser then
 			lastTeaser = whole
-			Sfx.play("indicator", if whole <= 3 then 1.25 else 1)
+			Sfx.play("eventTeaser", if whole <= 3 then 1.25 else 1)
 			-- A little thump on every second.
 			scale.Scale = fitScale() * 1.12
 			TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = fitScale() }):Play()
@@ -313,7 +335,11 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			live = nil
 			EventWorld.finish()
 			hide()
+			if state == nil then
+				Sfx.play("eventEnd")
+			end
 		end
+		Music.setEvent(state ~= nil) -- the event track, if one is set in Shared/Sounds
 		if state ~= nil then
 			live = state
 			local late = workspace:GetServerTimeNow() - state.starts > LATE_SECONDS
@@ -351,10 +377,10 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			return
 		end
 		if kind == "coin" then
-			Sfx.play("sweep", 1.3)
+			Sfx.play("cashCollect", 1.3)
 			float("+" .. text, UiKit.CASH_GREEN)
 		elseif kind == "spotlight" then
-			Sfx.play("jingle")
+			Sfx.play("reward")
 			float(text, UiKit.GOLD)
 		else
 			float(text, UiKit.GOLD)
@@ -377,6 +403,20 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 				elseif mode == "teaser" then
 					hide()
 				end
+			end
+			if mode == "waiting" then
+				if state == nil then
+					mode = "hidden"
+				elseif not panelOpen() then
+					if state.ends - now >= SLAM_MIN_LEFT then
+						slam(state.event)
+					else
+						banner.Visible = true
+						dock(false)
+					end
+				end
+			elseif mode == "intro" and panelOpen() then
+				dock(false) -- a menu opened mid-slam: get out of its way
 			end
 			if mode == "docked" or mode == "teaser" then
 				local covered = panelOpen()

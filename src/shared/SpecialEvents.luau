@@ -82,13 +82,24 @@ SpecialEvents.TeaserSeconds = 10 -- clients count down "special event in 10" bef
 -- Rewards. Nothing here is sold: every player on the server gets the same chance.
 SpecialEvents.LuckMultiplier = 2 -- Lucky Star: casting Luck, on top of everything else
 SpecialEvents.CoinCount = 16 -- Cash Rain: coins around town; each player can grab each one once
-SpecialEvents.CoinReward = { cash = 15, cashMinutes = 0.25 } :: Shop.Reward -- per coin
+-- Each coin is worth the most of: a floor, some seconds of cinema income, or a share of Fame.
+-- Fame tracks how far a player has got (most income comes from premieres, not the cinema), so
+-- a coin is worth roughly 5-15 seconds of a player's income from their first minutes to week one.
+SpecialEvents.CoinCash = 25
+SpecialEvents.CoinCinemaSeconds = 20
+SpecialEvents.CoinFameShare = 0.1
 SpecialEvents.CoinRadius = 5 -- how close (studs, ignoring height) counts as touching a coin
 SpecialEvents.CrateLandSeconds = 6 -- the Mystery Crate floats down on its parachute this long
 SpecialEvents.CrateLuckMultiplier = 3 -- its free cast: best unlocked agency, x3 casting Luck
 SpecialEvents.CrateRadius = 8
 SpecialEvents.SpotlightReward = { luckMinutes = 5 } :: Shop.Reward -- visit the studio once
 SpecialEvents.FilmSpeed = 2 -- Golden Hour: films shoot this many times as fast
+
+-- Cash for one Cash Rain coin, for a player with cinema income `ratePerSecond` and `fame`.
+function SpecialEvents.coinCash(ratePerSecond: number, fame: number): number
+	local cash = math.max(SpecialEvents.CoinCash, ratePerSecond * SpecialEvents.CoinCinemaSeconds, fame * SpecialEvents.CoinFameShare)
+	return if cash == cash and cash < math.huge then math.floor(cash) else SpecialEvents.CoinCash
+end
 
 -- Ignoring `disabled` ids (LiveConfig can switch events off), in List order.
 local function enabledEvents(disabled: { [string]: boolean }?): { Event }
