@@ -5,6 +5,7 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -757,7 +758,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local resultLabel = cardLabel(0.18, 0.2, 44)
 	local payoutLabel = cardLabel(0.42, 0.12, 30)
 	local fameLabel = cardLabel(0.55, 0.09, 22)
-	local castLabel = cardLabel(0.65, 0.09, 18)
+	local castLabel = cardLabel(0.64, 0.07, 18)
+	-- "NEW: Talent Agency": what this premiere's Fame just opened. Empty on most premieres.
+	local unlockLabel = cardLabel(0.71, 0.08, 20)
+	unlockLabel.Name = "Unlocked"
+	local unlockScale = Instance.new("UIScale")
+	unlockScale.Parent = unlockLabel
 	local continueButton = makeButton(card, "Continue", UiKit.GREEN, UDim2.fromScale(0.6, 0.15), UDim2.fromScale(0.2, 0.8))
 	continueButton.ZIndex = 14
 	-- The result's 3D icon, spinning on top of the card.
@@ -844,6 +850,26 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			end
 			castLabel.Text = table.concat(names, ", ")
 			castLabel.TextColor3 = UiKit.MUTED
+			local unlocked = {}
+			if type(result.unlocked) == "table" then
+				for _, name in result.unlocked do
+					if type(name) == "string" then
+						table.insert(unlocked, name)
+					end
+				end
+			end
+			unlockLabel.Text = if #unlocked > 0 then `NEW: {table.concat(unlocked, ", ")} unlocked!` else ""
+			unlockLabel.TextColor3 = UiKit.GOLD
+			if #unlocked > 0 then
+				task.delay(0.6, function()
+					if premiereToken == mine and overlay.Visible then
+						-- One pop, not UiKit.pulse: the card is reused, so a looping pulse would pile up.
+						unlockScale.Scale = 1.25
+						TweenService:Create(unlockScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+						Sfx.play("notify")
+					end
+				end)
+			end
 		end)
 	end
 

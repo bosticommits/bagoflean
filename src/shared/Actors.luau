@@ -88,9 +88,11 @@ export type Agency = {
 }
 
 -- Plan section 3: better agencies cost more per roll and remove the bottom tier(s).
+-- Talent Agency's Fame gate sets when it opens (about 30 minutes of play, see ECONOMY.md): Fame,
+-- not its $1,000 price, is what holds it back, so tune the gate to move it.
 Actors.Agencies = {
 	{ id = "Open", name = "Open Casting", cost = 10, fame = 0, minTier = 1 },
-	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 3500, minTier = 2 },
+	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 1400, minTier = 2 },
 	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 50000, minTier = 3 },
 } :: { Agency }
 
@@ -140,8 +142,9 @@ function Actors.key(actorId: string, variantId: string): string
 end
 
 -- Chance of each tier as a fraction (sums to 1). Tiers are tried rarest first: each hits its
--- "1 in N" with whatever probability is left, so Icon is exactly 1 in 150,000 and the rare tiers
--- match the plan. Luck divides N (Luck x2 turns 1 in 1,500 into 1 in 750).
+-- "1 in N" (`oneIn` in Actors.Tiers) with whatever probability is left, so at Luck 1 at Open
+-- Casting Icon is exactly its oneIn (1 in 1,000,000) and the other rare tiers are within a hair
+-- of theirs. Luck divides N (Luck x2 turns Superstar's 1 in 5,000 into 1 in 2,500).
 -- An agency's `minTier` removes the tiers below it from the pool: their share is dropped and the
 -- rest is scaled back up to 1, so the rare tiers get proportionally more likely.
 function Actors.tierChances(luck: number, minTier: number?): { [string]: number }

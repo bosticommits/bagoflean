@@ -9,6 +9,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
+local Unlocks = require(ReplicatedStorage.Shared.Unlocks)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
@@ -348,6 +349,7 @@ local function onPremiere(player: Player, stage: any)
 		end
 		table.remove(data.cinema, weakest)
 	end
+	local unlocked = Unlocks.crossed(data.fame, data.fame + fame)
 	data.fame += fame
 	EconomyService.addCash(player, payout, "Gameplay", "Premiere")
 
@@ -363,6 +365,7 @@ local function onPremiere(player: Player, stage: any)
 		genreBonus = genreBonus,
 		awardNight = awardNight,
 		rebirthBonus = rebirthBonus,
+		unlocked = unlocked, -- what this premiere's Fame just opened (see Unlocks)
 	})
 	if result.id == "Masterpiece" then
 		data.trophies += 1

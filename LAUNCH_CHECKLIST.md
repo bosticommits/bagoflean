@@ -34,6 +34,8 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 - [ ] Tune the economy: roll costs, script prices, payouts, upgrade costs, Fame gates.
       *Done when:* a new player reaches Talent Agency in about 20 to 30 minutes and
       Hollywood Casting in a few play sessions, and nobody hits a dead end with no Cash.
+      *Sim, 2026-10-08:* Talent Agency now opens at about 30 minutes of play (Fame gate 1,400)
+      and Hollywood Casting on day 6; fresh-account playtests still to confirm it.
 - [ ] Tune timers: Short, Indie, Feature, Epic and the offline cap. *Done when:* there is
       always something to do in a session, and a reason to come back later.
 - [ ] Check the premiere and rare-pull moments feel big. *Done when:* testers react to a

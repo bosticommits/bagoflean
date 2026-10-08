@@ -152,7 +152,7 @@ exciting by M3, fix the core before adding anything else.
 
 - **Tier odds** are rolled rarest first, so every tier from Rising up hits its "1 in N" exactly.
   Newcomer gets the rest (about 80%, not "1 in 2"): both cannot be true at once.
-- **Agencies**: Open Casting $10 (Fame 0), Talent Agency $1,000 (Fame 3,500), Hollywood
+- **Agencies**: Open Casting $10 (Fame 0), Talent Agency $1,000 (Fame 1,400), Hollywood
   Casting $100,000 (Fame 50,000). Removing bottom tiers rescales the rest of the pool, so better
   agencies make rare tiers more likely (Icon: 1 in 1,000,000, 189,301 and 27,162).
 - **Actors are not used up.** A copy is busy while it is filming and returns after the
