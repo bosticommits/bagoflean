@@ -8,6 +8,7 @@ local CastingUi = require(script.Parent.CastingUi)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local Blimp = require(script.Parent.Blimp)
 local Music = require(script.Parent.Music)
 local RebirthUi = require(script.Parent.RebirthUi)
 local RewardsUi = require(script.Parent.RewardsUi)
@@ -39,6 +40,7 @@ gui.Parent = playerGui
 
 Sfx.start()
 Music.start()
+Blimp.start()
 local side = SideMenu.start(gui)
 local cashPlus = Hud.start(gui, side.wallet)
 
