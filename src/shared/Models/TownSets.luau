@@ -403,4 +403,82 @@ function TownSets.flowerBed(b: Builder, size: Vector3)
 	end
 end
 
+-- Street life (pass 2) ---------------------------------------------------------------------------
+
+-- A rounded vintage convertible, about 4.4 wide and 9.6 long, nose toward -Z.
+function TownSets.car(b: Builder, color: Color3)
+	local chrome = Color3.fromRGB(215, 218, 225)
+	b:block("CarBody", v(4.2, 1.5, 9), v(0, 1.45, 0), color)
+	b:block("CarHood", v(3.8, 0.5, 3.2), v(0, 2.35, -2.6), color)
+	b:block("CarTrunk", v(3.8, 0.5, 2.2), v(0, 2.35, 3.2), color)
+	for _, z in { -2.9, 2.9 } do
+		b:block("CarFender", v(4.5, 0.9, 2.6), v(0, 1.75, z), color)
+	end
+	b:block("CarSeats", v(3.4, 1, 2.6), v(0, 2.4, 0.6), P.OffWhite, FABRIC)
+	b:block("CarWindscreen", v(3.6, 1.3, 0.15), CFrame.new(0, 3.1, -0.95) * CFrame.Angles(math.rad(-20), 0, 0), P.Glass, GLASS)
+	b:block("CarStripe", v(4.25, 0.25, 9.05), v(0, 1.4, 0), P.OffWhite)
+	for _, z in { -4.6, 4.6 } do
+		b:block("CarBumper", v(4.4, 0.45, 0.3), v(0, 1, z), chrome, METAL)
+	end
+	for _, x in { -1.4, 1.4 } do
+		b:cylinder("CarHeadlight", 0.15, 0.7, CFrame.new(x, 1.75, -4.55) * CFrame.Angles(math.rad(90), 0, 0), P.Light, NEON)
+	end
+	for _, x in { -1.95, 1.95 } do
+		for _, z in { -2.9, 2.9 } do
+			b:cylinder("CarWheel", 0.6, 1.7, CFrame.new(x, 0.85, z) * CFrame.Angles(0, 0, math.rad(90)), P.Charcoal)
+			b:cylinder("CarHubcap", 0.62, 0.7, CFrame.new(x, 0.85, z) * CFrame.Angles(0, 0, math.rad(90)), chrome, METAL)
+		end
+	end
+end
+
+-- A bus stop: a roof on two posts, a bench, a back panel with a poster, and a round sign.
+function TownSets.busStop(b: Builder)
+	b:block("ShelterRoof", v(8.4, 0.4, 3.6), v(0, 7.2, 0.2), P.Burgundy)
+	b:block("ShelterRoofTrim", v(8.6, 0.25, 3.8), v(0, 6.9, 0.2), P.Gold, METAL)
+	for _, x in { -3.9, 3.9 } do
+		b:block("ShelterPost", v(0.35, 6.8, 0.35), v(x, 3.4, -1.3), P.Charcoal, METAL)
+	end
+	b:block("ShelterBack", v(8, 5.6, 0.3), v(0, 3.6, 1.6), P.Glass, GLASS).Transparency = 0.4
+	local poster = b:block("ShelterPoster", v(3, 4.2, 0.1), v(1.8, 3.6, 1.42), Color3.fromRGB(110, 190, 80))
+	local label = Build.sign(poster, Enum.NormalId.Front, "MONSTER\nISLAND\nNOW SHOWING", P.OffWhite)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = INK
+	stroke.Thickness = 2
+	stroke.Parent = label
+	b:block("ShelterBench", v(4.6, 0.35, 1.2), v(-1.6, 1.5, 0.8), P.Wood)
+	for _, x in { -3.4, 0.2 } do
+		b:block("ShelterBenchLeg", v(0.3, 1.3, 1), v(x, 0.65, 0.8), P.Charcoal, METAL)
+	end
+	b:cylinder("BusSignPole", 7.5, 0.3, v(5.2, 3.75, -1.3), P.Charcoal, METAL)
+	local sign = b:cylinder("BusSign", 0.3, 2.2, CFrame.new(5.2, 7.6, -1.3) * CFrame.Angles(math.rad(90), 0, 0), P.Blue)
+	Build.sign(sign, Enum.NormalId.Top, "BUS", P.OffWhite)
+end
+
+function TownSets.hydrant(b: Builder)
+	b:cylinder("HydrantBase", 0.3, 1.3, v(0, 0.15, 0), P.Carpet)
+	b:cylinder("Hydrant", 1.6, 0.9, v(0, 1.1, 0), P.Carpet)
+	b:ball("HydrantTop", 0.95, v(0, 1.9, 0), P.Carpet)
+	b:cylinder("HydrantNozzle", 0.9, 0.4, CFrame.new(0, 1.3, 0) * CFrame.Angles(0, 0, math.rad(90)), P.Gold, METAL)
+end
+
+function TownSets.trashBin(b: Builder)
+	b:cylinder("Bin", 2.2, 1.6, v(0, 1.1, 0), Color3.fromRGB(56, 140, 70))
+	b:cylinder("BinBand", 0.3, 1.7, v(0, 1.8, 0), P.Gold, METAL)
+	b:cylinder("BinLid", 0.3, 1.8, v(0, 2.35, 0), P.Charcoal, METAL)
+end
+
+-- A newspaper stand: a green kiosk with stacks of papers and a striped roof.
+function TownSets.newsStand(b: Builder)
+	b:block("NewsBody", v(4.4, 3.4, 2.6), v(0, 1.7, 0), Color3.fromRGB(56, 140, 70))
+	b:block("NewsCounter", v(4.6, 0.3, 1.2), v(0, 2.3, -1.8), P.Wood)
+	for i = 0, 2 do
+		b:block("NewsPapers", v(1.1, 0.4, 0.9), v(-1.4 + i * 1.4, 2.65, -1.8), P.OffWhite)
+	end
+	for k = 0, 3 do
+		b:block("NewsRoof", v(1.2, 0.25, 3.6), CFrame.new(-1.8 + k * 1.2, 4.5, -0.5) * CFrame.Angles(math.rad(-12), 0, 0), if k % 2 == 0 then P.Carpet else P.OffWhite)
+	end
+	local board = b:block("NewsSign", v(4, 0.9, 0.2), v(0, 3.2, -1.35), P.Navy)
+	Build.sign(board, Enum.NormalId.Front, "DAILY STAR", P.Gold)
+end
+
 return TownSets

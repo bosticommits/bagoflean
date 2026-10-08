@@ -604,6 +604,36 @@ local function landmarks(b: Builder)
 		TownSets.posterColumn(b:sub(CFrame.new(poster.x, 0.2, poster.z) * face), poster.title, poster.color)
 	end
 
+	-- Street life: vintage cars parked at the boulevard's ends (the middle stays clear for the
+	-- Mystery Crate and Cash Rain coins) and on the backlot road, a bus stop, a news stand,
+	-- hydrants and bins.
+	local cars = {
+		{ x = 117.5, z = 1, color = Color3.fromRGB(32, 178, 190) },
+		{ x = -117.5, z = -1, color = Color3.fromRGB(255, 120, 170) },
+		{ x = 158, z = 1, color = P.Gold },
+		{ x = 164, z = -1, color = P.Carpet },
+	}
+	for _, car in cars do
+		-- Driving on the right: +Z side heads toward -X, -Z side toward +X.
+		local yaw = if car.z > 0 then math.rad(90) else math.rad(-90)
+		TownSets.car(b:sub(CFrame.new(car.x, 0.15, car.z * 6.6) * CFrame.Angles(0, yaw, 0)), car.color)
+	end
+	TownSets.busStop(b:sub(CFrame.new(96, 0.2, -22) * CFrame.Angles(0, math.pi, 0)))
+	TownSets.newsStand(b:sub(v(-96, 0.2, 24)))
+	for _, spot in { v(54, 0.2, 11.5), v(-54, 0.2, -11.5), v(104, 0.2, 11.5), v(-104, 0.2, -11.5) } do
+		TownSets.hydrant(b:sub(spot))
+	end
+	for _, spot in { v(68, 0.2, -24), v(-68, 0.2, 24), v(30, 0.2, -24), v(-30, 0.2, 24) } do
+		TownSets.trashBin(b:sub(spot))
+	end
+	-- A pale strip along each curb, so the wide sidewalks read as paved walks.
+	for _, side in { -1, 1 } do
+		for _, dir in { -1, 1 } do
+			local from, to = Lay.plazaRadius + 1, Lay.townX
+			b:block("SidewalkStrip", v(to - from, 0.05, 2.4), v(dir * (from + to) / 2, 0.225, side * (Lay.roadHalf + 2.2)), P.OffWhite)
+		end
+	end
+
 	-- A hazy city skyline behind the hills, beyond the front lots and past the theatre.
 	TownSets.skyline(b:sub(v(0, -8, -450)), 16, 620, 7)
 	TownSets.skyline(b:sub(CFrame.new(-470, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
@@ -619,6 +649,7 @@ local GROUND_TRIM = {
 	ChromaFloor = true,
 	FloorMark = true,
 	ForecourtCarpet = true,
+	SidewalkStrip = true,
 	ForecourtCarpetEdge = true,
 	TheatreCarpet = true,
 	CarpetEnd = true,
