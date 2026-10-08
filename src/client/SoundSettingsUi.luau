@@ -30,13 +30,18 @@ function SoundSettingsUi.start(gui: ScreenGui, remotes: Instance)
 
 	local button = UiKit.makeButton(gui, "🔊", UiKit.NAVY, UDim2.fromOffset(48, 48))
 	button.Name = "SoundButton"
-	UiKit.textConstraint(button, 30)
 	local function place()
 		if UserInputService.TouchEnabled then
 			-- Phones: the thumbstick is bottom left and jump bottom right; the event line is top right.
+			-- Kept small there, since a phone screen is short and the button is not used often.
+			local size = if UiKit.isCompact() then 34 else 40
+			button.Size = UDim2.fromOffset(size, size)
+			UiKit.textConstraint(button, math.floor(size * 0.6))
 			button.AnchorPoint = Vector2.new(1, 0)
 			button.Position = UDim2.new(1, -12, 0, if UiKit.isCompact() then 66 else 86)
 		else
+			button.Size = UDim2.fromOffset(48, 48)
+			UiKit.textConstraint(button, 30)
 			button.AnchorPoint = Vector2.new(1, 1)
 			button.Position = UDim2.new(1, -16, 1, -16)
 		end
