@@ -688,6 +688,18 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 				panel.Position = UDim2.new(0, left + room / 2, 0.5, 0)
 			end
 		end
+		-- While the tutorial's dialogue is at the top ("PanelTop", set by Tutorial), a panel that
+		-- would reach under it gets shorter and starts below it, so both stay readable.
+		local reserve = gui:GetAttribute("PanelTop")
+		if typeof(reserve) == "number" and screen.Y > 0 then
+			local height = math.min(panel.Size.Y.Scale * screen.Y + panel.Size.Y.Offset, limit.MaxSize.Y)
+			local room = screen.Y - reserve - 8
+			if (screen.Y - height) / 2 < reserve and room > 0 then
+				local fit = math.min(height, room)
+				panel.Size = UDim2.new(panel.Size.X.Scale, panel.Size.X.Offset, 0, fit)
+				panel.Position = UDim2.new(panel.Position.X.Scale, panel.Position.X.Offset, 0, reserve + (room - fit) / 2 + fit / 2)
+			end
+		end
 		local barHeight = if compact then 40 else 54
 		titleBar.Size = UDim2.new(1, 0, 0, barHeight)
 		-- With a corner icon (UiKit.panelIcon) the title starts after it.
@@ -719,6 +731,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	end
 	UiKit.onViewportChanged(applyLayout)
 	gui:GetAttributeChangedSignal("MenuRight"):Connect(applyLayout)
+	gui:GetAttributeChangedSignal("PanelTop"):Connect(applyLayout)
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		if panel.Visible then
 			applyLayout()

@@ -61,6 +61,12 @@ function scenes.actor(folder, load, roblox, arg)
 	ActorModels.build(folder, roblox.CFrame.new(), id, if variant == "" then "Normal" else variant)
 end
 
+-- Director Lucien Vale (the tutorial host): arg "bust" for the portrait cut.
+function scenes.director(folder, load, roblox, arg)
+	local ActorModels = load("src/shared/Models/ActorModels.luau")
+	ActorModels.buildDirector(folder, roblox.CFrame.new(), arg == "bust")
+end
+
 function scenes.variants(folder, load, roblox)
 	local ActorModels = load("src/shared/Models/ActorModels.luau")
 	for i, variant in { "Normal", "Shiny", "Award" } do

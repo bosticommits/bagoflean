@@ -60,8 +60,11 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			frame.AnchorPoint = Vector2.new(1, 0)
 			frame.Position = UDim2.new(1, -12, 0, 8)
 		else
+			-- Under the tutorial's dialogue while it is up ("TutorialBottom", set by Tutorial).
+			local below = gui:GetAttribute("TutorialBottom")
+			local y = if typeof(top) == "number" then top else 8
 			frame.AnchorPoint = Vector2.new(0.5, 0)
-			frame.Position = UDim2.new(0.5, 0, 0, if typeof(top) == "number" then top else 8)
+			frame.Position = UDim2.new(0.5, 0, 0, if typeof(below) == "number" then math.max(y, below) else y)
 		end
 		frameScale.Scale = if right and UiKit.isCompact() then 0.72 else 1
 		for _, label in labels do
@@ -70,6 +73,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	end
 	gui:GetAttributeChangedSignal("HudTop"):Connect(placeFrame)
 	gui:GetAttributeChangedSignal("HudRight"):Connect(placeFrame)
+	gui:GetAttributeChangedSignal("TutorialBottom"):Connect(placeFrame)
 
 	local function makeLabel(y: number, height: number, color: Color3): TextLabel
 		local label = UiKit.makeTitle(frame, "", color, UDim2.new(1, 0, 0, height), UDim2.fromOffset(0, y), if height >= 40 then 3.5 else 2.5)

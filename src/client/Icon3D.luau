@@ -135,6 +135,15 @@ function Icon3D.actor(parent: GuiObject, actorId: string, variantId: string?, si
 	return viewport
 end
 
+-- Director Lucien Vale, the tutorial's host: his whole figure, or with `bust` his head and
+-- shoulders for a portrait.
+function Icon3D.director(parent: GuiObject, bust: boolean?, outlined: boolean?): ViewportFrame
+	local made = entry(if bust then "director:bust" else "director:full", function()
+		return ActorModels.buildDirector(holder, CFrame.identity, bust)
+	end)
+	return show(parent, made, ACTOR_FILL, outlined == true)
+end
+
 -- A soft light behind a picture, like a spotlight on the item: two faint discs, the inner one
 -- brighter. Screens that open and close use it on their picture cards, because Roblox redraws a
 -- picture each time its screen shows again and the spot would otherwise sit empty for a moment.

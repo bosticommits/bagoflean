@@ -832,6 +832,81 @@ function ActorModels.build(parent: Instance, base: CFrame, actorId: string, vari
 	return model
 end
 
+-- Director Lucien Vale, the tutorial's host (not a castable actor): an original, world-renowned
+-- director. Silver swept-back hair and trimmed beard, gold-rimmed glasses, a midnight velvet
+-- tuxedo with black satin lapels piped in gold, shirt cuffs with gold links, a burgundy silk scarf
+-- with a gold star brooch, and a black cane with a gold knob.
+local DIRECTOR_LOOK: Look = {
+	skin = SKIN.tan,
+	shirt = rgb(38, 32, 84), -- midnight velvet
+	pants = rgb(24, 24, 34),
+	shoes = rgb(20, 20, 26),
+	hair = "slick",
+	hairColor = rgb(214, 216, 226),
+	mouth = "smile",
+	extra = function(b)
+		local silver = rgb(214, 216, 226)
+		local satin = rgb(16, 16, 24)
+		local silk = rgb(140, 24, 44)
+		-- Silver hair swept up at the brow and back.
+		b:wedge("HairSweep", v(HEAD_W + 0.14, 0.4, 1.1), CFrame.new(0, HEAD_TOP + 0.45, -0.15) * CFrame.Angles(0, math.pi, 0), silver)
+		-- Shirt front, satin lapels with gold piping, bow tie.
+		b:block("ShirtFront", v(0.74, SHOULDER - HIP, 0.08), v(0, (HIP + SHOULDER) / 2, CHEST_Z - 0.03), P.OffWhite)
+		Acc.jacket(b, satin)
+		for _, side in { -1, 1 } do
+			b:block("LapelPiping", v(0.07, SHOULDER - HIP, 0.12), v(side * 0.39, (HIP + SHOULDER) / 2, CHEST_Z - 0.05), P.Gold, METAL)
+			b:block("BowTieWing", v(0.34, 0.26, 0.1), v(side * 0.2, SHOULDER - 0.2, CHEST_Z - 0.12), satin)
+			-- White shirt cuffs with gold links, at the foot of each sleeve.
+			b:block("Cuff", v(0.88, 0.16, 0.98), v(side * 1.45, SHOULDER - 1.3, 0), P.OffWhite)
+			b:block("Cufflink", v(0.18, 0.14, 0.08), v(side * 1.45, SHOULDER - 1.3, -0.52), P.Gold, METAL)
+		end
+		b:block("BowTieKnot", v(0.14, 0.16, 0.12), v(0, SHOULDER - 0.2, CHEST_Z - 0.14), satin)
+		for i = 0, 1 do
+			b:ball("ShirtStud", 0.12, v(0, SHOULDER - 0.6 - i * 0.4, CHEST_Z - 0.09), P.Gold, METAL)
+		end
+		-- Burgundy silk scarf, draped open with gold-fringed ends and a gold star brooch.
+		b:block("Scarf", v(1.85, 0.4, 1.22), v(0, SHOULDER + 0.06, 0), silk, FABRIC)
+		for _, side in { -1, 1 } do
+			b:block("ScarfTail", v(0.36, 1.45, 0.12), v(side * 0.68, SHOULDER - 0.72, CHEST_Z - 0.13), silk, FABRIC)
+			b:block("ScarfFringe", v(0.38, 0.1, 0.13), v(side * 0.68, SHOULDER - 1.47, CHEST_Z - 0.13), P.Gold)
+		end
+		b:block("StarPin", v(0.26, 0.26, 0.08), CFrame.new(0.68, SHOULDER - 0.55, CHEST_Z - 0.21) * CFrame.Angles(0, 0, math.rad(45)), P.Gold, NEON)
+		-- Silver moustache, a trimmed beard along the jaw (the smile shows between them), brows,
+		-- and gold-rimmed glasses.
+		b:block("Moustache", v(0.8, 0.13, 0.1), v(0, HEAD_Y - 0.25, FACE_Z - 0.07), silver)
+		b:block("Beard", v(1.4, 0.26, 0.12), v(0, HEAD_Y - 0.63, FACE_Z - 0.03), silver)
+		b:block("BeardChin", v(0.62, 0.32, 0.14), v(0, HEAD_Y - 0.84, FACE_Z - 0.03), silver)
+		for _, side in { -1, 1 } do
+			b:block("BeardSide", v(0.12, 0.6, 0.55), v(side * (HEAD_W / 2 + 0.02), HEAD_Y - 0.42, FACE_Z + 0.3), silver)
+			b:block("Brow", v(0.42, 0.1, 0.06), CFrame.new(side * 0.37, HEAD_Y + 0.46, FACE_Z - 0.06) * CFrame.Angles(0, 0, math.rad(side * -6)), silver)
+		end
+		Acc.glasses(b, P.Gold)
+		-- Black cane with a gold knob.
+		b:cylinder("Cane", 2.3, 0.2, HAND_R + v(0, -1.0, -0.5), satin)
+		b:ball("CaneKnob", 0.4, HAND_R + v(0, 0.2, -0.5), P.Gold, METAL)
+		b:cylinder("CaneTip", 0.2, 0.22, HAND_R + v(0, -2.1, -0.5), P.Gold, METAL)
+	end,
+}
+
+-- Build Director Lucien Vale into a new Model under `parent`, standing at `base` like an actor.
+-- `bust` keeps only the head and shoulders, for a portrait.
+function ActorModels.buildDirector(parent: Instance, base: CFrame, bust: boolean?): Model
+	local model = Instance.new("Model")
+	model.Name = "DirectorLucienVale"
+	local b = Build.new(model, base)
+	figure(b, DIRECTOR_LOOK)
+	if bust then
+		for _, part in model:GetChildren() do
+			if part:IsA("BasePart") and base:PointToObjectSpace(part.CFrame.Position).Y < HIP + 0.55 then
+				part:Destroy()
+			end
+		end
+	end
+	Build.decorative(model)
+	model.Parent = parent
+	return model
+end
+
 -- Rarity flair under the figure: a glowing ring for Star and up.
 function ActorModels.aura(b: Builder, color: Color3)
 	Acc.aura(b, color)

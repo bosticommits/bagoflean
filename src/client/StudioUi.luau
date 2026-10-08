@@ -220,6 +220,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			end
 			local length = Movies.getLength(film.length)
 			local row = UiKit.addRow(list, order, 132)
+			row.Name = `Stage{stage}`
 			-- The cast's portraits in the top right; the text uses the rest of the width.
 			local castWidth = #film.cast * 54 + 6
 			for slot, key in film.cast do
@@ -252,6 +253,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local time = UiKit.makeTitle(row, "", UiKit.GOLD, UDim2.new(0.38, 0, 0, 26), UDim2.new(0, 10, 1, -32))
 			time.TextXAlignment = Enum.TextXAlignment.Left
 			local button = makeButton(row, "", UiKit.RED, UDim2.new(0.36, 0, 0, 30), UDim2.new(0.43, 0, 1, -34))
+			button.Name = "StageAction" -- CLAP, then PREMIERE (the tutorial points at it)
 			button:SetAttribute("Silent", true) -- plays its own clapper sound
 			local skip = makeButton(row, "Skip", UiKit.PURPLE, UDim2.new(0.18, 0, 0, 30), UDim2.new(0.8, 0, 1, -34))
 			skip.Activated:Connect(function()
@@ -302,6 +304,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		for _, length in Movies.Lengths do
 			order += 1
 			local row = UiKit.addRow(list, order, 96)
+			row.Name = "Script_" .. length.id
 			local lengthLocked = fame < length.fame
 			smallIcon(row, if lengthLocked then "lock" else "script", 36, UDim2.fromOffset(6, 2))
 			local title = UiKit.makeTitle(row, `{length.name}  -  {fmtTime(length.seconds)}`, if lengthLocked then UiKit.FAINT else WHITE, UDim2.new(0.5, -40, 0, 26), UDim2.fromOffset(48, 6))
@@ -369,6 +372,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			return
 		end
 		header.Text = `Studio  -  Fame {Hud.comma(state.fame)}`
+		panel:SetAttribute("Tab", tab)
 		if tab == "Stages" then
 			renderStages()
 		elseif tab == "Scripts" then
@@ -383,6 +387,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	for slot, name in tabNames do
 		local button = makeButton(tabRow, name, UiKit.TAB_OFF, UDim2.new(0.32, 0, 1, 0), UDim2.new((slot - 1) * 0.34, 0, 0, 0))
+		button.Name = name .. "Tab"
 		tabButtons[name] = button
 		button.Activated:Connect(function()
 			tab = name
@@ -424,6 +429,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local previewLabel = makeLabel(footer, "", UiKit.GOLD, UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48))
 	local clearButton = makeButton(footer, "Clear cast", UiKit.BURGUNDY, UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76))
 	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76))
+	goButton.Name = "StartFilming"
 
 	local pickStage = 1
 	local pickScript: string? = nil
@@ -478,6 +484,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			previewLabel.Text = if pickScript == nil then "Pick a script first" else "Pick at least one actor"
 		end
 		UiKit.setEnabled(goButton, ready, UiKit.GREEN)
+		-- What is picked so far, for the tutorial's pointer.
+		picker:SetAttribute("Script", pickScript)
+		picker:SetAttribute("Cast", #pickCast)
 	end
 
 	-- The picker's script buttons and actor cards stay between taps and are updated in place, so
@@ -578,6 +587,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					anyScript = true
 					order += 1
 					local button = makeButton(pickerList, "", GENRE_COLORS[genre] or UiKit.BLUE, UDim2.new(1, -8, 0, 44))
+					button.Name = "PickScript_" .. key
 					button.LayoutOrder = order
 					smallIcon(button, "script", 38, UDim2.fromOffset(8, 3))
 					local label = UiKit.makeTitle(button, `{genre} {length.name}  x{count}  ({fmtTime(length.seconds)})`, WHITE, UDim2.new(1, -62, 1, -10), UDim2.fromOffset(54, 5), 2)
@@ -953,7 +963,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				if not entry.ready then
 					UiKit.pulse(entry.button, 1.08)
 				end
-				entry.time.Text = "Finished!"
+				entry.time.Text = "Ready!"
 				entry.button.Text = "PREMIERE!"
 				entry.button.BackgroundColor3 = UiKit.GREEN
 			else
