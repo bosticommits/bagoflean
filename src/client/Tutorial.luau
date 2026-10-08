@@ -287,7 +287,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			banner.Visible = false
 			return
 		end
-		Sfx.play("jingle")
+		Sfx.play("welcome")
 		stepLabel.Text = ""
 		textLabel.Text = "You're a movie mogul! Keep casting, filming and upgrading."
 		skip.Visible = false
@@ -313,7 +313,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		if nextIndex ~= currentIndex then
 			if currentIndex ~= 0 then
-				Sfx.play("indicator")
+				Sfx.play("notify")
 			end
 			currentIndex = nextIndex
 			local step = steps[nextIndex]

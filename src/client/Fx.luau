@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
 local Actors = require(game:GetService("ReplicatedStorage").Shared.Actors)
+local Music = require(script.Parent.Music)
 local Sfx = require(script.Parent.Sfx)
 
 local CONFETTI_TEXTURE = "rbxasset://textures/particles/SquareParticle.png"
@@ -91,19 +92,23 @@ function Fx.castReveal(tierId: string, variantId: string)
 	local tier = Actors.getTier(tierId)
 	local color = if tier ~= nil then tier.color else Color3.new(1, 1, 1)
 	if rank <= 2 then
-		Sfx.play("pop")
+		Sfx.play("revealCommon")
 	elseif rank <= 4 then
-		Sfx.play("stinger")
+		Sfx.play("revealRare")
 		Fx.confetti(20 + rank * 5, { color, Color3.new(1, 1, 1) })
 	else
-		Sfx.play("stinger")
-		Sfx.play("jingle")
+		-- Superstar and up: a deeper sting; Legend and Icon also get the big fanfare over dipped music.
+		Sfx.play("revealEpic")
+		if rank >= 6 then
+			Music.duck(4)
+			Sfx.play("revealLegend")
+		end
 		Fx.flash(color, 0.5)
 		Fx.confetti(70 + rank * 10)
 	end
 	if variantId == "Shiny" or variantId == "Award" then
 		local variant = Actors.getVariant(variantId)
-		Sfx.play("stinger", 1.25)
+		Sfx.play("revealShiny")
 		Fx.confetti(30, { if variant ~= nil then variant.color else Color3.new(1, 1, 1), Color3.new(1, 1, 1) })
 	end
 end
@@ -111,18 +116,19 @@ end
 -- Premiere result: a flop gets a sad whistle, a Masterpiece gets everything.
 function Fx.premiere(resultId: string, color: Color3)
 	if resultId == "Flop" then
-		Sfx.play("low")
+		Sfx.play("premiereFlop")
 	elseif resultId == "Hit" then
-		Sfx.play("pop")
+		Sfx.play("premiereHit")
 	elseif resultId == "Blockbuster" then
-		Sfx.play("stinger")
+		Sfx.play("premiereBig")
 		Fx.confetti(30, { color, Color3.new(1, 1, 1) })
 	elseif resultId == "Cult" then
-		Sfx.play("stinger")
+		Sfx.play("premiereBig")
 		Fx.confetti(50, { color, Color3.fromRGB(255, 205, 70) })
 	else
-		Sfx.play("stinger")
-		Sfx.play("jingle")
+		Music.duck(4)
+		Sfx.play("premiereBig")
+		Sfx.play("premiereMasterpiece")
 		Fx.flash(color, 0.6)
 		Fx.confetti(140)
 	end

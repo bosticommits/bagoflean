@@ -798,7 +798,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		resultLabel.Visible = true
 		resultLabel.TextColor3 = WHITE
 		resultLabel.Text = "The reviews are in..."
-		Sfx.play("whoosh", 0.8)
+		Sfx.play("premiereDrumroll")
 		task.delay(1.2, function()
 			if premiereToken ~= mine then
 				return
