@@ -14,6 +14,8 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
+local TopStudios = require(ReplicatedStorage.Shared.TopStudios)
+local TopStudiosModels = require(ReplicatedStorage.Shared.Models.TopStudiosModels)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -37,7 +39,7 @@ local GOLD = Color3.fromRGB(245, 184, 46)
 
 -- The pieces that change with the owner. Each is rebuilt only when its key changes, so a casting
 -- spree doesn't rebuild the whole lot.
-local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Star", "Avatar" }
+local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Star", "Avatar", "RareWall" }
 
 type Lot = {
 	index: number,
@@ -70,29 +72,11 @@ end
 
 -- The owner's best actor copy: highest tier, then best variant.
 local function rarestOwned(data: DataService.PlayerData): (Actors.Actor?, Actors.Variant?)
-	local bestScore, bestActor, bestVariant = -1, nil, nil
-	local tierRank: { [string]: number } = {}
-	for rank, tier in Actors.Tiers do
-		tierRank[tier.id] = rank
+	local best = TopStudios.rarest(data.roster, 1)[1]
+	if best == nil then
+		return nil, nil
 	end
-	local variantRank: { [string]: number } = {}
-	for rank, variant in Actors.Variants do
-		variantRank[variant.id] = rank
-	end
-	for key, count in data.roster do
-		if count > 0 then
-			local parts = string.split(key, ":")
-			local actor = Actors.getActor(parts[1] or "")
-			local variant = Actors.getVariant(parts[2] or "")
-			if actor ~= nil and variant ~= nil then
-				local score = tierRank[actor.tier] * 10 + variantRank[variant.id]
-				if score > bestScore then
-					bestScore, bestActor, bestVariant = score, actor, variant
-				end
-			end
-		end
-	end
-	return bestActor, bestVariant
+	return best.actor, best.variant
 end
 
 local function buildLot(index: number, folder: Folder): Lot
@@ -307,6 +291,21 @@ local function render(lot: Lot)
 			local variantText = if variant.id == "Normal" then "" else variant.name .. " "
 			setBillboard(lot, owner.DisplayName .. "'s top star", actor.name, `{variantText}{actor.tier}`, tierColor, actor.id, variant.id)
 		end
+	end)
+
+	-- Rare Wall: the owner's rarest actors by the gate, for visitors to see.
+	local wall: { { actorId: string, variantId: string } } = {}
+	if data ~= nil then
+		for _, owned in TopStudios.rarest(data.roster, TopStudios.WallSize) do
+			table.insert(wall, { actorId = owned.actor.id, variantId = owned.variant.id })
+		end
+	end
+	local wallKey = (if owner ~= nil then tostring(owner.UserId) else "free")
+	for _, entry in wall do
+		wallKey ..= ":" .. entry.actorId .. "/" .. entry.variantId
+	end
+	section(lot, "RareWall", wallKey, function(model)
+		TopStudiosModels.rareWall(model, lot.base, wall, TopStudios.WallSize)
 	end)
 end
 

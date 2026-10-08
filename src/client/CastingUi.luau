@@ -551,7 +551,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			return Icon3D.icon(frame, "clapper", 0.9)
 		end, 90)
 		setRays(nil, 0)
-		Sfx.play("whoosh")
+		Sfx.play("castRoll")
 	end
 
 	local function showReveal(result: any)
