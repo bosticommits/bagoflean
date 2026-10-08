@@ -206,7 +206,7 @@ exciting by M3, fix the core before adding anything else.
 
 ## 13. As built (Rebirth, the Sequel)
 
-- **Rebirth button** in the side menu (first column, under Codes) with a green chip: how close Cash
+- **Rebirth button** in the side menu (second column, under Upgrade) with a green chip: how close Cash
   is to the next rebirth ("43%"), "READY!" on gold once it is affordable, "MAX" after the last one.
 - **Price**: $250,000 for the first, then 6 times more each time. There are 12. Tuned with the
   sim: the first lands early on day 2, the next ones further and further apart (ECONOMY.md).
