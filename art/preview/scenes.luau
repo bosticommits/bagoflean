@@ -67,6 +67,15 @@ function scenes.director(folder, load, roblox, arg)
 	ActorModels.buildDirector(folder, roblox.CFrame.new(), arg == "bust")
 end
 
+-- The six studio mascots (part versions of the Blender designs) side by side, rarest on the right.
+function scenes.mascots(folder, load, roblox)
+	local Mascots = load("src/shared/Mascots.luau")
+	local MascotModels = load("src/shared/Models/MascotModels.luau")
+	for i, mascot in Mascots.List do
+		MascotModels.build(folder, mascot.id, roblox.CFrame.new((3.5 - i) * 3.4, 0, 0))
+	end
+end
+
 function scenes.variants(folder, load, roblox)
 	local ActorModels = load("src/shared/Models/ActorModels.luau")
 	for i, variant in { "Normal", "Shiny", "Award" } do
