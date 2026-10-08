@@ -10,6 +10,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (4 sizes), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
+| `src/shared/Models/TownSets.luau` | The town's landmarks and film sets: the Grand Premiere Theatre, the Studio Gate, the four back street sets, poster columns, the far skyline |
 | `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects |
 | `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), and `mystery_crate` (the Mystery Crate event's crate, lid and parachute) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
@@ -28,9 +29,18 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
 - **Store stands**: eight stalls on the sidewalks. Walking up to one shows a prompt that opens its screen: Shop, Rewards, Requests, Codes, Movies, Upgrades, Casting Odds and Talent Index.
 - **Paths** between the lots and round the outside, inside a hedge, so every lot is joined to the others. Lawns, bushes and flowers break up the paving.
 - **Edge of town**: hills with a giant gold star sign, two big sound stages and two water towers.
+- **Landmarks** (`TownSets`): the boulevard runs out through the hedge to the **Grand Premiere
+  Theatre** in the west (marquee, "RNG" sign, carpet up the steps) and through the **Studio Gate**
+  in the east to a big sound stage.
+- **Back streets**: each path between two lots is a film set, with its props along the sides and
+  the middle kept clear: a green screen stage with a camera crane, the props yard (dinosaur head,
+  fake moon, crates), star trailers, and a food corner with a taco truck.
+- **Poster columns** on the sidewalks and a hazy **city skyline** behind the hills.
 - The town's palm trees and searchlights switch to the Blender meshes too, once imported.
 
-Previews: `art/previews/town.png` and `art/previews/town_boulevard.png`.
+Previews: `art/previews/town.png` and `art/previews/town_boulevard.png`. For lit Blender renders
+of the town from fixed spots (aerial, theatre, gate, each back street), run
+`art/preview/map_shots.py` the same way as the store art (see below).
 
 ## Importing the Blender models into Studio
 

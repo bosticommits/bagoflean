@@ -2,7 +2,8 @@
 -- The town around the studio lots, so the six lots form one place instead of islands on a
 -- baseplate: the boulevard with its red carpet, the spawn plaza and fountain, sidewalks with
 -- Walk of Fame stars, paths that join every lot, the store stands, and hills with the gold star
--- sign around the edge. Built from parts in the style of ART_STYLE.md (section 7). Curved props
+-- sign around the edge. The landmarks at the ends of the boulevard and the film sets in the back
+-- streets come from TownSets. Built from parts in the style of ART_STYLE.md (section 7). Curved props
 -- use the Blender meshes once imported (palm trees, searchlights, the trophy statue).
 --
 -- World space: X runs along the boulevard, Z across it. Lots 1-3 sit at -Z and lots 4-6 at +Z,
@@ -11,6 +12,7 @@ local ActorModels = require(script.Parent.ActorModels)
 local Build = require(script.Parent.Build)
 local IconModels = require(script.Parent.IconModels)
 local LotModels = require(script.Parent.LotModels)
+local TownSets = require(script.Parent.TownSets)
 
 type Builder = Build.Builder
 
@@ -41,6 +43,11 @@ MapModels.Layout = table.freeze({
 	spawn = CFrame.new(0, 0.65, -15) * CFrame.Angles(0, math.pi, 0),
 	-- Gold star sign on the big hill behind lots 4-6.
 	hillStar = Vector3.new(0, 44, 190),
+	-- The boulevard runs out through the hedge at both ends: west to the Grand Premiere Theatre
+	-- (its bottom step), east through the Studio Gate.
+	endGap = 14,
+	theatreX = -147,
+	gateX = 146,
 })
 
 local Lay = MapModels.Layout
@@ -324,10 +331,9 @@ local function streets(b: Builder)
 	for _, z in { -3.2, 3.2 } do
 		b:block("BoulevardCarpetEdge", v(carpetHalf * 2, 0.07, 0.4), v(0, 0.185, z), P.Gold)
 	end
-	for _, dir in { -1, 1 } do
-		b:block("CarpetEnd", v(0.4, 0.07, 6.8), v(dir * (carpetHalf + 0.2), 0.185, 0), P.Gold)
-		b:block("RoadEnd", v(0.8, 0.35, road * 2), v(dir * (x0 - 0.4), 0.175, 0), P.Cream)
-	end
+	-- East, the carpet stops under the arch with a gold strip; west, it carries on to the theatre
+	-- (landmarks()).
+	b:block("CarpetEnd", v(0.4, 0.07, 6.8), v(carpetHalf + 0.2, 0.185, 0), P.Gold)
 	-- Crossings in front of the outer lots' gates (the middle lots cross through the plaza).
 	for _, x in { -LOT_SPACING, LOT_SPACING } do
 		for _, side in { -1, 1 } do
@@ -397,10 +403,6 @@ local function streets(b: Builder)
 		for _, sz in { -1, 1 } do
 			local zMid = sz * (front + alleyLength / 2)
 			b:block("Alley", v(Lay.alleyWidth, 0.2, alleyLength), v(sx * Lay.alleyX, 0.1, zMid), P.Paving)
-			lamp(b, v(sx * (Lay.alleyX - 8), 0.2, zMid))
-			for _, along in { 12, 48 } do
-				LotModels.palm(b:sub(v(sx * Lay.alleyX, 0.2, sz * (front + along))), 14, 5)
-			end
 			-- Side path, from the sidewalk to the back path.
 			b:block("SidePath", v(ring, 0.2, z0 - front), v(sx * (x0 - ring / 2), 0.1, sz * (front + z0) / 2), P.Paving)
 		end
@@ -433,8 +435,12 @@ local function fence(b: Builder)
 		b:block("TownHedge", v(size.X, h, size.Z), center + v(0, h / 2, 0), P.DarkGreen, GRASS)
 		b:block("TownHedgeTop", v(size.X + 0.2, 0.5, size.Z + 0.2), center + v(0, h + 0.25, 0), P.Green, GRASS)
 	end
+	-- The hedges at the boulevard's ends leave a gap for the road out to the landmarks.
+	local gap = Lay.endGap
 	for _, s in { -1, 1 } do
-		hedge(v(s * fx, 0, 0), v(2, 0, fz * 2))
+		for _, sz in { -1, 1 } do
+			hedge(v(s * fx, 0, sz * (gap + fz) / 2), v(2, 0, fz - gap))
+		end
 		hedge(v(0, 0, s * fz), v(fx * 2 + 2, 0, 2))
 	end
 	local function pillar(x: number, z: number)
@@ -450,6 +456,12 @@ local function fence(b: Builder)
 	end
 	for i = 1, count - 1 do
 		local z = -fz + i * fz * 2 / count
+		if math.abs(z) > gap then
+			pillar(-fx, z)
+			pillar(fx, z)
+		end
+	end
+	for _, z in { -gap, gap } do
 		pillar(-fx, z)
 		pillar(fx, z)
 	end
@@ -521,15 +533,80 @@ local function hills(b: Builder)
 	sign:cylinder("HillStarMiddle", 1.7, 14, CFrame.identity, P.Light, NEON)
 end
 
--- Big sound stages and the water tower behind the ends of the boulevard.
+-- Big sound stages and the water towers outside the hedge.
 local function backlot(b: Builder)
 	local look = { owned = true, accent = P.Carpet, filming = false }
-	local west = CFrame.new(-Lay.fenceX - 30, 0, -34) * CFrame.Angles(0, math.rad(-90), 0)
+	local west = CFrame.new(-Lay.fenceX - 30, 0, -48) * CFrame.Angles(0, math.rad(-90), 0)
 	LotModels.soundStage(Build.new(b.parent, b:at(west), 2.4), 7, look)
-	local east = CFrame.new(Lay.fenceX + 30, 0, 34) * CFrame.Angles(0, math.rad(90), 0)
+	-- East, the road through the Studio Gate ends at this stage's door.
+	local east = CFrame.new(192, 0, 0) * CFrame.Angles(0, math.rad(90), 0)
 	LotModels.soundStage(Build.new(b.parent, b:at(east), 2.4), 8, { owned = true, accent = P.Blue, filming = true })
-	waterTower(b:sub(v(-Lay.fenceX - 26, 0, 36)))
-	waterTower(b:sub(v(Lay.fenceX + 26, 0, -36)))
+	waterTower(b:sub(v(-Lay.fenceX - 24, 0, 44)))
+	waterTower(b:sub(v(Lay.fenceX + 26, 0, -40)))
+end
+
+-- Landmarks and film sets (TownSets) ----------------------------------------------------------------
+
+-- Where each back street's film set goes: the path between two lots, its -Z toward the boulevard.
+MapModels.Sets = table.freeze({
+	{ set = "greenScreen", x = -1, z = -1 },
+	{ set = "propsYard", x = 1, z = -1 },
+	{ set = "trailers", x = -1, z = 1 },
+	{ set = "foodCorner", x = 1, z = 1 },
+})
+
+local function landmarks(b: Builder)
+	local x0, gap = Lay.townX, Lay.endGap
+	-- West: a forecourt out to the theatre steps, the carpet running all the way.
+	local west = Lay.theatreX
+	local length = -x0 - west
+	b:block("Forecourt", v(length, 0.2, gap * 2), v(-x0 - length / 2, 0.1, 0), P.Paving)
+	b:block("ForecourtCarpet", v(length + 3, 0.06, 6), v(-x0 - length / 2 + 1.5, 0.23, 0), P.Carpet, Enum.Material.Fabric)
+	for _, z in { -3.2, 3.2 } do
+		b:block("ForecourtCarpetEdge", v(length + 3, 0.07, 0.4), v(-x0 - length / 2 + 1.5, 0.235, z), P.Gold)
+	end
+	TownSets.theatre(b:sub(CFrame.new(west - 3, 0, 0) * CFrame.Angles(0, math.rad(-90), 0)))
+	LotModels.stanchions(b:sub(CFrame.new(west + 8, 0.2, 0) * CFrame.Angles(0, math.rad(-90), 0)), -6, 6, 4)
+	for _, z in { -1, 1 } do
+		LotModels.palm(b:sub(v(west + 3, 0.2, z * 10)), 15, 6)
+		TownSets.flowerBed(b:sub(v(-x0 - 11, 0.2, z * (gap + 4))), v(12, 0, 6))
+	end
+
+	-- East: the road carries on through the Studio Gate to the backlot.
+	local east = Lay.gateX
+	local road = 175 - x0
+	b:block("BacklotRoad", v(road, 0.15, Lay.roadHalf * 2), v(x0 + road / 2, 0.075, 0), P.Asphalt)
+	for _, z in { -1, 1 } do
+		b:block("BacklotVerge", v(road, 0.2, gap - Lay.roadHalf), v(x0 + road / 2, 0.1, z * (gap + Lay.roadHalf) / 2), P.Paving)
+		TownSets.flowerBed(b:sub(v(x0 + 11, 0.2, z * (gap + 4))), v(12, 0, 6))
+	end
+	TownSets.studioGate(b:sub(CFrame.new(east, 0.2, 0) * CFrame.Angles(0, math.rad(90), 0)))
+
+	-- A film set in each back street.
+	for _, info in MapModels.Sets do
+		local base = CFrame.new(info.x * Lay.alleyX, 0.2, info.z * (Lay.sidewalkTo + 32))
+		if info.z < 0 then
+			base *= CFrame.Angles(0, math.pi, 0)
+		end
+		local build = (TownSets :: any)[info.set] :: (Builder) -> ()
+		build(Build.new(b.parent, base))
+	end
+
+	-- Poster columns on the sidewalks.
+	local posters = {
+		{ x = -62, z = 26, title = "MONSTER\nISLAND", color = Color3.fromRGB(110, 190, 80) },
+		{ x = 62, z = 26, title = "SPACE\nCOWBOYS", color = P.Blue },
+		{ x = -62, z = -26, title = "LOVE IN\nPARIS", color = Color3.fromRGB(255, 120, 170) },
+		{ x = 62, z = -26, title = "THE LAST\nHEIST", color = P.Carpet },
+	}
+	for _, poster in posters do
+		local face = if poster.z > 0 then CFrame.identity else CFrame.Angles(0, math.pi, 0)
+		TownSets.posterColumn(b:sub(CFrame.new(poster.x, 0.2, poster.z) * face), poster.title, poster.color)
+	end
+
+	-- A hazy city skyline behind the hills, beyond the front lots and past the theatre.
+	TownSets.skyline(b:sub(v(0, -8, -450)), 16, 620, 7)
+	TownSets.skyline(b:sub(CFrame.new(-470, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
 end
 
 -- Everything ------------------------------------------------------------------------------------
@@ -539,6 +616,11 @@ end
 local GROUND_TRIM = {
 	BoulevardCarpet = true,
 	BoulevardCarpetEdge = true,
+	ChromaFloor = true,
+	FloorMark = true,
+	ForecourtCarpet = true,
+	ForecourtCarpetEdge = true,
+	TheatreCarpet = true,
 	CarpetEnd = true,
 	Crossing = true,
 	Curb = true,
@@ -561,6 +643,17 @@ local GROUND_TRIM = {
 local NO_SHADOW = {
 	Alley = true,
 	BackPath = true,
+	BacklotRoad = true,
+	BacklotVerge = true,
+	BladeBulbs = true,
+	Forecourt = true,
+	GateTip = true,
+	MarqueeBulbs = true,
+	MoonCrater = true,
+	SkylineTop = true,
+	SkylineTower = true,
+	TheatrePlinth = true,
+	TheatreStep = true,
 	Flower = true,
 	GateRamp = true,
 	Ground = true,
@@ -589,6 +682,7 @@ function MapModels.build(parent: Instance): Built
 	end
 	backlot(b)
 	hills(b)
+	landmarks(b)
 
 	local stands = {}
 	for _, info in MapModels.Stands do
