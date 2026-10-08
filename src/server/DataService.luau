@@ -54,6 +54,10 @@ export type PlayerData = {
 	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
 	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
 	funnel: number, -- highest onboarding funnel step logged (analytics)
+	-- Achievements: lifetime action counters ("cast", "premiere", ...) and the ones claimed (by id)
+	stats: { [string]: number },
+	achievements: { [string]: boolean },
+	rebirths: number, -- rebirths done (Rebirth.luau); never goes down
 	-- Special events: what was picked up in the latest one ("coin3", "crate", "spotlight"), so
 	-- rejoining or changing servers during it cannot pick the same thing up twice.
 	eventKey: string, -- "<event id>:<start time>"; claims from older events are dropped
@@ -62,7 +66,7 @@ export type PlayerData = {
 
 export type Request = { id: string, progress: number, claimed: boolean }
 
-local CURRENT_VERSION = 5
+local CURRENT_VERSION = 6 -- 6: rebirths
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -90,6 +94,9 @@ local TEMPLATE: PlayerData = {
 	purchaseIds = {},
 	stayGiftDay = 0,
 	funnel = 99, -- profiles from before M6 are not new players; load() sets 0 for new ones
+	stats = {},
+	achievements = {},
+	rebirths = 0,
 	eventKey = "",
 	eventClaims = {},
 }
@@ -122,11 +129,12 @@ local function migrate(data: any)
 	if type(data.tutorialDone) ~= "boolean" then
 		data.tutorialDone = false
 	end
-	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay" } do
+	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
 		end
 	end
+	data.rebirths = math.floor(data.rebirths)
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end
@@ -136,6 +144,16 @@ local function migrate(data: any)
 	for _, field in { "scripts", "upgrades", "rewards", "passes", "codes", "purchaseIds", "eventClaims" } do
 		if type(data[field]) ~= "table" then
 			data[field] = {}
+		end
+	end
+	for _, field in { "stats", "achievements" } do
+		if type(data[field]) ~= "table" then
+			data[field] = {}
+		end
+	end
+	for key, value in data.stats do
+		if type(key) ~= "string" or type(value) ~= "number" or value ~= value or value < 0 then
+			data.stats[key] = nil
 		end
 	end
 	for _, field in { "films", "cinema" } do

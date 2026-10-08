@@ -66,6 +66,7 @@ Sounds.Slots = {
 	reward = slot("stinger"), -- a reward or code claimed
 	welcome = slot("jingle"), -- welcome back, daily reward ready, tutorial done
 	gift = slot("pop"), -- the stay gift pops up
+	goal = slot("jingle", 1.1), -- an achievement goal reached (Goals screen)
 
 	-- Server events
 	awardNight = slot("jingle", 0.9), -- Award Night starts
@@ -76,15 +77,21 @@ Sounds.Slots = {
 	eventSweep = slot("sweep"), -- the Spotlight switching on, the Golden Hour sunset
 	eventPickup = slot("pop", 1.3), -- picking up a Cash Rain coin or crate
 	eventEnd = slot("sweep", 0.8), -- a special event ends
+
+	-- Rebirth
+	rebirthSting = slot("stinger", 0.8), -- the rebirth reveal opens
+	rebirth = slot("jingle", 0.95), -- on top of the sting (the music dips under it)
 } :: { [string]: Slot }
 
+-- Track ids below were checked in Studio on 2026-10-08: uploaded by Roblox (its licensed music
+-- library, free to use) and they load. Names are from the library listing.
 Sounds.Music = {
 	lobby = {
-		{ id = 0, name = "Lobby 1", volume = 0.35 },
-		{ id = 0, name = "Lobby 2", volume = 0.35 },
-		{ id = 0, name = "Lobby 3", volume = 0.35 },
+		{ id = 15675069601, name = "Lobby 1", volume = 0.35 }, -- calm, 1:35
+		{ id = 130053244401794, name = "Lobby 2", volume = 0.35 }, -- calm, 4:21
+		{ id = 15930255433, name = "Lobby 3", volume = 0.35 }, -- light, 1:47
 	} :: { Track },
-	event = { id = 0, name = "Award Night", volume = 0.4 } :: Track,
+	event = { id = 17422163655, name = "Cloud Blitz", volume = 0.4 } :: Track, -- energetic, 2:18
 }
 
 -- Player volume settings: 0..1 in steps of 1/STEPS. Saved with the player's data.

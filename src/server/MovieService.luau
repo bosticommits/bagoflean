@@ -8,6 +8,7 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
@@ -88,6 +89,7 @@ local function snapshot(player: Player): { [string]: any }?
 		rewards = data.rewards,
 		trophies = data.trophies,
 		tutorialDone = data.tutorialDone,
+		rebirths = data.rebirths,
 	}
 end
 
@@ -322,6 +324,10 @@ local function onPremiere(player: Player, stage: any)
 		payout *= Config.AwardNightPayoutMultiplier
 	end
 	local fame = Movies.fame(payout)
+	-- Rebirths multiply the Cash, not the Fame, so Fame unlocks stay where ECONOMY.md puts them.
+	-- The cinema keeps the boosted payout, so the box office grows with it.
+	local rebirthBonus = Rebirth.cashMultiplier(data.rebirths)
+	payout = math.floor(payout * rebirthBonus)
 
 	table.remove(data.films, filmIndex) -- frees the stage and the cast copies
 	EconomyService.accrue(data) -- bank royalties at the old rate before the rate changes
@@ -356,6 +362,7 @@ local function onPremiere(player: Player, stage: any)
 		power = power,
 		genreBonus = genreBonus,
 		awardNight = awardNight,
+		rebirthBonus = rebirthBonus,
 	})
 	if result.id == "Masterpiece" then
 		data.trophies += 1

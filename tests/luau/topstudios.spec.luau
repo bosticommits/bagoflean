@@ -138,9 +138,19 @@ test("the Rare Wall fits on a lot without touching anything else", function()
 	for _, part in lot:GetDescendants() do
 		if part:IsA("BasePart") and not under[part.Name] and part.Transparency < 1 then
 			local plo, phi = bounds(part)
-			expect(not overlaps(wlo, whi, plo, phi), `Rare Wall overlaps {part.Name} at {part.CFrame.Position}`)
+			for _, piece in wall:GetDescendants() do
+				if piece:IsA("BasePart") then
+					local alo, ahi = bounds(piece)
+					expect(not overlaps(alo, ahi, plo, phi), `Rare Wall {piece.Name} overlaps {part.Name} at {part.CFrame.Position}`)
+				end
+			end
 		end
 	end
+	-- It faces the red carpet (lot-space x = 0) and leans toward the gate (-Z).
+	local Lay = TopStudiosModels.Layout
+	local frame = base * CFrame.new(Lay.rareWall) * CFrame.Angles(0, Lay.rareWallYaw, 0)
+	expect(frame.LookVector.X * -Lay.rareWall.X > 0, "the wall faces the carpet")
+	expect(frame.LookVector.Z < 0, "the wall leans toward the gate")
 	-- Each figure stays on its own plinth.
 	local figures = {}
 	for _, child in wall:GetChildren() do
@@ -151,7 +161,15 @@ test("the Rare Wall fits on a lot without touching anything else", function()
 	equal(#figures, TopStudios.WallSize, "one figure per slot")
 	local gap = TopStudiosModels.Layout.wallWidth / TopStudios.WallSize
 	for _, figure in figures do
-		local flo, fhi = box(figure)
-		expect(fhi.X - flo.X <= gap + 0.01, `{figure.Name} is wider than its plinth ({fhi.X - flo.X})`)
+		local lo, hi = math.huge, -math.huge
+		for _, part in figure:GetDescendants() do
+			if part:IsA("BasePart") then
+				local cf = frame:ToObjectSpace(part.CFrame)
+				local half = part.Size / 2
+				local reach = math.abs(cf.RightVector.X) * half.X + math.abs(cf.UpVector.X) * half.Y + math.abs(cf.LookVector.X) * half.Z
+				lo, hi = math.min(lo, cf.Position.X - reach), math.max(hi, cf.Position.X + reach)
+			end
+		end
+		expect(hi - lo <= gap + 0.01, `{figure.Name} is wider than its plinth ({hi - lo})`)
 	end
 end)
