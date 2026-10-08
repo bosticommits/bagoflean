@@ -7,9 +7,10 @@
 -- dialogue stays at the top of the screen, panels included (panels start below it, see
 -- UiKit.makePanel's "PanelTop"), with a separate yellow instruction under it for what to do now.
 -- Yellow arrows point at the real control (a menu button, a tab, a row) and, where there is one,
--- at the stand in the plaza, with a glow on the target and a yellow line on the ground from the
--- player to it. There is no Casting Call stand: CAST rolls, and the Casting Odds stand only shows
--- the chances, so step 2 points at CAST and just outlines that stand.
+-- at the stand in the plaza, with a glow on the target, a big glossy arrow over it, and a trail of
+-- yellow chevrons on the ground flowing from the player to it. There is no Casting Call stand:
+-- CAST rolls, and the Casting Odds stand only shows the chances, so step 2 points at CAST and just
+-- outlines that stand.
 --
 -- Each step completes from real game state (not from button presses), so a player who already did
 -- something skips it, and nothing here can grant anything. Finishing or skipping tells the server
@@ -31,6 +32,40 @@ local UiKit = require(script.Parent.UiKit)
 local GUIDE = Color3.fromRGB(255, 222, 26)
 local HINT_BLUE = Color3.fromRGB(110, 190, 255)
 local CURTAIN = Color3.fromRGB(122, 18, 36)
+
+-- The chevron trail on the ground (studs). Each chevron is two arms meeting at a tip that points
+-- at the target, tipped up off the ground so it reads from behind the player, with a slightly
+-- bigger dark copy behind for the outline. They flow along the path at TRAIL_SPEED, TRAIL_SPACING apart.
+local TRAIL_SPACING = 4.5
+local TRAIL_SPEED = 6
+local TRAIL_START = 3.5 -- the first chevron's distance ahead of the player
+local TRAIL_END = 2.5 -- the last one stops this far short of the target
+local TRAIL_FADE = 2 -- chevrons fade in and out over this distance at each end
+local CHEVRON_ARM = 3.2
+local CHEVRON_ANGLE = math.rad(40) -- each arm's angle off the path
+local CHEVRON_LEAN = math.rad(50) -- tip raised off the ground, toward the target
+local LEAN = CFrame.Angles(CHEVRON_LEAN, 0, 0)
+local CHEVRON_LIFT = math.cos(CHEVRON_ANGLE) * CHEVRON_ARM / 2 * math.sin(CHEVRON_LEAN) + 0.2
+type ChevronArm = { offset: CFrame, size: Vector3, ink: boolean }
+local CHEVRON_ARMS: { ChevronArm } = {}
+do
+	-- In the chevron's own frame -Z points at the target. Each arm's centre sits beside the path,
+	-- turned so the two meet at the tip, and nudged toward the tip so they close it off.
+	local thick, depth, rim = 0.8, 0.25, 0.42
+	for _, ink in { true, false } do
+		for _, side in { 1, -1 } do
+			local turn = side * CHEVRON_ANGLE
+			local along = CFrame.Angles(0, turn, 0)
+			local centre = Vector3.new(side * math.sin(CHEVRON_ANGLE) * CHEVRON_ARM / 2, if ink then -0.1 else 0.02, 0)
+			local grow = if ink then rim else 0
+			table.insert(CHEVRON_ARMS, {
+				offset = CFrame.new(centre) * along * CFrame.new(0, 0, -thick * 0.3),
+				size = Vector3.new(thick + grow, depth, CHEVRON_ARM + thick * 0.6 + grow),
+				ink = ink,
+			})
+		end
+	end
+end
 
 -- Dialogue layout (pixels). Regular: the card, then the instruction under it. Compact (phones in
 -- landscape): one row, the card on the left and the instruction on the right.
@@ -89,13 +124,13 @@ local INSTRUCTIONS = {
 	finale = "Your next step is yours. Visit Movies, Upgrades, Casting Odds, or the Talent Index around town.",
 }
 
--- A place in the world to guide the player to. "primary" gets the arrow, glow, the line on the
--- ground and an arrow at the screen edge while it is out of view; "secondary" an arrow and glow;
--- "hint" only a soft blue outline.
+-- A place in the world to guide the player to. "primary" gets the arrow, glow, the chevron trail
+-- on the ground and an arrow at the screen edge while it is out of view; "secondary" an arrow and
+-- glow; "hint" only a soft blue outline.
 type WorldTarget = {
 	adornee: BasePart, -- the arrow floats over this
 	glow: Instance, -- what glows (a pad, or a stand's whole model)
-	ground: BasePart?, -- where the line on the ground ends
+	ground: BasePart?, -- where the chevron trail on the ground ends
 	label: string,
 	height: number, -- studs above the adornee for the arrow
 	kind: string,
@@ -117,8 +152,10 @@ type Step = {
 
 local Tutorial = {}
 
--- A chunky yellow arrow with a dark outline, pointing down (turn it with Rotation: 90 points left,
--- 180 up, 270 right). A shaft and a diamond, so the head's back edges sweep toward the shaft.
+-- A chunky, glossy yellow arrow with a dark outline, pointing down (turn it with Rotation: 90
+-- points left, 180 up, 270 right). A shaft and a diamond, so the head's back edges sweep toward the
+-- shaft; a top-to-bottom gold shade and a white shine down its left side make it read as glossy.
+local GLOSS = ColorSequence.new(Color3.fromRGB(255, 242, 150), Color3.fromRGB(255, 178, 20))
 local function makeArrow(parent: Instance, size: number, zIndex: number): Frame
 	local holder = Instance.new("Frame")
 	holder.Name = "GuideArrow"
@@ -126,7 +163,8 @@ local function makeArrow(parent: Instance, size: number, zIndex: number): Frame
 	holder.AnchorPoint = Vector2.new(0.5, 0.5)
 	holder.Size = UDim2.fromOffset(size, size)
 	holder.ZIndex = zIndex
-	local function piece(name: string, color: Color3, grow: number, z: number, diamond: boolean)
+	local outline = math.max(7, math.floor(size * 0.12))
+	local function piece(name: string, color: Color3, grow: number, z: number, diamond: boolean): Frame
 		local frame = Instance.new("Frame")
 		frame.Name = name
 		frame.BorderSizePixel = 0
@@ -137,19 +175,40 @@ local function makeArrow(parent: Instance, size: number, zIndex: number): Frame
 			frame.Position = UDim2.fromScale(0.5, 0.6)
 			frame.Size = UDim2.new(0.48, grow, 0.48, grow)
 			frame.Rotation = 45
-			local round = Instance.new("UICorner")
-			round.CornerRadius = UDim.new(0, 4)
-			round.Parent = frame
 		else
 			frame.Position = UDim2.new(0.35, -grow / 2, 0.04, -grow / 2)
 			frame.Size = UDim2.new(0.3, grow, 0.5, grow)
 		end
+		local round = Instance.new("UICorner")
+		round.CornerRadius = UDim.new(0, if diamond then 5 else 4)
+		round.Parent = frame
 		frame.Parent = holder
+		return frame
 	end
-	piece("ShaftOutline", UiKit.INK, 7, zIndex, false)
-	piece("HeadOutline", UiKit.INK, 8, zIndex, true)
-	piece("Shaft", GUIDE, 0, zIndex + 1, false)
-	piece("Head", GUIDE, 0, zIndex + 1, true)
+	piece("ShaftOutline", UiKit.INK, outline, zIndex, false)
+	piece("HeadOutline", UiKit.INK, outline + 1, zIndex, true)
+	local shaft = piece("Shaft", GUIDE, 0, zIndex + 1, false)
+	local head = piece("Head", GUIDE, 0, zIndex + 1, true)
+	for _, frame in { shaft, head } do
+		frame.BackgroundColor3 = Color3.new(1, 1, 1)
+		local shade = Instance.new("UIGradient")
+		shade.Color = GLOSS
+		-- Screen-vertical: the diamond is turned 45 degrees, so its gradient turns back by as much.
+		shade.Rotation = if frame == head then 45 else 90
+		shade.Parent = frame
+	end
+	local shine = Instance.new("Frame")
+	shine.Name = "Shine"
+	shine.BorderSizePixel = 0
+	shine.BackgroundColor3 = Color3.new(1, 1, 1)
+	shine.BackgroundTransparency = 0.25
+	shine.Position = UDim2.fromScale(0.16, 0.12)
+	shine.Size = UDim2.fromScale(0.2, 0.62)
+	shine.ZIndex = zIndex + 2
+	local shineRound = Instance.new("UICorner")
+	shineRound.CornerRadius = UDim.new(1, 0)
+	shineRound.Parent = shine
+	shine.Parent = shaft
 	holder.Parent = parent
 	return holder
 end
@@ -616,7 +675,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Guides --------------------------------------------------------------------------------------
 	type UiGuide = { target: GuiObject, arrow: Frame, cleanup: () -> () }
-	type WorldGuide = { target: WorldTarget, cleanup: () -> (), beam: Beam?, rootAttachment: Attachment?, edge: Frame? }
+	type Trail = { folder: Folder, parts: { BasePart }, fades: { number } }
+	type WorldGuide = { target: WorldTarget, cleanup: () -> (), trail: Trail?, edge: Frame? }
 	local uiGuides: { UiGuide } = {}
 	local worldGuides: { WorldGuide } = {}
 
@@ -677,6 +737,11 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		}
 	end
 
+	-- Fewer chevrons on phones: the trail reaches less far ahead, for less to move each frame.
+	local function trailCount(): number
+		return if compact() then 9 else 13
+	end
+
 	local function guideWorld(target: WorldTarget): WorldGuide
 		local made: { Instance } = {}
 		local tweens: { Tween } = {}
@@ -702,14 +767,14 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		table.insert(made, glow)
 
 		if target.kind ~= "hint" then
-			-- A bouncing arrow (and its label) over the target, seen from anywhere.
+			-- A big glossy arrow (and its label) bouncing over the target, seen from anywhere.
 			local primary = target.kind == "primary"
 			local board = Instance.new("BillboardGui")
 			board.Name = "TutorialArrow"
 			board.Adornee = target.adornee
 			board.AlwaysOnTop = true
 			board.LightInfluence = 0
-			board.Size = if primary then UDim2.fromOffset(170, 132) else UDim2.fromOffset(90, 80)
+			board.Size = if primary then UDim2.fromOffset(180, 150) else UDim2.fromOffset(100, 104)
 			board.StudsOffsetWorldSpace = Vector3.new(0, target.height, 0)
 			-- BillboardGuis do not render inside a ScreenGui; they live directly under PlayerGui.
 			board.Parent = playerGui
@@ -724,7 +789,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				UiKit.outline(label, 3.5)
 				label.Parent = board
 			end
-			local size = if primary then 76 else 60
+			local size = if primary then 100 else 64
 			local arrow = makeArrow(board, size, 1)
 			arrow.Position = UDim2.new(0.5, 0, 1, -size / 2)
 			table.insert(tweens, pulseTween(board, 0.5, { StudsOffset = Vector3.new(0, 1.4, 0) }))
@@ -732,32 +797,31 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 
 		if target.kind == "primary" then
-			-- A glowing yellow line on the ground from the player to the target.
-			local ground = target.ground or target.adornee
-			local endAttachment = Instance.new("Attachment")
-			endAttachment.Name = "TutorialPathEnd"
-			endAttachment.Position = Vector3.new(0, ground.Size.Y / 2 + 0.3, 0)
-			endAttachment.Parent = ground
-			table.insert(made, endAttachment)
-			local startAttachment = Instance.new("Attachment")
-			startAttachment.Name = "TutorialPathStart"
-			startAttachment.Position = Vector3.new(0, -2.6, 0)
-			local beam = Instance.new("Beam")
-			beam.Name = "TutorialPath"
-			beam.Attachment0 = startAttachment
-			beam.Attachment1 = endAttachment
-			beam.Color = ColorSequence.new(GUIDE)
-			beam.LightEmission = 0.6
-			beam.LightInfluence = 0
-			beam.FaceCamera = true
-			beam.Width0 = 1.1
-			beam.Width1 = 1.1
-			beam.Segments = 1
-			beam.Transparency = NumberSequence.new(0.3)
-			guide.beam = beam
-			guide.rootAttachment = startAttachment
-			table.insert(made, startAttachment)
-			table.insert(made, beam)
+			-- A trail of outlined yellow chevrons along the ground from the player to the target,
+			-- flowing toward it (animateGuides places them each frame).
+			local folder = Instance.new("Folder")
+			folder.Name = "TutorialTrail"
+			local parts: { BasePart } = {}
+			for _ = 1, trailCount() do
+				for _, arm in CHEVRON_ARMS do
+					local part = Instance.new("Part")
+					part.Name = if arm.ink then "ChevronOutline" else "Chevron"
+					part.Anchored = true
+					part.CanCollide = false
+					part.CanQuery = false
+					part.CanTouch = false
+					part.CastShadow = false
+					part.Locked = true
+					part.Material = Enum.Material.SmoothPlastic
+					part.Color = if arm.ink then UiKit.INK else GUIDE
+					part.Size = arm.size
+					part.Transparency = 1
+					part.Parent = folder
+					table.insert(parts, part)
+				end
+			end
+			guide.trail = { folder = folder, parts = parts, fades = table.create(#parts // #CHEVRON_ARMS, 1) }
+			table.insert(made, folder)
 			-- An arrow at the edge of the screen while the target is out of view.
 			local edge = makeArrow(gui, if compact() then 48 else 64, 9)
 			edge.Visible = false
@@ -862,6 +926,64 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Moves the on-screen arrows every frame (targets slide, scale and scroll).
 	local clock = 0
+	local trailParts: { BasePart } = {}
+	local trailFrames: { CFrame } = {}
+	-- Lays the chevron trail from the player's feet to the target, sliding it forward over time.
+	-- Hidden while a panel or the intro covers the world, and once the player is on top of it.
+	local function placeTrail(trail: Trail, target: WorldTarget, root: BasePart?, character: Model?)
+		local hide = root == nil or anyPanelOpen() or splash ~= nil or revealShowing()
+		local fromFeet, toward, distance = Vector3.zero, Vector3.zero, 0
+		local ground = target.ground or target.adornee
+		if root ~= nil then
+			local humanoid = if character ~= nil then character:FindFirstChildOfClass("Humanoid") else nil
+			local legs = if humanoid ~= nil then humanoid.HipHeight else 2
+			fromFeet = root.Position - Vector3.new(0, root.Size.Y / 2 + legs, 0)
+			local goal = ground.Position + Vector3.new(0, ground.Size.Y / 2, 0)
+			local flat = Vector3.new(goal.X - fromFeet.X, 0, goal.Z - fromFeet.Z)
+			distance = flat.Magnitude
+			hide = hide or distance < TRAIL_START + TRAIL_END + 1
+			if not hide then
+				toward = flat / distance
+				-- The rise from the feet to the goal, per stud along the ground.
+				toward = Vector3.new(toward.X, (goal.Y - fromFeet.Y) / distance, toward.Z)
+			end
+		end
+		local parent = if hide then nil else workspace
+		if trail.folder.Parent ~= parent then
+			trail.folder.Parent = parent
+		end
+		if hide then
+			return
+		end
+		table.clear(trailParts)
+		table.clear(trailFrames)
+		local arms = #CHEVRON_ARMS
+		local phase = (clock * TRAIL_SPEED) % TRAIL_SPACING
+		-- The chevrons' right-hand side, so each one's front (-Z) faces along the path.
+		local side = Vector3.new(toward.X, 0, toward.Z).Unit:Cross(Vector3.yAxis)
+		for index = 1, #trail.fades do
+			local along = TRAIL_START + phase + (index - 1) * TRAIL_SPACING
+			local room = distance - TRAIL_END - along
+			local fade = if room < 0 then 1 else 1 - math.min(1, (along - TRAIL_START) / TRAIL_FADE, room / TRAIL_FADE)
+			local first = (index - 1) * arms
+			if math.abs(trail.fades[index] - fade) > 0.02 then
+				trail.fades[index] = fade
+				for arm = 1, arms do
+					trail.parts[first + arm].Transparency = fade
+				end
+			end
+			if fade < 1 then
+				local at = fromFeet + toward * along + Vector3.new(0, CHEVRON_LIFT, 0)
+				local frame = CFrame.fromMatrix(at, side, Vector3.yAxis) * LEAN
+				for arm = 1, arms do
+					table.insert(trailParts, trail.parts[first + arm])
+					table.insert(trailFrames, frame * CHEVRON_ARMS[arm].offset)
+				end
+			end
+		end
+		workspace:BulkMoveTo(trailParts, trailFrames, Enum.BulkMoveMode.FireCFrameChanged)
+	end
+
 	local function animateGuides(dt: number)
 		clock += dt
 		local origin = gui.AbsolutePosition
@@ -891,20 +1013,13 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 
 		local character = player.Character
-		local root = if character ~= nil then character:FindFirstChild("HumanoidRootPart") else nil
+		local rootPart = if character ~= nil then character:FindFirstChild("HumanoidRootPart") else nil
+		local root = if rootPart ~= nil and rootPart:IsA("BasePart") then rootPart else nil
 		local camera = workspace.CurrentCamera
 		for _, guide in worldGuides do
-			local start = guide.rootAttachment
-			if start ~= nil and root ~= nil and start.Parent ~= root then
-				start.Parent = root
-				local beam = guide.beam
-				if beam ~= nil then
-					beam.Parent = root
-				end
-			end
-			local beam = guide.beam
-			if beam ~= nil then
-				beam.Transparency = NumberSequence.new(0.35 + 0.2 * math.sin(clock * 4))
+			local trail = guide.trail
+			if trail ~= nil then
+				placeTrail(trail, guide.target, root, character)
 			end
 			local edge = guide.edge
 			if edge ~= nil and camera ~= nil then
