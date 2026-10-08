@@ -22,6 +22,10 @@ local UiKit = require(script.Parent.UiKit)
 local WHITE = UiKit.WHITE
 local POSTER_ASPECT = 0.7 -- width / height, a one-sheet movie poster
 local BEAM_WARM = Color3.fromRGB(255, 244, 214)
+local BEAM_LAYERS = 7 -- nested strips per spotlight; more layers, softer edges
+local BEAM_LAYER_TRANSPARENCY = 0.9
+local BEAM_SWING = 23 -- degrees either side of straight up
+local RESULT_SPIN_RPM = 12
 
 local PremiereReveal = {}
 
@@ -69,30 +73,46 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	tapCatcher.Parent = overlay
 
 	-- Spotlights ------------------------------------------------------------------------------
-	-- Each beam is twice its visible length and centred on its base, with the lower half
-	-- transparent, so turning it (Roblox turns frames about their centre) swings it from the base.
+	-- Each beam is a clear pivot frame twice the beam's visible length, centred on its base, so
+	-- turning it (Roblox turns frames about their centre, children with them) swings it from the
+	-- base. Inside sit nested strips, widest to narrowest, each faint and fading toward the top:
+	-- they add up to a bright core with soft edges instead of a hard-edged wedge.
 	local beams: { Frame } = {}
+	local beamLayers: { { Frame } } = {}
 	for index, x in { 0.08, 0.92 } do
 		local beam = Instance.new("Frame")
 		beam.Name = "Spotlight" .. index
 		beam.AnchorPoint = Vector2.new(0.5, 0.5)
 		beam.Position = UDim2.fromScale(x, 1.02)
-		beam.Size = UDim2.fromScale(0.2, 2.4)
-		beam.BackgroundColor3 = BEAM_WARM
-		beam.BorderSizePixel = 0
+		beam.Size = UDim2.fromScale(0.24, 2.4)
+		beam.BackgroundTransparency = 1
 		beam.ZIndex = 12
 		beam.Parent = overlay
-		local fade = Instance.new("UIGradient")
-		fade.Rotation = 90
-		fade.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.2, 0.93),
-			NumberSequenceKeypoint.new(0.499, 0.62),
-			NumberSequenceKeypoint.new(0.5, 1),
-			NumberSequenceKeypoint.new(1, 1),
-		})
-		fade.Parent = beam
+		local layers = {}
+		for layer = 1, BEAM_LAYERS do
+			local strip = Instance.new("Frame")
+			strip.AnchorPoint = Vector2.new(0.5, 0)
+			strip.Position = UDim2.fromScale(0.5, 0)
+			strip.Size = UDim2.fromScale(1 - (layer - 1) / BEAM_LAYERS, 1)
+			strip.BackgroundColor3 = BEAM_WARM
+			strip.BackgroundTransparency = BEAM_LAYER_TRANSPARENCY
+			strip.BorderSizePixel = 0
+			strip.ZIndex = 12
+			strip.Parent = beam
+			local fade = Instance.new("UIGradient")
+			fade.Rotation = 90
+			fade.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.25, 0.85),
+				NumberSequenceKeypoint.new(0.499, 0.2),
+				NumberSequenceKeypoint.new(0.5, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			fade.Parent = strip
+			table.insert(layers, strip)
+		end
 		table.insert(beams, beam)
+		table.insert(beamLayers, layers)
 	end
 	local flashLayer = Instance.new("Frame")
 	flashLayer.Name = "Flashes"
@@ -392,17 +412,40 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		end
 	end
 
-	-- Spotlights sweep back and forth; `speed` 1 is the calm sweep before the result.
-	local function sweep(speed: number, color: Color3)
+	-- Spotlights sweep back and forth; `speed` 1 is the calm sweep before the result. `fresh`
+	-- starts them from rest; otherwise they glide from where they are and fade to the new color,
+	-- so a change of mood never makes them jump.
+	local function sweep(speed: number, color: Color3, fresh: boolean)
 		for index, beam in beams do
 			local side = if index == 1 then 1 else -1
-			beam.Rotation = side * -22
-			beam.BackgroundColor3 = color
-			beam.BackgroundTransparency = 0
-			local info = TweenInfo.new((2.4 + index * 0.35) / speed, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-			local t = TweenService:Create(beam, info, { Rotation = side * 24 })
-			t:Play()
-			keep(t)
+			for _, strip in beamLayers[index] do
+				if fresh then
+					strip.BackgroundColor3 = color
+					strip.BackgroundTransparency = BEAM_LAYER_TRANSPARENCY
+				else
+					keep(tween(strip, 0.6, { BackgroundColor3 = color, BackgroundTransparency = BEAM_LAYER_TRANSPARENCY }, Enum.EasingStyle.Sine))
+				end
+			end
+			local period = (2.4 + index * 0.35) / speed
+			local ends = { -side * BEAM_SWING, side * BEAM_SWING }
+			if fresh then
+				beam.Rotation = ends[1]
+			end
+			-- Glide to the nearer end of the swing, then loop between the two ends.
+			local near = if math.abs(beam.Rotation - ends[1]) <= math.abs(beam.Rotation - ends[2]) then 1 else 2
+			local far = ends[3 - near]
+			local glide = math.max(0.35, math.abs(beam.Rotation - ends[near]) / (2 * BEAM_SWING) * period)
+			local lead = tween(beam, glide, { Rotation = ends[near] }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+			keep(lead)
+			lead.Completed:Connect(function(state)
+				if state ~= Enum.PlaybackState.Completed then
+					return
+				end
+				local info = TweenInfo.new(period, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+				local loop = TweenService:Create(beam, info, { Rotation = far })
+				loop:Play()
+				keep(loop)
+			end)
 		end
 	end
 
@@ -456,8 +499,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			end
 			Sfx.play("premiereStamp")
 			-- A thump: the whole stage jolts a little as the stamp lands.
-			stageScale.Scale = if big then 1.05 else 1.025
-			tween(stageScale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+			stageScale.Scale = if big then 1.04 else 1.02
+			tween(stageScale, 0.4, { Scale = 1 }, Enum.EasingStyle.Sine)
 			Fx.premiere(res.id, res.color)
 			flashes(style.flashes, if big then 1.6 else 0.9, mine)
 		end)
@@ -468,13 +511,17 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		end
 		table.clear(running)
 		if style.beams == "down" then
+			-- A slow, heavy droop to the floor (no bounce, which read as a snap).
 			for index, beam in beams do
 				local side = if index == 1 then 1 else -1
-				keep(tween(beam, 0.8, { Rotation = side * 62, BackgroundTransparency = 0.6, BackgroundColor3 = UiKit.FAINT }, Enum.EasingStyle.Bounce))
+				keep(tween(beam, 1.1, { Rotation = side * 62 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out))
+				for _, strip in beamLayers[index] do
+					keep(tween(strip, 1.1, { BackgroundTransparency = 0.96, BackgroundColor3 = UiKit.FAINT }, Enum.EasingStyle.Sine))
+				end
 			end
 			keep(tween(dim, 0.6, { BackgroundTransparency = 0.45 }))
 		else
-			sweep(if big then 2.2 else 1.2, BEAM_WARM:Lerp(res.color, if big then 0.55 else 0.3))
+			sweep(if big then 1.6 else 1.15, BEAM_WARM:Lerp(res.color, if big then 0.55 else 0.3), false)
 		end
 		posterEdge.Color = if style.beams == "down" then UiKit.INK else res.color
 		cardEdge.Color = res.color
@@ -489,7 +536,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		for _, part in resultParts do
 			part.Visible = true
 		end
-		stopResultSpin = Icon3D.spin(Icon3D.outlined(resultArt, style.icon), 24)
+		stopResultSpin = Icon3D.spin(Icon3D.outlined(resultArt, style.icon), RESULT_SPIN_RPM)
 		local payout = if type(result.payout) == "number" then result.payout else 0
 		payoutLabel.Text = "+$0"
 		countUp(payoutLabel, payout, if big then 0.9 else 0.6, mine)
@@ -587,10 +634,10 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			part.Visible = false
 		end
 		cardEdge.Color = UiKit.FAINT
-		sweep(1, BEAM_WARM)
+		sweep(1, BEAM_WARM, true)
 		poster.Position += UDim2.fromOffset(0, 40)
 		-- Not kept with the spotlight tweens: the reveal cancels those, and this must always finish.
-		tween(poster, 0.45, { Position = poster.Position - UDim2.fromOffset(0, 40) }, Enum.EasingStyle.Back)
+		tween(poster, 0.55, { Position = poster.Position - UDim2.fromOffset(0, 40) }, Enum.EasingStyle.Quint)
 		Sfx.play("premiereDrumroll")
 		flashes(PremiereNight.DRUMROLL_FLASHES, PremiereNight.DRUMROLL_SECONDS * 0.8, mine)
 		task.delay(PremiereNight.DRUMROLL_SECONDS, function()
