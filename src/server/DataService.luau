@@ -50,6 +50,8 @@ export type PlayerData = {
 	skips: number, -- unused Skip Filming tokens
 	daily: { day: number, streak: number }, -- last UTC day a daily reward was claimed
 	requests: { day: number, list: { Request } }, -- today's Studio Requests
+	weekly: { week: number, list: { Request } }, -- this week's quests (Rewards.week)
+	carried: { Carried }, -- finished quests from earlier days or weeks, still to claim
 	codes: { [string]: boolean }, -- redeemed codes
 	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
 	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
@@ -65,8 +67,9 @@ export type PlayerData = {
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
+export type Carried = { key: string, id: string, scope: string }
 
-local CURRENT_VERSION = 6 -- 6: rebirths
+local CURRENT_VERSION = 7 -- 6: rebirths, 7: weekly quests
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -90,6 +93,8 @@ local TEMPLATE: PlayerData = {
 	skips = 0,
 	daily = { day = 0, streak = 0 },
 	requests = { day = 0, list = {} },
+	weekly = { week = 0, list = {} },
+	carried = {},
 	codes = {},
 	purchaseIds = {},
 	stayGiftDay = 0,
@@ -167,6 +172,19 @@ local function migrate(data: any)
 	if type(data.requests) ~= "table" or type(data.requests.day) ~= "number" or type(data.requests.list) ~= "table" then
 		data.requests = { day = 0, list = {} }
 	end
+	if type(data.weekly) ~= "table" or type(data.weekly.week) ~= "number" or type(data.weekly.list) ~= "table" then
+		data.weekly = { week = 0, list = {} }
+	end
+	-- Finished quests waiting to be claimed: keep only well-formed entries (see Rewards.carryOver).
+	local carried = {}
+	if type(data.carried) == "table" then
+		for _, waiting in data.carried do
+			if type(waiting) == "table" and type(waiting.key) == "string" and type(waiting.id) == "string" and type(waiting.scope) == "string" then
+				table.insert(carried, { key = waiting.key, id = waiting.id, scope = waiting.scope })
+			end
+		end
+	end
+	data.carried = carried
 	data.version = CURRENT_VERSION
 end
 
