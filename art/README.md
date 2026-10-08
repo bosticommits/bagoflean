@@ -12,7 +12,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
 | `src/shared/Models/TownSets.luau` | The town's landmarks and film sets: the Grand Premiere Theatre, the Studio Gate, the four back street sets, poster columns, the far skyline |
 | `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), and `mystery_crate` (the Mystery Crate event's crate, lid and parachute) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), and `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -47,8 +47,8 @@ of the town from fixed spots (aerial, theatre, gate, each back street), run
 Do this once. Until you do, the game shows the part-built versions, so nothing breaks.
 
 1. Build the FBX files on your Mac, from the repo folder:
-   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
-   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files).
+   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate mascots; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
+   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` six).
 2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
 3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
 4. In the Explorer, open that Model, find its MeshPart, and:
@@ -66,6 +66,12 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `mystery_crate.fbx` | `MysteryCrate` |
 | `mystery_crate_lid.fbx` | `MysteryCrateLid` |
 | `crate_parachute.fbx` | `CrateParachute` |
+| `popcorn_pup.fbx` | `PopcornPup` |
+| `clapper_croc.fbx` | `ClapperCroc` |
+| `reel_kitty.fbx` | `ReelKitty` |
+| `camera_bot.fbx` | `CameraBot` |
+| `spotlight_owl.fbx` | `SpotlightOwl` |
+| `premiere_dragon.fbx` | `PremiereDragon` |
 
 5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
 

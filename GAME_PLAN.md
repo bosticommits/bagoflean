@@ -337,3 +337,38 @@ exciting by M3, fix the core before adding anything else.
 - **Saving**: `likes` (applause received, never spent) and `visits` (today's tours and applause) in
   the profile, schema version 8. Older profiles start at 0.
 - **Studio checks pending**: none of this has been playtested in Studio or on a phone yet.
+
+## 17. As built (studio mascots)
+
+- **Mascots** button (the Popcorn Pup, side menu, second column under Rebirth) opens the Mascots
+  screen. Your mascot follows you round town, trotting a step behind your right shoulder and
+  hopping as it walks; every player on the server sees everyone's mascot.
+- **Cosmetic only.** Mascots give no Cash, Luck or speed, and none are sold. Each is earned by a
+  milestone the save already records, so they reward playing without touching the curve in
+  ECONOMY.md:
+
+  | Mascot | Rarity color | How to earn it |
+  |---|---|---|
+  | Popcorn Pup (a puppy in a popcorn bucket) | Newcomer | Every studio starts with it |
+  | Clapper Croc (its top jaw is a clapperboard) | Rising | Premiere 10 movies |
+  | Reel Kitty (film reels for ears) | Pro | Discover 15 actors in the Index |
+  | Camera Bot (a hovering film camera) | Star | Open the Talent Agency (its Fame) |
+  | Spotlight Owl (spotlights for eyes) | Superstar | Make a Sequel (rebirth) |
+  | Premiere Dragon (red-carpet colors) | Legend | Make a Masterpiece |
+
+- **Screen**: your mascot turns on a spotlight in its rarity color, with HIDE to put it away. Under
+  it, a picture card for each mascot: EQUIP or EQUIPPED for earned ones; a black silhouette, how
+  to earn it and a progress bar ("7 / 10") for the rest. Earning one says "New mascot: Reel Kitty!"
+  with a jingle and puts a red badge on the button until the screen is opened.
+- **Models**: every mascot is a Blender design (`art/blender/mascots.py`: chunky toy shapes with
+  glossy eyes and a thick dark outline). Until the six meshes are imported into
+  `ReplicatedStorage.LotMeshes` (art/README.md), the game builds the same Blender shapes from
+  parts, outlined with a Highlight.
+- **Server**: `src/server/MascotService.luau` publishes what each player has earned and shows as
+  player attributes, and checks every equip (rules in `src/shared/Mascots.luau`). Each client
+  draws and moves all mascots itself (`src/client/MascotWorld.luau`), so they never lag over the
+  network or collide with anything.
+- **Saving**: the chosen mascot as `mascot` in the profile ("" when hidden); a missing choice
+  shows the Popcorn Pup, so older profiles need no migration.
+- **Studio checks pending**: not yet seen in Studio or on a phone, and the imported meshes'
+  orientation still needs checking.

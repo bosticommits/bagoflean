@@ -8,6 +8,8 @@ local CastingUi = require(script.Parent.CastingUi)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local MascotUi = require(script.Parent.MascotUi)
+local MascotWorld = require(script.Parent.MascotWorld)
 local Blimp = require(script.Parent.Blimp)
 local Music = require(script.Parent.Music)
 local RebirthUi = require(script.Parent.RebirthUi)
@@ -42,6 +44,7 @@ gui.Parent = playerGui
 Sfx.start()
 Music.start()
 Blimp.start()
+MascotWorld.start()
 local side = SideMenu.start(gui)
 local cashPlus = Hud.start(gui, side.wallet)
 
@@ -62,6 +65,7 @@ if remotes ~= nil then
 	Tutorial.start(gui, remotes)
 	SpecialEventsUi.start(gui, remotes)
 	VisitUi.start(gui, side.visit)
+	MascotUi.start(gui, side.mascots, remotes)
 else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
