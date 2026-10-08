@@ -482,148 +482,519 @@ function TownSets.newsStand(b: Builder)
 end
 
 -- The outer ring (pass 3) ------------------------------------------------------------------------
+-- Two big walkable areas out through gaps in the hedge (MapModels.Layout.sideGap): Dusty Gulch, a
+-- western film town behind the front row, and Starlight Park behind the back row. Chunky shapes,
+-- bold colors and thick trims, like the Roblox front page. Each is laid out with its entrance at
+-- z = 0 and the area running toward +Z.
 
-local WATER = Color3.fromRGB(80, 170, 230)
-local SAND = Color3.fromRGB(226, 190, 140)
-local DUST = Color3.fromRGB(205, 160, 110)
+local WATER = Color3.fromRGB(64, 196, 240)
+local WATER_LIGHT = Color3.fromRGB(130, 222, 250)
+local SAND = Color3.fromRGB(240, 205, 140)
+local DUST = Color3.fromRGB(222, 170, 110)
+local ROCK = Color3.fromRGB(214, 124, 72)
+local STONE = Color3.fromRGB(176, 182, 194)
+local CACTUS = Color3.fromRGB(70, 175, 80)
+local BLOSSOM = Color3.fromRGB(255, 160, 205)
+local DUCK = Color3.fromRGB(255, 214, 60)
 
-local function parkBench(b: Builder)
-	b:block("BenchSeat", v(5, 0.4, 1.6), v(0, 1.3, 0), P.Wood)
-	b:block("BenchBack", v(5, 1.4, 0.3), v(0, 2.2, 0.75), P.Wood)
-	for _, x in { -2, 2 } do
-		b:block("BenchLeg", v(0.4, 1.1, 1.6), v(x, 0.55, 0), P.Charcoal, METAL)
+local function shade(color: Color3, amount: number): Color3
+	return color:Lerp(Color3.new(0, 0, 0), amount)
+end
+
+local function tint(color: Color3, amount: number): Color3
+	return color:Lerp(Color3.new(1, 1, 1), amount)
+end
+
+-- Dusty Gulch ------------------------------------------------------------------------------------
+
+type WesternInfo = { title: string, w: number, h: number, color: Color3, balcony: boolean? }
+
+-- A false-front western building, about w wide and 15 deep, front toward -Z: board front in two
+-- shades, thick corner posts, a stepped top, a big outlined sign, a framed door and windows, and
+-- a porch roof (or a balcony with a railing) over the boardwalk.
+local function westernBuilding(b: Builder, info: WesternInfo)
+	local w, h, color = info.w, info.h, info.color
+	local dark = shade(color, 0.15)
+	local depth = 14
+	b:block("WesternBox", v(w - 0.4, h * 0.72, depth), v(0, h * 0.36, depth / 2 + 0.4), dark)
+	b:block("WesternRoof", v(w + 0.4, 0.8, depth + 0.4), v(0, h * 0.72 + 0.4, depth / 2 + 0.4), P.Bark)
+	local boards = 4
+	for i = 0, boards - 1 do
+		local bh = h / boards
+		b:block("WesternBoard", v(w, bh, 0.8), v(0, bh * (i + 0.5), 0), if i % 2 == 0 then color else dark)
+	end
+	b:block("WesternTrim", v(w + 1, 0.8, 1.2), v(0, h, 0), P.Cream)
+	b:block("WesternCrown", v(w * 0.5, 2.6, 0.8), v(0, h + 1.7, 0), color)
+	b:block("WesternCap", v(w * 0.5 + 1, 0.8, 1.2), v(0, h + 3.2, 0), P.Cream)
+	for _, x in { -1, 1 } do
+		b:block("WesternCorner", v(1.4, h + 0.4, 1.4), v(x * w / 2, (h + 0.4) / 2, 0), P.Bark)
+	end
+	local signY = h - 3.2
+	b:block("WesternSignFrame", v(w - 3, 4, 0.5), v(0, signY, -0.55), P.Bark)
+	local board = b:block("WesternSign", v(w - 4, 3.2, 0.4), v(0, signY, -0.75), P.Cream)
+	outlined(board, Enum.NormalId.Front, info.title, color, 3)
+
+	b:block("WesternDoorFrame", v(4.6, 7.6, 0.5), v(0, 3.8, -0.55), P.Cream)
+	b:block("WesternDoor", v(3.6, 7, 0.5), v(0, 3.5, -0.65), P.Bark)
+	b:ball("WesternKnob", 0.5, v(1.2, 3.4, -0.95), P.Gold, METAL)
+	local function window(x: number, y: number)
+		b:block("WesternWindowFrame", v(4, 4, 0.5), v(x, y, -0.55), P.Cream)
+		b:block("WesternWindow", v(3.2, 3.2, 0.5), v(x, y, -0.65), P.Navy, GLASS)
+		b:block("WesternWindowBar", v(0.35, 3.2, 0.6), v(x, y, -0.7), P.Cream)
+		b:block("WesternWindowBar", v(3.2, 0.35, 0.6), v(x, y, -0.7), P.Cream)
+	end
+	for _, x in { -w / 2 + 3.6, w / 2 - 3.6 } do
+		window(x, 4.6)
+	end
+
+	for _, x in { -1, 1 } do
+		b:block("PorchPost", v(0.9, 8.4, 0.9), v(x * (w / 2 - 0.2), 4.2, -5.2), P.Bark)
+	end
+	if info.balcony then
+		b:block("Balcony", v(w + 1, 0.8, 5.6), v(0, 8.8, -2.8), P.Wood)
+		b:block("BalconyRail", v(w + 1, 0.6, 0.6), v(0, 11.8, -5.3), P.Cream)
+		local count = math.floor(w / 2)
+		for i = 0, count do
+			b:block("BalconyBaluster", v(0.45, 2.6, 0.45), v(-w / 2 + i * w / count, 10.5, -5.3), P.Wood)
+		end
+		for _, x in { -w / 4, w / 4 } do
+			window(x, 12.8)
+		end
+	else
+		b:block("PorchRoof", v(w + 1.2, 0.7, 5.8), CFrame.new(0, 8.8, -2.8) * CFrame.Angles(math.rad(-10), 0, 0), P.Cream)
+		b:block("PorchRoofEdge", v(w + 1.4, 0.5, 0.5), v(0, 8.3, -5.6), color)
 	end
 end
 
-local function roundTree(b: Builder, height: number, color: Color3)
-	b:cylinder("TreeTrunk", height, 1.2, v(0, height / 2, 0), P.Bark)
-	b:ball("TreeTop", height * 0.75, v(0, height, 0), color, GRASS)
-	b:ball("TreeTop", height * 0.5, v(height * 0.25, height * 0.85, height * 0.1), color, GRASS)
+local function cactus(b: Builder, height: number)
+	b:block("Cactus", v(2, height, 2), v(0, height / 2, 0), CACTUS)
+	b:block("CactusTop", v(1.4, 0.6, 1.4), v(0, height + 0.3, 0), tint(CACTUS, 0.2))
+	b:block("CactusArm", v(2.2, 1.3, 1.3), v(2, height * 0.45, 0), CACTUS)
+	b:block("CactusArm", v(1.3, 3, 1.3), v(2.7, height * 0.45 + 2, 0), CACTUS)
+	b:block("CactusArm", v(1.8, 1.2, 1.2), v(-1.8, height * 0.65, 0), CACTUS)
+	b:block("CactusArm", v(1.2, 2.2, 1.2), v(-2.3, height * 0.65 + 1.5, 0), CACTUS)
+	b:block("CactusFlower", v(0.9, 0.6, 0.9), v(0, height + 0.9, 0), PINK)
 end
 
--- A small park behind the back row: a path in from the hedge gap, a round pond with a fountain
--- jet, lily pads and a little wooden bridge, benches, round trees, and a path on to the foot of
--- the gold star hill. About 70 wide and 36 deep; the path starts at z = 0 and runs to +Z.
-function TownSets.park(b: Builder)
-	b:block("ParkPath", v(6, 0.2, 36), v(0, 0.1, 18), P.Paving)
-	-- The pond sits left of the path; the path bends round it on a bridge.
-	local pond = v(-18, 0, 18)
-	b:cylinder("PondEdge", 0.5, 25, pond + v(0, 0.25, 0), P.Cream)
-	b:cylinder("Pond", 0.55, 23, pond + v(0, 0.28, 0), WATER, GLASS)
-	b:cylinder("PondJet", 3, 0.8, pond + v(0, 1.8, 0), P.OffWhite, NEON).Transparency = 0.35
-	b:ball("PondSplash", 2.2, pond + v(0, 3.4, 0), P.OffWhite, NEON).Transparency = 0.5
-	for _, at in { v(-5, 0, -4), v(4, 0, 5), v(-6, 0, 6), v(6, 0, -3) } do
-		b:cylinder("LilyPad", 0.1, 2.2, pond + at + v(0, 0.6, 0), P.DarkGreen)
-	end
-	b:ball("LilyFlower", 0.7, pond + v(4, 0.9, 5), PINK)
-	b:block("PondBridge", v(12, 0.4, 3.4), pond + v(0, 1.2, -13), P.Wood)
-	for _, x in { -6, 6 } do
-		b:wedge("PondBridgeRamp", v(3.4, 1.2, 2), CFrame.new(pond + v(x + (if x > 0 then 1 else -1), 0.6, -13)) * CFrame.Angles(0, math.rad(if x > 0 then -90 else 90), 0), P.Wood)
-	end
-	for _, z in { -14.6, -11.4 } do
-		b:block("PondBridgeRail", v(12, 0.3, 0.3), pond + v(0, 2.6, z), P.Burgundy)
-	end
-	-- Benches along the path, facing it.
-	for _, at in { v(6, 0.2, 10), v(6, 0.2, 24), v(-6, 0.2, 30) } do
-		local face = if at.X > 0 then math.rad(-90) else math.rad(90)
-		parkBench(b:sub(CFrame.new(at) * CFrame.Angles(0, face, 0)))
-	end
-	-- Trees and flowers round the edges.
-	local trees = { v(14, 0, 4), v(22, 0, 16), v(16, 0, 30), v(30, 0, 8), v(-34, 0, 6), v(-32, 0, 28), v(28, 0, 28) }
-	for i, at in trees do
-		roundTree(b:sub(at), 8 + (i % 3) * 1.5, if i % 2 == 0 then P.Green else P.DarkGreen)
-	end
-	TownSets.flowerBed(b:sub(v(12, 0.1, 18)), v(6, 0, 6))
-	TownSets.flowerBed(b:sub(v(-8, 0.1, 32)), v(8, 0, 4))
-	-- A sign at the entrance.
-	b:block("ParkSignPost", v(0.5, 5, 0.5), v(4.5, 2.5, 1), P.Wood)
-	local board = b:block("ParkSign", v(5, 1.8, 0.3), v(4.5, 4.6, 0.8), P.DarkGreen)
-	outlined(board, Enum.NormalId.Front, "STARLIGHT PARK", P.OffWhite, 2)
-end
-
--- One false-front building on the western set: a tall flat front on a short box, a porch roof
--- over the boardwalk, a sign, a door and two windows.
-local function westernFront(b: Builder, width: number, height: number, color: Color3, title: string)
-	b:block("WesternBox", v(width, height * 0.6, 8), v(0, height * 0.3, 4), color)
-	b:block("WesternFront", v(width, height, 0.6), v(0, height / 2, 0), color)
-	b:block("WesternTrim", v(width + 0.6, 0.6, 0.9), v(0, height, 0), P.Cream)
-	local board = b:block("WesternSign", v(width - 2, 2.2, 0.3), v(0, height - 2, -0.4), P.Cream)
-	outlined(board, Enum.NormalId.Front, title, P.Burgundy, 2)
-	b:block("WesternDoor", v(3, 5.5, 0.3), v(0, 3.3, -0.35), P.Bark)
-	for _, x in { -width / 2 + 2.4, width / 2 - 2.4 } do
-		b:block("WesternWindow", v(2.4, 2.6, 0.2), v(x, 4.4, -0.35), P.Navy, GLASS)
-	end
-	b:block("WesternPorch", v(width, 0.3, 4), CFrame.new(0, 7.4, -2) * CFrame.Angles(math.rad(8), 0, 0), P.Wood)
-	for _, x in { -width / 2 + 0.5, width / 2 - 0.5 } do
-		b:block("WesternPost", v(0.4, 7, 0.4), v(x, 4, -3.8), P.Wood)
+local function barrel(b: Builder)
+	b:cylinder("Barrel", 2.6, 2, v(0, 1.3, 0), P.Wood)
+	for _, y in { 0.5, 2.1 } do
+		b:cylinder("BarrelBand", 0.25, 2.1, v(0, y, 0), P.Charcoal, METAL)
 	end
 end
 
--- A western film street behind the front row: a dusty street with four false fronts (saloon,
--- sheriff, bank and general store) on a boardwalk, hitching rails, a water trough, barrels and
--- cacti. About 64 wide; the fronts stand at z = +14 facing -Z, the street runs along z = 0.
-function TownSets.westernStreet(b: Builder)
-	b:block("DustStreet", v(70, 0.2, 34), v(0, 0.1, 6), DUST)
-	b:block("Boardwalk", v(66, 0.6, 4), v(0, 0.5, 12), P.Wood)
-	local fronts = {
-		{ x = -24, w = 14, h = 14, color = Color3.fromRGB(196, 90, 60), title = "SALOON" },
-		{ x = -8, w = 12, h = 12, color = Color3.fromRGB(230, 190, 120), title = "SHERIFF" },
-		{ x = 7, w = 12, h = 13, color = P.Blue, title = "BANK" },
-		{ x = 23, w = 14, h = 12, color = Color3.fromRGB(120, 160, 90), title = "GENERAL STORE" },
-	}
-	for _, f in fronts do
-		westernFront(b:sub(v(f.x, 0.8, 14)), f.w, f.h, f.color, f.title)
+local function hayBale(b: Builder)
+	b:block("HayBale", v(3.4, 2, 2.2), v(0, 1, 0), SAND)
+	for _, x in { -0.9, 0.9 } do
+		b:block("HayString", v(0.2, 2.05, 2.25), v(x, 1, 0), P.Bark)
 	end
-	-- Saloon swing doors and a sheriff's star.
-	for _, x in { -25, -23 } do
-		b:block("SwingDoor", v(1.8, 2.4, 0.2), v(x, 3.2, 13.3), P.Gold)
+end
+
+-- A blocky mesa rock: three stacked slabs, each smaller than the last.
+local function mesa(b: Builder, size: number)
+	local y = 0
+	for i, k in { 1, 0.75, 0.5 } do
+		local h = size * 0.35
+		b:block("Mesa", v(size * k, h, size * k * 0.8), v((i - 2) * size * 0.06, y + h / 2, 0), if i % 2 == 0 then shade(ROCK, 0.1) else ROCK)
+		y += h
 	end
-	b:block("SheriffStar", v(2, 2, 0.3), CFrame.new(-8, 9, 13.5) * CFrame.Angles(0, 0, math.rad(45)), P.Gold, METAL)
-	for _, x in { -16, 15 } do
-		b:block("HitchRail", v(6, 0.35, 0.35), v(x, 2.6, 7), P.Wood)
-		for _, dx in { -2.8, 2.8 } do
-			b:block("HitchPost", v(0.4, 2.8, 0.4), v(x + dx, 1.4, 7), P.Wood)
+end
+
+local function wagon(b: Builder)
+	b:block("WagonBed", v(5, 2, 9), v(0, 2.4, 0), P.Wood)
+	b:block("WagonTrim", v(5.2, 0.4, 9.2), v(0, 3.5, 0), P.Carpet)
+	b:cylinder("WagonCover", 8, 5.4, CFrame.new(0, 3.6, 0) * CFrame.Angles(math.rad(90), 0, 0), P.OffWhite, FABRIC)
+	for _, x in { -2.8, 2.8 } do
+		for _, z in { -3, 3 } do
+			b:cylinder("WagonWheel", 0.5, 3.4, CFrame.new(x, 1.7, z) * CFrame.Angles(0, 0, math.rad(90)), P.Bark)
+			b:cylinder("WagonHub", 0.6, 1, CFrame.new(x, 1.7, z) * CFrame.Angles(0, 0, math.rad(90)), P.Gold, METAL)
 		end
 	end
-	b:block("Trough", v(5, 1.4, 1.8), v(-1, 0.9, 8), P.Bark)
-	b:block("TroughWater", v(4.4, 0.1, 1.2), v(-1, 1.55, 8), WATER, GLASS)
-	for _, at in { v(31, 0, 9), v(32.2, 0, 7.5), v(-31, 0, 9) } do
-		b:cylinder("Barrel", 2.2, 1.6, at + v(0, 1.3, 0), P.Bark)
-		b:cylinder("BarrelBand", 0.2, 1.7, at + v(0, 1.8, 0), P.Charcoal, METAL)
-	end
-	-- Cacti along the street's open side, and a hay bale.
-	for i, at in { v(-30, 0, -6), v(-12, 0, -9), v(10, 0, -8), v(28, 0, -5) } do
-		local h = 5 + (i % 2) * 2
-		b:cylinder("Cactus", h, 1.6, at + v(0, h / 2, 0), P.DarkGreen, GRASS)
-		b:block("CactusArm", v(2, 0.9, 0.9), at + v(1.2, h * 0.5, 0), P.DarkGreen, GRASS)
-		b:block("CactusArmUp", v(0.9, 2, 0.9), at + v(1.9, h * 0.5 + 1, 0), P.DarkGreen, GRASS)
-	end
-	b:block("HayBale", v(3, 2, 2), v(20, 1.2, -2), SAND)
-	-- A film camera on a little dolly track pointing up the street, so it reads as a film set.
-	b:block("DollyTrack", v(1.6, 0.2, 10), v(-34, 0.3, 0), P.Steel, METAL)
-	b:block("CameraBody", v(1.6, 1.6, 2.6), CFrame.new(-34, 4.2, 0) * CFrame.Angles(0, math.rad(-90), 0), P.Charcoal)
-	b:block("CameraLeg", v(0.4, 3.4, 0.4), v(-34, 1.9, 0), P.Charcoal, METAL)
 end
 
--- A blimp that drifts round the town (src/client/Blimp.luau moves it). Nose toward -Z, about 34 long.
--- Returns the model, pivoted at its middle.
+local function fenceRun(b: Builder, from: Vector3, to: Vector3, color: Color3)
+	local delta = to - from
+	local length = delta.Magnitude
+	-- Turned by hand rather than with CFrame.lookAt, which the test runner's CFrame gets backwards.
+	local frame = CFrame.new(from) * CFrame.Angles(0, math.atan2(-delta.X, -delta.Z), 0)
+	for _, y in { 1.4, 2.8 } do
+		b:block("FenceRail", v(0.5, 0.6, length), frame * CFrame.new(0, y, -length / 2), color)
+	end
+	local posts = math.max(1, math.floor(length / 7))
+	for i = 0, posts do
+		b:block("FencePost", v(0.9, 3.8, 0.9), frame * CFrame.new(0, 1.9, -i * length / posts), shade(color, 0.15))
+	end
+end
+
+-- Dusty Gulch: a western film town, about 160 wide and 150 long. A welcome arch over the road in,
+-- a dusty main street with eight false-front buildings on boardwalks (saloon, bank, sheriff, hotel
+-- and more), hitching rails, barrels and crates, a corral, a covered wagon, a water tank, blocky
+-- mesas and cacti, and a film crew shooting at the far end.
+function TownSets.westernTown(b: Builder)
+	local length = 150
+	b:block("DesertGround", v(170, 0.1, length + 6), v(0, 0.05, length / 2 + 3), SAND)
+	b:block("DustStreet", v(28, 0.2, length), v(0, 0.1, length / 2), DUST)
+	for _, x in { -5, 5 } do
+		b:block("DustRut", v(1.6, 0.06, length), v(x, 0.23, length / 2), shade(DUST, 0.12))
+	end
+	for _, s in { -1, 1 } do
+		b:block("Boardwalk", v(6, 0.8, 112), v(s * 17, 0.4, 80), P.Wood)
+		b:block("BoardwalkEdge", v(0.7, 0.9, 112), v(s * 14.2, 0.45, 80), P.Bark)
+	end
+
+	-- The welcome arch.
+	for _, x in { -16, 16 } do
+		b:block("ArchLog", v(2.2, 17, 2.2), v(x, 8.5, 6), P.Bark)
+		b:block("ArchLogCap", v(2.8, 0.8, 2.8), v(x, 17.4, 6), P.Wood)
+	end
+	b:block("ArchBeam", v(36, 2, 2.2), v(0, 15.6, 6), P.Wood)
+	for _, x in { -6, 6 } do
+		b:block("ArchChain", v(0.3, 2.4, 0.3), v(x, 13.4, 6), P.Charcoal, METAL)
+	end
+	b:block("ArchSignFrame", v(22, 5.4, 0.6), v(0, 10, 6), P.Bark)
+	local archSign = b:block("ArchSign", v(20.6, 4.4, 0.5), v(0, 10, 5.8), Color3.fromRGB(196, 70, 50))
+	outlined(archSign, Enum.NormalId.Front, "DUSTY GULCH", P.Gold, 4)
+	outlined(archSign, Enum.NormalId.Back, "DUSTY GULCH", P.Gold, 4)
+	IconModels.build(b.parent, "star", b:at(CFrame.new(0, 19, 6)), 0.8)
+
+	-- The buildings, fronts on the boardwalks facing the street.
+	local west: { WesternInfo } = {
+		{ title = "SALOON", w = 20, h = 20, color = Color3.fromRGB(205, 70, 50), balcony = true },
+		{ title = "BANK", w = 18, h = 16, color = Color3.fromRGB(60, 130, 215) },
+		{ title = "BARBER", w = 16, h = 14, color = Color3.fromRGB(235, 115, 165) },
+		{ title = "HOTEL", w = 20, h = 20, color = Color3.fromRGB(145, 95, 205), balcony = true },
+	}
+	local east: { WesternInfo } = {
+		{ title = "SHERIFF", w = 18, h = 15, color = Color3.fromRGB(240, 175, 50) },
+		{ title = "GENERAL STORE", w = 22, h = 16, color = Color3.fromRGB(100, 175, 75) },
+		{ title = "POST OFFICE", w = 18, h = 14, color = TEAL },
+		{ title = "BLACKSMITH", w = 18, h = 15, color = Color3.fromRGB(150, 105, 80) },
+	}
+	for i = 1, 4 do
+		local z = 10 + i * 26
+		westernBuilding(b:sub(CFrame.new(-20, 0.8, z) * CFrame.Angles(0, math.rad(-90), 0)), west[i])
+		westernBuilding(b:sub(CFrame.new(20, 0.8, z) * CFrame.Angles(0, math.rad(90), 0)), east[i])
+	end
+	-- Saloon swing doors; the sheriff's star and wanted posters.
+	-- (The first building on each side stands at z = 36, its front at |x| = 19.6.)
+	for _, z in { 35, 37 } do
+		b:block("SwingDoor", v(0.3, 3, 1.8), v(-18.7, 4.6, z), P.Gold)
+	end
+	b:block("SheriffStar", v(0.5, 2.4, 2.4), CFrame.new(19.2, 17.3, 36) * CFrame.Angles(math.rad(45), 0, 0), P.Gold, METAL)
+	for _, z in { 27.2, 44.8 } do
+		local poster = b:block("WantedPoster", v(0.2, 2.8, 2.2), v(14.25, 5.6, z), P.Cream)
+		Build.sign(poster, Enum.NormalId.Left, "WANTED", P.Burgundy)
+	end
+
+	-- Street life: hitching rails, troughs, barrels, crates and hay along the boardwalks.
+	for _, s in { -1, 1 } do
+		for _, z in { 48, 100 } do
+			b:block("HitchRail", v(0.5, 0.5, 8), v(s * 12.6, 2.8, z), P.Wood)
+			for _, dz in { -3.6, 3.6 } do
+				b:block("HitchPost", v(0.6, 3, 0.6), v(s * 12.6, 1.5, z + dz), P.Bark)
+			end
+		end
+		b:block("Trough", v(2.2, 1.6, 6), v(s * 12.6, 0.9, 74), P.Bark)
+		b:block("TroughWater", v(1.6, 0.1, 5.4), v(s * 12.6, 1.75, 74), WATER)
+	end
+	for _, at in { v(-16, 0.8, 24), v(-14.6, 0.8, 26.2), v(16, 0.8, 128), v(16, 0.8, 24), v(-16, 0.8, 128) } do
+		barrel(b:sub(at))
+	end
+	crate(b, v(15.6, 0.8, 50), 2.6, 15)
+	crate(b, v(15.6, 3.4, 50), 2, -10)
+	crate(b, v(-15.8, 0.8, 76), 2.4, 30)
+	hayBale(b:sub(CFrame.new(16, 0.8, 75) * CFrame.Angles(0, math.rad(90), 0)))
+	hayBale(b:sub(CFrame.new(16, 2.8, 75.4) * CFrame.Angles(0, math.rad(80), 0)))
+	for _, at in { v(-4, 0.2, 60), v(6, 0.2, 112) } do
+		b:ball("Tumbleweed", 2.6, at + v(0, 1.3, 0), Color3.fromRGB(190, 150, 95))
+	end
+
+	-- The corral with hay and a trough, east behind the buildings.
+	local corral = b:sub(v(56, 0.1, 64))
+	local c = 14
+	fenceRun(corral, v(-c, 0, -c), v(c, 0, -c), P.Wood)
+	fenceRun(corral, v(c, 0, -c), v(c, 0, c), P.Wood)
+	fenceRun(corral, v(c, 0, c), v(-c, 0, c), P.Wood)
+	fenceRun(corral, v(-c, 0, c), v(-c, 0, 4), P.Wood)
+	fenceRun(corral, v(-c, 0, -4), v(-c, 0, -c), P.Wood)
+	hayBale(corral:sub(v(6, 0, 6)))
+	hayBale(corral:sub(CFrame.new(8, 0, 2) * CFrame.Angles(0, math.rad(70), 0)))
+	hayBale(corral:sub(v(7, 2, 4.5)))
+	corral:block("Trough", v(6, 1.6, 2.2), v(-4, 0.8, -8), P.Bark)
+	corral:block("TroughWater", v(5.4, 0.1, 1.6), v(-4, 1.65, -8), WATER)
+
+	-- A covered wagon, west behind the buildings, and a water tank on stilts.
+	wagon(b:sub(CFrame.new(-50, 0.1, 58) * CFrame.Angles(0, math.rad(20), 0)))
+	local tank = b:sub(v(-48, 0.1, 104))
+	for _, x in { -4, 4 } do
+		for _, z in { -4, 4 } do
+			tank:block("TankLeg", v(1.2, 16, 1.2), v(x, 8, z), P.Bark)
+		end
+	end
+	tank:block("TankBrace", v(9.2, 0.6, 0.6), v(0, 8, -4), P.Wood)
+	tank:block("TankBrace", v(9.2, 0.6, 0.6), v(0, 8, 4), P.Wood)
+	tank:cylinder("Tank", 9, 12, v(0, 20.5, 0), P.Wood)
+	for _, y in { 17, 24 } do
+		tank:cylinder("TankBand", 0.5, 12.3, v(0, y, 0), P.Charcoal, METAL)
+	end
+	tank:cylinder("TankRoof", 1.2, 13, v(0, 25.6, 0), P.Carpet)
+	tank:cylinder("TankRoof", 1.2, 8, v(0, 26.8, 0), P.Carpet)
+
+	-- Cacti and mesas round the edges.
+	local cacti = { v(-34, 0, 20), v(34, 0, 22), v(-62, 0, 30), v(-30, 0, 132), v(36, 0, 140), v(70, 0, 104), v(-72, 0, 80), v(52, 0, 30) }
+	for i, at in cacti do
+		cactus(b:sub(CFrame.new(at) * CFrame.Angles(0, math.rad(i * 47), 0)), 6 + (i % 3) * 2)
+	end
+	for i, info in { { at = v(-70, 0, 130), size = 22 }, { at = v(72, 0, 135), size = 26 }, { at = v(-74, 0, 18), size = 16 }, { at = v(76, 0, 24), size = 18 } } do
+		mesa(b:sub(CFrame.new(info.at) * CFrame.Angles(0, math.rad(i * 33), 0)), info.size)
+	end
+
+	-- At the far end, a film crew shoots a showdown: a camera on a crane, a light and chairs.
+	local crew = b:sub(CFrame.new(0, 0.2, 140) * CFrame.Angles(0, math.pi, 0))
+	crew:block("CraneDolly", v(4, 1.2, 6), v(0, 0.8, 0), P.Charcoal, METAL)
+	crew:cylinder("CranePost", 6, 1, v(0, 4.4, 0), P.Steel, METAL)
+	local arm = CFrame.new(0, 7.4, 0) * CFrame.Angles(math.rad(-14), 0, 0)
+	crew:block("CraneArm", v(0.8, 0.8, 14), arm * CFrame.new(0, 0, -3), P.Gold, METAL)
+	crew:block("CraneWeight", v(2, 2, 2), arm * CFrame.new(0, -0.6, 4), P.Charcoal, METAL)
+	crew:block("CraneCamera", v(2, 1.8, 2.6), arm * CFrame.new(0, -1.2, -10), P.Charcoal)
+	crew:cylinder("CraneLens", 1.2, 1.1, arm * CFrame.new(0, -1.2, -11.8) * CFrame.Angles(math.rad(90), 0, 0), P.Steel, METAL)
+	for _, x in { -7, 7 } do
+		directorChair(crew:sub(CFrame.new(x, 0, 4) * CFrame.Angles(0, math.pi, 0)), if x < 0 then "DIRECTOR" else nil)
+	end
+	lightStand(crew:sub(CFrame.new(-10, 0, -2) * CFrame.Angles(0, math.rad(20), 0)), P.Light)
+end
+
+-- Starlight Park ---------------------------------------------------------------------------------
+
+local function voxelTree(b: Builder, height: number, color: Color3)
+	b:block("TreeTrunk", v(1.8, height, 1.8), v(0, height / 2, 0), P.Bark)
+	b:block("TreeTop", v(8, 6, 8), v(0, height + 1.5, 0), color, GRASS)
+	b:block("TreeTop", v(5.6, 4, 5.6), v(0.8, height + 5.5, -0.6), tint(color, 0.15), GRASS)
+	b:block("TreeTop", v(5, 4, 5), v(-3, height, 2.4), shade(color, 0.08), GRASS)
+end
+
+local function parkBench(b: Builder)
+	b:block("BenchSeat", v(6, 0.6, 2), v(0, 1.5, 0), P.Wood)
+	b:block("BenchBack", v(6, 1.8, 0.5), v(0, 2.7, 0.8), P.Wood)
+	for _, x in { -2.5, 2.5 } do
+		b:block("BenchLeg", v(0.6, 1.2, 2), v(x, 0.6, 0), P.Charcoal, METAL)
+	end
+end
+
+local function parkLamp(b: Builder)
+	b:block("LampFoot", v(1.4, 0.6, 1.4), v(0, 0.3, 0), P.Charcoal, METAL)
+	b:cylinder("LampPole", 8, 0.5, v(0, 4.4, 0), P.Charcoal, METAL)
+	b:ball("LampBulb", 1.6, v(0, 8.9, 0), P.Light, NEON)
+	b:block("LampCap", v(1.8, 0.4, 1.8), v(0, 9.8, 0), P.Charcoal, METAL)
+end
+
+local function duck(b: Builder, scale: number)
+	local d = b
+	d:block("DuckBody", v(1.8, 1.4, 2.4) * scale, v(0, 0.7, 0) * scale, DUCK)
+	d:block("DuckTail", v(1, 0.6, 0.8) * scale, v(0, 1.3, 1.3) * scale, DUCK)
+	d:block("DuckHead", v(1.3, 1.3, 1.3) * scale, v(0, 1.9, -0.9) * scale, DUCK)
+	d:block("DuckBeak", v(0.8, 0.35, 0.7) * scale, v(0, 1.75, -1.85) * scale, Color3.fromRGB(255, 140, 40))
+	for _, x in { -0.66, 0.66 } do
+		d:block("DuckEye", v(0.1, 0.3, 0.3) * scale, v(x, 2.1, -1.1) * scale, P.Charcoal)
+	end
+end
+
+local function picnicBlanket(b: Builder)
+	for i = 0, 2 do
+		for k = 0, 2 do
+			b:block("Blanket", v(2.4, 0.08, 2.4), v((i - 1) * 2.4, 0.24, (k - 1) * 2.4), if (i + k) % 2 == 0 then P.Carpet else P.OffWhite, FABRIC)
+		end
+	end
+	b:block("Basket", v(1.8, 1.2, 1.2), v(0.8, 0.8, 0.4), P.Wood)
+	b:block("BasketHandle", v(1.4, 0.3, 0.3), v(0.8, 1.6, 0.4), P.Bark)
+end
+
+-- Starlight Park: about 210 wide and 125 deep. An arch in from the hedge, a wide path to a
+-- fountain plaza, a big pond with an island, a bridge and ducks, a bandstand, lamps, benches,
+-- blocky trees (some in blossom), flower beds, and an open-air movie screen at the far end with
+-- picnic blankets in front, under the gold star hill.
+function TownSets.park(b: Builder)
+	-- Paths: the main path to the screen, a cross path through the fountain plaza, and a spur to
+	-- the bandstand.
+	local function path(name: string, size: Vector3, at: Vector3)
+		b:block(name, v(size.X, 0.2, size.Z), at + v(0, 0.1, 0), P.Paving)
+		local along = size.Z > size.X
+		for _, s in { -1, 1 } do
+			local offset = if along then v(s * (size.X / 2 + 0.4), 0, 0) else v(0, 0, s * (size.Z / 2 + 0.4))
+			local edgeSize = if along then v(0.8, 0.3, size.Z) else v(size.X, 0.3, 0.8)
+			b:block("PathEdge", edgeSize, at + offset + v(0, 0.15, 0), P.Cream)
+		end
+	end
+	path("ParkPath", v(10, 0, 90), v(0, 0, 45))
+	path("ParkPath", v(130, 0, 8), v(25, 0, 50))
+	path("ParkPath", v(8, 0, 22), v(60, 0, 65))
+
+	-- The entrance arch.
+	for _, x in { -10, 10 } do
+		b:block("ParkPillar", v(3.4, 11, 3.4), v(x, 5.5, 4), P.Cream)
+		b:block("ParkPillarCap", v(4, 1, 4), v(x, 11.5, 4), P.DarkGreen)
+		b:ball("ParkPillarBall", 1.8, v(x, 12.9, 4), P.Gold, METAL)
+	end
+	b:block("ParkArchBeam", v(24, 2, 2.4), v(0, 11.5, 4), P.DarkGreen)
+	b:block("ParkSignFrame", v(19, 4.4, 0.6), v(0, 15, 4), P.Gold, METAL)
+	local sign = b:block("ParkSign", v(18, 3.6, 0.6), v(0, 15, 3.8), P.Green)
+	outlined(sign, Enum.NormalId.Front, "STARLIGHT PARK", P.OffWhite, 4)
+	outlined(sign, Enum.NormalId.Back, "STARLIGHT PARK", P.OffWhite, 4)
+	IconModels.build(b.parent, "star", b:at(CFrame.new(0, 19, 4)), 0.8)
+
+	-- The fountain plaza where the paths cross.
+	local plaza = v(0, 0, 50)
+	b:cylinder("FountainPlaza", 0.24, 26, plaza + v(0, 0.12, 0), P.Paving)
+	b:cylinder("FountainPlazaRing", 0.28, 22, plaza + v(0, 0.14, 0), P.Cream)
+	b:cylinder("FountainPlazaInner", 0.3, 20, plaza + v(0, 0.15, 0), P.Paving)
+	b:cylinder("FountainRim", 1.6, 12, plaza + v(0, 0.8, 0), STONE)
+	b:cylinder("FountainWater", 1.62, 10.4, plaza + v(0, 0.82, 0), WATER)
+	b:cylinder("FountainColumn", 3.4, 1.6, plaza + v(0, 2.5, 0), STONE)
+	b:cylinder("FountainBowl", 0.8, 5, plaza + v(0, 4.2, 0), STONE)
+	b:cylinder("FountainBowlWater", 0.82, 4, plaza + v(0, 4.25, 0), WATER_LIGHT)
+	b:cylinder("FountainJet", 3, 0.8, plaza + v(0, 6, 0), WATER_LIGHT, NEON).Transparency = 0.3
+	b:ball("FountainSplash", 2.2, plaza + v(0, 7.6, 0), WATER_LIGHT, NEON).Transparency = 0.4
+
+	-- The pond, west of the main path: a stone rim, bright water, an island with a blossom tree,
+	-- a bridge out to it, lily pads and ducks.
+	local pond = v(-55, 0, 82)
+	local radius = 26
+	b:cylinder("PondWater", 0.5, radius * 2, pond + v(0, 0.25, 0), WATER)
+	b:cylinder("PondShine", 0.52, radius * 1.3, pond + v(0, 0.27, 0), WATER_LIGHT)
+	local stones = 22
+	for i = 0, stones - 1 do
+		local a = i / stones * math.pi * 2
+		local at = pond + v(math.sin(a) * (radius + 1), 0.6, math.cos(a) * (radius + 1))
+		b:block("PondStone", v(7.6, 1.2, 2.6), CFrame.new(at) * CFrame.Angles(0, a, 0), if i % 2 == 0 then STONE else shade(STONE, 0.1))
+	end
+	local island = pond + v(-6, 0, 2)
+	b:cylinder("Island", 1, 16, island + v(0, 0.5, 0), P.Green, GRASS)
+	b:cylinder("IslandSand", 0.8, 17.4, island + v(0, 0.4, 0), SAND)
+	voxelTree(b:sub(island + v(0, 1, 0)), 8, BLOSSOM)
+	-- The bridge from the east shore to the island, with fence rails like a ranch fence.
+	local fromX, toX = pond.X + radius + 3, island.X + 7
+	local bridgeLength = fromX - toX
+	local mid = v((fromX + toX) / 2, 0, island.Z)
+	b:block("Bridge", v(bridgeLength, 0.8, 5), mid + v(0, 1.8, 0), P.Wood)
+	for i = 0, math.floor(bridgeLength / 2.5) do
+		b:block("BridgePlank", v(0.3, 0.1, 5), mid + v(-bridgeLength / 2 + i * 2.5, 2.25, 0), P.Bark)
+	end
+	for _, s in { -1, 1 } do
+		b:block("BridgeRail", v(bridgeLength, 0.5, 0.5), mid + v(0, 4.2, s * 2.3), P.Bark)
+		for i = 0, 4 do
+			b:block("BridgePost", v(0.7, 3, 0.7), mid + v(-bridgeLength / 2 + i * bridgeLength / 4, 2.9, s * 2.3), P.Bark)
+		end
+	end
+	b:wedge("BridgeRamp", v(5, 2.2, 3), CFrame.new(fromX + 1.5, 1.1, island.Z) * CFrame.Angles(0, math.rad(-90), 0), P.Wood)
+	for _, at in { v(8, 0, -10), v(-14, 0, -12), v(12, 0, 12), v(-4, 0, 16), v(16, 0, -2) } do
+		b:cylinder("LilyPad", 0.12, 3, pond + at + v(0, 0.56, 0), P.DarkGreen)
+	end
+	b:block("LilyFlower", v(1, 0.8, 1), pond + v(12, 1, 12), PINK)
+	duck(b:sub(CFrame.new(pond + v(10, 0.5, -4)) * CFrame.Angles(0, math.rad(30), 0)), 1.6)
+	duck(b:sub(CFrame.new(pond + v(13, 0.5, -1)) * CFrame.Angles(0, math.rad(40), 0)), 0.9)
+	duck(b:sub(CFrame.new(pond + v(-16, 0.5, -10)) * CFrame.Angles(0, math.rad(200), 0)), 1.4)
+
+	-- The bandstand, east of the main path.
+	local stand = b:sub(v(60, 0, 86))
+	stand:block("BandstandBase", v(18, 1.6, 18), v(0, 0.8, 0), P.Cream)
+	stand:block("BandstandFloor", v(16.4, 0.3, 16.4), v(0, 1.75, 0), P.Wood)
+	stand:block("BandstandStep", v(6, 0.8, 2), v(0, 0.4, -10), P.Cream)
+	for _, x in { -7.4, 7.4 } do
+		for _, z in { -7.4, 7.4 } do
+			stand:block("BandstandPost", v(1, 8, 1), v(x, 5.6, z), P.OffWhite)
+		end
+	end
+	for _, side in { { v(0, 0, 7.4), v(15, 0.5, 0.5) }, { v(-7.4, 0, 0), v(0.5, 0.5, 15) }, { v(7.4, 0, 0), v(0.5, 0.5, 15) } } do
+		stand:block("BandstandRail", side[2], side[1] + v(0, 4, 0), P.OffWhite)
+	end
+	stand:block("BandstandRoof", v(19, 1, 19), v(0, 10, 0), P.Carpet)
+	stand:block("BandstandRoof", v(14, 1, 14), v(0, 11, 0), P.OffWhite)
+	stand:block("BandstandRoof", v(9, 1, 9), v(0, 12, 0), P.Carpet)
+	stand:block("BandstandRoof", v(4, 1, 4), v(0, 13, 0), P.OffWhite)
+	stand:ball("BandstandTop", 2, v(0, 14.3, 0), P.Gold, METAL)
+
+	-- The open-air movie screen at the far end, with picnic blankets on the lawn in front.
+	local screen = b:sub(v(0, 0, 112))
+	for _, x in { -24, 24 } do
+		screen:block("ScreenPost", v(2.4, 30, 2.4), v(x, 15, 1), P.Charcoal, METAL)
+	end
+	screen:block("ScreenFrame", v(46, 24, 1), v(0, 17, 1), P.Charcoal)
+	local film = screen:block("Screen", v(43, 21, 0.4), v(0, 17, 0.4), P.OffWhite)
+	outlined(film, Enum.NormalId.Front, "NOW SHOWING\nHOLLYWOOD RNG", P.Gold, 5)
+	local marquee = screen:block("ScreenMarquee", v(30, 3.6, 0.8), v(0, 31, 1), P.Carpet)
+	outlined(marquee, Enum.NormalId.Front, "MOVIES UNDER THE STARS", P.Gold, 3)
+	for i, at in { v(-14, 0, 92), v(0, 0, 96), v(14, 0, 92) } do
+		picnicBlanket(b:sub(CFrame.new(at) * CFrame.Angles(0, math.rad(i * 12 - 24), 0)))
+	end
+
+	-- Lamps and benches along the main path.
+	for _, z in { 18, 34, 66, 82 } do
+		for _, s in { -1, 1 } do
+			parkLamp(b:sub(v(s * 7, 0, z)))
+		end
+	end
+	for _, info in { { at = v(9, 0, 26), yaw = -90 }, { at = v(-9, 0, 26), yaw = 90 }, { at = v(9, 0, 74), yaw = -90 }, { at = v(-9, 0, 74), yaw = 90 } } do
+		parkBench(b:sub(CFrame.new(info.at) * CFrame.Angles(0, math.rad(info.yaw), 0)))
+	end
+
+	-- Trees and flowers.
+	local trees = {
+		v(-22, 0, 14), v(-40, 0, 26), v(-70, 0, 34), v(-92, 0, 20), v(-96, 0, 60), v(-94, 0, 108),
+		v(-28, 0, 116), v(22, 0, 16), v(40, 0, 28), v(76, 0, 30), v(96, 0, 18), v(94, 0, 64),
+		v(88, 0, 110), v(34, 0, 112), v(28, 0, 72), v(-20, 0, 70),
+	}
+	for i, at in trees do
+		local color = if i % 4 == 0 then BLOSSOM elseif i % 2 == 0 then P.DarkGreen else P.Green
+		voxelTree(b:sub(CFrame.new(at) * CFrame.Angles(0, math.rad(i * 37), 0)), 7 + (i % 3) * 1.5, color)
+	end
+	for _, info in { { at = v(-16, 0, 38), size = v(10, 0, 6) }, { at = v(16, 0, 38), size = v(10, 0, 6) }, { at = v(-16, 0, 62), size = v(10, 0, 6) }, { at = v(16, 0, 62), size = v(10, 0, 6) }, { at = v(40, 0, 60), size = v(14, 0, 6) } } do
+		TownSets.flowerBed(b:sub(info.at), info.size)
+	end
+
+	-- A low ranch fence along the two sides.
+	for _, s in { -1, 1 } do
+		fenceRun(b, v(s * 106, 0, 2), v(s * 106, 0, 124), P.OffWhite)
+	end
+end
+
+-- The blimp ---------------------------------------------------------------------------------------
+
+-- A big striped blimp that drifts round the town (src/client/Blimp.luau moves it). Nose toward -Z,
+-- about 46 long. Returns the model, pivoted at its middle.
 function TownSets.blimp(b: Builder): Model
 	local g, model = b:group("Blimp")
-	-- A capsule: a long cylinder with a ball on each end (a Roblox ball can't be stretched).
-	g:cylinder("BlimpHull", 22, 12, CFrame.Angles(math.rad(90), 0, 0), P.OffWhite)
-	model.WorldPivot = g:at(CFrame.identity)
-	for _, z in { -11, 11 } do
-		g:ball("BlimpEnd", 12, v(0, 0, z), P.OffWhite)
+	local along = CFrame.Angles(math.rad(90), 0, 0)
+	g:cylinder("BlimpHull", 30, 14, along, P.OffWhite)
+	for _, z in { -15, 15 } do
+		g:ball("BlimpEnd", 14, v(0, 0, z), P.OffWhite)
 	end
+	g:ball("BlimpNose", 6, v(0, 0, -20.6), P.Carpet)
+	for _, z in { -10, 10 } do
+		g:cylinder("BlimpStripe", 1.6, 14.4, CFrame.new(0, 0, z) * along, P.Carpet)
+	end
+	g:cylinder("BlimpStripe", 0.8, 14.4, CFrame.new(0, 0, -8.4) * along, P.Gold, METAL)
+	g:cylinder("BlimpStripe", 0.8, 14.4, CFrame.new(0, 0, 8.4) * along, P.Gold, METAL)
 	for _, side in { -1, 1 } do
-		local panel = g:block("BlimpBanner", v(0.4, 3, 15), v(side * 6, 0, 0), P.Burgundy)
-		outlined(panel, if side < 0 then Enum.NormalId.Left else Enum.NormalId.Right, "HOLLYWOOD RNG", P.Gold, 3)
+		g:block("BlimpBannerTrim", v(0.4, 5.4, 17), v(side * 6.9, 0, 0), P.Gold)
+		local panel = g:block("BlimpBanner", v(0.5, 4.6, 16), v(side * 7, 0, 0), P.Carpet)
+		outlined(panel, if side < 0 then Enum.NormalId.Left else Enum.NormalId.Right, "HOLLYWOOD RNG", P.Gold, 4)
 	end
-	g:block("BlimpGondola", v(3.4, 2, 7), v(0, -6.6, -2), P.Cream)
-	g:block("BlimpWindows", v(3.5, 0.8, 5.5), v(0, -6.4, -2), P.Navy, GLASS)
-	g:block("BlimpFin", v(0.5, 6, 5), v(0, 5, 16), P.Gold)
-	g:block("BlimpFin", v(14, 0.5, 5), v(0, 0, 16), P.Gold)
+	-- Four chunky tail fins with red tips.
+	for _, fin in { { size = v(1, 8, 8), at = v(0, 7.5, 18) }, { size = v(1, 7, 8), at = v(0, -7, 18) }, { size = v(8, 1, 8), at = v(7.5, 0, 18) }, { size = v(8, 1, 8), at = v(-7.5, 0, 18) } } do
+		g:block("BlimpFin", fin.size, fin.at, P.Gold)
+		local tip = fin.at + v(math.sign(fin.at.X) * 3.6, math.sign(fin.at.Y) * 3.6, 2.6)
+		g:block("BlimpFinTip", v(if fin.at.X ~= 0 then 2 else 1.1, if fin.at.Y ~= 0 then 2 else 1.1, 3), tip, P.Carpet)
+	end
+	-- The gondola under the middle, with a row of windows and two propellers.
+	g:block("BlimpGondola", v(4.6, 3, 11), v(0, -8.2, -2), P.Cream)
+	g:block("BlimpGondolaBase", v(5, 0.6, 11.4), v(0, -9.8, -2), P.Gold, METAL)
+	g:block("BlimpWindows", v(4.7, 1.1, 9), v(0, -7.8, -2), P.Navy, GLASS)
+	for _, x in { -3.4, 3.4 } do
+		g:cylinder("BlimpEngine", 3, 1.6, CFrame.new(x, -8, 3) * along, P.Steel, METAL)
+		g:block("BlimpProp", v(0.3, 3.4, 0.3), v(x, -8, 4.7), P.Charcoal)
+	end
 	Build.decorative(model)
+	model.WorldPivot = g:at(CFrame.identity)
 	return model
 end
 

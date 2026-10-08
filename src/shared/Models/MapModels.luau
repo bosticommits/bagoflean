@@ -42,15 +42,18 @@ MapModels.Layout = table.freeze({
 	-- Players appear on the plaza looking past the fountain at the Shop and Rewards stands.
 	spawn = CFrame.new(0, 0.65, -15) * CFrame.Angles(0, math.pi, 0),
 	-- Gold star sign on the big hill behind lots 4-6.
-	hillStar = Vector3.new(0, 44, 190),
+	hillStar = Vector3.new(0, 44, 298),
 	-- The boulevard runs out through the hedge at both ends: west to the Grand Premiere Theatre
 	-- (its bottom step), east through the Studio Gate.
 	endGap = 14,
 	theatreX = -147,
 	gateX = 146,
-	-- Pass 3: a gap in the middle of the front and back hedges leads out to the western film
-	-- street (front, -Z) and Starlight Park (back, +Z). The blimp circles the town.
-	sideGap = 5,
+	-- Pass 3: a gap in the middle of the front and back hedges leads out to Dusty Gulch, the
+	-- western film town (front, -Z), and Starlight Park (back, +Z). The blimp circles the town.
+	-- Invisible walls at wallX / wallZ keep players from wandering off the map.
+	sideGap = 8,
+	wallX = 260,
+	wallZ = 290,
 	blimpHeight = 120,
 	blimpRadius = 240,
 })
@@ -519,11 +522,11 @@ end
 
 local function hills(b: Builder)
 	local hillList: { { at: Vector3, size: number, color: Color3 } } = {
-		{ at = v(0, -70, 270), size = 260, color = P.Green },
-		{ at = v(-170, -80, 230), size = 190, color = P.DarkGreen },
-		{ at = v(175, -78, 225), size = 180, color = P.DarkGreen },
-		{ at = v(60, -80, -250), size = 210, color = P.Green },
-		{ at = v(-120, -85, -235), size = 190, color = P.DarkGreen },
+		{ at = v(0, -70, 360), size = 260, color = P.Green },
+		{ at = v(-200, -80, 335), size = 190, color = P.DarkGreen },
+		{ at = v(205, -78, 330), size = 180, color = P.DarkGreen },
+		{ at = v(70, -80, -365), size = 210, color = P.Green },
+		{ at = v(-130, -85, -350), size = 190, color = P.DarkGreen },
 		{ at = v(270, -85, 20), size = 200, color = P.Green },
 		{ at = v(-275, -85, -20), size = 200, color = P.Green },
 	}
@@ -649,19 +652,29 @@ local function landmarks(b: Builder)
 		end
 	end
 
-	-- Pass 3: paths out through the hedge gaps to Starlight Park (back) and the western film
-	-- street (front), and the blimp (src/client/Blimp.luau drifts it round the town).
-	local out = Lay.townZ
+	-- Pass 3: paths out through the hedge gaps to Starlight Park (back) and Dusty Gulch (front),
+	-- and the blimp (src/client/Blimp.luau drifts it round the town).
+	local out, edge = Lay.townZ, Lay.fenceZ + 1
 	for _, s in { -1, 1 } do
-		b:block("SidePath", v(Lay.sideGap * 2, 0.2, 16), v(0, 0.1, s * (out + 8)), P.Paving)
+		b:block("SidePath", v(Lay.sideGap * 2, 0.2, edge - out + 1), v(0, 0.1, s * (out + edge + 1) / 2), P.Paving)
 	end
-	TownSets.park(b:sub(v(0, 0.2, out + 16)))
-	TownSets.westernStreet(b:sub(CFrame.new(0, 0, -out - 27) * CFrame.Angles(0, math.pi, 0)))
+	TownSets.park(b:sub(v(0, 0, edge)))
+	TownSets.westernTown(b:sub(CFrame.new(0, 0, -edge) * CFrame.Angles(0, math.pi, 0)))
 	TownSets.blimp(b:sub(CFrame.new(0, Lay.blimpHeight, -Lay.blimpRadius) * CFrame.Angles(0, math.rad(-90), 0)))
 
 	-- A hazy city skyline behind the hills, beyond the front lots and past the theatre.
 	TownSets.skyline(b:sub(v(0, -8, -450)), 16, 620, 7)
 	TownSets.skyline(b:sub(CFrame.new(-470, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
+end
+
+-- Invisible walls round the whole map, so nobody wanders off over the grass (or jumps the hedge
+-- and keeps going). Tall enough that nothing in the town can be used to climb over them.
+local function walls(b: Builder)
+	local x, z, h = Lay.wallX, Lay.wallZ, 400
+	for _, s in { -1, 1 } do
+		b:block("MapWall", v(4, h, z * 2 + 8), v(s * (x + 2), h / 2, 0), P.Grey)
+		b:block("MapWall", v(x * 2 + 8, h, 4), v(0, h / 2, s * (z + 2)), P.Grey)
+	end
 end
 
 -- Everything ------------------------------------------------------------------------------------
@@ -675,8 +688,18 @@ local GROUND_TRIM = {
 	FloorMark = true,
 	ForecourtCarpet = true,
 	SidewalkStrip = true,
+	Blanket = true,
+	BridgePlank = true,
+	DesertGround = true,
+	DustRut = true,
 	DustStreet = true,
+	FountainPlaza = true,
+	FountainPlazaInner = true,
+	FountainPlazaRing = true,
 	LilyPad = true,
+	PathEdge = true,
+	PondShine = true,
+	PondWater = true,
 	ForecourtCarpetEdge = true,
 	TheatreCarpet = true,
 	CarpetEnd = true,
@@ -714,19 +737,26 @@ local NO_SHADOW = {
 	TheatreStep = true,
 	Flower = true,
 	Boardwalk = true,
-	ParkPath = true,
-	Pond = true,
-	PondEdge = true,
-	PondJet = true,
-	PondSplash = true,
-	TreeTop = true,
-	Blimp = true,
-	BlimpHull = true,
-	BlimpEnd = true,
+	BoardwalkEdge = true,
 	BlimpBanner = true,
+	BlimpBannerTrim = true,
+	BlimpEnd = true,
+	BlimpEngine = true,
 	BlimpFin = true,
+	BlimpFinTip = true,
 	BlimpGondola = true,
+	BlimpGondolaBase = true,
+	BlimpHull = true,
+	BlimpNose = true,
+	BlimpProp = true,
+	BlimpStripe = true,
 	BlimpWindows = true,
+	FountainJet = true,
+	FountainSplash = true,
+	Island = true,
+	IslandSand = true,
+	ParkPath = true,
+	PondStone = true,
 	GateRamp = true,
 	Ground = true,
 	Hill = true,
@@ -755,6 +785,7 @@ function MapModels.build(parent: Instance): Built
 	backlot(b)
 	hills(b)
 	landmarks(b)
+	walls(b)
 
 	local stands = {}
 	for _, info in MapModels.Stands do
@@ -763,7 +794,12 @@ function MapModels.build(parent: Instance): Built
 
 	for _, part in parent:GetDescendants() do
 		if part:IsA("BasePart") then
-			if GROUND_TRIM[part.Name] then
+			if part.Name == "MapWall" then
+				part.Transparency = 1
+				part.CastShadow = false
+				part.CanQuery = false
+				part.CanTouch = false
+			elseif GROUND_TRIM[part.Name] then
 				part.CanCollide = false
 				part.CastShadow = false
 			elseif NO_SHADOW[part.Name] then
