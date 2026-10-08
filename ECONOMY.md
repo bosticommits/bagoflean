@@ -22,8 +22,10 @@ Robux cash packs. Treat it as the shape of the curve, not a promise: playtests d
 - **First session (about 20 minutes).** The first casts already give a Rising and usually a Pro
   actor. A second sound stage and the Horror and Romance scripts unlock around minute 8. Most
   players see their first purple **Star** actor around minute 20.
-- **Day one (about an hour).** Feature scripts and Sci-Fi unlock around minute 40, a third stage
-  around minute 50, and the **Talent Agency** opens near the end of the hour.
+- **Day one (about an hour).** The **Talent Agency** opens around minute 30, and the premiere
+  that unlocks it says so. Feature scripts and Sci-Fi follow by minute 40. Talent Agency casts
+  are where spare Cash goes for the rest of the hour, so the third sound stage comes at the start
+  of day 2.
 - **Days 2 to 3.** The overnight box office pays for the **first rebirth** early on day 2
   (Movie Cash x1.5). The first **Superstar** comes around the end of day 1 or early on day 2, the
   first **Masterpiece** on day 2 or 3. The **second rebirth** and **Epic** scripts come late on
@@ -54,21 +56,21 @@ stage 4" and "maxed" mean the first time.
 | First Star actor | day 1, 17 min | 30 min |
 | Feature scripts | day 1, 35 min | 39 min |
 | Sci-Fi scripts | day 1, 38 min | 44 min |
-| Sound stage 3 | day 1, 48 min | 57 min |
-| Talent Agency | day 1, 54 min | day 2 |
-| First Superstar | day 1 (59 min), often early day 2 | day 4 |
-| **Rebirth 1** (Movie Cash x1.5) | day 2 (73 min) | day 2 (93 min) |
-| First Masterpiece | day 3 (106 min) | day 6 |
-| **Rebirth 2** (x2) | day 3 (135 min) | day 4 |
-| Epic scripts | day 3 (144 min) | day 4 |
+| Talent Agency | day 1, 30 min | 35 min |
+| Sound stage 3 | day 2 (60 min) | day 2 (60 min) |
+| First Superstar | day 2 (60 min), often late day 1 | day 3 |
+| **Rebirth 1** (Movie Cash x1.5) | day 2 (75 min) | day 2 (99 min) |
+| First Masterpiece | day 3 (113 min) | day 6 |
+| **Rebirth 2** (x2) | day 3 (136 min) | day 4 |
+| Epic scripts | day 3 (146 min) | day 4 |
 | Sound stage 4 | day 4 (150 min) | day 4 |
 | Cinema, Offline, Clapperboard maxed | day 4 | day 5 |
 | **Rebirth 3** (x2.5) | day 5 (195 min) | day 5 |
 | All upgrades maxed | day 6 (98% in week one) | day 7 |
-| First Legend | day 6 (66% of players in week one) | |
-| Hollywood Casting | day 6 (259 min) | day 7 |
+| First Legend | day 6 (64% of players in week one) | |
+| Hollywood Casting | day 6 (258 min) | day 7 |
 | First Icon | 6% of players in week one | |
-| **Rebirth 4** (x3) | day 8 (51% in week one) | day 11 |
+| **Rebirth 4** (x3) | day 8 (52% in week one) | day 11 |
 | **Rebirth 5** (x3.5) | day 12 | day 14 |
 | **Rebirth 6** (x4) | day 19 | day 22 |
 
@@ -77,14 +79,15 @@ Without rebirths (`--no-rebirth`) the week-one unlocks land within a few minutes
 the week is about 30,000 a minute instead of 80,000.
 
 Other players:
-- **Casual** (25 min on day one, then 20 min a day): Talent Agency and the first rebirth on day 3,
+- **Casual** (25 min on day one, then 20 min a day): Talent Agency on day 2 (30 min played),
+  the first rebirth on day 3,
   first Superstar on day 4, the second rebirth on day 6, Epic scripts on day 7. Legend 12 to 20%,
   Icon 1% in week one.
-- **Hardcore** (about 2 hours a day): Talent Agency in the first hour, the first rebirth near the
+- **Hardcore** (about 2 hours a day): Talent Agency at 30 minutes, the first rebirth near the
   end of day 1, the second on day 2, Hollywood on day 3, the third rebirth and a Legend (95%) on
   day 4, Icon 11% in week one, all upgrades maxed again on day 5.
-- **2x Luck pass** (typical schedule): first rebirth at 60 minutes, Superstar in the first hour,
-  Legend 69%, Icon 5%. Faster, but nothing a free player cannot reach.
+- **2x Luck pass** (typical schedule): Talent Agency at 26 minutes, first rebirth at 60 minutes,
+  Superstar in the first hour, Legend about 80%, Icon 7 to 9%. Faster, but nothing a free player cannot reach.
 
 ## The levers and why they are set this way
 
@@ -98,7 +101,7 @@ by day 7.
 arrive depends on how many casts a player makes. The odds are set for about one cast every
 3 seconds of play.
 
-**Agencies are the casting price ladder.** Open Casting $10, Talent Agency $1,000 (Fame 3,500),
+**Agencies are the casting price ladder.** Open Casting $10, Talent Agency $1,000 (Fame 1,400),
 Hollywood Casting $100,000 (Fame 50,000). Better agencies remove common tiers, so they are much
 luckier per cast. The price keeps each one limited by cash for a few days after it opens.
 
@@ -117,7 +120,7 @@ that say "N minutes of box office income" use this rate.
 
 **Fame** is still about the square root of each payout. Its gates were set from the sim's Fame
 curve to land each unlock at the time above: Horror and Romance 100, Feature 1,800, Sci-Fi 2,000,
-Talent Agency 3,500, Epic 16,000, Hollywood 50,000, stages 50 / 2,800 / 16,000.
+Talent Agency 1,400, Epic 16,000, Hollywood 50,000, stages 50 / 2,800 / 16,000.
 
 **Upgrade prices** grow 4 to 8 times per level. Other upgrade levels no longer have Fame gates;
 cash alone sets their pace.
@@ -155,6 +158,39 @@ extra Cash shows most: an earlier draft with $200 to $300 floors moved Sound sta
 day one (first Star around minute 18 instead of 21) and not at all later in the week. Casual
 players get their first Superstar about a day sooner, mostly from the Luck boosts.
 
+## Talent Agency at 30 minutes (review, 2026-10-08)
+
+`LAUNCH_CHECKLIST.md` asks for the Talent Agency in about 20 to 30 minutes; the sim had it at 54.
+Before changing anything, the question was which requirement held it back, Cash or Fame.
+
+- **Fame was the bottleneck.** The sim's player cast at the Talent Agency the same minute its Fame
+  gate opened (54 and 54). With the Fame gate taken away, Cash alone would let it start at
+  minute 20 (slow 10%: 24). The $1,000 price was never what made players wait.
+- **One lever: the Fame gate, 3,500 to 1,400.** The price stays $1,000. Gates tried (typical
+  player, 200 runs, median and slow 10% in minutes played): 1,000 gives 25 / 28, 1,200 gives
+  28 / 31, **1,400 gives 30 / 35**, 1,500 gives 32 / 35, 1,800 gives 36 / 39, 3,500 gives 54 / 60.
+- **What it changes.** Casual players reach it on day 2 instead of day 3 and hardcore players at 30
+  minutes instead of 52. A typical player makes about 125 Talent Agency casts in the first hour
+  instead of 52. Those casts are where spare Cash goes, so the third sound stage moves from minute
+  48 to minute 60 (the start of day 2) and day one ends at about 2,500 a minute instead of 3,200.
+  Hardcore players' first rebirth moves from 86 to 110 minutes for the same reason. The first
+  Superstar stays around minute 60, and week one ends where it did: Hollywood Casting on day 6,
+  Legend 64%, Icon 6%, about 91,000 a minute.
+- **Players are told.** A premiere that pushes Fame past any gate now says so on its result card
+  ("NEW: Talent Agency unlocked!"). `src/shared/Unlocks.luau` reads every Fame gate from Actors,
+  Movies and Upgrades, so it stays right when a gate is retuned.
+
+Other checks from the same review (nothing else was changed):
+- **Unlucky players.** Fame is the square root of each payout, so a lucky premiere moves unlocks
+  only a little: the slowest 10% reach the Talent Agency 5 minutes after the median. Nobody can hit
+  a Cash dead end: the cinema always pays at least $0.50 a second and a Short Film script costs $15.
+- **Active play against time away.** Unchanged by this: about a fifth of a typical player's
+  income is earned away by the end of day one and about 70% by the end of week one. Playtests
+  should check that casting and premieres still feel like the best use of a session late in the
+  week; the cinema royalty rate is the first lever if they do not.
+- **Sound stage 3 on day 2.** If playtesters feel the third stage comes too late, the fix is its
+  price ($25,000), not the Talent Agency gate.
+
 ## Special events
 
 Every 15 minutes one of five special events runs for 90 to 120 seconds, in every server at the
@@ -184,7 +220,7 @@ pace.
   of income, and rebirths the moment it can. Real players will keep spending, so their rebirths
   may come later. Casual players who rebirth on day 3 pull slightly fewer Legends in week one (12
   to 20% against 18%), because the Cash goes back into upgrades. If early rebirths feel bad in
-  playtests, the first fix would be a Fame gate on the first one (the Talent Agency's 3,500).
+  playtests, the first fix would be a Fame gate on the first one (around 3,500, about minute 55).
 - Special events: if they feel rare, `SpecialEvents.SlotSeconds` can drop to 10 minutes; if Cash
   Rain coins are all grabbed in seconds, spread `CoinSpots` further. A crowded server shares one
   crate and one Spotlight studio, but every player gets their own pickup.
