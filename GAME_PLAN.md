@@ -168,6 +168,10 @@ exciting by M3, fix the core before adding anything else.
 - **Cinema** keeps 10 movies; when full, the lowest-earning one is dropped.
 - **Tutorial**: about a minute. New players start with $100, and their first Short Film takes
   15 seconds. Steps complete from real game state, so returning players skip what they have done.
+  It is hosted by Director Lucien Vale, an original character: new players meet him on a curtain
+  intro screen, his lines stay at the top of the screen (panels open below them), a yellow line
+  under them says what to do, and yellow arrows point at the real button and at the plaza stand
+  (MOVIES for the Studio steps). Skip stays available throughout.
 - **Sounds** come from Roblox's own UI sound library (creator: Roblox). Effects use built-in
   textures only. Lots are plain parts: there is no mesh or uploaded art yet.
 - **Saving** uses ProfileStore (vendored), as planned.
