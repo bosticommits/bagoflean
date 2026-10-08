@@ -17,6 +17,7 @@ local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local LotService = require(script.Parent.LotService)
 local QuestTracker = require(script.Parent.QuestTracker)
+local VisitService = require(script.Parent.VisitService)
 local Remotes = require(script.Parent.Remotes)
 
 local random = Random.new()
@@ -379,6 +380,7 @@ local function onPremiere(player: Player, stage: any)
 	if result.multiplier >= 3 then
 		QuestTracker.track(player, "hit")
 	end
+	VisitService.premiered(player, film.title, result.id) -- visitors on the lot watch it too
 	if result.id == "Masterpiece" then
 		Remotes.announce(`{player.DisplayName}'s "{film.title}" is a MASTERPIECE!`)
 		LotService.celebrate(player, "masterpiece")

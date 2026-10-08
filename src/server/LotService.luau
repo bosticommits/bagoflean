@@ -12,11 +12,13 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local ActorModels = require(ReplicatedStorage.Shared.Models.ActorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
+local LotModels = require(ReplicatedStorage.Shared.Models.LotModels)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local TopStudios = require(ReplicatedStorage.Shared.TopStudios)
 local TopStudiosModels = require(ReplicatedStorage.Shared.Models.TopStudiosModels)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local Visits = require(ReplicatedStorage.Shared.Visits)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -48,6 +50,7 @@ type Lot = {
 	claimPad: BasePart,
 	collectPad: BasePart,
 	billboard: Frame,
+	applause: TextLabel, -- the studio's applause count over its gate
 	marquee: TextLabel?,
 	color: Color3,
 	owner: Player?,
@@ -112,6 +115,21 @@ local function buildLot(index: number, folder: Folder): Lot
 		section.Parent = model
 	end
 
+	-- Applause count between the gate posts, readable from the boulevard (studio visits).
+	local sign = Instance.new("Part")
+	sign.Name = "ApplauseSign"
+	sign.Anchored = true
+	sign.CanCollide = false
+	sign.CanQuery = false
+	sign.CanTouch = false
+	sign.Transparency = 1
+	sign.Size = Vector3.new(1, 1, 1)
+	sign.CFrame = base * CFrame.new(0, 9.6, LotModels.Layout.gateZ)
+	sign.Parent = model
+	local applause = WorldLabel.new(sign, "", 11, 2.6, { color = GOLD, offset = Vector3.zero, maxDistance = 110 })
+	local applauseGui = applause.Parent :: BillboardGui
+	applauseGui.Enabled = false
+
 	return {
 		index = index,
 		model = model,
@@ -119,6 +137,7 @@ local function buildLot(index: number, folder: Folder): Lot
 		claimPad = static.claimPad,
 		collectPad = static.collectPad,
 		billboard = billboard,
+		applause = applause,
 		marquee = nil,
 		color = color,
 		owner = nil,
@@ -255,6 +274,19 @@ local function render(lot: Lot)
 			else "STUDIO FOR LEASE"
 	end
 
+	-- Studio visits: the applause count over the gate (from the first applause on), and what the
+	-- Visit menu lists about this studio.
+	local likes = if data ~= nil then data.likes else 0
+	local applauseGui = lot.applause.Parent :: BillboardGui
+	applauseGui.Enabled = owner ~= nil and likes > 0
+	lot.applause.Text = Visits.applauseText(likes)
+	lot.model:SetAttribute("Likes", if owner ~= nil then likes else nil)
+	lot.model:SetAttribute("Trophies", if data ~= nil then data.trophies else nil)
+	lot.model:SetAttribute(
+		"StudioName",
+		if owner ~= nil then string.upper(owner.DisplayName) .. " PICTURES" .. Rebirth.sequelSuffix(if data ~= nil then data.rebirths else 0) else nil
+	)
+
 	local officeLevel = if progress ~= nil then progress.office else 0
 	section(lot, "Office", tostring(officeLevel), function(model)
 		LotLook.office(model, lot.base, officeLevel, lot.color)
@@ -279,6 +311,8 @@ local function render(lot: Lot)
 		.. (if actor ~= nil then actor.id else "")
 		.. ":"
 		.. (if variant ~= nil then variant.id else "")
+	lot.model:SetAttribute("TopStar", if actor ~= nil then actor.name else nil)
+	lot.model:SetAttribute("TopStarTier", if actor ~= nil then actor.tier else nil)
 	section(lot, "Star", starKey, function(model)
 		LotLook.star(model, lot.base, if actor ~= nil then actor.id else nil, if variant ~= nil then variant.id else nil)
 		if owner == nil then
@@ -347,6 +381,24 @@ function LotService.owners(): { { index: number, owner: Player } }
 		end
 	end
 	return list
+end
+
+-- Lot `index`'s owner, or nil for a free lot or a bad index.
+function LotService.ownerOf(index: number): Player?
+	local lot = lots[index]
+	return if lot ~= nil then lot.owner else nil
+end
+
+-- The index of the lot `player` owns, or nil.
+function LotService.indexOf(player: Player): number?
+	local lot = lotOf[player]
+	return if lot ~= nil then lot.index else nil
+end
+
+-- Lot `index`'s model in the workspace (its attributes feed the Visit menu).
+function LotService.model(index: number): Model?
+	local lot = lots[index]
+	return if lot ~= nil then lot.model else nil
 end
 
 -- Tell every client to play a celebration on this player's lot ("masterpiece" or "pull").
