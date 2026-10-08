@@ -61,6 +61,8 @@ Sounds.Slots = {
 	premiereHit = slot("pop"),
 	premiereBig = slot("stinger"), -- Blockbuster and Cult Classic
 	premiereMasterpiece = slot("jingle"), -- the music dips under it
+	premiereFlash = slot("clap", 1.6), -- camera flashes on premiere night
+	premiereStamp = slot("clap", 0.6), -- the result stamp lands on the poster
 
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed
