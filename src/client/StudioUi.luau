@@ -5,16 +5,16 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local PremiereNight = require(ReplicatedStorage.Shared.PremiereNight)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
-local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local PremiereReveal = require(script.Parent.PremiereReveal)
 local Screens = require(script.Parent.Screens)
 local ShopUi = require(script.Parent.ShopUi)
 local Sfx = require(script.Parent.Sfx)
@@ -41,15 +41,6 @@ local ERRORS: { [string]: string } = {
 }
 
 local GENRE_COLORS = UiKit.GENRE_COLORS
-
--- 3D icon for each premiere result (Cinema rows and the premiere reveal).
-local RESULT_ICONS: { [string]: string } = {
-	Flop = "popcorn",
-	Hit = "ticket",
-	Blockbuster = "star",
-	Cult = "crown",
-	Masterpiece = "trophy",
-}
 
 -- A small outlined 3D icon at a fixed spot (for rows whose left edge is not free all the way down).
 local function smallIcon(parent: GuiObject, iconId: string, size: number, position: UDim2): Frame
@@ -347,7 +338,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local result = Movies.getResult(movie.result)
 			order += 1
 			local row = UiKit.addRow(list, order, 60)
-			UiKit.rowIcon(row, RESULT_ICONS[movie.result] or "popcorn", 48)
+			UiKit.rowIcon(row, PremiereNight.style(movie.result).icon, 48)
 			local name = UiKit.makeTitle(row, movie.title, GENRE_COLORS[movie.genre] or WHITE, UDim2.new(0.55, -54, 0, 26), UDim2.fromOffset(64, 6))
 			name.TextXAlignment = Enum.TextXAlignment.Left
 			local detail = makeLabel(row, `{movie.genre}  -  ${Hud.comma(movie.payout)}`, UiKit.MUTED, UDim2.new(0.55, -54, 0, 18), UDim2.fromOffset(64, 34))
@@ -715,153 +706,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		picker.Visible = false
 	end)
 
-	-- Premiere reveal --------------------------------------------------------------------------
-	local overlay = Instance.new("Frame")
-	overlay.Name = "PremiereReveal"
-	overlay.Size = UDim2.fromScale(1, 1)
-	overlay.BackgroundColor3 = UiKit.DARK
-	overlay.BackgroundTransparency = 0.25
-	overlay.Active = true
-	overlay.Visible = false
-	overlay.ZIndex = 12
-	overlay.Parent = gui
-	local card = Instance.new("Frame")
-	card.AnchorPoint = Vector2.new(0.5, 0.5)
-	card.Position = UDim2.fromScale(0.5, 0.5)
-	card.Size = UDim2.fromScale(0.85, 0.6)
-	card.BackgroundColor3 = UiKit.PANEL
-	card.ZIndex = 13
-	card.Parent = overlay
-	corner(card, 20)
-	local cardLimit = Instance.new("UISizeConstraint")
-	cardLimit.MaxSize = Vector2.new(440, 480)
-	cardLimit.Parent = card
-	local stroke = UiKit.border(card, 6)
-
-	local function cardLabel(y: number, h: number, size: number): TextLabel
-		local label = UiKit.makeTitle(card, "", WHITE, UDim2.new(0.9, 0, h, 0), UDim2.new(0.05, 0, y, 0), if size >= 30 then 3 else 2)
-		label.ZIndex = 14
-		UiKit.textConstraint(label, size)
-		return label
-	end
-	local premiereTitle = cardLabel(0.04, 0.12, 26)
-	local resultLabel = cardLabel(0.18, 0.2, 44)
-	local payoutLabel = cardLabel(0.42, 0.12, 30)
-	local fameLabel = cardLabel(0.55, 0.09, 22)
-	local castLabel = cardLabel(0.64, 0.07, 18)
-	-- "NEW: Talent Agency": what this premiere's Fame just opened. Empty on most premieres.
-	local unlockLabel = cardLabel(0.71, 0.08, 20)
-	unlockLabel.Name = "Unlocked"
-	local unlockScale = Instance.new("UIScale")
-	unlockScale.Parent = unlockLabel
-	local continueButton = makeButton(card, "Continue", UiKit.GREEN, UDim2.fromScale(0.6, 0.15), UDim2.fromScale(0.2, 0.8))
-	continueButton.ZIndex = 14
-	-- The result's 3D icon, spinning on top of the card.
-	local resultArt = Instance.new("Frame")
-	resultArt.Name = "ResultArt"
-	resultArt.BackgroundTransparency = 1
-	resultArt.AnchorPoint = Vector2.new(0.5, 0.85)
-	resultArt.Position = UDim2.fromScale(0.5, 0)
-	resultArt.Size = UDim2.fromScale(0.32, 0.32)
-	resultArt.ZIndex = 15
-	resultArt.Parent = card
-	local resultAspect = Instance.new("UIAspectRatioConstraint")
-	resultAspect.Parent = resultArt
-	local stopResultSpin: (() -> ())? = nil
-	local function clearResultArt()
-		if stopResultSpin ~= nil then
-			stopResultSpin()
-			stopResultSpin = nil
-		end
-		for _, child in resultArt:GetChildren() do
-			if not child:IsA("UIAspectRatioConstraint") then
-				child:Destroy()
-			end
-		end
-	end
-	continueButton.Activated:Connect(function()
-		overlay.Visible = false
-		clearResultArt()
-	end)
-
-	local premiereToken = 0
-	local function showPremiere(result: any)
-		local res = Movies.getResult(result.result)
-		if res == nil then
-			return
-		end
-		premiereToken += 1
-		local mine = premiereToken
-		clearResultArt()
-		overlay.Visible = true
-		for _, child in card:GetChildren() do
-			if child:IsA("GuiObject") then
-				child.Visible = false
-			end
-		end
-		stroke.Color = UiKit.FAINT
-		premiereTitle.Visible = true
-		premiereTitle.Text = `"{result.title}"`
-		resultLabel.Visible = true
-		resultLabel.TextColor3 = WHITE
-		resultLabel.Text = "The reviews are in..."
-		Sfx.play("premiereDrumroll")
-		task.delay(1.2, function()
-			if premiereToken ~= mine then
-				return
-			end
-			for _, child in card:GetChildren() do
-				if child:IsA("GuiObject") then
-					child.Visible = true
-				end
-			end
-			stroke.Color = res.color
-			clearResultArt()
-			stopResultSpin = Icon3D.spin(Icon3D.outlined(resultArt, RESULT_ICONS[res.id] or "popcorn"), 24)
-			resultLabel.Text = res.name:upper() .. "!"
-			Fx.premiere(res.id, res.color)
-			resultLabel.TextColor3 = res.color
-			payoutLabel.Text = `+${Hud.comma(result.payout)}`
-			if (result.genreBonus or 1) > 1 then
-				payoutLabel.Text ..= `  (genre set x{result.genreBonus})`
-			end
-			if result.awardNight then
-				payoutLabel.Text ..= `  (Award Night x{Config.AwardNightPayoutMultiplier})`
-			end
-			if type(result.rebirthBonus) == "number" and result.rebirthBonus > 1 then
-				payoutLabel.Text ..= `  (rebirth x{result.rebirthBonus})`
-			end
-			payoutLabel.TextColor3 = UiKit.CASH_GREEN
-			fameLabel.Text = `+{Hud.comma(result.fame)} Fame  -  Star Power {fmtPower(result.power)}`
-			fameLabel.TextColor3 = UiKit.GOLD
-			local names = {}
-			for _, key in result.cast do
-				table.insert(names, actorLabel(key))
-			end
-			castLabel.Text = table.concat(names, ", ")
-			castLabel.TextColor3 = UiKit.MUTED
-			local unlocked = {}
-			if type(result.unlocked) == "table" then
-				for _, name in result.unlocked do
-					if type(name) == "string" then
-						table.insert(unlocked, name)
-					end
-				end
-			end
-			unlockLabel.Text = if #unlocked > 0 then `NEW: {table.concat(unlocked, ", ")} unlocked!` else ""
-			unlockLabel.TextColor3 = UiKit.GOLD
-			if #unlocked > 0 then
-				task.delay(0.6, function()
-					if premiereToken == mine and overlay.Visible then
-						-- One pop, not UiKit.pulse: the card is reused, so a looping pulse would pile up.
-						unlockScale.Scale = 1.25
-						TweenService:Create(unlockScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-						Sfx.play("notify")
-					end
-				end)
-			end
-		end)
-	end
+	-- Premiere night (the result poster, spotlights and stamp) ---------------------------------
+	local showPremiere = PremiereReveal.start(gui, { actorLabel = actorLabel, power = fmtPower })
 
 	-- Announcement banner ----------------------------------------------------------------------
 	local banner = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.new(0.9, 0, 0, 40), UDim2.new(0.05, 0, 0, 168))
