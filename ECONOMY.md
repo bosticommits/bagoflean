@@ -89,6 +89,39 @@ Other players:
 - **2x Luck pass** (typical schedule): Talent Agency at 26 minutes, first rebirth at 60 minutes,
   Superstar in the first hour, Legend about 80%, Icon 7 to 9%. Faster, but nothing a free player cannot reach.
 
+## Talent Agency at 30 minutes (review, 2026-10-08)
+
+`LAUNCH_CHECKLIST.md` asks for the Talent Agency in about 20 to 30 minutes; the sim had it at 54.
+Before changing anything, the question was which requirement held it back, Cash or Fame.
+
+- **Fame was the bottleneck.** The sim's player cast at the Talent Agency the same minute its Fame
+  gate opened (54 and 54). With the Fame gate taken away, Cash alone would let it start at
+  minute 20 (slow 10%: 24). The $1,000 price was never what made players wait.
+- **One lever: the Fame gate, 3,500 to 1,400.** The price stays $1,000. Gates tried (typical
+  player, 200 runs, median and slow 10% in minutes played): 1,000 gives 25 / 28, 1,200 gives
+  28 / 31, **1,400 gives 30 / 35**, 1,500 gives 32 / 35, 1,800 gives 36 / 39, 3,500 gives 54 / 60.
+- **What it changes.** Casual players reach it on day 2 instead of day 3 and hardcore players at 30
+  minutes instead of 52. A typical player makes about 125 Talent Agency casts in the first hour
+  instead of 52. Those casts are where spare Cash goes, so the third sound stage moves from minute
+  48 to minute 60 (the start of day 2) and day one ends at about 2,500 a minute instead of 3,200.
+  Hardcore players' first rebirth moves from 86 to 110 minutes for the same reason. The first
+  Superstar stays around minute 60, and week one ends where it did: Hollywood Casting on day 6,
+  Legend 64%, Icon 6%, about 91,000 a minute.
+- **Players are told.** A premiere that pushes Fame past any gate now says so on its result card
+  ("NEW: Talent Agency unlocked!"). `src/shared/Unlocks.luau` reads every Fame gate from Actors,
+  Movies and Upgrades, so it stays right when a gate is retuned.
+
+Other checks from the same review (nothing else was changed):
+- **Unlucky players.** Fame is the square root of each payout, so a lucky premiere moves unlocks
+  only a little: the slowest 10% reach the Talent Agency 5 minutes after the median. Nobody can hit
+  a Cash dead end: the cinema always pays at least $0.50 a second and a Short Film script costs $15.
+- **Active play against time away.** Unchanged by this: about a fifth of a typical player's
+  income is earned away by the end of day one and about 70% by the end of week one. Playtests
+  should check that casting and premieres still feel like the best use of a session late in the
+  week; the cinema royalty rate is the first lever if they do not.
+- **Sound stage 3 on day 2.** If playtesters feel the third stage comes too late, the fix is its
+  price ($25,000), not the Talent Agency gate.
+
 ## The levers and why they are set this way
 
 **Star Power grows about 2.5 times per tier** (1, 3, 8, 20, 50, 120, 300). It used to grow 4 to 8
@@ -157,39 +190,6 @@ extra Cash shows most: an earlier draft with $200 to $300 floors moved Sound sta
 8 to minute 4. With the shipped list, a typical player's milestones move by a minute or two on
 day one (first Star around minute 18 instead of 21) and not at all later in the week. Casual
 players get their first Superstar about a day sooner, mostly from the Luck boosts.
-
-## Talent Agency at 30 minutes (review, 2026-10-08)
-
-`LAUNCH_CHECKLIST.md` asks for the Talent Agency in about 20 to 30 minutes; the sim had it at 54.
-Before changing anything, the question was which requirement held it back, Cash or Fame.
-
-- **Fame was the bottleneck.** The sim's player cast at the Talent Agency the same minute its Fame
-  gate opened (54 and 54). With the Fame gate taken away, Cash alone would let it start at
-  minute 20 (slow 10%: 24). The $1,000 price was never what made players wait.
-- **One lever: the Fame gate, 3,500 to 1,400.** The price stays $1,000. Gates tried (typical
-  player, 200 runs, median and slow 10% in minutes played): 1,000 gives 25 / 28, 1,200 gives
-  28 / 31, **1,400 gives 30 / 35**, 1,500 gives 32 / 35, 1,800 gives 36 / 39, 3,500 gives 54 / 60.
-- **What it changes.** Casual players reach it on day 2 instead of day 3 and hardcore players at 30
-  minutes instead of 52. A typical player makes about 125 Talent Agency casts in the first hour
-  instead of 52. Those casts are where spare Cash goes, so the third sound stage moves from minute
-  48 to minute 60 (the start of day 2) and day one ends at about 2,500 a minute instead of 3,200.
-  Hardcore players' first rebirth moves from 86 to 110 minutes for the same reason. The first
-  Superstar stays around minute 60, and week one ends where it did: Hollywood Casting on day 6,
-  Legend 64%, Icon 6%, about 91,000 a minute.
-- **Players are told.** A premiere that pushes Fame past any gate now says so on its result card
-  ("NEW: Talent Agency unlocked!"). `src/shared/Unlocks.luau` reads every Fame gate from Actors,
-  Movies and Upgrades, so it stays right when a gate is retuned.
-
-Other checks from the same review (nothing else was changed):
-- **Unlucky players.** Fame is the square root of each payout, so a lucky premiere moves unlocks
-  only a little: the slowest 10% reach the Talent Agency 5 minutes after the median. Nobody can hit
-  a Cash dead end: the cinema always pays at least $0.50 a second and a Short Film script costs $15.
-- **Active play against time away.** Unchanged by this: about a fifth of a typical player's
-  income is earned away by the end of day one and about 70% by the end of week one. Playtests
-  should check that casting and premieres still feel like the best use of a session late in the
-  week; the cinema royalty rate is the first lever if they do not.
-- **Sound stage 3 on day 2.** If playtesters feel the third stage comes too late, the fix is its
-  price ($25,000), not the Talent Agency gate.
 
 ## Special events
 
