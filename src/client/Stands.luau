@@ -12,7 +12,7 @@ function Stands.start()
 	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		local screen = prompt:GetAttribute("Screen")
 		if typeof(screen) == "string" and Screens.open(screen) then
-			Sfx.play("click")
+			Sfx.play("panelOpen")
 		end
 	end)
 end
