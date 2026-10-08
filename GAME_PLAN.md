@@ -100,7 +100,7 @@ and players expect it.
   Golden Hour). Like the reference games' server events, but free for everyone. See section 12.
 - **Live events** (weekly): a limited "Film Festival" actor pool, like the hits' admin events.
 - **Server announcement** when anyone pulls Legend or Icon, or gets a Masterpiece.
-- Daily login rewards, 3 daily **Studio Requests** (small quests), codes for socials.
+- Daily login rewards, 3 daily **Studio Requests** and 3 **weekly quests** (small quests), codes for socials.
 
 ## 6. Progression
 
@@ -266,3 +266,27 @@ exciting by M3, fix the core before adding anything else.
   Counters never go down, and claimed goals stay claimed (`achievements` in the save).
 - Claims are checked on the server (AchievementService) from the shared list; the client only
   names the goal. The rewards and their effect on the curve are in ECONOMY.md.
+
+## 15. As built (daily and weekly quests)
+
+- The **Goals** screen now has two tabs, **Achievements** and **Quests**. The Quests tab lists today's
+  three Studio Requests ("Daily quests", with a countdown to the UTC midnight reset) and this week's
+  three weekly quests ("Weekly quests", gold outline, with a countdown to Monday 00:00 UTC). The
+  Goals button's badge counts everything ready to claim across both tabs, and finishing a quest shows
+  "Quest done" at the bottom of the screen. The Rewards screen's Requests tab still shows the daily
+  three and claims them the same way.
+- **No second quest system.** Weekly quests are more entries in `src/shared/Rewards.luau`
+  (`Rewards.Weekly`), counted by the same `QuestTracker.track` calls as the daily requests,
+  saved next to them (`weekly` in the profile, schema version 7), and claimed through the same
+  `ClaimRequest` remote (RewardService checks everything; the client only sends which one).
+- **Rotation.** A week is Monday to Sunday in UTC, the same on every server. Each week gets one quest
+  from each of three slots: *volume* (premiere 12 movies, hold 60 Casting Calls, or collect the box
+  office 25 times), *genre* (premiere 3 movies of one genre) and *skill* (3 Blockbusters or better,
+  300 clapperboard taps, or buy 8 scripts). Each slot steps through its quests one per week, so
+  the genre slot cycles Action, Comedy, Horror, Romance and nudges players to try each one. Sci-Fi is
+  left out because it opens at 2,000 Fame and a weekly quest must be possible for everyone.
+- **Rewards** are small and bigger than a daily request: 20 to 60 minutes of income, a short x2 Luck
+  boost, a Skip or two, a couple of scripts. The economy sim plays them (`--no-weekly` to compare);
+  see ECONOMY.md.
+- **Studio visits** are not a quest yet. The visits feature is a separate piece of work; once it
+  exists, a "visit 3 studios" quest is one more entry in the *volume* slot.

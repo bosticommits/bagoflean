@@ -50,6 +50,7 @@ export type PlayerData = {
 	skips: number, -- unused Skip Filming tokens
 	daily: { day: number, streak: number }, -- last UTC day a daily reward was claimed
 	requests: { day: number, list: { Request } }, -- today's Studio Requests
+	weekly: { week: number, list: { Request } }, -- this week's quests (Rewards.week)
 	codes: { [string]: boolean }, -- redeemed codes
 	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
 	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
@@ -66,7 +67,7 @@ export type PlayerData = {
 
 export type Request = { id: string, progress: number, claimed: boolean }
 
-local CURRENT_VERSION = 6 -- 6: rebirths
+local CURRENT_VERSION = 7 -- 6: rebirths, 7: weekly quests
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -90,6 +91,7 @@ local TEMPLATE: PlayerData = {
 	skips = 0,
 	daily = { day = 0, streak = 0 },
 	requests = { day = 0, list = {} },
+	weekly = { week = 0, list = {} },
 	codes = {},
 	purchaseIds = {},
 	stayGiftDay = 0,
@@ -166,6 +168,9 @@ local function migrate(data: any)
 	end
 	if type(data.requests) ~= "table" or type(data.requests.day) ~= "number" or type(data.requests.list) ~= "table" then
 		data.requests = { day = 0, list = {} }
+	end
+	if type(data.weekly) ~= "table" or type(data.weekly.week) ~= "number" or type(data.weekly.list) ~= "table" then
+		data.weekly = { week = 0, list = {} }
 	end
 	data.version = CURRENT_VERSION
 end

@@ -104,7 +104,9 @@ local function onClaimDaily(player: Player)
 	RewardService.afterGrant(player, `Day {streak}: {text}`)
 end
 
-local function onClaimRequest(player: Player, index: any)
+-- Claims a finished Studio Request (today's) or weekly quest. `scope` is "weekly" for the latter;
+-- anything else means the daily list, as before the Goals screen showed both.
+local function onClaimRequest(player: Player, index: any, scope: any)
 	if not allow(player, "request", Config.ActionCooldown) then
 		return
 	end
@@ -113,10 +115,12 @@ local function onClaimRequest(player: Player, index: any)
 		return fail(player, "Still loading your data")
 	end
 	QuestTracker.ensure(data)
-	if type(index) ~= "number" or index ~= math.floor(index) or index < 1 or index > #data.requests.list then
+	local weekly = scope == "weekly"
+	local list = if weekly then data.weekly.list else data.requests.list
+	if type(index) ~= "number" or index ~= math.floor(index) or index < 1 or index > #list then
 		return fail(player, "That didn't work")
 	end
-	local entry = data.requests.list[index]
+	local entry = list[index]
 	local request = Rewards.getRequest(entry.id)
 	if request == nil or entry.claimed then
 		return fail(player, "Already claimed")
@@ -125,9 +129,9 @@ local function onClaimRequest(player: Player, index: any)
 		return fail(player, "Not done yet")
 	end
 	entry.claimed = true
-	local text = RewardService.apply(player, data, request.reward, "TimedReward", "Request")
-	Analytics.event(player, "RequestClaim", 1, request.id)
-	RewardService.afterGrant(player, `Request done: {text}`)
+	local text = RewardService.apply(player, data, request.reward, "TimedReward", if weekly then "WeeklyQuest" else "Request")
+	Analytics.event(player, if weekly then "WeeklyQuestClaim" else "RequestClaim", 1, request.id)
+	RewardService.afterGrant(player, `{if weekly then "Weekly quest" else "Request"} done: {text}`)
 end
 
 local function onRedeemCode(player: Player, raw: any)

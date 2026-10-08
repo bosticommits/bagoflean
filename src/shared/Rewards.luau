@@ -46,6 +46,7 @@ export type Request = {
 	target: number,
 	text: string,
 	reward: Reward,
+	slot: string?, -- weekly quests only: which of the week's three slots it can fill
 }
 
 -- Three of these are picked each day (the same three for everyone).
@@ -59,9 +60,34 @@ Rewards.Requests = {
 } :: { Request }
 Rewards.RequestsPerDay = 3
 
+-- Weekly quests: one from each slot, shared by every player for the whole week (Monday to Sunday,
+-- UTC). Bigger than a daily request and meant to be spread over the week. Rewards are small like
+-- the rest (a short Luck boost, a Skip, 30 to 60 minutes of income), so see ECONOMY.md before
+-- raising them. The "genre" slot asks for premieres of one genre and cycles through all of them, so
+-- a player who sticks to one genre is nudged to try the others. Sci-Fi is left out: it opens at
+-- 2,000 Fame, and a weekly quest must be possible for every player. Kinds are the ones
+-- QuestTracker.track gets; "premiere:<genre>" is counted on top of "premiere". The economy sim
+-- reads this list, so keep each quest on one line.
+Rewards.WeeklySlots = table.freeze({ "volume", "genre", "skill" })
+Rewards.Weekly = {
+	{ id = "WPremiere12", slot = "volume", kind = "premiere", target = 12, text = "Premiere 12 movies", reward = { cash = 1500, cashMinutes = 45 } },
+	{ id = "WCast60", slot = "volume", kind = "cast", target = 60, text = "Hold 60 Casting Calls", reward = { cash = 1200, cashMinutes = 40 } },
+	{ id = "WCollect25", slot = "volume", kind = "collect", target = 25, text = "Collect the box office 25 times", reward = { cash = 1000, cashMinutes = 30 } },
+	{ id = "WAction3", slot = "genre", kind = "premiere:Action", target = 3, text = "Premiere 3 Action movies", reward = { luckMinutes = 20, skips = 1 } },
+	{ id = "WComedy3", slot = "genre", kind = "premiere:Comedy", target = 3, text = "Premiere 3 Comedy movies", reward = { luckMinutes = 20, skips = 1 } },
+	{ id = "WHorror3", slot = "genre", kind = "premiere:Horror", target = 3, text = "Premiere 3 Horror movies", reward = { luckMinutes = 20, skips = 1 } },
+	{ id = "WRomance3", slot = "genre", kind = "premiere:Romance", target = 3, text = "Premiere 3 Romance movies", reward = { luckMinutes = 20, skips = 1 } },
+	{ id = "WHit3", slot = "skill", kind = "hit", target = 3, text = "Get 3 Blockbusters or better", reward = { skips = 2, cash = 2000, cashMinutes = 60 } },
+	{ id = "WClap300", slot = "skill", kind = "clap", target = 300, text = "Tap the clapperboard 300 times", reward = { luckMinutes = 15, cash = 800, cashMinutes = 30 } },
+	{ id = "WScripts8", slot = "skill", kind = "script", target = 8, text = "Buy 8 scripts", reward = { script = { genre = "Comedy", length = "Indie", count = 2 }, cash = 600, cashMinutes = 20 } },
+} :: { Request }
+
 local requestById: { [string]: Request } = {}
 for _, request in Rewards.Requests do
 	requestById[request.id] = request
+end
+for _, quest in Rewards.Weekly do
+	requestById[quest.id] = quest
 end
 
 function Rewards.getRequest(id: string): Request?
@@ -84,6 +110,33 @@ function Rewards.requestsFor(day: number): { string }
 		ids[i], ids[j] = ids[j], ids[i]
 	end
 	return { table.unpack(ids, 1, Rewards.RequestsPerDay) }
+end
+
+-- Weeks run Monday to Sunday (UTC). Day 0 (1 Jan 1970) was a Thursday, so Monday is day 4.
+function Rewards.week(now: number): number
+	return (now // 86400 + 3) // 7
+end
+
+-- Unix time a week starts at (the Monday 00:00 UTC), so `weekStart(week + 1)` is when it ends.
+function Rewards.weekStart(week: number): number
+	return (week * 7 - 3) * 86400
+end
+
+-- The week's quest ids, one per slot in WeeklySlots order. Each slot steps through its quests one
+-- per week, so every quest comes round (and every genre, in the genre slot) and the same on every
+-- server.
+function Rewards.weeklyFor(week: number): { string }
+	local ids: { string } = {}
+	for _, slot in Rewards.WeeklySlots do
+		local pool: { Request } = {}
+		for _, quest in Rewards.Weekly do
+			if quest.slot == slot then
+				table.insert(pool, quest)
+			end
+		end
+		table.insert(ids, pool[week % #pool + 1].id)
+	end
+	return ids
 end
 
 -- Saved daily state: the day last claimed and the streak reached on it.

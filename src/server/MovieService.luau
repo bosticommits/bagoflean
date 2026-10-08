@@ -372,6 +372,7 @@ local function onPremiere(player: Player, stage: any)
 	Analytics.onboarding(player, Analytics.Steps.FirstPremiere)
 	Analytics.event(player, "Premiere", 1, result.id, film.length)
 	QuestTracker.track(player, "premiere")
+	QuestTracker.track(player, "premiere:" .. film.genre) -- weekly genre quests
 	if result.multiplier >= 3 then
 		QuestTracker.track(player, "hit")
 	end

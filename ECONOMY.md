@@ -11,8 +11,9 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --days 28           # four weeks, to see the rebirth ladder
     python3 tools/economy_sim.py --no-rebirth        # a player who never rebirths
     python3 tools/economy_sim.py --no-events         # the same week without special events
+    python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
 
-The sim includes Award Night, special events, daily rewards, Studio Requests, achievements, codes, the "don't leave yet" gift,
+The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
 than about 20 minutes of income, and rebirths as soon as it can afford one). It does not model game passes other than 2x Luck, or
 Robux cash packs. Treat it as the shape of the curve, not a promise: playtests decide.
@@ -154,6 +155,13 @@ extra Cash shows most: an earlier draft with $200 to $300 floors moved Sound sta
 8 to minute 4. With the shipped list, a typical player's milestones move by a minute or two on
 day one (first Star around minute 18 instead of 21) and not at all later in the week. Casual
 players get their first Superstar about a day sooner, mostly from the Luck boosts.
+
+**Weekly quests are a small weekly top-up.** Each week brings three (`Rewards.Weekly`), worth 20 to
+60 minutes of income, a short Luck boost, a Skip or two, or a couple of scripts each. The sim has
+the player finish all three on day 4 (`--no-weekly` leaves them out): a typical player's first
+week ends with about 3% more Cash per minute (about 91k against 88k), milestones move by a few
+minutes at most, and the fourth rebirth lands in week one for 55% of runs instead of 46%. Real
+players will finish fewer, so this is the upper end. They cannot change the odds of rare actors.
 
 ## Special events
 

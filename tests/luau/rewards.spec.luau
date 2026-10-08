@@ -30,6 +30,10 @@ test("every daily, request, gift and product reward is valid", function()
 		validReward(request.reward, `request {request.id}`)
 		expect(request.target > 0, `request {request.id} target`)
 	end
+	for _, quest in Rewards.Weekly do
+		validReward(quest.reward, `weekly quest {quest.id}`)
+		expect(quest.target > 0, `weekly quest {quest.id} target`)
+	end
 	validReward(Rewards.StayGift, "stay gift")
 	for _, product in Shop.Products do
 		validReward(product.reward, `product {product.key}`)
@@ -77,6 +81,65 @@ test("each day picks distinct, real Studio Requests", function()
 			picked[id] = true
 		end
 	end
+end)
+
+test("weeks run Monday to Sunday UTC", function()
+	local monday = 20731 -- 5 Oct 2026, 00:00 UTC (a Monday)
+	equal((monday + 3) % 7, 0, "day 20731 is a Monday (day 4 of 1970 was)")
+	equal(Rewards.week(monday * 86400), Rewards.week((monday + 6) * 86400 + 86399), "Monday to Sunday is one week")
+	equal(Rewards.week((monday + 7) * 86400), Rewards.week(monday * 86400) + 1, "next Monday starts a new week")
+	equal(Rewards.week(monday * 86400 - 1), Rewards.week(monday * 86400) - 1, "Sunday night is the old week")
+	local week = Rewards.week(monday * 86400)
+	equal(Rewards.weekStart(week), monday * 86400, "weekStart is Monday 00:00")
+	equal(Rewards.weekStart(week + 1), (monday + 7) * 86400, "the week ends when the next starts")
+	equal(Rewards.week(0), 0, "the epoch week")
+end)
+
+test("each week has one real weekly quest per slot, that every player can finish", function()
+	local seen = {}
+	for _, quest in Rewards.Weekly do
+		expect(not seen[quest.id], `duplicate weekly quest {quest.id}`)
+		expect(Rewards.getRequest(quest.id) == quest, `{quest.id} is found by getRequest`)
+		seen[quest.id] = true
+		local genre = string.match(quest.kind, "^premiere:(.+)$")
+		if genre ~= nil then
+			expect(Movies.isGenre(genre), `{quest.id} asks for unknown genre {genre}`)
+			expect((Movies.GenreFame[genre] or 0) <= 100, `{quest.id}: {genre} needs too much Fame for a weekly quest`)
+		else
+			expect(table.find({ "cast", "premiere", "hit", "clap", "script", "collect" }, quest.kind) ~= nil, `{quest.id} counts unknown kind {quest.kind}`)
+		end
+	end
+	for week = 2900, 2960 do
+		local ids = Rewards.weeklyFor(week)
+		equal(#ids, #Rewards.WeeklySlots, `one quest per slot in week {week}`)
+		for slot, id in ids do
+			local quest = Rewards.getRequest(id)
+			expect(quest ~= nil and quest.slot == Rewards.WeeklySlots[slot], `week {week} slot {slot} holds {id}`)
+		end
+		equal(table.concat(ids, ","), table.concat(Rewards.weeklyFor(week), ","), `week {week} is the same on every call`)
+	end
+end)
+
+test("weekly quests cycle through every quest, and every genre", function()
+	local seen, genres = {}, {}
+	for week = 2900, 2909 do
+		for _, id in Rewards.weeklyFor(week) do
+			seen[id] = true
+			local genre = string.match((Rewards.getRequest(id) :: Rewards.Request).kind, "^premiere:(.+)$")
+			if genre ~= nil then
+				genres[genre] = true
+			end
+		end
+	end
+	for _, quest in Rewards.Weekly do
+		expect(seen[quest.id], `{quest.id} never comes up`)
+	end
+	local count = 0
+	for _ in genres do
+		count += 1
+	end
+	equal(count, 4, "all four open genres come up")
+	expect(Rewards.weeklyFor(2900)[2] ~= Rewards.weeklyFor(2901)[2], "the genre changes week to week")
 end)
 
 test("cash rewards use the floor or minutes of income, whichever is more", function()
