@@ -39,7 +39,7 @@ local CARD_HEIGHT = 92
 local PILL_HEIGHT = 38
 local TIP_HEIGHT = 22
 local GAP = 6
-local TOP_PAD = 10 -- room above the card for the Skip tab
+local TOP_PAD = 14 -- room above the card for the Skip tab
 local ROW_HEIGHT = 56
 local COMPACT_TIP = 18
 
@@ -382,7 +382,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	tapper.ZIndex = 10
 	tapper.Parent = card
 
-	local skip = UiKit.makeButton(card, "Skip", UiKit.TAB_OFF, UDim2.fromOffset(62, 26))
+	local skip = UiKit.makeButton(card, "Skip", UiKit.TAB_OFF, UDim2.fromOffset(72, 32))
 	skip.Name = "Skip"
 	skip.AnchorPoint = Vector2.new(1, 0)
 	skip.ZIndex = 11
@@ -1206,19 +1206,29 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		begin.AnchorPoint = Vector2.new(0.5, 0)
 		begin.Position = UDim2.fromScale(0.5, 0.87)
 		begin.ZIndex = 8
-		local beginLimit = Instance.new("UISizeConstraint")
-		beginLimit.MaxSize = Vector2.new(260, 60)
-		beginLimit.MinSize = Vector2.new(150, 36)
-		beginLimit.Parent = begin
 		begin.Activated:Connect(closeSplash)
 
-		-- The stage fills the room under the dialogue.
+		-- The stage fills the room under the dialogue: the button (at least 56 px tall, for
+		-- thumbs) and the name plate at the bottom, Lucien in the space above them.
 		local function place()
 			local area = gui.AbsoluteSize
 			local topEdge = gui:GetAttribute("PanelTop")
 			local y = if typeof(topEdge) == "number" then topEdge else 120
+			local width = math.min(area.X, 560)
+			local height = math.max(200, area.Y - y - 8)
 			stage.Position = UDim2.new(0.5, 0, 0, y)
-			stage.Size = UDim2.new(0, math.min(area.X, 560), 0, math.max(120, area.Y - y - 8))
+			stage.Size = UDim2.fromOffset(width, height)
+			local buttonHeight = math.clamp(math.floor(height * 0.14), 56, 64)
+			local plateHeight = math.clamp(math.floor(height * 0.15), 44, 80)
+			begin.Size = UDim2.fromOffset(math.clamp(math.floor(width * 0.5), 200, 280), buttonHeight)
+			begin.Position = UDim2.fromOffset(width / 2, height - buttonHeight)
+			plate.Size = UDim2.fromOffset(math.min(math.floor(width * 0.9), 400), plateHeight)
+			plate.Position = UDim2.fromOffset(width / 2, height - buttonHeight - 10 - plateHeight)
+			local figureBottom = height - buttonHeight - plateHeight - 16
+			figure.Size = UDim2.fromOffset(figureBottom, figureBottom)
+			figure.Position = UDim2.fromOffset(width / 2, figureBottom)
+			floor.Position = UDim2.fromOffset(width / 2, figureBottom - 4)
+			floor.Size = UDim2.fromOffset(math.floor(width * 0.5), math.max(12, math.floor(figureBottom * 0.1)))
 		end
 		place()
 		local placing = gui:GetAttributeChangedSignal("PanelTop"):Connect(place)
