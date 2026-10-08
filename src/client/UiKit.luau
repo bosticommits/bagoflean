@@ -578,6 +578,7 @@ function UiKit.togglePanel(panel: Frame, build: () -> ())
 	if willOpen then
 		build()
 		panel.Visible = true
+		Sfx.play("panelOpen")
 	end
 end
 

@@ -8,10 +8,12 @@ local CastingUi = require(script.Parent.CastingUi)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
+local Music = require(script.Parent.Music)
 local RewardsUi = require(script.Parent.RewardsUi)
 local Sfx = require(script.Parent.Sfx)
 local ShopUi = require(script.Parent.ShopUi)
 local SideMenu = require(script.Parent.SideMenu)
+local SoundSettingsUi = require(script.Parent.SoundSettingsUi)
 local Stands = require(script.Parent.Stands)
 local StudioUi = require(script.Parent.StudioUi)
 local Tutorial = require(script.Parent.Tutorial)
@@ -34,6 +36,7 @@ gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 gui.Parent = playerGui
 
 Sfx.start()
+Music.start()
 local side = SideMenu.start(gui)
 local cashPlus = Hud.start(gui, side.wallet)
 
@@ -49,6 +52,7 @@ if remotes ~= nil then
 	RewardsUi.start(gui, side.rewards, side.codes)
 	AchievementsUi.start(gui, side.goals)
 	Stands.start()
+	SoundSettingsUi.start(gui, remotes)
 	Tutorial.start(gui, remotes)
 else
 	warn("[MovieMogul] Remotes folder never arrived")

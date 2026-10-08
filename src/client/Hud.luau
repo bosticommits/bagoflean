@@ -153,7 +153,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		if collected < 1 then
 			return
 		end
-		Sfx.play("sweep")
+		Sfx.play("cashCollect")
+		Sfx.play("coin")
 		-- Rises from the Cash number.
 		local float = UiKit.makeTitle(wallet, "+$" .. comma(collected), UiKit.CASH_GREEN, UDim2.fromOffset(220, 32), UDim2.fromOffset(54, -6), 3)
 		float.TextXAlignment = Enum.TextXAlignment.Left
@@ -181,9 +182,14 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	UiKit.onViewportChanged(placeFrame)
 
 	task.spawn(function()
+		local wasActive: boolean? = nil
 		while eventLabel.Parent ~= nil do
 			local now = workspace:GetServerTimeNow()
 			local active, left = Events.awardNight(now)
+			if active and wasActive == false then
+				Sfx.play("awardNight")
+			end
+			wasActive = active
 			local text
 			if active then
 				text = `AWARD NIGHT! x{Config.AwardNightLuckMultiplier} Luck & payouts  {clock(left)}`
@@ -221,14 +227,26 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		UiKit.corner(away, 12)
 		UiKit.border(away, 3, UiKit.AWARD_GOLD)
 		UiKit.textConstraint(away, 22)
-		Sfx.play("jingle")
+		Sfx.play("welcome")
 		task.delay(7, function()
 			away:Destroy()
 		end)
 	end
 
+	-- Cash only drops when the player spends it (upgrades, scripts, casting, stages).
+	local lastCash = player:GetAttribute("Cash") or 0
+	local function onCash()
+		local cash = player:GetAttribute("Cash") or 0
+		if cash < lastCash and player:GetAttribute("DataLoaded") then
+			Sfx.play("spend")
+		end
+		lastCash = cash
+	end
+
 	player.AttributeChanged:Connect(function(name)
-		if name == "Pending" then
+		if name == "Cash" then
+			onCash()
+		elseif name == "Pending" then
 			onPending()
 		elseif name == "DataLoaded" and player:GetAttribute("DataLoaded") then
 			showAwayEarnings()

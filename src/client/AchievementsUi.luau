@@ -239,7 +239,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			local achievement = Achievements.get(id)
 			if before ~= nil and not before[id] and achievement ~= nil then
 				UiKit.toast(gui, `Goal reached: {achievement.text}!`)
-				Sfx.play("jingle")
+				Sfx.play("goal")
 			end
 		end
 		SideMenu.setBadge(goalsButton, count)
