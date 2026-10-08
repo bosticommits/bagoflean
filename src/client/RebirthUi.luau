@@ -22,7 +22,6 @@ local WHITE = UiKit.WHITE
 local RebirthUi = {}
 
 local FOOTER = 76 -- room under the list for the Rebirth button
-local CONFIRM_SECONDS = 6 -- the "are you sure?" step goes away by itself after this
 local CONFIRM_GUARD = 0.4 -- a double tap can't answer "are you sure?" by accident
 
 local REASONS: { [string]: string } = {
@@ -143,8 +142,9 @@ function RebirthUi.start(gui: ScreenGui, rebirthButton: TextButton)
 	yes.Visible = false
 	no.Visible = false
 
+	-- The "are you sure?" step stays until it is answered or the screen closes: no timer, so a slow
+	-- reader (or a Studio playtest) never finds the Yes button gone.
 	local confirming = false
-	local confirmToken = 0
 	local confirmShownAt = 0
 	local waiting = false -- asked the server, no answer yet
 
@@ -153,15 +153,8 @@ function RebirthUi.start(gui: ScreenGui, rebirthButton: TextButton)
 		go.Visible = not on
 		yes.Visible = on
 		no.Visible = on
-		confirmToken += 1
 		if on then
 			confirmShownAt = os.clock()
-			local mine = confirmToken
-			task.delay(CONFIRM_SECONDS, function()
-				if confirmToken == mine and confirming then
-					setConfirming(false)
-				end
-			end)
 		end
 	end
 
