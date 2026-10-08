@@ -128,10 +128,11 @@ local function onCast(player: Player, agencyId: any)
 		isNew = isNew,
 		count = count,
 	})
+	-- Counted first, so a slow or failing lot redraw below can never lose a cast's progress.
+	QuestTracker.track(player, "cast")
 	sendRoster(player)
 	LotService.refresh(player) -- the billboard may have a new top star
 	Analytics.onboarding(player, Analytics.Steps.FirstCast)
-	QuestTracker.track(player, "cast")
 	if actor.tier == "Superstar" or actor.tier == "Legend" or actor.tier == "Icon" then
 		Analytics.event(player, "RarePull", 1, actor.tier, variant.id)
 	end

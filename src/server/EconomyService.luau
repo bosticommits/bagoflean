@@ -49,7 +49,9 @@ function EconomyService.refresh(player: Player)
 	end
 	player:SetAttribute("Cash", data.cash)
 	player:SetAttribute("Pending", EconomyService.pending(data))
-	player:SetAttribute("Rate", math.floor(EconomyService.rate(data) * 100) / 100)
+	-- Exact, not rounded: reward screens work out "N minutes of income" from it, and must show
+	-- the same Cash the server grants.
+	player:SetAttribute("Rate", EconomyService.rate(data))
 	player:SetAttribute("Fame", data.fame)
 end
 

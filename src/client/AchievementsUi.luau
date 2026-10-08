@@ -191,10 +191,12 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			local value = progress[current.id] or 0
 
 			row.title.Text = current.text
-			row.reward.Text = if allDone then "All done!" else "Reward: " .. Rewards.describe(current.reward, rate())
+			local stepText = if #group.list > 1 then `Goal {step} of {#group.list}` else ""
+			row.reward.Text = if allDone
+				then (if stepText ~= "" then `All {#group.list} done!` else "Done!")
+				else (if stepText ~= "" then stepText .. "  ·  " else "") .. "Reward: " .. Rewards.describe(current.reward, rate())
 			row.fill.Size = UDim2.fromScale(math.clamp(value / current.target, 0, 1), 1)
 			row.count.Text = `{Hud.comma(value)}/{Hud.comma(current.target)}`
-			UiKit.chip(row.icon, if #group.list > 1 then `{step}/{#group.list}` else nil)
 			row.claimId = if ready then current.id else nil
 			row.claim.Visible = ready
 			row.waiting.Visible = not ready and not allDone
@@ -223,6 +225,12 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		end
 	end)
 	Screens.register("Goals", open)
+	-- Cash rewards are minutes of income: keep the amounts shown in step with it.
+	player:GetAttributeChangedSignal("Rate"):Connect(function()
+		if panel.Visible then
+			render()
+		end
+	end)
 
 	achievementsSync.OnClientEvent:Connect(function(payload)
 		if type(payload) ~= "table" or type(payload.progress) ~= "table" or type(payload.claimed) ~= "table" then
