@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
@@ -48,7 +49,9 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		order += 1
 		local summary = UiKit.addRow(list, order, 64)
 		local rate = if ClientState.studio ~= nil then ClientState.studio.rate else Config.CinemaIncomePerSecond
-		makeLabel(summary, `Luck x{string.format("%.2f", Upgrades.luck(stats))}  -  Fame {Hud.comma(fame)}`, UiKit.GOLD, UDim2.new(1, -20, 0, 28), UDim2.fromOffset(10, 4))
+		local rebirths = stats.rebirths or 0
+		local rebirthText = if rebirths > 0 then `  -  Rebirth {Rebirth.multiplierText(rebirths)} Cash` else ""
+		makeLabel(summary, `Luck x{string.format("%.2f", Upgrades.luck(stats))}  -  Fame {Hud.comma(fame)}{rebirthText}`, UiKit.GOLD, UDim2.new(1, -20, 0, 28), UDim2.fromOffset(10, 4))
 		makeLabel(summary, `Royalties ${string.format("%.2f", rate)}/s  -  offline cap {Upgrades.offlineCap(stats) / 3600}h`, UiKit.MUTED, UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 36))
 
 		for _, upgrade in Upgrades.List do

@@ -8,10 +8,13 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py                 # typical player, 300 runs
     python3 tools/economy_sim.py --player casual
     python3 tools/economy_sim.py --runs 50 --seed 7
+    python3 tools/economy_sim.py --days 28           # four weeks (rebirths keep going)
+    python3 tools/economy_sim.py --no-rebirth        # the player never rebirths
 
 The player model is deliberately plain: it collects, claps, premieres as soon as a film is
 ready, buys the cheapest useful upgrade it can afford, picks the best script and cast it owns,
-and spends the rest on casting. Real players are messier, so treat the output as a curve shape,
+and spends the rest on casting. Once a rebirth costs less than about 20 minutes of income it stops
+buying upgrades and saves for it, then rebirths as soon as it can afford one. Real players are messier, so treat the output as a curve shape,
 not a promise.
 """
 from __future__ import annotations
@@ -102,12 +105,16 @@ def load_tuning() -> dict:
         if upgrade["id"] == "Stages":
             upgrade["maxLevel"] = config["MaxStages"] - config["StartingStages"]
 
+    rebirth_text = (SHARED / "Rebirth.luau").read_text()
+    rebirth = {key: _num(value) for key, value in re.findall(r"^Rebirth\.(\w+) = ([\d.]+)", rebirth_text, re.M)}
+
     events_text = (SHARED / "Events.luau").read_text()
     rewards_text = (SHARED / "Rewards.luau").read_text()
     codes_text = (ROOT / "src" / "server" / "Codes.luau").read_text()
 
     return {
         "config": config,
+        "rebirth": rebirth,
         "award_period": _num(re.search(r"Events.AwardNightPeriod = ([^\n]+)", events_text).group(1)),
         "award_length": _num(re.search(r"Events.AwardNightLength = ([^\n]+)", events_text).group(1)),
         "daily": [_reward(line) for line in _block(rewards_text, "Rewards.Daily").splitlines() if "{" in line],
@@ -273,6 +280,8 @@ class Player:
         self.last_daily_day = -1
         self.clock_offset = rng.uniform(0, game.t["award_period"])  # where Award Night falls
         self.curve: dict[int, dict] = {}
+        self.rebirths = 0
+        self.rebirth_enabled = True
 
     # stats
     def level(self, uid: str) -> int:
@@ -281,7 +290,40 @@ class Player:
     def luck(self) -> float:
         c = self.g.c
         tiers = sum(1 for r in self.rewards if r.startswith("tier:"))
-        return c["BaseLuck"] + c["LuckStep"] * self.level("Luck") + c["TierRewardLuck"] * tiers
+        return (c["BaseLuck"] + c["LuckStep"] * self.level("Luck") + c["TierRewardLuck"] * tiers
+                + self.g.t["rebirth"]["LuckStep"] * self.rebirths)
+
+    # rebirth (Rebirth.luau and RebirthService)
+    def cash_mult(self) -> float:
+        return 1 + self.g.t["rebirth"]["CashStep"] * self.rebirths
+
+    def rebirth_cost(self) -> float | None:
+        r = self.g.t["rebirth"]
+        if not self.rebirth_enabled or self.rebirths >= r["Max"]:
+            return None
+        return math.floor(r["FirstCost"] * r["CostGrowth"] ** self.rebirths)
+
+    def saving_for_rebirth(self) -> float | None:
+        """The rebirth price while the player is saving for it (within SAVE_MINUTES of income)."""
+        cost = self.rebirth_cost()
+        if cost is None or cost > self.income_per_second() * 60 * SAVE_MINUTES:
+            return None
+        return cost
+
+    def try_rebirth(self):
+        cost = self.rebirth_cost()
+        if cost is None or self.cash < cost:
+            return
+        # RebirthService: bank the box office at the old rate, then reset Cash and upgrades. The
+        # waiting box office comes along as starting Cash; films already filming keep going.
+        self.accrue()
+        banked = math.floor(self.accrued)
+        self.accrued -= banked
+        self.cash = self.g.c["StartingCash"] + banked
+        self.upgrades = {u: 0 for u in self.upgrades}
+        self.stage_count = int(self.g.c["StartingStages"])
+        self.rebirths += 1
+        self.mark(f"Rebirth {self.rebirths}")
 
     def award_night(self) -> bool:
         return (self.now + self.clock_offset) % self.g.t["award_period"] < self.g.t["award_length"]
@@ -421,7 +463,7 @@ class Player:
             for length in self.unlocked_lengths():
                 if length["cost"] > self.cash:
                     continue
-                expected = length["base"] * power * self.genre_bonus(genre) * luck_mult
+                expected = length["base"] * power * self.genre_bonus(genre) * luck_mult * self.cash_mult()
                 profit = expected - length["cost"]
                 if profit <= 0:
                     continue
@@ -480,11 +522,13 @@ class Player:
                                    self.genre_bonus(film["genre"]))
             if self.award_night():
                 payout *= self.g.c["AwardNightPayoutMultiplier"]
+            fame = self.g.fame(payout)  # Fame comes from the movie itself, before the rebirth bonus
+            payout = math.floor(payout * self.cash_mult())
             self.accrue()
             self.cinema.append(payout)
             self.cinema.sort(reverse=True)
             del self.cinema[int(self.g.c["CinemaCapacity"]):]
-            self.fame += self.g.fame(payout)
+            self.fame += fame
             self.cash += payout
             self.earned_total += payout
             self.premieres += 1
@@ -519,6 +563,8 @@ class Player:
         return best
 
     def buy_upgrades(self):
+        if self.saving_for_rebirth() is not None:
+            return  # upgrades would be reset by the rebirth
         while True:
             nxt = self.next_upgrade()
             if nxt is None or nxt[1] > self.cash:
@@ -541,14 +587,17 @@ class Player:
         films = 0.0
         for film in self.films:
             films += film["length"]["base"] * film["power"] * luck_mult / film["length"]["seconds"]
-        return self.rate() + films
+        return self.rate() + films * self.cash_mult()
 
     def cast(self, dt: float):
         self.cast_credit = min(self.cast_credit + self.cast_rate * dt, 3)
         # Save towards the next upgrade if it is within ~4 minutes of income.
         reserve = 0.0
         nxt = self.next_upgrade()
-        if nxt is not None and nxt[1] <= self.income_per_second() * 240:
+        saving = self.saving_for_rebirth()
+        if saving is not None:
+            reserve = saving
+        elif nxt is not None and nxt[1] <= self.income_per_second() * 240:
             reserve = nxt[1]
         # Keep money for a script on every stage too.
         reserve += sum(l["cost"] for l in self.unlocked_lengths()[:1]) * self.stage_count
@@ -616,6 +665,7 @@ class Player:
                 self.finish_requests()
                 requests_at = None
             self.claim_rewards()
+            self.try_rebirth()
             self.buy_upgrades()
             remaining = end - self.now
             self.start_films(None if remaining > 180 else remaining + offline_after)
@@ -631,7 +681,8 @@ class Player:
         return {"cash/min": self.income_per_second() * 60, "cinema/min": self.rate() * 60, "fame": self.fame, "luck": self.luck(),
                 "index": len(self.index),
                 "reward %": 100 * self.reward_earned / max(1, self.earned_total),
-                "offline %": 100 * self.offline_earned / max(1, self.earned_total), "stages": self.stage_count, "premieres": self.premieres}
+                "offline %": 100 * self.offline_earned / max(1, self.earned_total), "stages": self.stage_count, "premieres": self.premieres,
+                "rebirths": self.rebirths}
 
 
 # --- Schedules ----------------------------------------------------------------------------------
@@ -641,10 +692,12 @@ H, M = 3600, 60
 # player is also reading reveals, picking casts and walking to the collect pad).
 CAST_RATE = 0.35
 CLAP_RATE = 0.6
-CURVE_MINUTES = (5, 10, 20, 30, 45, 60, 90, 120, 180, 240, 300, 330)
+CURVE_MINUTES = (5, 10, 20, 30, 45, 60, 90, 120, 180, 240, 300, 330, 480, 660, 990, 1320)
+# A player starts saving for a rebirth once it costs less than this many minutes of income.
+SAVE_MINUTES = 20
 
 
-def schedule(kind: str) -> list[tuple[str, float, float]]:
+def schedule(kind: str, total_days: int = 7) -> list[tuple[str, float, float]]:
     """(label, minutes online, minutes offline after). Each day adds to 24 h."""
     days = []
     if kind == "typical":
@@ -659,7 +712,7 @@ def schedule(kind: str) -> list[tuple[str, float, float]]:
         rest = [(60, 3 * 60), (60, 0)]
     else:
         raise SystemExit(f"unknown player {kind}")
-    for day in range(1, 8):
+    for day in range(1, total_days + 1):
         plan = day1 if day == 1 else rest
         used = sum(on + off for on, off in plan)
         sessions = list(plan)
@@ -681,7 +734,7 @@ def fmt_time(seconds: float | None, sched) -> str:
             return f"day {day} ({played / M:.0f} min played)"
         clock += (on + off) * M
         played += on * M
-    return "after week 1"
+    return "later"
 
 
 def played_minutes(seconds: float, sched) -> float:
@@ -696,19 +749,23 @@ def played_minutes(seconds: float, sched) -> float:
     return played / M
 
 
-def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False):
+def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7,
+        rebirth: bool = True):
     game = Game(tuning)
-    sched = schedule(kind)
+    sched = schedule(kind, days)
     events: dict[str, list[float]] = {}
     snaps: dict[str, list[dict]] = {}
     last_of_day = {}
     for label, _, _ in sched:
         last_of_day[label.split()[1]] = label
     checkpoints = {"day 1 session 1": "end of first session", last_of_day["1"]: "end of day 1",
-                   last_of_day["3"]: "end of day 3", last_of_day["7"]: "end of week 1"}
+                   last_of_day["3"]: "end of day 3"}
+    for week in range(1, days // 7 + 1):
+        checkpoints[last_of_day[str(week * 7)]] = f"end of week {week}"
     for r in range(runs):
         player = Player(game, random.Random(seed + r), clap_rate=CLAP_RATE, cast_rate=CAST_RATE)
         player.luck_pass = luck_pass
+        player.rebirth_enabled = rebirth
         for i, (label, on, off) in enumerate(sched):
             day = int(label.split()[1])
             first_today = i == 0 or sched[i - 1][0].split()[1] != str(day)
@@ -723,13 +780,14 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False):
     return game, sched, events, snaps, runs
 
 
-def report(kind: str, runs: int, seed: int, luck_pass: bool = False):
+def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7, rebirth: bool = True):
     tuning = load_tuning()
-    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass)
+    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth)
     owns = " with the 2x Luck pass" if luck_pass else ""
-    print(f"# Movie Mogul economy sim: {kind} player{owns}, {runs} runs\n")
+    never = ", never rebirths" if not rebirth else ""
+    print(f"# Movie Mogul economy sim: {kind} player{owns}{never}, {runs} runs\n")
     total_played = sum(on for _, on, _ in sched)
-    print(f"Schedule: {total_played / 60:.1f} h played over 7 days.\n")
+    print(f"Schedule: {total_played / 60:.1f} h played over {days} days.\n")
     print("| Milestone | Players who reach it | Median | Fast 10% | Slow 10% |")
     print("|---|---|---|---|---|")
     rows = []
@@ -768,5 +826,7 @@ if __name__ == "__main__":
     parser.add_argument("--runs", type=int, default=300)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--luck-pass", action="store_true", help="the player owns the 2x Luck game pass")
+    parser.add_argument("--days", type=int, default=7, help="days to simulate (whole weeks get a checkpoint)")
+    parser.add_argument("--no-rebirth", action="store_true", help="the player never rebirths")
     args = parser.parse_args()
-    report(args.player, args.runs, args.seed, args.luck_pass)
+    report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth)
