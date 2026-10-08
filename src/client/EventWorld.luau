@@ -461,9 +461,10 @@ local function mysteryCrate(run: Run, late: boolean)
 	local landAt = run.live.starts + SpecialEvents.CrateLandSeconds
 	local crate, lid = EventModels.crate(folder, CFrame.new(base))
 	local chute: Model? = EventModels.parachute(folder, CFrame.new(base))
-	EventModels.beam(folder, base, 170, 4, PURPLE)
+	-- A soft beam and ring: easy to spot from across town without glaring up close.
+	EventModels.beam(folder, base, 170, 4, PURPLE).Transparency = 0.72
 	-- The ring shows how close you need to get.
-	EventModels.ring(folder, base + Vector3.new(0, 0.1, 0), SpecialEvents.CrateRadius * 2, PURPLE)
+	EventModels.ring(folder, base + Vector3.new(0, 0.1, 0), SpecialEvents.CrateRadius * 2, PURPLE).Transparency = 0.6
 	local _, distance = marker(folder, base + Vector3.new(0, 9, 0), "MYSTERY CRATE", Color3.fromRGB(226, 180, 255))
 
 	local landed = false
@@ -471,13 +472,15 @@ local function mysteryCrate(run: Run, late: boolean)
 	local opened = false
 	local already = false
 	local retryAt = 0
-	local lidRest = lid:GetPivot()
+	-- The lid's place on the crate, so it can hop and flip while the crate bounces.
+	local lidOnCrate = crate:GetPivot():ToObjectSpace(lid:GetPivot())
+	local landedAt: number? = nil
 	local openFrom: number? = nil
 
 	local function land(quiet: boolean)
 		landed = true
+		landedAt = if quiet then nil else os.clock()
 		crate:PivotTo(CFrame.new(base))
-		lidRest = lid:GetPivot()
 		local canopy = chute
 		chute = nil
 		if canopy ~= nil then
@@ -497,7 +500,7 @@ local function mysteryCrate(run: Run, late: boolean)
 	end
 	local function open(quiet: boolean)
 		opened = true
-		openFrom = os.clock()
+		openFrom = if quiet then os.clock() - 10 else os.clock()
 		if not quiet then
 			burst(folder, base + Vector3.new(0, 5, 0), { GOLD, Color3.fromRGB(226, 180, 255) }, 40, true)
 			Fx.confetti(60)
@@ -514,9 +517,11 @@ local function mysteryCrate(run: Run, late: boolean)
 			if left <= 0 then
 				land(false)
 			else
+				-- A steady drop under the parachute, swinging less as it nears the ground.
 				local u = math.clamp(1 - left / SpecialEvents.CrateLandSeconds, 0, 1)
-				local sway = math.sin(now * 2.2) * 0.12 * (1 - u)
-				local at = CFrame.new(base + Vector3.new(0, CRATE_DROP * (1 - u), 0)) * CFrame.Angles(sway, now * 0.4, sway * 0.6)
+				local drop = 1 - u
+				local sway = math.sin(now * 1.6) * 0.1 * (0.3 + 0.7 * drop)
+				local at = CFrame.new(base + Vector3.new(0, CRATE_DROP * drop, 0)) * CFrame.Angles(sway, now * 0.3, sway * 0.6)
 				crate:PivotTo(at)
 				local canopy = chute
 				if canopy ~= nil then
@@ -524,10 +529,36 @@ local function mysteryCrate(run: Run, late: boolean)
 				end
 			end
 		end
-		local from = openFrom
-		if from ~= nil then
-			local u = math.min(1, (os.clock() - from) / 0.5)
-			lid:PivotTo(lidRest * CFrame.Angles(math.rad(115) * backOut(u), 0, 0))
+		if landed then
+			local clock = os.clock()
+			local hop, tilt, wiggle, lift, flip = 0, 0, 0, 0, 0
+			-- Two small bounces as it lands.
+			local since = if landedAt ~= nil then clock - landedAt else math.huge
+			if since < 0.7 then
+				local fade = 1 - since / 0.7
+				hop = math.abs(math.sin(since * math.pi / 0.35)) * 1.1 * fade
+				tilt = math.sin(since * 16) * 0.07 * fade
+			end
+			local from = openFrom
+			if from ~= nil then
+				-- The lid swings open with a little overshoot, and the crate gives a hop.
+				local t = clock - from
+				flip = math.rad(115) * backOut(math.min(1, t / 0.6))
+				if t < 0.35 then
+					hop += math.sin(t / 0.35 * math.pi) * 0.8
+				end
+			elseif since >= 0.7 then
+				-- Waiting to be opened: every couple of seconds the lid rattles, teasing what's inside.
+				local cycle = clock % 2.2
+				if cycle < 0.45 then
+					local k = math.sin(cycle / 0.45 * math.pi)
+					lift = k * 0.35
+					wiggle = math.sin(cycle * 42) * 0.04 * k
+				end
+			end
+			local pose = CFrame.new(base + Vector3.new(0, hop, 0)) * CFrame.Angles(tilt, wiggle, tilt * 0.6)
+			crate:PivotTo(pose)
+			lid:PivotTo(pose * lidOnCrate * CFrame.new(0, lift, 0) * CFrame.Angles(flip, 0, 0))
 		end
 		showDistance(distance, base)
 		local at = rootPosition()
