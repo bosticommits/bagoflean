@@ -111,6 +111,7 @@ def load_tuning() -> dict:
     events_text = (SHARED / "Events.luau").read_text()
     rewards_text = (SHARED / "Rewards.luau").read_text()
     codes_text = (ROOT / "src" / "server" / "Codes.luau").read_text()
+    achievements_text = (SHARED / "Achievements.luau").read_text()
 
     return {
         "config": config,
@@ -123,6 +124,11 @@ def load_tuning() -> dict:
                      if "reward =" in line],
         "requests_per_day": int(_num(re.search(r"Rewards.RequestsPerDay = (\d+)", rewards_text).group(1))),
         "codes": [_reward(line.split("reward =")[1]) for line in codes_text.splitlines() if "reward =" in line],
+        "achievements": [
+            {"id": m.group(1), "stat": m.group(2), "target": _num(m.group(3)), "reward": _reward(line.split("reward =")[1])}
+            for line in _block(achievements_text, "Achievements.List").splitlines()
+            if (m := re.search(r'id = "(\w+)".*stat = "([\w:-]+)", target = (\d+)', line))
+        ],
         "specialty": _num(re.search(r"Movies.SpecialtyBonus = ([\d.]+)", movies_text).group(1)),
         "fame_exponent": _num(re.search(r"Movies.FameExponent = ([\d.]+)", movies_text).group(1))
         if "Movies.FameExponent" in movies_text
@@ -277,6 +283,10 @@ class Player:
         self.streak = 0
         self.sessions = 0
         self.luck_pass = False
+        self.achievements = True
+        self.counts = {"cast": 0, "premiere": 0, "hit": 0, "clap": 0, "script": 0, "collect": 0}
+        self.trophies = 0
+        self.claimed: set[str] = set()
         self.last_daily_day = -1
         self.clock_offset = rng.uniform(0, game.t["award_period"])  # where Award Night falls
         self.curve: dict[int, dict] = {}
@@ -412,6 +422,28 @@ class Player:
             if self.streak in (7, 14, 21):
                 self.mark(f"Day {self.streak} streak reward")
 
+    def achievement_value(self, stat: str) -> float:
+        if stat == "masterpiece":
+            return self.trophies
+        if stat == "fame":
+            return self.fame
+        if stat == "index":
+            return len(self.index)
+        if stat.startswith("tier:"):
+            return sum(1 for k in self.index if self.g.actor[k.split(":")[0]]["tier"] == stat[5:])
+        if stat.startswith("variant:"):
+            return sum(1 for k in self.index if k.split(":")[1] == stat[8:])
+        return self.counts.get(stat, 0)
+
+    def claim_achievements(self):
+        """Achievements: claimed as soon as they are done (one-time rewards)."""
+        if not self.achievements:
+            return
+        for a in self.g.t["achievements"]:
+            if a["id"] not in self.claimed and self.achievement_value(a["stat"]) >= a["target"]:
+                self.claimed.add(a["id"])
+                self.grant(a["reward"])
+
     def finish_requests(self):
         """Studio Requests: the player finishes the day's three during the first session."""
         for request in self.rng.sample(self.g.t["requests"], self.g.t["requests_per_day"]):
@@ -497,6 +529,7 @@ class Player:
                 cast, power = self.best_cast(genre)
             else:
                 self.cash -= length["cost"]
+                self.counts["script"] += 1
             seconds = length["seconds"]
             if not self.first_film_done:
                 seconds = min(seconds, self.g.c["FirstFilmSeconds"])
@@ -532,6 +565,11 @@ class Player:
             self.cash += payout
             self.earned_total += payout
             self.premieres += 1
+            self.counts["premiere"] += 1
+            if self.g.result_mult[result] >= 3:
+                self.counts["hit"] += 1
+            if result == "Masterpiece":
+                self.trophies += 1
             self.mark(f"First {result}")
             for name, gate in self.fame_gates():
                 if self.fame >= gate:
@@ -613,6 +651,7 @@ class Player:
                 else:
                     return
             self.cast_credit -= 1
+            self.counts["cast"] += 1
             self.cash -= agency["cost"]
             actor_id, variant = self.g.roll_actor(self.rng, self.cast_luck(), int(agency["minTier"]))
             key = f"{actor_id}:{variant}"
@@ -632,6 +671,7 @@ class Player:
         running = [f for f in self.films if f["end"] > self.now]
         while self.clap_credit >= 1 and running:
             self.clap_credit -= 1
+            self.counts["clap"] += 1
             film = min(running, key=lambda f: f["end"])
             film["end"] = max(self.now, film["end"] - self.clap_seconds())
             running = [f for f in self.films if f["end"] > self.now]
@@ -660,11 +700,13 @@ class Player:
             self.premiere_ready(end)
             if self.now - last_collect >= 30:
                 self.collect()
+                self.counts["collect"] += 1
                 last_collect = self.now
             if requests_at is not None and self.now >= requests_at:
                 self.finish_requests()
                 requests_at = None
             self.claim_rewards()
+            self.claim_achievements()
             self.try_rebirth()
             self.buy_upgrades()
             remaining = end - self.now
@@ -750,7 +792,7 @@ def played_minutes(seconds: float, sched) -> float:
 
 
 def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7,
-        rebirth: bool = True):
+        rebirth: bool = True, achievements: bool = True):
     game = Game(tuning)
     sched = schedule(kind, days)
     events: dict[str, list[float]] = {}
@@ -765,6 +807,7 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
     for r in range(runs):
         player = Player(game, random.Random(seed + r), clap_rate=CLAP_RATE, cast_rate=CAST_RATE)
         player.luck_pass = luck_pass
+        player.achievements = achievements
         player.rebirth_enabled = rebirth
         for i, (label, on, off) in enumerate(sched):
             day = int(label.split()[1])
@@ -780,9 +823,10 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
     return game, sched, events, snaps, runs
 
 
-def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7, rebirth: bool = True):
+def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7, rebirth: bool = True,
+           achievements: bool = True):
     tuning = load_tuning()
-    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth)
+    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements)
     owns = " with the 2x Luck pass" if luck_pass else ""
     never = ", never rebirths" if not rebirth else ""
     print(f"# Movie Mogul economy sim: {kind} player{owns}{never}, {runs} runs\n")
@@ -828,5 +872,6 @@ if __name__ == "__main__":
     parser.add_argument("--luck-pass", action="store_true", help="the player owns the 2x Luck game pass")
     parser.add_argument("--days", type=int, default=7, help="days to simulate (whole weeks get a checkpoint)")
     parser.add_argument("--no-rebirth", action="store_true", help="the player never rebirths")
+    parser.add_argument("--no-achievements", action="store_true", help="leave achievement rewards out (to compare)")
     args = parser.parse_args()
-    report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth)
+    report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements)

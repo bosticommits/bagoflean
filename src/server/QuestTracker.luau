@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local AchievementTracker = require(script.Parent.AchievementTracker)
 local DataService = require(script.Parent.DataService)
 local Remotes = require(script.Parent.Remotes)
 
@@ -43,12 +44,14 @@ function QuestTracker.sync(player: Player)
 end
 
 -- Counts `amount` toward every unfinished request of this kind ("cast", "premiere", "clap",
--- "script", "collect", "hit"). Server-side callers only, after the action has succeeded.
+-- "script", "collect", "hit") and toward the lifetime achievement counters. Server-side callers
+-- only, after the action has succeeded.
 function QuestTracker.track(player: Player, kind: string, amount: number?)
 	local data = DataService.getData(player)
 	if data == nil then
 		return
 	end
+	AchievementTracker.count(player, kind, amount)
 	QuestTracker.ensure(data)
 	local changed = false
 	for _, entry in data.requests.list do

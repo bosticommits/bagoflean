@@ -7,10 +7,11 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py                    # typical player, 300 runs
     python3 tools/economy_sim.py --player casual     # also: hardcore
     python3 tools/economy_sim.py --luck-pass         # owns the 2x Luck pass
+    python3 tools/economy_sim.py --no-achievements   # leave achievement rewards out, to compare
     python3 tools/economy_sim.py --days 28           # four weeks, to see the rebirth ladder
     python3 tools/economy_sim.py --no-rebirth        # a player who never rebirths
 
-The sim includes Award Night, daily rewards, Studio Requests, codes, the "don't leave yet" gift,
+The sim includes Award Night, daily rewards, Studio Requests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
 than about 20 minutes of income, and rebirths as soon as it can afford one). It does not model game passes other than 2x Luck, or
 Robux cash packs. Treat it as the shape of the curve, not a promise: playtests decide.
@@ -142,6 +143,14 @@ $10,000 to $50,000. The minimums are what early players get. $1,000 was under a 
 income on day one, which is a poor buy for Robux. Daily rewards, requests and codes were left as
 they are; they come to about 1 to 5% of a week's cash, enough to feel good without skipping
 progression.
+
+**Achievements are one-time and small.** The 40 goals in `src/shared/Achievements.luau` give a
+little Cash, a few Skips, scripts, or a short x2 Luck boost. Rewards for the first goals (10
+casts, the first premiere, 5 Index slots) are kept tiny, because the first minutes are where
+extra Cash shows most: an earlier draft with $200 to $300 floors moved Sound stage 2 from minute
+8 to minute 4. With the shipped list, a typical player's milestones move by a minute or two on
+day one (first Star around minute 18 instead of 21) and not at all later in the week. Casual
+players get their first Superstar about a day sooner, mostly from the Luck boosts.
 
 ## What to watch in playtests
 
