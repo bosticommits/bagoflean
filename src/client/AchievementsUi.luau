@@ -2,8 +2,9 @@
 -- Goals screen, two tabs. Achievements: one row per group showing its next goal, a progress bar and
 -- the reward, with CLAIM when it is done. Quests: today's three Studio Requests and this week's three
 -- weekly quests, with a countdown to each reset (the same lists the Rewards screen's Requests tab
--- shows; the server's QuestTracker keeps them). The side menu's Goals button carries a red badge
--- with the number ready to claim across both tabs, and reaching a goal or finishing a quest says so
+-- shows; the server's QuestTracker keeps them), and above them any quest finished before its day or
+-- week ended and not claimed yet ("Finished earlier"): a reset never takes a reward that was earned.
+-- The side menu's Goals button carries a red badge with the number ready to claim across both tabs, and reaching a goal or finishing a quest says so
 -- at the bottom of the screen. Achievement claims go to AchievementService, quest claims to
 -- RewardService; both check them, and answer on RewardResult (shown by RewardsUi).
 local Players = game:GetService("Players")
@@ -77,8 +78,9 @@ type Row = {
 	onClaim: (() -> ())?,
 }
 
--- One quest on the Quests tab: which list it is in ("daily" or "weekly") and where.
-type QuestRow = { row: Row, scope: string, index: number }
+-- One quest on the Quests tab: which list it is in ("carried", "daily" or "weekly") and where. A
+-- carried quest (finished before its day or week ended, still unclaimed) is named by its `key`.
+type QuestRow = { row: Row, scope: string, index: number, key: string? }
 
 function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 	local player = Players.LocalPlayer
@@ -292,15 +294,17 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 	end
 
 	local function questList(state: any, scope: string): { any }
-		local entries = if scope == "weekly" then state.weekly else state.requests
+		local entries = if scope == "weekly" then state.weekly elseif scope == "carried" then state.carried else state.requests
 		return if type(entries) == "table" then entries else {}
 	end
 
+	local questScopes: { string } = { "carried", "daily", "weekly" }
+
 	local function buildQuests(state: any)
 		local key = ""
-		for _, scope in { "daily", "weekly" } do
+		for _, scope in questScopes do
 			for _, entry in questList(state, scope) do
-				key ..= `{scope}:{entry.id},`
+				key ..= `{scope}:{entry.key or entry.id},`
 			end
 		end
 		if key == questKey then
@@ -312,14 +316,20 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		end
 		table.clear(questFrames)
 		table.clear(questRows)
+		dailyCountdown, weeklyCountdown = nil, nil
 		local order = 1000
-		for _, scope in { "daily", "weekly" } do
+		for _, scope in questScopes do
+			if scope == "carried" and #questList(state, scope) == 0 then
+				continue
+			end
 			order += 1
-			local countdown = heading(order, if scope == "weekly" then "Weekly quests" else "Daily quests")
+			local countdown = heading(order, if scope == "weekly" then "Weekly quests" elseif scope == "carried" then "Finished earlier" else "Daily quests")
 			if scope == "weekly" then
 				weeklyCountdown = countdown
-			else
+			elseif scope == "daily" then
 				dailyCountdown = countdown
+			else
+				countdown.Text = "Still yours to claim"
 			end
 			for index, entry in questList(state, scope) do
 				local quest = Rewards.getRequest(entry.id)
@@ -328,10 +338,12 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 				end
 				order += 1
 				local row = newRow(order, questIcon(quest.kind))
+				local waiting: string? = if scope == "carried" then entry.key else nil
 				row.onClaim = function()
-					claimRequest:FireServer(index, scope)
+					claimRequest:FireServer(waiting or index, scope)
 				end
-				table.insert(questRows, { row = row, scope = scope, index = index })
+				local scopeName: string = scope
+				table.insert(questRows, { row = row, scope = scopeName, index = index, key = waiting })
 				table.insert(questFrames, row.frame)
 			end
 		end
@@ -365,7 +377,8 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 				continue
 			end
 			local row = info.row
-			local value = math.min(entry.progress, quest.target)
+			-- A carried quest was finished when its day or week ended: it only waits for CLAIM.
+			local value = if info.scope == "carried" then quest.target else math.min(entry.progress, quest.target)
 			local finished = value >= quest.target
 			local ready = finished and not entry.claimed
 			row.title.Text = quest.text
@@ -378,7 +391,8 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			-- Weekly quests keep a gold outline: they are the bigger, slower ones.
 			row.outline.Color = if ready then UiKit.GREEN elseif info.scope == "weekly" then UiKit.AWARD_GOLD else UiKit.INK
 			row.outline.Thickness = if ready then 3 else 2
-			row.frame.LayoutOrder = 1000 + (if info.scope == "weekly" then 100 else 0) + info.index + 10
+			local section = if info.scope == "carried" then 0 elseif info.scope == "daily" then 100 else 200
+			row.frame.LayoutOrder = 1000 + section + info.index + 10
 		end
 		tickQuestClocks()
 	end
@@ -391,6 +405,11 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 				if quest ~= nil and not entry.claimed and entry.progress >= quest.target then
 					ready[`{scope}:{entry.id}`] = true
 				end
+			end
+		end
+		for _, entry in questList(state, "carried") do
+			if Rewards.getRequest(entry.id) ~= nil then
+				ready[`carried:{entry.key}`] = true
 			end
 		end
 		return ready
@@ -500,7 +519,8 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		local before = questsReady
 		questsReady = readyQuests(state)
 		for id in questsReady do
-			if questsSynced and not before[id] then
+			-- A carried quest was announced when it finished; it only moves here at a reset.
+			if questsSynced and not before[id] and string.sub(id, 1, 8) ~= "carried:" then
 				local quest = Rewards.getRequest(string.match(id, ":(.+)$") or "")
 				if quest ~= nil then
 					UiKit.toast(gui, `Quest done: {quest.text}!`)

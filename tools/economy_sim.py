@@ -12,6 +12,7 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --no-rebirth        # the player never rebirths
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
+    python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
 
 The player model is deliberately plain: it collects, claps, premieres as soon as a film is
 ready, buys the cheapest useful upgrade it can afford, picks the best script and cast it owns,
@@ -357,6 +358,7 @@ class Player:
         self.luck_pass = False
         self.achievements = True
         self.weekly_on = True
+        self.weekly_day = 4
         self.counts = {"cast": 0, "premiere": 0, "hit": 0, "clap": 0, "script": 0, "collect": 0}
         self.trophies = 0
         self.claimed: set[str] = set()
@@ -561,7 +563,7 @@ class Player:
             self.grant(request)
 
     def finish_weekly(self):
-        """Weekly quests: one per slot, all finished on the fourth day of each week."""
+        """Weekly quests: one per slot, all finished on `weekly_day` (default 4) of each week."""
         for slot in ("volume", "genre", "skill"):
             self.grant(self.rng.choice([reward for name, reward in self.g.t["weekly"] if name == slot]))
 
@@ -808,8 +810,9 @@ class Player:
         self.login_rewards(day, first_today, self.sessions)
         self.use_skips()
         requests_at = self.now + min(seconds, 10 * M) if first_today else None
-        if first_today and day % 7 == 4 and self.weekly_on:
-            self.finish_weekly()
+        # Weekly quests take real play (premieres, casts, scripts), so they are finished with the
+        # day's requests, ten minutes into the session, not at its very start.
+        weekly_at = requests_at if first_today and day % 7 == self.weekly_day % 7 and self.weekly_on else None
         last_collect = self.now
         while self.now < end:
             self.now += step
@@ -827,6 +830,9 @@ class Player:
             if requests_at is not None and self.now >= requests_at:
                 self.finish_requests()
                 requests_at = None
+            if weekly_at is not None and self.now >= weekly_at:
+                self.finish_weekly()
+                weekly_at = None
             self.claim_rewards()
             self.claim_achievements()
             self.try_rebirth()
@@ -914,7 +920,8 @@ def played_minutes(seconds: float, sched) -> float:
 
 
 def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7,
-        rebirth: bool = True, achievements: bool = True, specials: bool = True, weekly: bool = True):
+        rebirth: bool = True, achievements: bool = True, specials: bool = True, weekly: bool = True,
+        weekly_day: int = 4):
     game = Game(tuning)
     sched = schedule(kind, days)
     events: dict[str, list[float]] = {}
@@ -933,6 +940,7 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
         player.rebirth_enabled = rebirth
         player.specials_on = specials
         player.weekly_on = weekly
+        player.weekly_day = weekly_day
         for i, (label, on, off) in enumerate(sched):
             day = int(label.split()[1])
             first_today = i == 0 or sched[i - 1][0].split()[1] != str(day)
@@ -948,9 +956,9 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
 
 
 def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7, rebirth: bool = True,
-           achievements: bool = True, specials: bool = True, weekly: bool = True):
+           achievements: bool = True, specials: bool = True, weekly: bool = True, weekly_day: int = 4):
     tuning = load_tuning()
-    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials, weekly)
+    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials, weekly, weekly_day)
     owns = " with the 2x Luck pass" if luck_pass else ""
     never = ", never rebirths" if not rebirth else ""
     without = ", no special events" if not specials else ""
@@ -999,7 +1007,9 @@ if __name__ == "__main__":
     parser.add_argument("--no-rebirth", action="store_true", help="the player never rebirths")
     parser.add_argument("--no-achievements", action="store_true", help="leave achievement rewards out (to compare)")
     parser.add_argument("--no-weekly", action="store_true", help="leave weekly quest rewards out (to compare)")
+    parser.add_argument("--weekly-day", type=int, default=4,
+                        help="day of each week the player finishes the weekly quests (1 = the very first day)")
     parser.add_argument("--no-events", action="store_true", help="switch the special events off (to compare)")
     args = parser.parse_args()
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
-           not args.no_events, not args.no_weekly)
+           not args.no_events, not args.no_weekly, args.weekly_day)

@@ -13,12 +13,14 @@ local rewardsSync = Remotes.get("RewardsSync")
 
 local QuestTracker = {}
 
--- Makes sure the saved requests are today's and the weekly quests this week's (replacing the old
--- ones, claimed or not).
+-- Makes sure the saved requests are today's and the weekly quests this week's. The old ones are
+-- replaced, but any that were finished and not yet claimed move to `data.carried` first and stay
+-- claimable (Rewards.carryOver), so a reset never takes a reward the player had earned.
 function QuestTracker.ensure(data: DataService.PlayerData)
 	local now = os.time()
 	local today = Rewards.today(now)
 	if data.requests.day ~= today then
+		Rewards.carryOver(data.carried, "daily", data.requests.day, data.requests.list)
 		local list: { DataService.Request } = {}
 		for _, id in Rewards.requestsFor(today) do
 			table.insert(list, { id = id, progress = 0, claimed = false })
@@ -27,6 +29,7 @@ function QuestTracker.ensure(data: DataService.PlayerData)
 	end
 	local week = Rewards.week(now)
 	if data.weekly.week ~= week then
+		Rewards.carryOver(data.carried, "weekly", data.weekly.week, data.weekly.list)
 		local list: { DataService.Request } = {}
 		for _, id in Rewards.weeklyFor(week) do
 			table.insert(list, { id = id, progress = 0, claimed = false })
@@ -50,6 +53,7 @@ function QuestTracker.sync(player: Player)
 		week = data.weekly.week,
 		weekEnds = Rewards.weekStart(data.weekly.week + 1),
 		weekly = data.weekly.list,
+		carried = data.carried,
 		codes = data.codes,
 		stayGiftDay = data.stayGiftDay,
 	})

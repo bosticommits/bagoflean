@@ -12,6 +12,7 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --no-rebirth        # a player who never rebirths
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
+    python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
@@ -157,11 +158,18 @@ day one (first Star around minute 18 instead of 21) and not at all later in the 
 players get their first Superstar about a day sooner, mostly from the Luck boosts.
 
 **Weekly quests are a small weekly top-up.** Each week brings three (`Rewards.Weekly`), worth 20 to
-60 minutes of income, a short Luck boost, a Skip or two, or a couple of scripts each. The sim has
-the player finish all three on day 4 (`--no-weekly` leaves them out): a typical player's first
-week ends with about 3% more Cash per minute (about 91k against 88k), milestones move by a few
-minutes at most, and the fourth rebirth lands in week one for 55% of runs instead of 46%. Real
-players will finish fewer, so this is the upper end. They cannot change the odds of rare actors.
+60 minutes of income, a short Luck boost, a Skip or two, or a couple of scripts each. Their Cash
+floors are $100 to $300 (the second sound stage costs $600): a first draft with $600 to $2,000
+floors would have let a new player pay for early upgrades just by casting 60 times or buying 8
+scripts, so a Lune test now keeps every weekly floor at half the first sound stage or less. The sim
+has the player finish all three ten minutes into a session (`--no-weekly` leaves them out,
+`--weekly-day N` picks the day). Finishing on day 4: a typical player's first week ends with about
+4% more Cash per minute (about 92k against 88k) and the milestones do not move. The worst case,
+finishing all three in the very first session (`--weekly-day 1`), moves the typical player's day-one
+milestones a few minutes sooner (first Star 17 to 14 minutes, Sound stage 3 49 to 47, Talent Agency
+54 to 53, the first rebirth 75 to 71) and week one ends 2% richer. The cut floors barely change that
+(the first draft gave 14, 47, 52 and 70): most of the early effect is the Luck boost and Skips, not
+Cash. Real players will finish fewer, so these are the upper end. They cannot change the odds of rare actors.
 
 ## Special events
 

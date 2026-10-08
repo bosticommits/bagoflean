@@ -3,6 +3,7 @@ local Events = H.require("Events")
 local Movies = H.require("Movies")
 local Rewards = H.require("Rewards")
 local Shop = H.require("Shop")
+local Upgrades = H.require("Upgrades")
 local test, expect, equal = H.test, H.expect, H.equal
 
 local function validReward(reward: any, label: string)
@@ -140,6 +141,57 @@ test("weekly quests cycle through every quest, and every genre", function()
 	end
 	equal(count, 4, "all four open genres come up")
 	expect(Rewards.weeklyFor(2900)[2] ~= Rewards.weeklyFor(2901)[2], "the genre changes week to week")
+end)
+
+test("weekly Cash floors stay far below the first upgrade, so day-one quests cannot skip early progress", function()
+	local stage = Upgrades.get("Stages")
+	expect(stage ~= nil, "Sound Stage upgrade exists")
+	local firstStage = (stage :: Upgrades.Upgrade).costs[1]
+	for _, quest in Rewards.Weekly do
+		local floor = quest.reward.cash or 0
+		expect(floor * 2 <= firstStage, `{quest.id} Cash floor ${floor} is over half the first Sound Stage (${firstStage})`)
+	end
+end)
+
+test("a finished quest survives its day or week ending and can be claimed once", function()
+	local dailyId, weeklyId = Rewards.Requests[1].id, Rewards.Weekly[1].id
+	local dailyTarget, weeklyTarget = Rewards.Requests[1].target, Rewards.Weekly[1].target
+	local carried = {}
+	-- Yesterday: one finished (waiting), one finished and claimed, one not finished.
+	Rewards.carryOver(carried, "daily", 20731, {
+		{ id = dailyId, progress = dailyTarget, claimed = false },
+		{ id = Rewards.Requests[2].id, progress = Rewards.Requests[2].target, claimed = true },
+		{ id = Rewards.Requests[3].id, progress = Rewards.Requests[3].target - 1, claimed = false },
+	})
+	equal(#carried, 1, "only the finished, unclaimed quest is kept")
+	equal(carried[1].key, `daily:20731:{dailyId}`, "keyed by scope, day and quest")
+	-- Last week's weekly quest joins it.
+	Rewards.carryOver(carried, "weekly", 2961, { { id = weeklyId, progress = weeklyTarget + 5, claimed = false } })
+	equal(#carried, 2, "weekly quests are kept too")
+	-- Repeating a rollover for the same list adds nothing.
+	Rewards.carryOver(carried, "daily", 20731, { { id = dailyId, progress = dailyTarget, claimed = false } })
+	equal(#carried, 2, "the same quest is never kept twice")
+	-- Claiming removes it, so it cannot be claimed again, and other keys stay.
+	local taken = Rewards.takeCarried(carried, `daily:20731:{dailyId}`)
+	expect(taken ~= nil and taken.id == dailyId, "claim finds the quest by key")
+	equal(#carried, 1, "claimed quest is gone")
+	expect(Rewards.takeCarried(carried, `daily:20731:{dailyId}`) == nil, "a second claim finds nothing")
+	expect(Rewards.takeCarried(carried, 3) == nil, "a non-string key finds nothing")
+	expect(Rewards.takeCarried(carried, "daily:1:nope") == nil, "an unknown key finds nothing")
+	equal(carried[1].scope, "weekly", "the other quest is untouched")
+end)
+
+test("unknown quest ids are not carried, and a long absence cannot build an endless pile", function()
+	local carried = {}
+	Rewards.carryOver(carried, "daily", 1, { { id = "NoSuchQuest", progress = 99, claimed = false } })
+	equal(#carried, 0, "unknown ids are dropped")
+	local first = Rewards.Requests[1]
+	for day = 1, Rewards.CarryLimit + 5 do
+		Rewards.carryOver(carried, "daily", day, { { id = first.id, progress = first.target, claimed = false } })
+	end
+	equal(#carried, Rewards.CarryLimit, "capped")
+	equal(carried[#carried].key, `daily:{Rewards.CarryLimit + 5}:{first.id}`, "the newest are kept")
+	equal(carried[1].key, `daily:6:{first.id}`, "the oldest gave way")
 end)
 
 test("cash rewards use the floor or minutes of income, whichever is more", function()

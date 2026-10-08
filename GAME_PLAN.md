@@ -286,7 +286,13 @@ exciting by M3, fix the core before adding anything else.
   the genre slot cycles Action, Comedy, Horror, Romance and nudges players to try each one. Sci-Fi is
   left out because it opens at 2,000 Fame and a weekly quest must be possible for everyone.
 - **Rewards** are small and bigger than a daily request: 20 to 60 minutes of income, a short x2 Luck
-  boost, a Skip or two, a couple of scripts. The economy sim plays them (`--no-weekly` to compare);
-  see ECONOMY.md.
+  boost, a Skip or two, a couple of scripts. Their Cash floors are $100 to $300, well under the $600
+  second sound stage, because a new player can finish a weekly quest on day one. The economy sim
+  plays them (`--no-weekly` to compare, `--weekly-day 1` for the day-one case); see ECONOMY.md.
+- **A reset never takes an earned reward.** When a day or week ends, any finished quest that was not
+  claimed moves to a saved `carried` list and shows under "Finished earlier" at the top of the
+  Quests tab, to claim whenever the player likes. This covers the daily requests too. Each carried
+  quest has its own key ("weekly:2961:WHit3"); the server finds it by key, removes it, then pays,
+  so it can be claimed once. At most 12 wait (the oldest give way after a very long absence).
 - **Studio visits** are not a quest yet. The visits feature is a separate piece of work; once it
   exists, a "visit 3 studios" quest is one more entry in the *volume* slot.
