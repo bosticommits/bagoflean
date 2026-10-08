@@ -11,7 +11,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
 | `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), and `mystery_crate` (the Mystery Crate event's crate, lid and parachute) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -37,8 +37,8 @@ Previews: `art/previews/town.png` and `art/previews/town_boulevard.png`.
 Do this once. Until you do, the game shows the part-built versions, so nothing breaks.
 
 1. Build the FBX files on your Mac, from the repo folder:
-   `for m in palm_tree searchlight film_camera film_reel_logo; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
-   This writes `art/exports/<model>.fbx`.
+   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
+   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files).
 2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
 3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
 4. In the Explorer, open that Model, find its MeshPart, and:
@@ -53,6 +53,9 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `film_camera.fbx` | `FilmCamera` |
 | `film_reel_logo.fbx` | `FilmReelLogo` |
 | `trophy_gold.fbx` (already uploaded) | `TrophyGold` |
+| `mystery_crate.fbx` | `MysteryCrate` |
+| `mystery_crate_lid.fbx` | `MysteryCrateLid` |
+| `crate_parachute.fbx` | `CrateParachute` |
 
 5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
 
