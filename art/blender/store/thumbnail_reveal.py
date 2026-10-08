@@ -119,7 +119,7 @@ def superstar():
     _height_ramp(rainbow, 3.6, 9.0)  # bottom of the jacket to the raised hands
     with kit.collect() as star:
         av = bacon.avatar("Superstar", (0, 0, 0), yaw=-8, face="grin", outfit="star", scale=1.75, head_scale=1.15, jacket_mat=rainbow,
-                          hair={"color": "#FFC21A", "light": "#FFE98A"},
+                          hair={"color": "#FFC21A"},
                           pose={"arm_r": (-168, -26, 0), "arm_l": (-165, 30, 0), "head": (6, -4, 0), "leg_r": (0, -8, 0), "leg_l": (0, 8, 0)})
         crown_at = Vector((0.1, 0, 5.9 * 1.75 + 1.0))
         kit.gold_star("CrownStar", crown_at, (0, -6, 0), size=0.9, color="#FFD23F", emission=0.6)

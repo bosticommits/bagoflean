@@ -81,7 +81,7 @@ def checks(size, cell, top, bottom, shade=0.9):
     return Image.composite(shaded, base, dark)
 
 
-def arrow(base, start, control, end, width=34):
+def arrow(base, start, control, end, width=34, outline=11):
     """A fat red curved arrow with a dark outline, from `start` bending through `control` to `end`."""
     pts = []
     for i in range(41):
@@ -93,25 +93,23 @@ def arrow(base, start, control, end, width=34):
     n = math.hypot(dx, dy)
     ux, uy = dx / n, dy / n
     head = width * 1.9
-    tip = (end[0] + ux * head * 0.75, end[1] + uy * head * 0.75)
+    tip = (end[0] + ux * head * 0.8, end[1] + uy * head * 0.8)
     wing = [(end[0] - uy * head * 0.8, end[1] + ux * head * 0.8), tip, (end[0] + uy * head * 0.8, end[1] - ux * head * 0.8)]
-    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    for color, grow in (((27, 22, 40, 255), 12), ((235, 52, 52, 255), 0)):
-        d = ImageDraw.Draw(layer)
-        d.line(pts[:-2], fill=color, width=width + grow * 2, joint="curve")
-        r = (width + grow * 2) / 2
-        d.ellipse((pts[0][0] - r, pts[0][1] - r, pts[0][0] + r, pts[0][1] + r), fill=color)
-        if grow:
-            big = [(end[0] - uy * (head * 0.8 + grow * 1.6), end[1] + ux * (head * 0.8 + grow * 1.6)),
-                   (tip[0] + ux * grow * 2, tip[1] + uy * grow * 2),
-                   (end[0] + uy * (head * 0.8 + grow * 1.6), end[1] - ux * (head * 0.8 + grow * 1.6))]
-            d.polygon([(x - ux * grow, y - uy * grow) for x, y in big], fill=color)
-        else:
-            d.polygon(wing, fill=color)
+    red = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(red)
+    d.line(pts[:-1], fill=(235, 52, 52, 255), width=width, joint="curve")
+    r = width / 2
+    d.ellipse((pts[0][0] - r, pts[0][1] - r, pts[0][0] + r, pts[0][1] + r), fill=(235, 52, 52, 255))
+    d.polygon(wing, fill=(235, 52, 52, 255))
+    # The outline is the arrow grown in every direction, drawn underneath.
+    ring = red.getchannel("A").filter(ImageFilter.MaxFilter(outline * 2 + 1))
+    layer = Image.new("RGBA", base.size, (27, 22, 40, 255))
+    layer.putalpha(ring)
+    layer.alpha_composite(red)
     paste(base, layer, (base.width / 2, base.height / 2), shadow=(6, 8), shadow_alpha=0.4, blur=6)
 
 
-def prompt_label(text, height=104):
+def prompt_label(text, height=140):
     """The dark rounded "[E] CAST" key prompt, like an in-game ProximityPrompt."""
     font = ImageFont.truetype(FONT, round(height * 0.62))
     box = font.getbbox(text)

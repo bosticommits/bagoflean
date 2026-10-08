@@ -15,12 +15,12 @@ import math
 import os
 
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Euler, Matrix, Vector
 from PIL import Image, ImageDraw, ImageFilter
 
 import kit
 
-SKIN = "#F3E3D3"
+SKIN = "#F4F1EC"  # the pale skin most front-page players have
 INK = (24, 22, 30, 255)
 FACE_SPAN = 1.16  # studs of head front covered by the face picture
 HEAD = (1.52, 1.34, 1.38)  # width, depth, height (a little big, as thumbnail artists draw it)
@@ -160,9 +160,9 @@ def face_image(kind):
     return bpy.data.images.load(path, check_existing=True)
 
 
-def head_material(kind, skin=SKIN):
+def head_material(kind, skin=SKIN, span=FACE_SPAN):
     """Skin with the face painted on the front (object space: front is -Y, up is +Z)."""
-    mat = bpy.data.materials.new(f"Head_{kind}")
+    mat = bpy.data.materials.new(f"Head_{kind}")  # `span`: smaller makes the face bigger
     mat.use_nodes = True
     nt = mat.node_tree
     bsdf = nt.nodes["Principled BSDF"]
@@ -174,12 +174,12 @@ def head_material(kind, skin=SKIN):
     u = nt.nodes.new("ShaderNodeMath")
     u.operation = "MULTIPLY_ADD"
     # Seen from the front (camera on -Y), +X is on the viewer's right, so the picture runs with +X.
-    u.inputs[1].default_value = 1 / FACE_SPAN
+    u.inputs[1].default_value = 1 / span
     u.inputs[2].default_value = 0.5
     nt.links.new(sep.outputs["X"], u.inputs[0])
     v = nt.nodes.new("ShaderNodeMath")
     v.operation = "MULTIPLY_ADD"
-    v.inputs[1].default_value = 1 / FACE_SPAN
+    v.inputs[1].default_value = 1 / span
     v.inputs[2].default_value = 0.5
     nt.links.new(sep.outputs["Z"], v.inputs[0])
     comb = nt.nodes.new("ShaderNodeCombineXYZ")
@@ -230,7 +230,7 @@ def _box(name, size, at, mat, bevel=0.09, parent=None, rot=(0, 0, 0)):
     return obj
 
 
-def _head(name, kind, parent, skin):
+def _head(name, kind, parent, skin, span=FACE_SPAN):
     """Round Roblox head: a short cylinder with soft rims, face painted on the front."""
     w, dpt, h = HEAD
     bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.5, depth=1.0)
@@ -243,31 +243,104 @@ def _head(name, kind, parent, skin):
     mod.limit_method = "ANGLE"
     for p in obj.data.polygons:
         p.use_smooth = True
-    obj.data.materials.append(head_material(kind, skin))
+    obj.data.materials.append(head_material(kind, skin, span))
     kit._child(obj, parent)
     obj.location = (0, 0, 0)
     return obj
 
 
-def bacon_hair(parent, color="#B8622A", light="#D98A45"):
-    """The swoopy brown hair: a cap, sides and back, and a fringe sweeping across the brow."""
-    base, hi = kit.material(color, "Fabric"), kit.material(light, "Fabric")
-    for m in (base, hi):
-        bsdf = m.node_tree.nodes["Principled BSDF"]
-        bsdf.inputs["Roughness"].default_value = 0.55
-        bsdf.inputs["Sheen Weight"].default_value = 0.2
-    w, dpt, h = HEAD
-    top = h / 2
-    cap = kit.primitive("sphere", "HairCap", (0, 0, 0), (w + 0.2, dpt + 0.22, 1.05), base, segments=48)
-    kit._child(cap, parent)
-    cap.location = (0, 0.05, top - 0.22)
-    _box("HairBack", (w + 0.16, 0.55, 1.05), (0, dpt / 2 - 0.14, top - 0.62), base, bevel=0.24, parent=parent)
-    for sx in (-1, 1):
-        _box("HairSide", (0.26, dpt * 0.86, 0.72), (sx * (w / 2 + 0.02), 0.1, top - 0.5), base, bevel=0.11, parent=parent)
-    # Fringe: one big swoop from high on the player's right (viewer's left) down over the other brow.
-    _box("Fringe0", (w * 0.86, 0.34, 0.32), (-0.08, -dpt / 2 - 0.02, top - 0.02), base, bevel=0.17, parent=parent, rot=(0, -11, 0))
-    _box("Fringe1", (w * 0.5, 0.32, 0.3), (0.4, -dpt / 2 - 0.05, top - 0.12), hi, bevel=0.17, parent=parent, rot=(0, -28, 0))
-    _box("Fringe2", (0.3, 0.3, 0.32), (-0.68, -dpt / 2 + 0.04, top - 0.2), base, bevel=0.13, parent=parent, rot=(0, 14, 0))
+def hair_material(color):
+    """Glossy brown with faint strands running front to back."""
+    mat = bpy.data.materials.new("Hair")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 0.45
+    bsdf.inputs["Coat Weight"].default_value = 0.2
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    wave = nt.nodes.new("ShaderNodeTexWave")
+    wave.wave_type = "BANDS"
+    wave.bands_direction = "X"
+    wave.inputs["Scale"].default_value = 3.5
+    wave.inputs["Distortion"].default_value = 5.0
+    wave.inputs["Detail"].default_value = 2.0
+    nt.links.new(tc.outputs["Object"], wave.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = (*(c * 0.6 for c in kit.hex_rgb(color)), 1)
+    ramp.color_ramp.elements[1].color = (*kit.hex_rgb(color), 1)
+    ramp.color_ramp.elements[0].position = 0.35
+    nt.links.new(wave.outputs["Fac"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.05
+    nt.links.new(wave.outputs["Fac"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    return mat
+
+
+def meta_hair(name, parent, elems, color="#C8692C", res=0.04):
+    mb = bpy.data.metaballs.new(name)
+    mb.resolution = res
+    mb.render_resolution = res
+    mb.threshold = 0.6
+    for (kind, co, radius, size, rot) in elems:
+        e = mb.elements.new()
+        e.type = kind
+        e.co = co
+        e.radius = 1.0
+        e.size_x, e.size_y, e.size_z = (v / 0.574 for v in size)  # size is the half-extent we see
+        e.rotation = Euler(tuple(math.radians(r) for r in rot)).to_quaternion()
+        e.stiffness = 2.0
+    obj = bpy.data.objects.new(name, mb)
+    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.view_layer.update()
+    mesh = bpy.data.meshes.new_from_object(obj.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    bpy.data.objects.remove(obj)
+    m = bpy.data.objects.new(name, mesh)
+    bpy.context.scene.collection.objects.link(m)
+    mesh.shade_smooth()
+    mesh.materials.append(hair_material(color))
+    return m
+
+HAIR = [
+    # (centre, visible half-size, rotation) for each blob of the hair, in head space (front is -Y).
+    ((0, 0.08, 0.4), (0.84, 0.78, 0.38), (0, 0, 0)),  # crown
+    ((0, 0.32, 0.0), (0.82, 0.46, 0.66), (0, 0, 0)),  # back
+    ((-0.74, 0.08, 0.06), (0.15, 0.56, 0.48), (0, 0, 0)),  # sides
+    ((0.74, 0.08, 0.06), (0.15, 0.56, 0.48), (0, 0, 0)),
+    ((-0.7, -0.22, -0.32), (0.12, 0.2, 0.3), (-20, 0, 18)),  # lock tips by the cheeks
+    ((0.72, -0.18, -0.3), (0.12, 0.2, 0.3), (-20, 0, -18)),
+    ((-0.18, -0.6, 0.6), (0.7, 0.15, 0.18), (0, -12, 0)),  # the fringe swoop
+    ((0.4, -0.64, 0.45), (0.34, 0.13, 0.16), (0, -36, 0)),  # and its tip over one brow
+]
+
+
+def bacon_hair(parent, color="#C8692C"):
+    """The bacon hair: soft blobs melted together (metaballs) into one mop with a side swoop."""
+    mb = bpy.data.metaballs.new("Hair")
+    mb.resolution = mb.render_resolution = 0.04
+    mb.threshold = 0.6
+    for co, half, rot in HAIR:
+        e = mb.elements.new()
+        e.type = "ELLIPSOID"
+        e.co = co
+        e.radius = 1.0
+        e.stiffness = 2.0
+        # With this threshold and stiffness a blob shows about 0.574 of its size.
+        e.size_x, e.size_y, e.size_z = (v / 0.574 for v in half)
+        e.rotation = Euler(tuple(math.radians(r) for r in rot)).to_quaternion()
+    tmp = bpy.data.objects.new("HairMeta", mb)
+    bpy.context.scene.collection.objects.link(tmp)
+    bpy.context.view_layer.update()
+    mesh = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    bpy.data.objects.remove(tmp)
+    mesh.shade_smooth()
+    mesh.materials.append(hair_material(color))
+    obj = bpy.data.objects.new("Hair", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    kit._child(obj, parent)
+    obj.location = (0, 0, 0)
+    return obj
 
 
 def beret(parent, color="#C8102E"):
@@ -298,7 +371,7 @@ OUTFITS = {
 
 
 def avatar(name, location, yaw=0.0, face="smug", outfit="bacon", pose=None, hair=True, hat=None, skin=SKIN,
-           jacket_mat=None, scale=1.0, head_scale=1.0, legs=True):
+           jacket_mat=None, scale=1.0, head_scale=1.0, legs=True, face_span=FACE_SPAN):
     """Build the player. `pose` angles are (x, y, z) degrees at each joint:
     arm_r / arm_l at the shoulders (x < 0 swings the arm forward and up), leg_r / leg_l at the hips,
     head at the neck, body for the whole figure's lean. The player's right is the viewer's left.
@@ -341,7 +414,7 @@ def avatar(name, location, yaw=0.0, face="smug", outfit="bacon", pose=None, hair
         neck.location = (0, 0, HEAD_Z)
         neck.rotation_euler = rad(pose.get("head", (0, 0, 0)))
         neck.scale = (head_scale,) * 3
-        head = _head("Head", face, neck, skin)
+        head = _head("Head", face, neck, skin, face_span)
         if hair:
             bacon_hair(neck, **(hair if isinstance(hair, dict) else {}))
         if hat == "beret":
