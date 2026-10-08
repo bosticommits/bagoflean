@@ -3,6 +3,7 @@
 -- saved fields, so the UI shows exactly what the server applies. Only the server changes the data.
 local Actors = require(script.Parent.Actors)
 local Config = require(script.Parent.Config)
+local Rebirth = require(script.Parent.Rebirth)
 
 -- The slice of player data these functions read.
 export type Stats = {
@@ -10,6 +11,7 @@ export type Stats = {
 	stageCount: number,
 	rewards: { [string]: boolean },
 	passes: { [string]: boolean }?, -- owned game passes (see Shop)
+	rebirths: number?, -- rebirths done (see Rebirth)
 }
 
 export type Upgrade = {
@@ -104,7 +106,10 @@ function Upgrades.luck(stats: Stats): number
 			tierRewards += 1
 		end
 	end
-	return Config.BaseLuck + Config.LuckStep * Upgrades.level(stats, "Luck") + Config.TierRewardLuck * tierRewards
+	return Config.BaseLuck
+		+ Config.LuckStep * Upgrades.level(stats, "Luck")
+		+ Config.TierRewardLuck * tierRewards
+		+ Rebirth.luckBonus(stats.rebirths)
 end
 
 -- Sound stages the player can film on: bought stages plus the +1 Sound Stage pass.

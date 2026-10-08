@@ -1,7 +1,7 @@
 --!strict
 -- Lets things in the world open a screen (the store stands on the map, see Stands.luau) without
 -- knowing how each screen is built. Each screen registers how to open itself when it starts.
--- Names: Shop, Daily, Requests, Codes, Upgrades, Odds, Actors, Studio.
+-- Names: Shop, Daily, Requests, Codes, Upgrades, Odds, Actors, Studio, Rebirth.
 local Screens = {}
 
 local openers: { [string]: () -> () } = {}

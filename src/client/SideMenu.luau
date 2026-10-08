@@ -1,7 +1,7 @@
 --!strict
 -- Left-side menu in the reference games' style: big floating 3D icons with outlined labels in two
--- loose columns (Shop, Rewards, Codes / Actors, Studio, Upgrade), red badges for things to claim,
--- and the wallet (Cash and Fame) under them. Phones in landscape keep the bottom left clear for the
+-- loose columns (Shop, Rewards, Codes, Rebirth / Actors, Studio, Upgrade), red badges for things to
+-- claim, and the wallet (Cash and Fame) under them. Phones in landscape keep the bottom left clear for the
 -- thumbstick, so there the wallet moves to the top centre.
 --
 -- Everything scales with the screen: up to 1.25x on tall screens, and down until the menu fits
@@ -19,7 +19,8 @@ local BUTTON = 84
 local GAP = 12
 local STAGGER = BUTTON // 2 -- the second column starts half a button lower, like the reference
 local MENU_WIDTH = 2 * BUTTON + GAP
-local MENU_HEIGHT = 3 * (BUTTON + GAP) + STAGGER
+-- The first column has four buttons; the second's three end higher, staggered half a button down.
+local MENU_HEIGHT = 4 * (BUTTON + GAP)
 local OVERHANG = 22 -- labels and the Actors chip reach this far past the second column
 local WALLET_WIDTH = 260
 local WALLET_HEIGHT = 96
@@ -31,6 +32,7 @@ export type Buttons = {
 	actors: TextButton,
 	studio: TextButton,
 	upgrade: TextButton,
+	rebirth: TextButton,
 	wallet: Frame, -- empty; the HUD fills it with the Cash and Fame rows
 }
 
@@ -106,6 +108,7 @@ function SideMenu.start(gui: ScreenGui): Buttons
 		shop = button(1, 1, "popcorn", "Shop"),
 		rewards = button(1, 2, "gift", "Rewards"),
 		codes = button(1, 3, "ticket", "Codes"),
+		rebirth = button(1, 4, "rebirth", "Rebirth"),
 		actors = button(2, 1, "star", "Actors"),
 		studio = button(2, 2, "movieCamera", "Studio"),
 		upgrade = button(2, 3, "arrow", "Upgrade"),

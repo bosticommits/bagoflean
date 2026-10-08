@@ -13,6 +13,7 @@ local ActorModels = require(ReplicatedStorage.Shared.Models.ActorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
+local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -231,11 +232,14 @@ local function render(lot: Lot)
 	local progress: LotLook.Progress? = nil
 	if data ~= nil then
 		local filming: { [number]: boolean } = {}
+		local lastFilming = 0
 		for _, film in data.films do
 			filming[film.stage] = true
+			lastFilming = math.max(lastFilming, film.stage)
 		end
 		progress = {
-			stages = Upgrades.stages(data), -- includes the +1 Sound Stage pass
+			-- Includes the +1 Sound Stage pass, and a stage a rebirth closed while a film was on it.
+			stages = math.max(Upgrades.stages(data), lastFilming),
 			cinema = data.upgrades.Cinema or 0,
 			office = data.upgrades.Offline or 0,
 			trophies = data.trophies,
@@ -260,8 +264,10 @@ local function render(lot: Lot)
 	local marquee = lot.marquee
 	if marquee ~= nil then
 		local vip = data ~= nil and data.passes.VIP == true
+		-- After a rebirth the studio's name gets its sequel number: "BOSTI PICTURES 2".
+		local sequel = Rebirth.sequelSuffix(if data ~= nil then data.rebirths else 0)
 		marquee.Text = if owner ~= nil
-			then (if vip then "★ " else "") .. string.upper(owner.DisplayName) .. " PICTURES" .. (if vip then " ★" else "")
+			then (if vip then "★ " else "") .. string.upper(owner.DisplayName) .. " PICTURES" .. sequel .. (if vip then " ★" else "")
 			else "STUDIO FOR LEASE"
 	end
 

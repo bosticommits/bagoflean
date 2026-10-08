@@ -134,5 +134,5 @@ reach everything.
 
 - [ ] Watch the first week: errors, retention, where players quit, purchases.
 - [ ] Weekly Film Festival events with a limited actor pool.
-- [ ] Sequel (rebirth).
+- [x] Sequel (rebirth). Built 8 Oct 2026; see GAME_PLAN.md section 13.
 - [ ] New genres and the Music Label department.
