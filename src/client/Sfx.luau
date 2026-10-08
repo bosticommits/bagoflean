@@ -1,43 +1,55 @@
 --!strict
--- Client sound effects. All sounds are Roblox's own UI library (creator: Roblox, user 1, verified),
--- so they are safe to use and will not be taken down. One SFX SoundGroup so a volume setting can
--- be added later. Sounds play locally: instant feedback, no server latency.
+-- Client sound effects. Which sound each moment plays lives in Shared/Sounds.luau (named slots), so
+-- sounds can be swapped there without touching game code. Everything plays through one SFX
+-- SoundGroup, whose volume is the player's Effects setting. Sounds play locally: instant feedback,
+-- no server latency.
 local ContentProvider = game:GetService("ContentProvider")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
-local SOUNDS: { [string]: { id: number, volume: number } } = {
-	click = { id = 15675032796, volume = 0.45 }, -- Roblox_UI_Small_Click
-	clap = { id = 15675059323, volume = 0.6 }, -- Roblox_UI_Bright_Click
-	whoosh = { id = 15675024286, volume = 0.5 }, -- Roblox_UI_Whoosh_01
-	pop = { id = 15675055424, volume = 0.6 }, -- Roblox_UI_Cute_Pop
-	stinger = { id = 15675043410, volume = 0.7 }, -- Roblox_UI_Tonal_Stinger
-	jingle = { id = 15675016548, volume = 0.7 }, -- Roblox_UI_Piano_Hello
-	sweep = { id = 15675046931, volume = 0.5 }, -- Roblox_UI_Sweep
-	low = { id = 15675062723, volume = 0.6 }, -- Roblox_UI_Whistle_Low
-	indicator = { id = 15675085146, volume = 0.45 }, -- Roblox_UI_Indicator
-}
+local Sounds = require(ReplicatedStorage.Shared.Sounds)
 
 local group: SoundGroup? = nil
-local templates: { [string]: Sound? } = {}
+local templates: { [number]: Sound? } = {} -- by asset id, shared by every slot that uses it
+local lastPlayed: { [string]: number } = {}
+
+-- The same slot again within this many seconds is skipped, so a burst (a row of rewards, many
+-- coins at once) sounds like one hit instead of a wall of noise.
+local REPEAT_GAP = 0.05
 
 local Sfx = {}
+
+local function template(id: number): Sound?
+	local existing = templates[id]
+	if existing ~= nil then
+		return existing
+	end
+	local sfxGroup = group
+	if sfxGroup == nil then
+		return nil
+	end
+	local sound = Instance.new("Sound")
+	sound.Name = tostring(id)
+	sound.SoundId = "rbxassetid://" .. id
+	sound.SoundGroup = sfxGroup
+	sound.Parent = sfxGroup
+	templates[id] = sound
+	return sound
+end
 
 function Sfx.start()
 	local sfxGroup = Instance.new("SoundGroup")
 	sfxGroup.Name = "MovieMogulSfx"
-	sfxGroup.Volume = 1
+	sfxGroup.Volume = Sounds.DEFAULT_SFX
 	sfxGroup.Parent = SoundService
 	group = sfxGroup
 	local list = {}
-	for name, info in SOUNDS do
-		local sound = Instance.new("Sound")
-		sound.Name = name
-		sound.SoundId = "rbxassetid://" .. info.id
-		sound.Volume = info.volume
-		sound.SoundGroup = sfxGroup
-		sound.Parent = sfxGroup
-		templates[name] = sound
-		table.insert(list, sound)
+	for name in Sounds.Slots do
+		local id = Sounds.resolve(name)
+		local sound = if id ~= nil and templates[id] == nil then template(id) else nil
+		if sound ~= nil then
+			table.insert(list, sound)
+		end
 	end
 	task.spawn(function()
 		pcall(function()
@@ -46,15 +58,36 @@ function Sfx.start()
 	end)
 end
 
--- Plays a one-shot copy, so overlapping plays never cut each other off. `pitch` defaults to 1.
+-- Effects volume, 0..1 (the player's setting).
+function Sfx.setVolume(volume: number)
+	local sfxGroup = group
+	if sfxGroup ~= nil then
+		sfxGroup.Volume = volume
+	end
+end
+
+-- Plays slot `name` (see Sounds.Slots) as a one-shot copy, so overlapping plays never cut each
+-- other off. `pitch` multiplies the slot's own pitch, for a little variety.
 function Sfx.play(name: string, pitch: number?)
-	local template = templates[name]
-	if template == nil or group == nil then
+	local id, volume, slotPitch = Sounds.resolve(name)
+	if id == nil then
+		warn(`[Sfx] unknown sound slot "{name}"`)
 		return
 	end
-	local sound = template:Clone()
-	sound.PlaybackSpeed = pitch or 1
-	sound.Parent = group
+	local now = os.clock()
+	if now - (lastPlayed[name] or -1) < REPEAT_GAP then
+		return
+	end
+	lastPlayed[name] = now
+	local base = template(id)
+	local sfxGroup = group
+	if base == nil or sfxGroup == nil or sfxGroup.Volume <= 0 then
+		return
+	end
+	local sound = base:Clone()
+	sound.Volume = volume
+	sound.PlaybackSpeed = slotPitch * (pitch or 1)
+	sound.Parent = sfxGroup
 	sound:Play()
 	sound.Ended:Once(function()
 		sound:Destroy()

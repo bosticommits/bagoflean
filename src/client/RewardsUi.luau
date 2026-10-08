@@ -668,7 +668,7 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 				if Rewards.dailyStatus(state.daily, state.today) and studio ~= nil and studio.tutorialDone then
 					welcome = true
 					open("Daily")
-					Sfx.play("jingle")
+					Sfx.play("welcome")
 					return
 				end
 			end
@@ -751,14 +751,14 @@ function RewardsUi.start(gui: ScreenGui, rewardsButton: TextButton, codesButton:
 		end
 		giftText.Text = Rewards.describe(Rewards.StayGift, rate())
 		gift.Visible = true
-		Sfx.play("pop")
+		Sfx.play("gift")
 	end)
 
 	rewardResult.OnClientEvent:Connect(function(ok, text)
 		if type(text) ~= "string" then
 			return
 		end
-		Sfx.play(if ok then "stinger" else "low")
+		Sfx.play(if ok then "reward" else "error")
 		UiKit.toast(gui, text)
 		local message = codeMessage
 		if message ~= nil and panel.Visible and tab == "Codes" then
