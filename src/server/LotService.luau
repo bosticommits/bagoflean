@@ -337,6 +337,18 @@ function LotService.refresh(player: Player)
 	end
 end
 
+-- Claimed lots and their owners, in lot order.
+function LotService.owners(): { { index: number, owner: Player } }
+	local list = {}
+	for _, lot in lots do
+		local owner = lot.owner
+		if owner ~= nil then
+			table.insert(list, { index = lot.index, owner = owner })
+		end
+	end
+	return list
+end
+
 -- Tell every client to play a celebration on this player's lot ("masterpiece" or "pull").
 function LotService.celebrate(player: Player, kind: string)
 	local lot = lotOf[player]

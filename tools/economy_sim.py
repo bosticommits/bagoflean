@@ -10,12 +10,14 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --runs 50 --seed 7
     python3 tools/economy_sim.py --days 28           # four weeks (rebirths keep going)
     python3 tools/economy_sim.py --no-rebirth        # the player never rebirths
+    python3 tools/economy_sim.py --no-events         # the same week without special events
 
 The player model is deliberately plain: it collects, claps, premieres as soon as a film is
 ready, buys the cheapest useful upgrade it can afford, picks the best script and cast it owns,
 and spends the rest on casting. Once a rebirth costs less than about 20 minutes of income it stops
-buying upgrades and saves for it, then rebirths as soon as it can afford one. Real players are messier, so treat the output as a curve shape,
-not a promise.
+buying upgrades and saves for it, then rebirths as soon as it can afford one. During special events
+it takes part: half the Cash Rain coins, the Mystery Crate's free cast, a Spotlight visit. Real
+players are messier, so treat the output as a curve shape, not a promise.
 """
 from __future__ import annotations
 
@@ -83,6 +85,11 @@ def _reward(text: str) -> dict:
     return reward
 
 
+def _special(text: str, name: str) -> float:
+    """A plain number tunable `SpecialEvents.<name> = ...` (comments ignored)."""
+    return _num(re.search(rf"SpecialEvents\.{name} = ([\d\s.*/+()]+?)\s*(?:--.*)?$", text, re.M).group(1))
+
+
 def load_tuning() -> dict:
     config_text = (SHARED / "Config.luau").read_text()
     config = {}
@@ -112,6 +119,7 @@ def load_tuning() -> dict:
     rewards_text = (SHARED / "Rewards.luau").read_text()
     codes_text = (ROOT / "src" / "server" / "Codes.luau").read_text()
     achievements_text = (SHARED / "Achievements.luau").read_text()
+    specials_text = (SHARED / "SpecialEvents.luau").read_text()
 
     return {
         "config": config,
@@ -142,6 +150,20 @@ def load_tuning() -> dict:
         "variants": _rows(_block(actors_text, "Actors.Variants")),
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
         "upgrades": {u["id"]: u for u in upgrades},
+        "specials": {
+            "events": [(m.group(1), _num(m.group(2))) for m in re.finditer(
+                r'id = "(\w+)",.*?seconds = ([\d.]+)', _block(specials_text, "SpecialEvents.List"), re.S)],
+            "slot": _special(specials_text, "SlotSeconds"),
+            "gap": _special(specials_text, "Gap"),
+            "luck": _special(specials_text, "LuckMultiplier"),
+            "coins": int(_special(specials_text, "CoinCount")),
+            "coin_cash": _special(specials_text, "CoinCash"),
+            "coin_cinema_seconds": _special(specials_text, "CoinCinemaSeconds"),
+            "coin_fame_share": _special(specials_text, "CoinFameShare"),
+            "crate_luck": _special(specials_text, "CrateLuckMultiplier"),
+            "spotlight_reward": _reward(re.search(r"SpecialEvents.SpotlightReward = (\{[^\n]*\})", specials_text).group(1)),
+            "film_speed": _special(specials_text, "FilmSpeed"),
+        },
     }
 
 
@@ -162,6 +184,51 @@ class Game:
         self.result_mult = {r["id"]: r["multiplier"] for r in tuning["results"]}
         self._tier_cache: dict = {}
         self._premiere_cache: dict = {}
+        self._special_cache: dict = {}
+
+    # Special events (SpecialEvents.luau): one per slot of the clock, dealt like a deck, at a random
+    # time in the slot clear of Award Night. Python's RNG stands in for Roblox's, so the order
+    # differs from the game's but the share of each event and the timing rules are the same.
+    def special_window(self, slot: int, seconds: float) -> tuple[float, float] | None:
+        sp, period, length = self.t["specials"], self.t["award_period"], self.t["award_length"]
+        gap = sp["gap"]
+        first = slot * sp["slot"] + gap
+        last = (slot + 1) * sp["slot"] - gap - seconds
+        for n in range(int((first - length - gap) // period), int((last + seconds + gap) // period) + 1):
+            block_from, block_to = n * period - gap - seconds, n * period + length + gap
+            if block_to > first and block_from < last:
+                if last - block_to >= block_from - first:
+                    first = max(first, block_to)
+                else:
+                    last = min(last, block_from)
+        return None if last < first else (first, last)
+
+    def special_for_slot(self, slot: int) -> tuple[str, float, float] | None:
+        if slot in self._special_cache:
+            return self._special_cache[slot]
+        events = self.t["specials"]["events"]
+
+        def deck(cycle: int) -> list:
+            cards = list(events)
+            random.Random(cycle).shuffle(cards)
+            return cards
+
+        cycle = slot // len(events)
+        cards = deck(cycle)
+        if cards[0] == deck(cycle - 1)[-1]:
+            cards[0], cards[1] = cards[1], cards[0]
+        event_id, seconds = cards[slot % len(events)]
+        window = self.special_window(slot, seconds)
+        out = None
+        if window is not None:
+            starts = window[0] + random.Random(slot).randint(0, int(window[1] - window[0]))
+            out = (event_id, starts, starts + seconds)
+        self._special_cache[slot] = out
+        return out
+
+    def special_at(self, clock: float) -> tuple[str, float, float] | None:
+        live = self.special_for_slot(int(clock // self.t["specials"]["slot"]))
+        return live if live is not None and live[1] <= clock < live[2] else None
 
     def tier_chances(self, luck: float, min_tier: int) -> list[tuple[str, float]]:
         key = (round(luck, 4), min_tier)
@@ -289,6 +356,8 @@ class Player:
         self.claimed: set[str] = set()
         self.last_daily_day = -1
         self.clock_offset = rng.uniform(0, game.t["award_period"])  # where Award Night falls
+        self.specials_on = True
+        self.special_done: tuple | None = None  # the special event whose pickups are taken
         self.curve: dict[int, dict] = {}
         self.rebirths = 0
         self.rebirth_enabled = True
@@ -338,8 +407,13 @@ class Player:
     def award_night(self) -> bool:
         return (self.now + self.clock_offset) % self.g.t["award_period"] < self.g.t["award_length"]
 
+    def special(self) -> tuple[str, float, float] | None:
+        """The special event live now: (id, starts, ends) on the game clock, or None."""
+        return self.g.special_at(self.now + self.clock_offset) if self.specials_on else None
+
     def cast_luck(self) -> float:
-        """CastingService.castLuck: stat Luck x 2x Luck pass x Lucky Casting x Award Night."""
+        """CastingService.castLuck: stat Luck x 2x Luck pass x Lucky Casting x Award Night x
+        Lucky Star."""
         luck = self.luck()
         if self.luck_pass:
             luck *= self.g.c["PassLuckMultiplier"]
@@ -347,6 +421,9 @@ class Player:
             luck *= self.g.c["BoostLuckMultiplier"]
         if self.award_night():
             luck *= self.g.c["AwardNightLuckMultiplier"]
+        live = self.special()
+        if live is not None and live[0] == "LuckyStar":
+            luck *= self.g.t["specials"]["luck"]
         return luck
 
     def clap_seconds(self) -> float:
@@ -443,6 +520,34 @@ class Player:
             if a["id"] not in self.claimed and self.achievement_value(a["stat"]) >= a["target"]:
                 self.claimed.add(a["id"])
                 self.grant(a["reward"])
+
+    def special_events(self, step: float):
+        """Takes part in the live special event: Golden Hour speeds films up; the one-off pickups
+        are taken once the player has had time to get there (about 20 s in). A sensible player
+        grabs half the Cash Rain coins."""
+        live = self.special()
+        if live is None:
+            return
+        event_id, starts, _ = live
+        sp = self.g.t["specials"]
+        if event_id == "GoldenHour":
+            for film in self.films:
+                if film["end"] > self.now:
+                    film["end"] = max(self.now, film["end"] - step * (sp["film_speed"] - 1))
+        if self.special_done == (event_id, starts) or self.now + self.clock_offset < starts + 20:
+            return
+        self.special_done = (event_id, starts)
+        self.mark("First special event")
+        if event_id == "CashRain":
+            # SpecialEvents.coinCash: the most of a floor, cinema income, or a share of Fame.
+            coin = max(sp["coin_cash"], self.rate() * sp["coin_cinema_seconds"], self.fame * sp["coin_fame_share"])
+            for _ in range(sp["coins"] // 2):
+                self.grant({"cash": coin})
+        elif event_id == "MysteryCrate":
+            agency = [a for a in self.g.t["agencies"] if self.fame >= a["fame"]][-1]
+            self.roll(agency, self.cast_luck() * sp["crate_luck"])
+        elif event_id == "Spotlight":
+            self.grant(sp["spotlight_reward"])
 
     def finish_requests(self):
         """Studio Requests: the player finishes the day's three during the first session."""
@@ -653,18 +758,21 @@ class Player:
             self.cast_credit -= 1
             self.counts["cast"] += 1
             self.cash -= agency["cost"]
-            actor_id, variant = self.g.roll_actor(self.rng, self.cast_luck(), int(agency["minTier"]))
-            key = f"{actor_id}:{variant}"
-            self.roster[key] = self.roster.get(key, 0) + 1
-            self.index.add(key)
-            self.mark(f"First {self.g.actor[actor_id]['tier']} actor")
-            if variant != "Normal":
-                self.mark(f"First {variant} variant")
-            for n in (21, 32, 42, 63):
-                if len(self.index) >= n:
-                    self.mark(f"Index {n}/63")
-            if agency["minTier"] > 1:
-                self.mark(f"First roll at {agency['name']}")
+            self.roll(agency, self.cast_luck())
+
+    def roll(self, agency: dict, luck: float):
+        actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]))
+        key = f"{actor_id}:{variant}"
+        self.roster[key] = self.roster.get(key, 0) + 1
+        self.index.add(key)
+        self.mark(f"First {self.g.actor[actor_id]['tier']} actor")
+        if variant != "Normal":
+            self.mark(f"First {variant} variant")
+        for n in (21, 32, 42, 63):
+            if len(self.index) >= n:
+                self.mark(f"Index {n}/63")
+        if agency["minTier"] > 1:
+            self.mark(f"First roll at {agency['name']}")
 
     def clap(self, dt: float):
         self.clap_credit += self.clap_rate * dt
@@ -697,6 +805,7 @@ class Player:
             if mark in CURVE_MINUTES and mark not in self.curve:
                 self.curve[mark] = self.snapshot()
             self.clap(step)
+            self.special_events(step)
             self.premiere_ready(end)
             if self.now - last_collect >= 30:
                 self.collect()
@@ -792,7 +901,7 @@ def played_minutes(seconds: float, sched) -> float:
 
 
 def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7,
-        rebirth: bool = True, achievements: bool = True):
+        rebirth: bool = True, achievements: bool = True, specials: bool = True):
     game = Game(tuning)
     sched = schedule(kind, days)
     events: dict[str, list[float]] = {}
@@ -809,6 +918,7 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
         player.luck_pass = luck_pass
         player.achievements = achievements
         player.rebirth_enabled = rebirth
+        player.specials_on = specials
         for i, (label, on, off) in enumerate(sched):
             day = int(label.split()[1])
             first_today = i == 0 or sched[i - 1][0].split()[1] != str(day)
@@ -824,12 +934,13 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
 
 
 def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7, rebirth: bool = True,
-           achievements: bool = True):
+           achievements: bool = True, specials: bool = True):
     tuning = load_tuning()
-    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements)
+    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials)
     owns = " with the 2x Luck pass" if luck_pass else ""
     never = ", never rebirths" if not rebirth else ""
-    print(f"# Movie Mogul economy sim: {kind} player{owns}{never}, {runs} runs\n")
+    without = ", no special events" if not specials else ""
+    print(f"# Movie Mogul economy sim: {kind} player{owns}{never}{without}, {runs} runs\n")
     total_played = sum(on for _, on, _ in sched)
     print(f"Schedule: {total_played / 60:.1f} h played over {days} days.\n")
     print("| Milestone | Players who reach it | Median | Fast 10% | Slow 10% |")
@@ -873,5 +984,7 @@ if __name__ == "__main__":
     parser.add_argument("--days", type=int, default=7, help="days to simulate (whole weeks get a checkpoint)")
     parser.add_argument("--no-rebirth", action="store_true", help="the player never rebirths")
     parser.add_argument("--no-achievements", action="store_true", help="leave achievement rewards out (to compare)")
+    parser.add_argument("--no-events", action="store_true", help="switch the special events off (to compare)")
     args = parser.parse_args()
-    report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements)
+    report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
+           not args.no_events)

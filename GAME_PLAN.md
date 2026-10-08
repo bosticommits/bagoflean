@@ -95,6 +95,9 @@ and players expect it.
 
 - **Award Night**, every 30 min on each server: 3 minutes of boosted casting Luck and
   doubled premiere payouts. It brings people back on a schedule.
+- **Special events**, one every 15 minutes in every server at once: a short surprise that takes
+  over the town (a giant Lucky Star, Cash Rain, a Mystery Crate, a Spotlight on someone's studio,
+  Golden Hour). Like the reference games' server events, but free for everyone. See section 12.
 - **Live events** (weekly): a limited "Film Festival" actor pool, like the hits' admin events.
 - **Server announcement** when anyone pulls Legend or Icon, or gets a Masterpiece.
 - Daily login rewards, 3 daily **Studio Requests** (small quests), codes for socials.
@@ -199,6 +202,29 @@ exciting by M3, fix the core before adding anything else.
   gift behind the menu: x2 Luck for 10 minutes plus some Cash. Once per UTC day, and only after
   5 minutes of play in that session, both checked on the server, so it cannot be farmed.
 - **Welcome back**: on joining, a banner says what the cinema earned while the player was away.
+- **Special events** (`src/shared/SpecialEvents.luau`, `src/server/SpecialEventService.luau`,
+  `src/client/SpecialEventsUi.luau` and `EventWorld.luau`): every 15 minutes one of five events
+  runs for 90 to 120 seconds. "SPECIAL EVENT: NAME" slams onto the screen in gradient letters with
+  two spinning icons, then sits under the HUD with what to do and a countdown; a 10-second
+  "SPECIAL EVENT IN 10" teaser comes first, and a line goes in the chat.
+  - *Lucky Star*: a giant gold star crashes into the plaza (shockwave, camera shake) and hovers
+    over the fountain. x2 casting Luck for everyone, stacking with everything else.
+  - *Cash Rain*: money falls from the sky and 16 gold coins land round town, each under a beam.
+    Each coin grows with the player (at least $25, else a tenth of their Fame or 20 seconds of
+    box office income, whichever is more), once per player.
+  - *Mystery Crate*: a crate parachutes onto the boulevard under a purple beam. Reaching it once
+    it lands gives a free cast at the best unlocked agency with x3 Luck.
+  - *Spotlight*: a pillar of light and two searchlights on a random player's studio. The owner
+    and everyone who visits get Lucky Casting for 5 minutes.
+  - *Golden Hour*: the sun drops to a sunset and every film shoots twice as fast.
+  The schedule is a pure function of the clock, like Award Night: every server runs the same
+  event at the same moment with no messaging, events never come within a minute of Award Night,
+  each event comes up once every five slots (dealt like a deck, never twice in a row), and the
+  start time inside the slot is random. Pickups are saved in the profile with the event, so
+  changing servers or rejoining cannot collect twice; the server checks the player is standing
+  at the coin or crate. Any event (or all) can be switched off without an update
+  (`DisabledEvents` in the `GameConfig` DataStore, see `LiveConfig.luau`). The economy sim plays
+  them: they bring milestones a few percent sooner and do not change the odds of rare actors.
 - No Robux purchase gives a random item, so no paid-random-item rules apply yet.
 - **Analytics** (server only): every Cash source and sink (batched per minute), the onboarding
   funnel for new players (joined, lot, first cast, script, film, premiere, collect, tutorial), and

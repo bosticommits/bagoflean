@@ -428,6 +428,27 @@ local function onUseSkip(player: Player, stage: any)
 	Analytics.event(player, "SkipUsed", 1, film.length)
 end
 
+-- Takes `seconds` off every film still shooting (Golden Hour runs this every second), never
+-- past now, and shows the new times.
+function MovieService.fastForward(player: Player, seconds: number)
+	local data = DataService.getData(player)
+	if data == nil or not (seconds > 0) then
+		return
+	end
+	local now = os.time()
+	local changed = false
+	for _, film in data.films do
+		if film.endTime > now then
+			film.endTime = math.max(now, film.endTime - seconds)
+			changed = true
+		end
+	end
+	if changed then
+		DataService.markDirty(player)
+		MovieService.sync(player)
+	end
+end
+
 function MovieService.start()
 	studioRequest.OnServerEvent:Connect(function(player)
 		if allow(player, "request", 1, true) then
