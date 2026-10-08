@@ -22,7 +22,12 @@ function RandomShim.new(seed: number?)
 	if state == 0 then
 		state = 0x9E3779B9
 	end
-	return setmetatable({ state = state }, RandomShim)
+	local self = setmetatable({ state = state }, RandomShim)
+	-- Warm up, so neighbouring seeds (days, clock slots) give unrelated draws, as Roblox's does.
+	for _ = 1, 8 do
+		self:_next()
+	end
+	return self
 end
 
 -- xorshift32, returns a float in [0, 1)

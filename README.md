@@ -9,8 +9,8 @@ Two separate projects live in this repo:
 
 Status: milestones M0 to M5 are built and playtested in Studio: lots and cash, casting,
 movies, Index, agencies, upgrades, lot visuals, billboard, effects, sounds and the tutorial.
-The M6 launch features are built too: Award Night, daily rewards, Studio Requests, codes, game
-passes, developer products and analytics. Art is still placeholder parts. See GAME_PLAN.md
+The M6 launch features are built too: Award Night, special events, daily rewards, Studio
+Requests, codes, game passes, developer products and analytics. Art is still placeholder parts. See GAME_PLAN.md
 sections 9, 11 and 12.
 
 ### Setup
@@ -38,9 +38,9 @@ sections 9, 11 and 12.
 
 | Folder | Runs on | Contents |
 |---|---|---|
-| `src/shared` | both | Config, actors and odds, movies, upgrades, shop items, rewards, events (pure rules, no state) |
-| `src/server` | server | Data (ProfileStore), economy, lots, the town map, casting, movies, upgrades, rewards, codes, shop, Award Night, analytics |
-| `src/client` | client | HUD, casting, studio, upgrades, shop, rewards and tutorial screens, and the store stands' prompts |
+| `src/shared` | both | Config, actors and odds, movies, upgrades, shop items, rewards, Award Night and special event schedules (pure rules, no state) |
+| `src/server` | server | Data (ProfileStore), economy, lots, the town map, casting, movies, upgrades, rewards, codes, shop, Award Night, special events, analytics |
+| `src/client` | client | HUD, casting, studio, upgrades, shop, rewards and tutorial screens, the store stands' prompts, and the special event banner and effects |
 
 The server decides every roll, price, timer and payout. Remotes carry requests, never values.
 `src/server/ProfileStore.luau` is vendored from MadStudioRoblox/ProfileStore (Apache-2.0, see
@@ -53,7 +53,7 @@ Every pull request that touches the game runs two checks (`.github/workflows/gam
 - **Type check**: `luau-lsp` analyzes `src` with Roblox's types, catching typos, wrong property
   names, nil mistakes and unused variables.
 - **Rules tests**: `tests/luau` tests the shared game rules (odds, premieres, payouts, upgrades,
-  daily rewards, Award Night) and the town layout in [Lune](https://lune-org.github.io/docs), outside Studio. They
+  daily rewards, Award Night, special events) and the town layout in [Lune](https://lune-org.github.io/docs), outside Studio. They
   check that odds add up and prices rise, not exact numbers, so balance changes keep passing.
 
 Run them locally after `aftman install`, from the repo root:
@@ -77,6 +77,18 @@ The shop lists every pass and product, but shows "Soon" until it has a real Robl
 
 Test purchases in Studio are free and go through the same server code. Prices are read from
 Roblox, so the shop always shows what the prompt will charge.
+
+### Testing special events in Studio
+
+A special event comes every 15 minutes. To see one at once, press Play: an **Events (Studio)**
+button on the right lists all five and Stop. They only exist in Studio, never in the live game.
+Claim a studio first to test Spotlight (it needs a claimed studio to shine on).
+
+To switch an event off in live servers without an update (API access on, see Setup):
+```lua
+game:GetService("DataStoreService"):GetDataStore("GameConfig"):SetAsync("DisabledEvents", { "CashRain" })
+```
+`{ "ALL" }` switches every special event off, and `{}` turns them all back on, within a minute.
 
 ### Before you publish
 

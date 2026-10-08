@@ -120,4 +120,25 @@ function scenes.map(folder, load)
 	MapModels.build(folder)
 end
 
+-- The special event props (EventModels): the Lucky Star (smaller than in the game), a Cash Rain
+-- coin, the Mystery Crate on its parachute, and an opened crate inside its reach ring.
+function scenes.events(folder, load, roblox)
+	local EventModels = load("src/shared/Models/EventModels.luau")
+	local CFrame = roblox.CFrame
+	EventModels.star(folder, CFrame.new(-18, 7, 0), 12)
+	EventModels.coin(folder, CFrame.new(-7, 2.4, 0), 3.2)
+	EventModels.crate(folder, CFrame.new(4, 0, 0))
+	EventModels.parachute(folder, CFrame.new(4, 0, 0))
+	local _, lid = EventModels.crate(folder, CFrame.new(18, 0, 0))
+	-- Flip the lid open about its hinge (Lune has no PivotTo).
+	local hinge = lid.WorldPivot
+	local open = hinge * CFrame.Angles(math.rad(115), 0, 0) * hinge:Inverse()
+	for _, part in lid:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CFrame = open * part.CFrame
+		end
+	end
+	EventModels.ring(folder, roblox.Vector3.new(18, 0, 0), 16, roblox.Color3.fromRGB(170, 90, 255))
+end
+
 return scenes

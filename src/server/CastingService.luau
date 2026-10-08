@@ -17,6 +17,8 @@ local Remotes = require(script.Parent.Remotes)
 local random = Random.new()
 local lastCast: { [Player]: number } = {}
 local lastRosterRequest: { [Player]: number } = {}
+-- A special event's casting Luck for everyone (the Lucky Star), until an os.time() stamp.
+local eventLuck, eventLuckUntil = 1, 0
 
 local castRemote = Remotes.get("Cast")
 local castResult = Remotes.get("CastResult")
@@ -34,7 +36,7 @@ function CastingService.getLuck(player: Player): number
 end
 
 -- Luck for Casting Calls: the stat Luck above times the 2x Luck pass, an active Lucky Casting
--- boost, and Award Night. Premieres use the stat Luck only.
+-- boost, Award Night and a Lucky Star special event. Premieres use the stat Luck only.
 function CastingService.castLuck(player: Player): number
 	local data = DataService.getData(player)
 	if data == nil then
@@ -51,7 +53,16 @@ function CastingService.castLuck(player: Player): number
 	if Events.awardNight(now) then
 		luck *= Config.AwardNightLuckMultiplier
 	end
+	if eventLuckUntil > now then
+		luck *= eventLuck
+	end
 	return luck
+end
+
+-- Multiplies everyone's casting Luck by `multiplier` until `untilTime` (os.time()); it switches
+-- itself off then, even if nobody calls this again. SpecialEventService runs the Lucky Star.
+function CastingService.setEventLuck(multiplier: number, untilTime: number)
+	eventLuck, eventLuckUntil = multiplier, untilTime
 end
 
 -- Mirror casting luck to an attribute so the odds panel can compute the same numbers the roll uses.
@@ -84,6 +95,31 @@ function CastingService.grant(player: Player, actorId: string, variantId: string
 	data.roster[key] = (data.roster[key] or 0) + 1
 	DataService.markDirty(player)
 	return isNew, data.roster[key]
+end
+
+-- Rolls an actor from `agency` at `luck`, grants it and shows the reveal. Never yields.
+local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
+	local actor, variant = Actors.roll(random, luck, agency.minTier)
+	local isNew, count = CastingService.grant(player, actor.id, variant.id)
+	castResult:FireClient(player, {
+		ok = true,
+		actorId = actor.id,
+		variantId = variant.id,
+		isNew = isNew,
+		count = count,
+	})
+	-- Counted first, so a slow or failing lot redraw below can never lose a cast's progress.
+	QuestTracker.track(player, "cast")
+	sendRoster(player)
+	LotService.refresh(player) -- the billboard may have a new top star
+	Analytics.onboarding(player, Analytics.Steps.FirstCast)
+	if actor.tier == "Superstar" or actor.tier == "Legend" or actor.tier == "Icon" then
+		Analytics.event(player, "RarePull", 1, actor.tier, variant.id)
+	end
+	if actor.tier == "Legend" or actor.tier == "Icon" then
+		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
+		LotService.celebrate(player, "pull")
+	end
 end
 
 local function onCast(player: Player, agencyId: any)
@@ -119,27 +155,24 @@ local function onCast(player: Player, agencyId: any)
 		castResult:FireClient(player, { ok = false, reason = "cash" })
 		return
 	end
-	local actor, variant = Actors.roll(random, CastingService.castLuck(player), agency.minTier)
-	local isNew, count = CastingService.grant(player, actor.id, variant.id)
-	castResult:FireClient(player, {
-		ok = true,
-		actorId = actor.id,
-		variantId = variant.id,
-		isNew = isNew,
-		count = count,
-	})
-	-- Counted first, so a slow or failing lot redraw below can never lose a cast's progress.
-	QuestTracker.track(player, "cast")
-	sendRoster(player)
-	LotService.refresh(player) -- the billboard may have a new top star
-	Analytics.onboarding(player, Analytics.Steps.FirstCast)
-	if actor.tier == "Superstar" or actor.tier == "Legend" or actor.tier == "Icon" then
-		Analytics.event(player, "RarePull", 1, actor.tier, variant.id)
+	rollAndGrant(player, agency, CastingService.castLuck(player))
+end
+
+-- A free Casting Call (the Mystery Crate): the best agency the player's Fame has unlocked, with
+-- `luckMultiplier` times their casting Luck. The client shows it like any other cast.
+function CastingService.freeCast(player: Player, luckMultiplier: number): boolean
+	local data = DataService.getData(player)
+	if data == nil then
+		return false
 	end
-	if actor.tier == "Legend" or actor.tier == "Icon" then
-		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
-		LotService.celebrate(player, "pull")
+	local agency = Actors.getAgency("Open") :: Actors.Agency
+	for _, candidate in Actors.Agencies do
+		if data.fame >= candidate.fame then
+			agency = candidate
+		end
 	end
+	rollAndGrant(player, agency, CastingService.castLuck(player) * luckMultiplier)
+	return true
 end
 
 local function onRosterRequest(player: Player)
