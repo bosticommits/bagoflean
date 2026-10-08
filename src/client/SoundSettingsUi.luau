@@ -67,7 +67,13 @@ function SoundSettingsUi.start(gui: ScreenGui, remotes: Instance)
 		end)
 	end
 
-	local build: () -> ()
+	-- The rows are built once and updated in place, so pressing a button never flickers.
+	local refreshers: { () -> () } = {}
+	local function build()
+		for _, refresh in refreshers do
+			refresh()
+		end
+	end
 
 	local function set(key: string, value: number)
 		local clean = Sounds.cleanVolume(value, 0)
@@ -85,43 +91,49 @@ function SoundSettingsUi.start(gui: ScreenGui, remotes: Instance)
 		Sfx.play("click") -- at the new Effects level
 	end
 
-	local function volumeRow(order: number, key: string, title: string, note: string?)
-		local value = if key == "music" then volumes.music else volumes.sfx
-		local row = UiKit.addRow(list, order, if note ~= nil then 100 else 80)
+	local ROW = 80
+	local function volumeRow(order: number, key: string, title: string)
+		local function value(): number
+			return if key == "music" then volumes.music else volumes.sfx
+		end
+		local row = UiKit.addRow(list, order, ROW)
 		local name = UiKit.makeTitle(row, title, UiKit.WHITE, UDim2.new(0.27, -16, 0, 40), UDim2.fromOffset(12, 20))
 		name.TextXAlignment = Enum.TextXAlignment.Left
 
 		local minus = UiKit.makeButton(row, "-", UiKit.BLUE, UDim2.fromOffset(44, 44), UDim2.new(0.27, 0, 0, 18))
 		minus:SetAttribute("Silent", true)
 		minus.Activated:Connect(function()
-			set(key, value - 1 / Sounds.STEPS)
+			set(key, value() - 1 / Sounds.STEPS)
 		end)
-		local amount = UiKit.makeTitle(row, `{math.floor(value * 100 + 0.5)}%`, if value > 0 then UiKit.GOLD else UiKit.FAINT, UDim2.fromOffset(76, 40), UDim2.new(0.27, 48, 0, 20))
+		local amount = UiKit.makeTitle(row, "", UiKit.GOLD, UDim2.fromOffset(76, 40), UDim2.new(0.27, 48, 0, 20))
 		amount.Name = "Amount"
 		local plus = UiKit.makeButton(row, "+", UiKit.BLUE, UDim2.fromOffset(44, 44), UDim2.new(0.27, 128, 0, 18))
 		plus:SetAttribute("Silent", true)
 		plus.Activated:Connect(function()
-			set(key, value + 1 / Sounds.STEPS)
+			set(key, value() + 1 / Sounds.STEPS)
 		end)
-
-		local muted = value <= 0
-		local toggle = UiKit.makeButton(row, if muted then "OFF" else "ON", if muted then UiKit.DISABLED else UiKit.GREEN, UDim2.new(0.73, -196, 0, 44), UDim2.new(0.27, 184, 0, 18))
+		local toggle = UiKit.makeButton(row, "", UiKit.GREEN, UDim2.new(0.73, -196, 0, 44), UDim2.new(0.27, 184, 0, 18))
 		toggle:SetAttribute("Silent", true)
 		toggle.Activated:Connect(function()
-			set(key, if muted then unmuted[key] else 0)
+			set(key, if value() <= 0 then unmuted[key] else 0)
 		end)
 
-		if note ~= nil then
-			local label = UiKit.makeLabel(row, note, UiKit.MUTED, UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, 72))
-			label.TextXAlignment = Enum.TextXAlignment.Left
-		end
+		table.insert(refreshers, function()
+			local v = value()
+			amount.Text = `{math.floor(v * 100 + 0.5)}%`
+			amount.TextColor3 = if v > 0 then UiKit.GOLD else UiKit.FAINT
+			toggle.Text = if v > 0 then "ON" else "OFF"
+			toggle.BackgroundColor3 = if v > 0 then UiKit.GREEN else UiKit.DISABLED
+		end)
 	end
 
-	build = function()
-		UiKit.clear(list)
-		local musicNote = if #Sounds.lobbyTracks() == 0 then "No music tracks yet" else nil
-		volumeRow(1, "music", "Music", musicNote)
-		volumeRow(2, "sfx", "Effects")
+	volumeRow(1, "music", "Music")
+	volumeRow(2, "sfx", "Effects")
+	build()
+	-- Only two rows: cap the window's height so it fits them instead of standing mostly empty.
+	local limit = panel:FindFirstChildOfClass("UISizeConstraint")
+	if limit ~= nil then
+		limit.MaxSize = Vector2.new(limit.MaxSize.X, 60 + 2 * (ROW + 8) + 30)
 	end
 
 	-- Saved settings arrive with the player's data; a change still waiting to save wins.
