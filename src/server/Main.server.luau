@@ -21,6 +21,7 @@ do
 end
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local AchievementService = require(script.Parent.AchievementService)
 local Analytics = require(script.Parent.Analytics)
 local AwardNightService = require(script.Parent.AwardNightService)
 local CastingService = require(script.Parent.CastingService)
@@ -42,6 +43,7 @@ MovieService.start()
 UpgradeService.start()
 RewardService.start()
 ShopService.start()
+AchievementService.start()
 AwardNightService.start()
 Analytics.start()
 LiveConfig.start()
@@ -91,6 +93,7 @@ local function onPlayerRemoving(player: Player)
 	MovieService.forget(player)
 	UpgradeService.forget(player)
 	RewardService.forget(player)
+	AchievementService.forget(player)
 	Analytics.forget(player)
 	DataService.release(player)
 end

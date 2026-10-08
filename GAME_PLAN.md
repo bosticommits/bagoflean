@@ -204,3 +204,16 @@ exciting by M3, fix the core before adding anything else.
   funnel for new players (joined, lot, first cast, script, film, premiere, collect, tutorial), and
   custom events for rare pulls, premieres, daily claims, requests, codes and purchases.
 
+## 13. As built (achievements)
+
+- **Goals** button (trophy, side menu) opens the Achievements screen: 40 lifetime goals in 11
+  groups (casting calls, premieres, Blockbusters, Masterpieces, Index, rare actors, Shiny and
+  Award-Winning actors, Fame, clapperboard taps, scripts bought, box office collects). Each group
+  shows one row with its next goal, a progress bar, the reward and CLAIM when done.
+- The button's red badge counts goals ready to claim, and reaching one shows "Goal reached!" at
+  the bottom of the screen with a jingle.
+- Counters (`stats` in the save) start at zero for players who joined before achievements; Index,
+  Masterpiece and Fame goals read what the save already holds, so those count from the start.
+  Counters never go down, and claimed goals stay claimed (`achievements` in the save).
+- Claims are checked on the server (AchievementService) from the shared list; the client only
+  names the goal. The rewards and their effect on the curve are in ECONOMY.md.

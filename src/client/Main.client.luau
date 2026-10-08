@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 
+local AchievementsUi = require(script.Parent.AchievementsUi)
 local CastingUi = require(script.Parent.CastingUi)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
@@ -46,6 +47,7 @@ if remotes ~= nil then
 	UpgradesUi.start(gui, side.upgrade)
 	ShopUi.start(gui, side.shop, cashPlus)
 	RewardsUi.start(gui, side.rewards, side.codes)
+	AchievementsUi.start(gui, side.goals)
 	Stands.start()
 	Tutorial.start(gui, remotes)
 else

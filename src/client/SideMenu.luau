@@ -1,6 +1,6 @@
 --!strict
 -- Left-side menu in the reference games' style: big floating 3D icons with outlined labels in two
--- loose columns (Shop, Rewards, Codes / Actors, Studio, Upgrade), red badges for things to claim,
+-- loose columns (Shop, Rewards, Codes, Goals / Actors, Studio, Upgrade), red badges for things to claim,
 -- and the wallet (Cash and Fame) under them. Phones in landscape keep the bottom left clear for the
 -- thumbstick, so there the wallet moves to the top centre.
 --
@@ -19,7 +19,7 @@ local BUTTON = 84
 local GAP = 12
 local STAGGER = BUTTON // 2 -- the second column starts half a button lower, like the reference
 local MENU_WIDTH = 2 * BUTTON + GAP
-local MENU_HEIGHT = 3 * (BUTTON + GAP) + STAGGER
+local MENU_HEIGHT = math.max(4 * BUTTON + 3 * GAP, 3 * (BUTTON + GAP) + STAGGER) -- the taller column
 local OVERHANG = 22 -- labels and the Actors chip reach this far past the second column
 local WALLET_WIDTH = 260
 local WALLET_HEIGHT = 96
@@ -31,6 +31,7 @@ export type Buttons = {
 	actors: TextButton,
 	studio: TextButton,
 	upgrade: TextButton,
+	goals: TextButton, -- achievements
 	wallet: Frame, -- empty; the HUD fills it with the Cash and Fame rows
 }
 
@@ -109,6 +110,7 @@ function SideMenu.start(gui: ScreenGui): Buttons
 		actors = button(2, 1, "star", "Actors"),
 		studio = button(2, 2, "movieCamera", "Studio"),
 		upgrade = button(2, 3, "arrow", "Upgrade"),
+		goals = button(1, 4, "trophy", "Goals"),
 		wallet = wallet,
 	}
 end

@@ -54,6 +54,9 @@ export type PlayerData = {
 	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
 	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
 	funnel: number, -- highest onboarding funnel step logged (analytics)
+	-- Achievements: lifetime action counters ("cast", "premiere", ...) and the ones claimed (by id)
+	stats: { [string]: number },
+	achievements: { [string]: boolean },
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
@@ -86,6 +89,8 @@ local TEMPLATE: PlayerData = {
 	purchaseIds = {},
 	stayGiftDay = 0,
 	funnel = 99, -- profiles from before M6 are not new players; load() sets 0 for new ones
+	stats = {},
+	achievements = {},
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -127,6 +132,16 @@ local function migrate(data: any)
 	for _, field in { "scripts", "upgrades", "rewards", "passes", "codes", "purchaseIds" } do
 		if type(data[field]) ~= "table" then
 			data[field] = {}
+		end
+	end
+	for _, field in { "stats", "achievements" } do
+		if type(data[field]) ~= "table" then
+			data[field] = {}
+		end
+	end
+	for key, value in data.stats do
+		if type(key) ~= "string" or type(value) ~= "number" or value ~= value or value < 0 then
+			data.stats[key] = nil
 		end
 	end
 	for _, field in { "films", "cinema" } do
