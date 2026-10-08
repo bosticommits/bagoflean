@@ -29,6 +29,13 @@ SHOTS = {
     "busstop": ((82, 9, -4), (98, 4, -24), 30),
     "boulevardend": ((96, 9, 16), (124, 4, 2), 30),
     "spawn": ((0, 7, -17), (0, 6, 40), 28),
+    "park": ((30, 60, 112), (-10, 0, 190), 30),
+    "parkpath": ((4, 7, 134), (-4, 6, 200), 28),
+    "pond": ((-8, 14, 168), (-62, 2, 210), 28),
+    "screen": ((10, 10, 175), (0, 14, 235), 28),
+    "western": ((0, 7, -136), (0, 8, -220), 28),
+    "gulch": ((70, 70, -110), (0, 0, -200), 30),
+    "blimp": ((60, 40, -120), (0, 110, -240), 30),
 }
 
 
@@ -38,7 +45,7 @@ def roblox(p):
 
 
 def main(names):
-    parts = [p for p in kit.dump("map") if p["name"] not in ("SearchlightBeam",)]
+    parts = [p for p in kit.dump("map") if p["name"] not in ("SearchlightBeam", "MapWall")]
     kit.new_scene(1280, 720, samples=48)
     kit.sky(top="#4A86E0", middle="#8FBDF2", horizon="#F4E6CF", glow="#FFD9A8", strength=1.0, light_strength=0.8)
     kit.light("SUN", (0, 0, 100), 3.2, "#FFF1DC", target=(-40, -60, 0), angle=4, name="Sun")
