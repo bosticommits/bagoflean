@@ -64,12 +64,16 @@ export type PlayerData = {
 	-- rejoining or changing servers during it cannot pick the same thing up twice.
 	eventKey: string, -- "<event id>:<start time>"; claims from older events are dropped
 	eventClaims: { [string]: boolean },
+	-- Studio visits (Visits.luau): applause other players gave this studio (cosmetic, never spent),
+	-- and which studios this player toured and applauded today.
+	likes: number,
+	visits: { day: number, toured: { [string]: boolean }, applauded: { [string]: boolean } },
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
 export type Carried = { key: string, id: string, scope: string }
 
-local CURRENT_VERSION = 7 -- 6: rebirths, 7: weekly quests
+local CURRENT_VERSION = 8 -- 6: rebirths, 7: weekly quests, 8: studio visits
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -104,6 +108,8 @@ local TEMPLATE: PlayerData = {
 	rebirths = 0,
 	eventKey = "",
 	eventClaims = {},
+	likes = 0,
+	visits = { day = 0, toured = {}, applauded = {} },
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -134,12 +140,16 @@ local function migrate(data: any)
 	if type(data.tutorialDone) ~= "boolean" then
 		data.tutorialDone = false
 	end
-	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths" } do
+	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths", "likes" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
 		end
 	end
 	data.rebirths = math.floor(data.rebirths)
+	data.likes = math.floor(data.likes)
+	if type(data.visits) ~= "table" or type(data.visits.day) ~= "number" or type(data.visits.toured) ~= "table" or type(data.visits.applauded) ~= "table" then
+		data.visits = { day = 0, toured = {}, applauded = {} }
+	end
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end

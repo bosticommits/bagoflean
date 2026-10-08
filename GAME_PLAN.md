@@ -146,7 +146,8 @@ exciting by M3, fix the core before adding anything else.
 ## 10. Open questions
 
 - ~~Final game name~~ Decided 7 Oct 2026: **Hollywood RNG**.
-- Whether to add light player interaction later (visiting lots, co-starring in premieres)
+- ~~Whether to add light player interaction later (visiting lots)~~ Studio visits and applause
+  built 8 Oct 2026 (section 16). Co-starring in premieres is still open.
 
 ## 11. As built (decisions made during M0 to M5)
 
@@ -298,5 +299,41 @@ exciting by M3, fix the core before adding anything else.
   Quests tab, to claim whenever the player likes. This covers the daily requests too. Each carried
   quest has its own key ("weekly:2961:WHit3"); the server finds it by key, removes it, then pays,
   so it can be claimed once. At most 12 wait (the oldest give way after a very long absence).
-- **Studio visits** are not a quest yet. The visits feature is a separate piece of work; once it
-  exists, a "visit 3 studios" quest is one more entry in the *volume* slot.
+- **Studio visits** are not a quest yet. Tours are counted (`QuestTracker.track(player, "visit")`,
+  once per studio per day, section 16), but a weekly quest must be possible for every player, and a
+  player alone on a server has no studio to tour. Add a "tour 3 studios" quest only if playtests
+  show servers are busy enough.
+
+## 16. As built (studio visits and applause)
+
+- **Visit** button (map pin over a little studio, side menu, first column under Goals; the green
+  chip counts the other studios on the server) opens **Visit a Studio**: your own studio first with
+  GO HOME, then every other studio with its owner's face, name ("AVA PICTURES 2"), applause,
+  Masterpieces, top star (in its rarity color) and what it is doing ("Premiere ready!", "Filming
+  2:05", "Between films"). The Spotlight studio comes first, then studios with a premiere ready,
+  then the most applauded. VISIT jumps you to the studio's gate, on the red carpet, facing the
+  cinema. Walking there works the same.
+- **Tour card**: standing on someone else's studio shows a card on the right ("NOW TOURING", the
+  studio, its applause and Masterpieces, what it is filming) with a big gold **APPLAUD** button and
+  HOME. After 5 seconds on the lot the tour counts: the owner sees "Ava is touring your studio!"
+  and the button wakes up.
+- **Applause is cosmetic.** It adds one to the studio's count and pays nobody: no Cash, no Luck, no
+  tip jar, so there is nothing to farm. Each visitor's applause counts once per studio per UTC day
+  (saved on the visitor's profile, so rejoining or changing servers does not reset it), only after
+  the 5-second tour, never on your own studio, and claps are at least 1.5 seconds apart. After it
+  counts, the button says CLAP AGAIN and still claps for the show without counting.
+- **Show-off**: clapping hands rise over whoever applauds and a clap is heard nearby; a counted
+  applause also floats a gold "+1" off the studio's gate, where the total ("👏 24") hangs between
+  the gate posts from the first applause on, readable from the boulevard. The owner hears a
+  fanfare and sees "Ava applauded your studio! 👏 25" wherever they are.
+- **Watch a premiere**: when an owner premieres a film, people on or just in front of their lot
+  see it on the tour card (`"Final Showdown": BLOCKBUSTER!` in the result's color) with confetti
+  and sparkles over the cinema for big results, and the APPLAUD button pulses. The owner gets "2
+  visitors watched your premiere!" after their own premiere night.
+- **Server**: `src/server/VisitService.luau` decides everything from where it sees each player
+  (rules in `src/shared/Visits.luau`): who is touring which lot, whether applause counts, and the
+  jumps (any claimed studio or your own, 3 seconds apart). The remotes carry no values except the
+  lot to jump to. Lots publish what the Visit screen lists as attributes (LotService, VisitService).
+- **Saving**: `likes` (applause received, never spent) and `visits` (today's tours and applause) in
+  the profile, schema version 8. Older profiles start at 0.
+- **Studio checks pending**: none of this has been playtested in Studio or on a phone yet.

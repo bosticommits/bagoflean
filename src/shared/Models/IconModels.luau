@@ -381,12 +381,26 @@ function BUILDERS.rebirth(b: Builder)
 	end
 end
 
+-- A little studio with a big red map pin over it, for Visit (go and tour someone's studio).
+function BUILDERS.visit(b: Builder)
+	b:block("Studio", v(3, 1.5, 2), v(0, 0.75, 0.3), P.Cream)
+	b:block("Roof", v(3.2, 0.3, 2.2), v(0, 1.65, 0.3), P.Burgundy)
+	b:block("Marquee", v(2.2, 0.42, 0.2), v(0, 1.2, -0.75), P.Gold, NEON)
+	b:block("Door", v(0.8, 0.8, 0.1), v(0, 0.4, -0.75), P.Charcoal)
+	b:block("Carpet", v(0.8, 0.06, 1), v(0, 0.03, -1.2), P.Carpet)
+	-- The pin: a round head with a white dot, tapering to a point just over the roof.
+	local red = rgb(235, 45, 55)
+	b:ball("PinHead", 1.9, v(0, 3.75, -0.2), red)
+	b:block("PinPoint", v(1.15, 1.15, 0.55), CFrame.new(0, 3.25, -0.2) * CFrame.Angles(0, 0, math.rad(45)), red)
+	b:ball("PinDot", 0.72, v(0, 3.8, -1.02), P.OffWhite)
+end
+
 local IconModels = {}
 
 IconModels.Ids = table.freeze({
 	"clapper", "dice", "arrow", "gift", "popcorn", "ticket", "coin", "trophy", "camera", "star",
 	"movieCamera", "clover", "magnet", "stage", "bolt", "crown", "potion", "skip", "moneybag", "vault",
-	"script", "chest", "lock", "rebirth",
+	"script", "chest", "lock", "rebirth", "visit",
 })
 
 -- Build icon `id` into a new Model under `parent`. Unknown ids build an empty model. `scale`

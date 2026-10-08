@@ -80,6 +80,11 @@ Sounds.Slots = {
 	eventPickup = slot("pop", 1.3), -- picking up a Cash Rain coin or crate
 	eventEnd = slot("sweep", 0.8), -- a special event ends
 
+	-- Studio visits
+	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio
+	applause = slot("clap", 1.1), -- someone applauds a studio near you (each clap)
+	applauseGot = slot("stinger", 1.2), -- your studio's applause counted
+
 	-- Rebirth
 	rebirthSting = slot("stinger", 0.8), -- the rebirth reveal opens
 	rebirth = slot("jingle", 0.95), -- on top of the sting (the music dips under it)

@@ -20,6 +20,7 @@ local Stands = require(script.Parent.Stands)
 local StudioUi = require(script.Parent.StudioUi)
 local Tutorial = require(script.Parent.Tutorial)
 local UpgradesUi = require(script.Parent.UpgradesUi)
+local VisitUi = require(script.Parent.VisitUi)
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
@@ -58,6 +59,7 @@ if remotes ~= nil then
 	SoundSettingsUi.start(gui, remotes)
 	Tutorial.start(gui, remotes)
 	SpecialEventsUi.start(gui, remotes)
+	VisitUi.start(gui, side.visit)
 else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
