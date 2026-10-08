@@ -104,8 +104,8 @@ and players expect it.
 - **Fame** never resets. It unlocks agencies, genres, script tiers and lot expansions.
 - **Index rewards**: complete a tier row for +Luck. Complete all of a genre's actors for a
   permanent genre bonus.
-- **Sequel** (rebirth, unlocked at a Fame level): reset Cash, stages and roster but keep the
-  Index and Fame, for a permanent earnings multiplier and +Luck.
+- **Sequel** (the Rebirth button): pay Cash to start the studio over. Cash and every upgrade reset,
+  but actors, the Index and Fame are kept, for a permanent Cash multiplier and +Luck. See section 13.
 
 ## 7. Monetization (after version 1 is fun)
 
@@ -204,7 +204,30 @@ exciting by M3, fix the core before adding anything else.
   funnel for new players (joined, lot, first cast, script, film, premiere, collect, tutorial), and
   custom events for rare pulls, premieres, daily claims, requests, codes and purchases.
 
-## 13. As built (achievements)
+## 13. As built (Rebirth, the Sequel)
+
+- **Rebirth button** in the side menu (second column, under Upgrade) with a green chip: how close Cash
+  is to the next rebirth ("43%"), "READY!" on gold once it is affordable, "MAX" after the last one.
+- **Price**: $250,000 for the first, then 6 times more each time. There are 12. Tuned with the
+  sim: the first lands early on day 2, the next ones further and further apart (ECONOMY.md).
+- **What resets**: Cash (to the starting $100, plus the box office waiting at the gold pad) and
+  every upgrade, sound stages included.
+- **What is kept**: every actor (the plan first said the roster would reset; keeping it is kinder
+  and is how the reference games do it), the Index and its rewards, Fame and everything it unlocks,
+  scripts, the cinema's movies, trophies, game passes, boosts and Skip tokens. A film still
+  filming keeps going, and its stage stays open until it premieres.
+- **Bonus, forever**: every premiere's Cash x1.5 after one rebirth, x2 after two, and so on, plus
+  +0.1 Luck each. Fame is worked out before the bonus, so Fame unlocks stay on their curve. The
+  cinema keeps the boosted payout, so the box office grows with it. The premiere card shows
+  "(rebirth x2)".
+- **Show-off**: the studio's marquee gets its sequel number ("BOSTI PICTURES 2"), the whole server
+  sees an announcement and fireworks over the lot, and the player gets a big reveal card.
+- **Screen**: the price and a progress bar, the bonus now and after, what is kept and what starts
+  over, then a "Yes, start over!" confirmation. The server checks everything; the remote carries
+  no values.
+- **Saving**: a `rebirths` count in the player's profile (schema version 6). Older profiles get 0.
+
+## 14. As built (achievements)
 
 - **Goals** button (trophy, side menu) opens the Achievements screen: 40 lifetime goals in 11
   groups (casting calls, premieres, Blockbusters, Masterpieces, Index, rare actors, Shiny and

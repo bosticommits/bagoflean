@@ -8,9 +8,12 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --player casual     # also: hardcore
     python3 tools/economy_sim.py --luck-pass         # owns the 2x Luck pass
     python3 tools/economy_sim.py --no-achievements   # leave achievement rewards out, to compare
+    python3 tools/economy_sim.py --days 28           # four weeks, to see the rebirth ladder
+    python3 tools/economy_sim.py --no-rebirth        # a player who never rebirths
 
 The sim includes Award Night, daily rewards, Studio Requests, achievements, codes, the "don't leave yet" gift,
-Lucky Casting boosts and Skip tokens. It does not model game passes other than 2x Luck, or
+Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
+than about 20 minutes of income, and rebirths as soon as it can afford one). It does not model game passes other than 2x Luck, or
 Robux cash packs. Treat it as the shape of the curve, not a promise: playtests decide.
 
 ## The curve in plain words
@@ -20,12 +23,16 @@ Robux cash packs. Treat it as the shape of the curve, not a promise: playtests d
   players see their first purple **Star** actor around minute 20.
 - **Day one (about an hour).** Feature scripts and Sci-Fi unlock around minute 40, a third stage
   around minute 50, and the **Talent Agency** opens near the end of the hour.
-- **Days 2 to 3.** The first **Superstar** and the first **Masterpiece** arrive on day 2. **Epic**
-  scripts and the fourth stage unlock on day 3, which makes the overnight movie worth a lot more.
-- **Days 4 to 7.** Cinema, Offline and Clapperboard upgrades max out on day 4. **Hollywood
+- **Days 2 to 3.** The overnight box office pays for the **first rebirth** early on day 2
+  (Movie Cash x1.5). The first **Superstar** and the first **Masterpiece** arrive on day 2.
+- **Days 4 to 7.** **Epic** scripts, the fourth stage and the **second rebirth** come at the start
+  of day 4, the **third rebirth** on day 5. Every upgrade is maxed again by day 6, and **Hollywood
   Casting** opens on day 6. About half of players pull a **Legend** in week one. **Icon** stays a
-  rare brag (about 1 in 20 players in week one). The last Luck upgrades and most of the Index
-  (about 35 of 63 slots) are left for week two.
+  rare brag (about 1 in 20 players in week one). Most of the Index (about 35 of 63 slots) is left
+  for week two.
+- **Weeks 2 to 4.** Rebirths keep coming, each further apart: the fourth on day 8, the fifth on
+  day 12, the sixth on day 19, the seventh in week five. That is the long goal once the week-one
+  unlocks are done.
 
 How you earn changes over the week. Early on, active play (Short Films plus clapping) is most of
 the income. By the end of the week, about three quarters comes from time away: overnight Epics
@@ -34,34 +41,47 @@ session is mostly spent casting.
 
 ## Milestones (typical player: 60 minutes on day one, then three 15-minute visits a day)
 
-Median time, from 100 runs. "Slow 10%" is the unlucky end.
+Median time, from 300 runs. "Slow 10%" is the unlucky end. Rebirths reset upgrades, so "Sound
+stage 4" and "maxed" mean the first time.
 
 | Milestone | Median | Slow 10% |
 |---|---|---|
 | Sound stage 2 | day 1, 8 min played | 10 min |
 | Horror and Romance scripts | day 1, 7 min | 9 min |
 | First Star actor | day 1, 21 min | 31 min |
-| Feature scripts | day 1, 37 min | 42 min |
+| Feature scripts | day 1, 38 min | 42 min |
 | Sci-Fi scripts | day 1, 40 min | 45 min |
-| Sound stage 3 | day 1, 51 min | 58 min |
-| Talent Agency | day 1, 56 min | day 2 |
-| First Superstar | day 2 (72 min) | day 3 |
-| First Masterpiece | day 2 (77 min) | day 6 |
-| Epic scripts | day 3 (145 min) | day 4 |
-| Sound stage 4 | day 4 (150 min) | day 4 |
+| Sound stage 3 | day 1, 52 min | day 2 |
+| Talent Agency | day 1, 57 min | day 2 |
+| **Rebirth 1** (Movie Cash x1.5) | day 2 (75 min) | day 2 (99 min) |
+| First Superstar | day 2 (78 min) | day 4 |
+| First Masterpiece | day 2 (102 min) | day 6 |
+| Epic scripts | day 4 (150 min) | day 4 |
+| **Rebirth 2** (x2) | day 4 (150 min) | day 4 |
+| Sound stage 4 | day 4 (165 min) | day 4 |
 | Cinema, Offline, Clapperboard maxed | day 4 | day 5 |
-| First Legend | day 5 (56% of players in week one) | |
-| Hollywood Casting | day 6 (260 min) | day 7 |
-| All upgrades maxed | day 6 (67% in week one) | |
-| First Icon | 5% of players in week one | |
+| **Rebirth 3** (x2.5) | day 5 (195 min) | day 6 |
+| All upgrades maxed | day 6 (96% in week one) | day 7 |
+| Hollywood Casting | day 6 (270 min) | day 7 |
+| First Legend | day 6 (59% of players in week one) | |
+| First Icon | 4% of players in week one | |
+| **Rebirth 4** (x3) | day 8 (44% in week one) | day 10 |
+| **Rebirth 5** (x3.5) | day 12 | day 14 |
+| **Rebirth 6** (x4) | day 19 | day 22 |
+
+Without rebirths (`--no-rebirth`) the week-one unlocks land within a few minutes of the same times
+(Epic scripts at 147 minutes instead of 150), Legend is 57% and Icon 5%, and income at the end of
+the week is about 30,000 a minute instead of 80,000.
 
 Other players:
-- **Casual** (25 min on day one, then 20 min a day): Talent Agency on day 3, first Superstar on
-  day 4, Epic scripts on day 7. Legend 23%, Icon 1% in week one.
-- **Hardcore** (about 2 hours a day): Talent Agency in the first hour, Hollywood on day 3, Legend
-  on day 4 (88%), Icon 7% in week one, all upgrades maxed on day 6.
-- **2x Luck pass** (typical schedule): Star at 15 min, Superstar in the first hour, Legend 64%,
-  Icon 5%. Faster, but nothing a free player cannot reach.
+- **Casual** (25 min on day one, then 20 min a day): Talent Agency and the first rebirth on day 3,
+  first Superstar on day 4, the second rebirth on day 6, Epic scripts on day 7. Legend 12 to 20%,
+  Icon 1% in week one.
+- **Hardcore** (about 2 hours a day): Talent Agency in the first hour, the first rebirth near the
+  end of day 1, the second on day 2, Hollywood on day 3, the third rebirth and a Legend (95%) on
+  day 4, Icon 11% in week one, all upgrades maxed again on day 5.
+- **2x Luck pass** (typical schedule): first rebirth at 60 minutes, Superstar in the first hour,
+  Legend 69%, Icon 5%. Faster, but nothing a free player cannot reach.
 
 ## The levers and why they are set this way
 
@@ -102,6 +122,22 @@ cash alone sets their pace.
 **Masterpiece is 1 in 400** (was 1 in 200). Players premiere about 100 movies on day one, so 1 in
 200 made it a day-one event and the server-wide announcement would fire every few minutes.
 
+**Rebirths are the long-term Cash sink.** A rebirth costs Cash ($250,000 for the first, then 6
+times more each time: $1.5M, $9M, $54M, $324M...) and resets Cash and every upgrade, sound stages
+included. Actors, the Index, Fame, scripts, the cinema's movies, films still filming and Robux
+purchases are kept, and the box office waiting at the gold pad comes along as starting Cash. Each
+rebirth adds x0.5 to every premiere's Cash (x1.5, x2, x2.5...) and +0.1 Luck, forever. Because
+the cinema keeps the boosted payouts, the box office grows with the multiplier too.
+- The bonus multiplies Cash, not Fame, so Fame unlocks (Epic, Hollywood Casting) stay on the curve
+  above. Rebirths only cost a few minutes on them while the stages are bought back.
+- The price grows 6 times per rebirth while the bonus grows by a fixed x0.5, so each rebirth takes
+  longer than the last: about two days apart in week one, a week apart by week three. At 3 times
+  per rebirth (tried first) players did five rebirths in week one and income ran away.
+- The first one at $250,000 lands early on day 2, after the first night's box office, so day one
+  shows the Rebirth chip filling up and gives a reason to come back.
+- There are 12 rebirths (the last costs about $90 trillion); prices stay under 10^14, which Roblox
+  still prints as plain digits.
+
 **Cash packs.** Box Office Bag's minimum went from $1,000 to $5,000 and the Vault's from
 $10,000 to $50,000. The minimums are what early players get. $1,000 was under a minute of
 income on day one, which is a poor buy for Robux. Daily rewards, requests and codes were left as
@@ -122,5 +158,8 @@ players get their first Superstar about a day sooner, mostly from the Luck boost
   Superstar and Legend come sooner. The first fix would be rarer odds, not higher prices.
 - Holding finished Epics for Award Night doubles them. The sim's player does this when an Award
   Night falls inside the session, which slows Fame slightly.
-- After week one income keeps growing slowly. The Sequel (rebirth) in M7 is the planned long-term
-  sink.
+- Rebirth timing. The sim's player stops buying upgrades once a rebirth is within about 20 minutes
+  of income, and rebirths the moment it can. Real players will keep spending, so their rebirths
+  may come later. Casual players who rebirth on day 3 pull slightly fewer Legends in week one (12
+  to 20% against 18%), because the Cash goes back into upgrades. If early rebirths feel bad in
+  playtests, the first fix would be a Fame gate on the first one (the Talent Agency's 3,500).

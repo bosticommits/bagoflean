@@ -73,6 +73,10 @@ Sounds.Slots = {
 	eventStart = slot("stinger", 0.85), -- a special event starts (banner)
 	eventPickup = slot("pop", 1.3), -- picking up a Cash Rain coin or crate
 	eventEnd = slot("sweep", 0.8), -- a special event ends
+
+	-- Rebirth
+	rebirthSting = slot("stinger", 0.8), -- the rebirth reveal opens
+	rebirth = slot("jingle", 0.95), -- on top of the sting (the music dips under it)
 } :: { [string]: Slot }
 
 Sounds.Music = {

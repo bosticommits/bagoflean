@@ -34,6 +34,7 @@ function ClientState.stats(): any
 		stageCount = if studio ~= nil then studio.stageCount else 1,
 		rewards = if studio ~= nil then studio.rewards else {},
 		passes = if studio ~= nil then studio.passes else {},
+		rebirths = if studio ~= nil then studio.rebirths else 0,
 	}
 end
 

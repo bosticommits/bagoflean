@@ -189,7 +189,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		local order = 0
 		for stage = 1, Config.StageLimit do
 			order += 1
-			if stage > stageCount() then
+			-- A film still on a stage a rebirth closed keeps its row until it premieres.
+			if stage > stageCount() and filmAt(stage) == nil then
 				local row = UiKit.addRow(list, order, 58)
 				row.BackgroundColor3 = UiKit.DARK
 				UiKit.rowIcon(row, "lock", 46)
@@ -820,6 +821,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			end
 			if result.awardNight then
 				payoutLabel.Text ..= `  (Award Night x{Config.AwardNightPayoutMultiplier})`
+			end
+			if type(result.rebirthBonus) == "number" and result.rebirthBonus > 1 then
+				payoutLabel.Text ..= `  (rebirth x{result.rebirthBonus})`
 			end
 			payoutLabel.TextColor3 = UiKit.CASH_GREEN
 			fameLabel.Text = `+{Hud.comma(result.fame)} Fame  -  Star Power {fmtPower(result.power)}`

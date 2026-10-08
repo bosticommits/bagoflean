@@ -57,11 +57,12 @@ export type PlayerData = {
 	-- Achievements: lifetime action counters ("cast", "premiere", ...) and the ones claimed (by id)
 	stats: { [string]: number },
 	achievements: { [string]: boolean },
+	rebirths: number, -- rebirths done (Rebirth.luau); never goes down
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
 
-local CURRENT_VERSION = 5
+local CURRENT_VERSION = 6 -- 6: rebirths
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -91,6 +92,7 @@ local TEMPLATE: PlayerData = {
 	funnel = 99, -- profiles from before M6 are not new players; load() sets 0 for new ones
 	stats = {},
 	achievements = {},
+	rebirths = 0,
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -121,11 +123,12 @@ local function migrate(data: any)
 	if type(data.tutorialDone) ~= "boolean" then
 		data.tutorialDone = false
 	end
-	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay" } do
+	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
 		end
 	end
+	data.rebirths = math.floor(data.rebirths)
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end

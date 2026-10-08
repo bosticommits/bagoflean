@@ -343,12 +343,50 @@ function BUILDERS.star(b: Builder)
 	star:cylinder("Shine", 0.05, 0.5, CFrame.new(-0.32, 0.3, 0.3) * CFrame.Angles(0, 0, math.rad(90)), rgb(255, 250, 210), NEON)
 end
 
+-- Two chunky green arrows chasing each other round a gold film reel, for Rebirth (a sequel: the
+-- studio goes round again).
+function BUILDERS.rebirth(b: Builder)
+	local green = rgb(76, 214, 84)
+	local cy = 1.8 -- centre height
+	local R = 1.5 -- radius to the middle of the arrow band
+	local band, depth = 0.55, 0.7
+	-- The reel: a gold disc facing the camera with six dark holes round a white hub.
+	b:cylinder("Reel", 0.5, 1.75, CFrame.new(0, cy, 0) * FACE_Z, P.Gold, METAL)
+	for i = 0, 5 do
+		local a = math.rad(i * 60 + 30)
+		b:cylinder("Hole", 0.06, 0.4, CFrame.new(0.52 * math.cos(a), cy + 0.52 * math.sin(a), -0.27) * FACE_Z, P.Charcoal)
+	end
+	b:cylinder("Hub", 0.08, 0.32, CFrame.new(0, cy, -0.28) * FACE_Z, P.OffWhite)
+	-- Each arrow: a curved band of short blocks (local X points out from the centre, local Y along
+	-- the circle) ending in a pointed head: two mirrored wedges, like the star's points.
+	local SPAN, STEPS = 132, 9
+	for _, start in { 24, 204 } do
+		local segment = 2 * math.pi * R * (SPAN / 360) / STEPS * 1.25
+		for s = 0, STEPS - 1 do
+			local a = math.rad(start + SPAN * (s + 0.5) / STEPS)
+			b:block("Arc", v(band, segment, depth), CFrame.new(R * math.cos(a), cy + R * math.sin(a), 0) * CFrame.Angles(0, 0, a), green)
+		end
+		-- Head frame: X is the depth axis, Y points along the circle, Z across the band.
+		local a = math.rad(start + SPAN)
+		local tangent = Vector3.new(-math.sin(a), math.cos(a), 0)
+		local head = b:sub(CFrame.fromMatrix(Vector3.new(R * math.cos(a), cy + R * math.sin(a), 0), Vector3.new(0, 0, 1), tangent))
+		local L, W = 1.05, 0.8
+		head:wedge("Head", v(depth, L, W), v(0, L / 2, -W / 2), green)
+		head:wedge("Head", v(depth, L, W), CFrame.new(0, L / 2, W / 2) * CFrame.Angles(0, math.pi, 0), green)
+		-- A bright streak along the front of the band.
+		for _, f in { 0.3, 0.45 } do
+			local mid = math.rad(start + SPAN * f)
+			b:block("Shine", v(0.12, segment * 1.1, 0.05), CFrame.new((R + 0.08) * math.cos(mid), cy + (R + 0.08) * math.sin(mid), -0.37) * CFrame.Angles(0, 0, mid), rgb(200, 255, 200), NEON)
+		end
+	end
+end
+
 local IconModels = {}
 
 IconModels.Ids = table.freeze({
 	"clapper", "dice", "arrow", "gift", "popcorn", "ticket", "coin", "trophy", "camera", "star",
 	"movieCamera", "clover", "magnet", "stage", "bolt", "crown", "potion", "skip", "moneybag", "vault",
-	"script", "chest", "lock",
+	"script", "chest", "lock", "rebirth",
 })
 
 -- Build icon `id` into a new Model under `parent`. Unknown ids build an empty model. `scale`
