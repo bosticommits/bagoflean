@@ -48,6 +48,11 @@ MapModels.Layout = table.freeze({
 	endGap = 14,
 	theatreX = -147,
 	gateX = 146,
+	-- Pass 3: a gap in the middle of the front and back hedges leads out to the western film
+	-- street (front, -Z) and Starlight Park (back, +Z). The blimp circles the town.
+	sideGap = 5,
+	blimpHeight = 120,
+	blimpRadius = 240,
 })
 
 local Lay = MapModels.Layout
@@ -441,7 +446,11 @@ local function fence(b: Builder)
 		for _, sz in { -1, 1 } do
 			hedge(v(s * fx, 0, sz * (gap + fz) / 2), v(2, 0, fz - gap))
 		end
-		hedge(v(0, 0, s * fz), v(fx * 2 + 2, 0, 2))
+		local half = Lay.sideGap
+		for _, sx in { -1, 1 } do
+			local length = fx + 1 - half
+			hedge(v(sx * (half + length / 2), 0, s * fz), v(length, 0, 2))
+		end
 	end
 	local function pillar(x: number, z: number)
 		b:block("TownPillar", v(2.8, 4.8, 2.8), v(x, 2.4, z), P.Cream)
@@ -451,6 +460,12 @@ local function fence(b: Builder)
 	local count = 8
 	for i = 0, count do
 		local x = -fx + i * fx * 2 / count
+		if x ~= 0 then
+			pillar(x, -fz)
+			pillar(x, fz)
+		end
+	end
+	for _, x in { -Lay.sideGap, Lay.sideGap } do
 		pillar(x, -fz)
 		pillar(x, fz)
 	end
@@ -634,6 +649,16 @@ local function landmarks(b: Builder)
 		end
 	end
 
+	-- Pass 3: paths out through the hedge gaps to Starlight Park (back) and the western film
+	-- street (front), and the blimp (src/client/Blimp.luau drifts it round the town).
+	local out = Lay.townZ
+	for _, s in { -1, 1 } do
+		b:block("SidePath", v(Lay.sideGap * 2, 0.2, 16), v(0, 0.1, s * (out + 8)), P.Paving)
+	end
+	TownSets.park(b:sub(v(0, 0.2, out + 16)))
+	TownSets.westernStreet(b:sub(CFrame.new(0, 0, -out - 27) * CFrame.Angles(0, math.pi, 0)))
+	TownSets.blimp(b:sub(CFrame.new(0, Lay.blimpHeight, -Lay.blimpRadius) * CFrame.Angles(0, math.rad(-90), 0)))
+
 	-- A hazy city skyline behind the hills, beyond the front lots and past the theatre.
 	TownSets.skyline(b:sub(v(0, -8, -450)), 16, 620, 7)
 	TownSets.skyline(b:sub(CFrame.new(-470, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
@@ -650,6 +675,8 @@ local GROUND_TRIM = {
 	FloorMark = true,
 	ForecourtCarpet = true,
 	SidewalkStrip = true,
+	DustStreet = true,
+	LilyPad = true,
 	ForecourtCarpetEdge = true,
 	TheatreCarpet = true,
 	CarpetEnd = true,
@@ -686,6 +713,20 @@ local NO_SHADOW = {
 	TheatrePlinth = true,
 	TheatreStep = true,
 	Flower = true,
+	Boardwalk = true,
+	ParkPath = true,
+	Pond = true,
+	PondEdge = true,
+	PondJet = true,
+	PondSplash = true,
+	TreeTop = true,
+	Blimp = true,
+	BlimpHull = true,
+	BlimpEnd = true,
+	BlimpBanner = true,
+	BlimpFin = true,
+	BlimpGondola = true,
+	BlimpWindows = true,
 	GateRamp = true,
 	Ground = true,
 	Hill = true,

@@ -481,4 +481,150 @@ function TownSets.newsStand(b: Builder)
 	Build.sign(board, Enum.NormalId.Front, "DAILY STAR", P.Gold)
 end
 
+-- The outer ring (pass 3) ------------------------------------------------------------------------
+
+local WATER = Color3.fromRGB(80, 170, 230)
+local SAND = Color3.fromRGB(226, 190, 140)
+local DUST = Color3.fromRGB(205, 160, 110)
+
+local function parkBench(b: Builder)
+	b:block("BenchSeat", v(5, 0.4, 1.6), v(0, 1.3, 0), P.Wood)
+	b:block("BenchBack", v(5, 1.4, 0.3), v(0, 2.2, 0.75), P.Wood)
+	for _, x in { -2, 2 } do
+		b:block("BenchLeg", v(0.4, 1.1, 1.6), v(x, 0.55, 0), P.Charcoal, METAL)
+	end
+end
+
+local function roundTree(b: Builder, height: number, color: Color3)
+	b:cylinder("TreeTrunk", height, 1.2, v(0, height / 2, 0), P.Bark)
+	b:ball("TreeTop", height * 0.75, v(0, height, 0), color, GRASS)
+	b:ball("TreeTop", height * 0.5, v(height * 0.25, height * 0.85, height * 0.1), color, GRASS)
+end
+
+-- A small park behind the back row: a path in from the hedge gap, a round pond with a fountain
+-- jet, lily pads and a little wooden bridge, benches, round trees, and a path on to the foot of
+-- the gold star hill. About 70 wide and 36 deep; the path starts at z = 0 and runs to +Z.
+function TownSets.park(b: Builder)
+	b:block("ParkPath", v(6, 0.2, 36), v(0, 0.1, 18), P.Paving)
+	-- The pond sits left of the path; the path bends round it on a bridge.
+	local pond = v(-18, 0, 18)
+	b:cylinder("PondEdge", 0.5, 25, pond + v(0, 0.25, 0), P.Cream)
+	b:cylinder("Pond", 0.55, 23, pond + v(0, 0.28, 0), WATER, GLASS)
+	b:cylinder("PondJet", 3, 0.8, pond + v(0, 1.8, 0), P.OffWhite, NEON).Transparency = 0.35
+	b:ball("PondSplash", 2.2, pond + v(0, 3.4, 0), P.OffWhite, NEON).Transparency = 0.5
+	for _, at in { v(-5, 0, -4), v(4, 0, 5), v(-6, 0, 6), v(6, 0, -3) } do
+		b:cylinder("LilyPad", 0.1, 2.2, pond + at + v(0, 0.6, 0), P.DarkGreen)
+	end
+	b:ball("LilyFlower", 0.7, pond + v(4, 0.9, 5), PINK)
+	b:block("PondBridge", v(12, 0.4, 3.4), pond + v(0, 1.2, -13), P.Wood)
+	for _, x in { -6, 6 } do
+		b:wedge("PondBridgeRamp", v(3.4, 1.2, 2), CFrame.new(pond + v(x + (if x > 0 then 1 else -1), 0.6, -13)) * CFrame.Angles(0, math.rad(if x > 0 then -90 else 90), 0), P.Wood)
+	end
+	for _, z in { -14.6, -11.4 } do
+		b:block("PondBridgeRail", v(12, 0.3, 0.3), pond + v(0, 2.6, z), P.Burgundy)
+	end
+	-- Benches along the path, facing it.
+	for _, at in { v(6, 0.2, 10), v(6, 0.2, 24), v(-6, 0.2, 30) } do
+		local face = if at.X > 0 then math.rad(-90) else math.rad(90)
+		parkBench(b:sub(CFrame.new(at) * CFrame.Angles(0, face, 0)))
+	end
+	-- Trees and flowers round the edges.
+	local trees = { v(14, 0, 4), v(22, 0, 16), v(16, 0, 30), v(30, 0, 8), v(-34, 0, 6), v(-32, 0, 28), v(28, 0, 28) }
+	for i, at in trees do
+		roundTree(b:sub(at), 8 + (i % 3) * 1.5, if i % 2 == 0 then P.Green else P.DarkGreen)
+	end
+	TownSets.flowerBed(b:sub(v(12, 0.1, 18)), v(6, 0, 6))
+	TownSets.flowerBed(b:sub(v(-8, 0.1, 32)), v(8, 0, 4))
+	-- A sign at the entrance.
+	b:block("ParkSignPost", v(0.5, 5, 0.5), v(4.5, 2.5, 1), P.Wood)
+	local board = b:block("ParkSign", v(5, 1.8, 0.3), v(4.5, 4.6, 0.8), P.DarkGreen)
+	outlined(board, Enum.NormalId.Front, "STARLIGHT PARK", P.OffWhite, 2)
+end
+
+-- One false-front building on the western set: a tall flat front on a short box, a porch roof
+-- over the boardwalk, a sign, a door and two windows.
+local function westernFront(b: Builder, width: number, height: number, color: Color3, title: string)
+	b:block("WesternBox", v(width, height * 0.6, 8), v(0, height * 0.3, 4), color)
+	b:block("WesternFront", v(width, height, 0.6), v(0, height / 2, 0), color)
+	b:block("WesternTrim", v(width + 0.6, 0.6, 0.9), v(0, height, 0), P.Cream)
+	local board = b:block("WesternSign", v(width - 2, 2.2, 0.3), v(0, height - 2, -0.4), P.Cream)
+	outlined(board, Enum.NormalId.Front, title, P.Burgundy, 2)
+	b:block("WesternDoor", v(3, 5.5, 0.3), v(0, 3.3, -0.35), P.Bark)
+	for _, x in { -width / 2 + 2.4, width / 2 - 2.4 } do
+		b:block("WesternWindow", v(2.4, 2.6, 0.2), v(x, 4.4, -0.35), P.Navy, GLASS)
+	end
+	b:block("WesternPorch", v(width, 0.3, 4), CFrame.new(0, 7.4, -2) * CFrame.Angles(math.rad(8), 0, 0), P.Wood)
+	for _, x in { -width / 2 + 0.5, width / 2 - 0.5 } do
+		b:block("WesternPost", v(0.4, 7, 0.4), v(x, 4, -3.8), P.Wood)
+	end
+end
+
+-- A western film street behind the front row: a dusty street with four false fronts (saloon,
+-- sheriff, bank and general store) on a boardwalk, hitching rails, a water trough, barrels and
+-- cacti. About 64 wide; the fronts stand at z = +14 facing -Z, the street runs along z = 0.
+function TownSets.westernStreet(b: Builder)
+	b:block("DustStreet", v(70, 0.2, 34), v(0, 0.1, 6), DUST)
+	b:block("Boardwalk", v(66, 0.6, 4), v(0, 0.5, 12), P.Wood)
+	local fronts = {
+		{ x = -24, w = 14, h = 14, color = Color3.fromRGB(196, 90, 60), title = "SALOON" },
+		{ x = -8, w = 12, h = 12, color = Color3.fromRGB(230, 190, 120), title = "SHERIFF" },
+		{ x = 7, w = 12, h = 13, color = P.Blue, title = "BANK" },
+		{ x = 23, w = 14, h = 12, color = Color3.fromRGB(120, 160, 90), title = "GENERAL STORE" },
+	}
+	for _, f in fronts do
+		westernFront(b:sub(v(f.x, 0.8, 14)), f.w, f.h, f.color, f.title)
+	end
+	-- Saloon swing doors and a sheriff's star.
+	for _, x in { -25, -23 } do
+		b:block("SwingDoor", v(1.8, 2.4, 0.2), v(x, 3.2, 13.3), P.Gold)
+	end
+	b:block("SheriffStar", v(2, 2, 0.3), CFrame.new(-8, 9, 13.5) * CFrame.Angles(0, 0, math.rad(45)), P.Gold, METAL)
+	for _, x in { -16, 15 } do
+		b:block("HitchRail", v(6, 0.35, 0.35), v(x, 2.6, 7), P.Wood)
+		for _, dx in { -2.8, 2.8 } do
+			b:block("HitchPost", v(0.4, 2.8, 0.4), v(x + dx, 1.4, 7), P.Wood)
+		end
+	end
+	b:block("Trough", v(5, 1.4, 1.8), v(-1, 0.9, 8), P.Bark)
+	b:block("TroughWater", v(4.4, 0.1, 1.2), v(-1, 1.55, 8), WATER, GLASS)
+	for _, at in { v(31, 0, 9), v(32.2, 0, 7.5), v(-31, 0, 9) } do
+		b:cylinder("Barrel", 2.2, 1.6, at + v(0, 1.3, 0), P.Bark)
+		b:cylinder("BarrelBand", 0.2, 1.7, at + v(0, 1.8, 0), P.Charcoal, METAL)
+	end
+	-- Cacti along the street's open side, and a hay bale.
+	for i, at in { v(-30, 0, -6), v(-12, 0, -9), v(10, 0, -8), v(28, 0, -5) } do
+		local h = 5 + (i % 2) * 2
+		b:cylinder("Cactus", h, 1.6, at + v(0, h / 2, 0), P.DarkGreen, GRASS)
+		b:block("CactusArm", v(2, 0.9, 0.9), at + v(1.2, h * 0.5, 0), P.DarkGreen, GRASS)
+		b:block("CactusArmUp", v(0.9, 2, 0.9), at + v(1.9, h * 0.5 + 1, 0), P.DarkGreen, GRASS)
+	end
+	b:block("HayBale", v(3, 2, 2), v(20, 1.2, -2), SAND)
+	-- A film camera on a little dolly track pointing up the street, so it reads as a film set.
+	b:block("DollyTrack", v(1.6, 0.2, 10), v(-34, 0.3, 0), P.Steel, METAL)
+	b:block("CameraBody", v(1.6, 1.6, 2.6), CFrame.new(-34, 4.2, 0) * CFrame.Angles(0, math.rad(-90), 0), P.Charcoal)
+	b:block("CameraLeg", v(0.4, 3.4, 0.4), v(-34, 1.9, 0), P.Charcoal, METAL)
+end
+
+-- A blimp that drifts round the town (src/client/Blimp.luau moves it). Nose toward -Z, about 34 long.
+-- Returns the model, pivoted at its middle.
+function TownSets.blimp(b: Builder): Model
+	local g, model = b:group("Blimp")
+	-- A capsule: a long cylinder with a ball on each end (a Roblox ball can't be stretched).
+	g:cylinder("BlimpHull", 22, 12, CFrame.Angles(math.rad(90), 0, 0), P.OffWhite)
+	model.WorldPivot = g:at(CFrame.identity)
+	for _, z in { -11, 11 } do
+		g:ball("BlimpEnd", 12, v(0, 0, z), P.OffWhite)
+	end
+	for _, side in { -1, 1 } do
+		local panel = g:block("BlimpBanner", v(0.4, 3, 15), v(side * 6, 0, 0), P.Burgundy)
+		outlined(panel, if side < 0 then Enum.NormalId.Left else Enum.NormalId.Right, "HOLLYWOOD RNG", P.Gold, 3)
+	end
+	g:block("BlimpGondola", v(3.4, 2, 7), v(0, -6.6, -2), P.Cream)
+	g:block("BlimpWindows", v(3.5, 0.8, 5.5), v(0, -6.4, -2), P.Navy, GLASS)
+	g:block("BlimpFin", v(0.5, 6, 5), v(0, 5, 16), P.Gold)
+	g:block("BlimpFin", v(14, 0.5, 5), v(0, 0, 16), P.Gold)
+	Build.decorative(model)
+	return model
+end
+
 return TownSets
