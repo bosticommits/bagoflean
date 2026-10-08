@@ -16,6 +16,7 @@ NAVY = "#1B2340"
 GOLD = [(0.0, "#FF7417"), (0.35, "#FFA91F"), (0.7, "#FFDC3F"), (1.0, "#FFF6A6")]
 WHITE = [(0.0, "#FFE9B0"), (0.5, "#FFFFFF"), (1.0, "#FFFFFF")]
 RAINBOW = [(0.0, "#FF4FA8"), (0.22, "#FFB21A"), (0.42, "#FFE53B"), (0.6, "#4CD964"), (0.8, "#3A9BFF"), (1.0, "#B05CFF")]
+BOLD_RAINBOW = [(0.0, "#FF2238"), (0.2, "#FF8A00"), (0.4, "#FFE000"), (0.6, "#1FD14A"), (0.8, "#1E7BFF"), (1.0, "#A22BFF")]
 GREEN = [(0.0, "#2FA84F"), (0.5, "#5BE36F"), (1.0, "#C9FFB0")]
 GREY = [(0.0, "#8D99A6"), (0.55, "#D5DCE3"), (1.0, "#FFFFFF")]
 
@@ -37,6 +38,10 @@ CAPTIONS = {
     "noob": ("NOOB", GREY, "Y"),
     "mogul": ("MOGUL", GOLD, "Y"),
     "arrow": (arrow, GOLD, "Y"),
+    # Roblox front-page style (thumbnail_tower.py and thumbnail_reveal.py, put together by compose_roblox.py)
+    "superstars": ("99 SUPERSTARS", WHITE, "Y"),
+    "per_second": ("$1,000,000/s", BOLD_RAINBOW, "X"),
+    "one_in_million": ("1 IN 1,000,000", BOLD_RAINBOW, "X"),
 }
 PX_PER_UNIT = 330
 

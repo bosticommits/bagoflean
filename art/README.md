@@ -97,7 +97,7 @@ finished images are in `art/store/`.
 
 | Script | What it makes |
 |---|---|
-| `logo.py` | The 3D "HOLLYWOOD RNG" logo with a clapperboard and a die, on a transparent background |
+| `logo.py` | The 3D "HOLLYWOOD RNG" logo (gold and rainbow with a white outline), a clapperboard, a die and the bacon-hair player in a beret, on a transparent background |
 | `thumbnail.py` | Main thumbnail: a shocked player pulls the Icon actor (The Mogul's Muse, 1 in 1,000,000) on a max-level lot |
 | `thumbnail_lots.py` | Second thumbnail: the same lot on day one and fully upgraded ("noob" to "mogul") |
 | `icon.py` | The icon: a close-up of the main thumbnail's scene |
@@ -115,6 +115,27 @@ for s in words logo icon thumbnail thumbnail_lots; do
   python -c "import bpy, runpy, sys; runpy.run_path(sys.argv[1], run_name='__main__')" art/blender/store/$s.py
 done
 python art/blender/store/compose.py    # writes $STORE_OUT/final/*.png
+```
+
+### Roblox front-page style (October 2026)
+
+The newer set copies what front-page Roblox thumbnails do: a plain blocky player with bacon hair,
+bright sky and grass, sunbursts, and fat outlined words with rainbow numbers.
+
+| Script | What it makes |
+|---|---|
+| `bacon.py` | The player: R6 blocky body, round head with a painted face (smug, shocked, star-struck, grin), bacon hair melted from metaballs, optional director's beret |
+| `thumbnail_tower.py` | Thumbnail A: a smug player shows off a four-floor studio tower full of the game's actors ("99 SUPERSTARS", "$1,000,000/s") |
+| `thumbnail_reveal.py` | Thumbnail B: a mystery casting ticket, a red arrow, and a rainbow superstar ("1 IN 1,000,000") |
+| `icon_bacon.py` | The icon: the star-struck player in a beret holding up a rainbow star |
+| `compose_roblox.py` | Draws the skies, sunbursts and checks, adds the words and arrow, and writes the finished PNGs |
+
+```
+python -c "import bpy, runpy, sys; runpy.run_path(sys.argv[1], run_name='__main__')" art/blender/store/words.py -- superstars per_second one_in_million
+for s in icon_bacon thumbnail_reveal thumbnail_tower logo; do
+  python -c "import bpy, runpy, sys; runpy.run_path(sys.argv[1], run_name='__main__')" art/blender/store/$s.py
+done
+python art/blender/store/compose_roblox.py    # writes $STORE_OUT/final/*.png
 ```
 
 For quick test renders set `STORE_SCALE=50 STORE_SAMPLES=24`. Everything renders with Cycles on
