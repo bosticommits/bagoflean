@@ -7,6 +7,8 @@
 -- amount; every upgrade, sound stages included, goes back to level 0; the rebirth count goes up.
 -- Films already filming keep going, and their stage stays open until they premiere.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
@@ -80,8 +82,25 @@ local function onRebirth(player: Player)
 	Analytics.event(player, "Rebirth", data.rebirths)
 end
 
+-- Studio only, for playtests: a rebirth needs far more Cash than a quick test earns. From the
+-- command bar in Server view:
+--   game.ServerStorage.StudioGiveCash:Invoke(game.Players:GetPlayers()[1], 300000)
+-- (A BindableFunction, because the command bar does not share the game's copy of EconomyService.)
+-- Never created on live servers.
+local function addStudioCashTool()
+	local tool = Instance.new("BindableFunction")
+	tool.Name = "StudioGiveCash"
+	tool.OnInvoke = function(player: Player, amount: number): boolean
+		return EconomyService.addCash(player, amount, "Gameplay", "StudioTest")
+	end
+	tool.Parent = ServerStorage
+end
+
 function RebirthService.start()
 	rebirthRemote.OnServerEvent:Connect(onRebirth)
+	if RunService:IsStudio() then
+		addStudioCashTool()
+	end
 end
 
 function RebirthService.forget(player: Player)
