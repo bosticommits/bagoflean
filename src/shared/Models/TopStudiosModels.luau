@@ -22,8 +22,10 @@ TopStudiosModels.Layout = table.freeze({
 	boardWidth = 21,
 	boardHeight = 13,
 	boardLift = 9, -- bottom edge of the screen: room to walk under
-	-- Lot space (see LotModels.Layout): left of the red carpet, opposite the trophy case.
-	rareWall = Vector3.new(-9.55, 0, -15),
+	-- Lot space (see LotModels.Layout): beside the red carpet, opposite the trophy case, turned to
+	-- face the carpet and angled toward the gate so it reads both walking in and from the carpet.
+	rareWall = Vector3.new(-8.6, 0, -11.9),
+	rareWallYaw = math.rad(-75),
 	wallWidth = 8.2,
 })
 
@@ -108,7 +110,7 @@ end
 -- The Rare Wall for the lot at `base`, with `owned` (rarest first) on its plinths. An empty list (a free lot, or a new
 -- studio) shows the wall with bare grey plinths.
 function TopStudiosModels.rareWall(parent: Instance, base: CFrame, owned: { { actorId: string, variantId: string } }, slots: number)
-	local b = Build.new(parent, base * CFrame.new(L.rareWall + v(0, 1, 0)))
+	local b = Build.new(parent, base * CFrame.new(L.rareWall + v(0, 1, 0)) * CFrame.Angles(0, L.rareWallYaw, 0))
 	local w = L.wallWidth
 	b:block("RareWallBase", v(w + 0.6, 0.8, 3), v(0, 0.4, 0), P.Burgundy)
 	b:block("RareWall", v(w, 6, 0.6), v(0, 3.8, 1.2), P.Navy)

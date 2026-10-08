@@ -28,7 +28,7 @@ local INK = Color3.fromRGB(11, 15, 31)
 local ROW_DARK = Color3.fromRGB(27, 35, 64)
 local ROW_LIGHT = Color3.fromRGB(38, 49, 88)
 
-type Row = { frame: Frame, rank: TextLabel, face: ImageLabel, name: TextLabel, fame: TextLabel }
+type Row = { frame: Frame, rank: TextLabel, face: ImageLabel, name: TextLabel, fame: TextLabel, medal: UIStroke? }
 
 local store: OrderedDataStore? = nil
 local storeOff = false -- set after an access error, so Studio without API access stays quiet
@@ -38,7 +38,7 @@ local saved: { TopStudios.Entry } = {}
 local lastSaved: { [Player]: number } = {} -- Fame last written for each player here
 local names: { [number]: string } = {}
 local rows: { Row } = {}
-local lastDrawn = ""
+local lastDrawn: string? = nil -- nil until the first draw, so an empty board is drawn too
 
 local LeaderboardService = {}
 
@@ -212,14 +212,16 @@ local function buildFace(screen: BasePart, face: Enum.NormalId)
 		round.Parent = headshot
 		local name = text(frame, "Name", 0.18, 0.5, Enum.TextXAlignment.Left, Color3.new(1, 1, 1))
 		local fame = text(frame, "Fame", 0.68, 0.31, Enum.TextXAlignment.Right, GOLD)
+		local outline: UIStroke? = nil
 		if i <= 3 then
 			local stroke = Instance.new("UIStroke")
 			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 			stroke.Color = medal
 			stroke.Thickness = 4
 			stroke.Parent = frame
+			outline = stroke
 		end
-		table.insert(rows, { frame = frame, rank = rank, face = headshot, name = name, fame = fame })
+		table.insert(rows, { frame = frame, rank = rank, face = headshot, name = name, fame = fame, medal = outline })
 	end
 end
 
@@ -249,12 +251,18 @@ local function draw()
 			row.name.Text = names[entry.userId] or "..."
 			row.fame.Text = "★ " .. TopStudios.short(entry.fame)
 			row.face.Image = if entry.userId > 0 then `rbxthumb://type=AvatarHeadShot&id={entry.userId}&w=150&h=150` else ""
+			row.face.Visible = true
 			row.frame.BackgroundTransparency = 0
 		else
 			row.name.Text = if i % perFace == 1 and #top == 0 then "Earn Fame to get on the board!" else ""
 			row.fame.Text = ""
 			row.face.Image = ""
+			row.face.Visible = false
 			row.frame.BackgroundTransparency = 0.5
+		end
+		-- Silver and bronze outlines only once someone holds that place.
+		if row.medal ~= nil then
+			row.medal.Enabled = entry ~= nil
 		end
 	end
 end
