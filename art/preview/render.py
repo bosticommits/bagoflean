@@ -75,7 +75,7 @@ def sphere_mesh(rings=8, seg=14):
     return np.array(verts), quads
 
 
-MESHES = {"Block": box_mesh(), "Wedge": wedge_mesh(), "Cylinder": cylinder_mesh(), "Ball": sphere_mesh()}
+MESHES = {"Block": box_mesh(), "Wedge": wedge_mesh(), "Cylinder": cylinder_mesh(), "Ball": sphere_mesh(), "Ellipsoid": sphere_mesh()}
 
 
 def part_triangles(p):

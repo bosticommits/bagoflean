@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 
 local ActorModels = require(ReplicatedStorage.Shared.Models.ActorModels)
 local IconModels = require(ReplicatedStorage.Shared.Models.IconModels)
+local MascotModels = require(ReplicatedStorage.Shared.Models.MascotModels)
 local IconFraming = require(script.Parent.IconFraming)
 
 local Icon3D = {}
@@ -104,7 +105,19 @@ local function show(parent: GuiObject, made: Entry, fill: number, outlined: bool
 	return viewport
 end
 
+local function mascotEntry(id: string): Entry
+	return entry("mascot:" .. id, function()
+		-- Turned a little, so the picture shows the mascot's face and side like the renders.
+		return MascotModels.build(holder, id, CFrame.Angles(0, math.rad(-25), 0)) or Instance.new("Model")
+	end)
+end
+
+-- Menu icons by id; "mascot:<id>" shows a studio mascot (the Mascots button wears the Popcorn Pup).
 local function iconEntry(id: string): Entry
+	local mascot = string.match(id, "^mascot:(.+)$")
+	if mascot ~= nil then
+		return mascotEntry(mascot)
+	end
 	return entry("icon:" .. id, function()
 		return IconModels.build(holder, id)
 	end)
@@ -128,6 +141,17 @@ function Icon3D.actor(parent: GuiObject, actorId: string, variantId: string?, si
 		return ActorModels.build(holder, CFrame.identity, actorId, variant)
 	end)
 	local viewport = show(parent, made, ACTOR_FILL, false)
+	if silhouette then
+		viewport.ImageColor3 = Color3.new(0, 0, 0)
+		viewport.ImageTransparency = 0.1
+	end
+	return viewport
+end
+
+-- A studio mascot (Shared/Mascots) filling `parent`, with the menus' dark outline. `silhouette`
+-- paints it solid black for mascots not earned yet.
+function Icon3D.mascot(parent: GuiObject, id: string, silhouette: boolean?): ViewportFrame
+	local viewport = show(parent, mascotEntry(id), ACTOR_FILL, not silhouette)
 	if silhouette then
 		viewport.ImageColor3 = Color3.new(0, 0, 0)
 		viewport.ImageTransparency = 0.1

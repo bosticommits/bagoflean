@@ -58,6 +58,10 @@ local function dumpParts(root): { any }
 				shape = "CornerWedge"
 			elseif d.ClassName == "Part" then
 				shape = d.Shape.Name
+				local mesh = d:FindFirstChildWhichIsA("SpecialMesh")
+				if mesh ~= nil and mesh.MeshType == roblox.Enum.MeshType.Sphere then
+					shape = "Ellipsoid" -- a block wearing a sphere mesh (the mascots)
+				end
 			end
 			table.insert(out, {
 				name = d.Name,
