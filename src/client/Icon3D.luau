@@ -185,7 +185,9 @@ local function animate(viewport: ViewportFrame, angleAt: (number) -> number): ()
 	end
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function(dt: number)
-		if viewport.Parent == nil then
+		-- Destroying a screen row only unparents the row, not the viewport inside it, so check
+		-- that the viewport is still in the game rather than that it has a parent.
+		if not viewport:IsDescendantOf(game) then
 			connection:Disconnect()
 			return
 		end

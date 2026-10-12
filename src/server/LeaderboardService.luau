@@ -36,6 +36,7 @@ local warned = false
 
 local saved: { TopStudios.Entry } = {}
 local lastSaved: { [Player]: number } = {} -- Fame last written for each player here
+local knownFame: { [Player]: number } = {} -- last valid Fame read for each player here
 local names: { [number]: string } = {}
 local rows: { Row } = {}
 local lastDrawn: string? = nil -- nil until the first draw, so an empty board is drawn too
@@ -70,12 +71,22 @@ end
 
 local function fameOf(player: Player): number?
 	local data = DataService.getData(player)
-	return if data ~= nil then math.floor(data.fame) else nil
+	if data == nil then
+		return nil
+	end
+	local fame = math.floor(data.fame)
+	-- A corrupt value (NaN or infinity) must never reach the DataStore or the board.
+	if fame ~= fame or fame == math.huge or fame == -math.huge then
+		return nil
+	end
+	knownFame[player] = fame
+	return fame
 end
 
 -- Studio test players have UserIds of 0 or below; they show on the board but are never saved.
 local function save(player: Player)
-	local fame = fameOf(player)
+	-- When the player is leaving, their profile may already be released: use the last Fame seen.
+	local fame = fameOf(player) or knownFame[player]
 	if fame == nil or fame <= 0 or player.UserId <= 0 or lastSaved[player] == fame then
 		return
 	end
@@ -87,7 +98,10 @@ local function save(player: Player)
 		ordered:SetAsync(tostring(player.UserId), fame)
 	end)
 	if ok then
-		lastSaved[player] = fame
+		-- A save that finishes after the player left must not re-add them (a leaked Player key).
+		if player.Parent == Players then
+			lastSaved[player] = fame
+		end
 	else
 		note(err)
 	end
@@ -276,6 +290,7 @@ function LeaderboardService.start()
 	Players.PlayerRemoving:Connect(function(player)
 		save(player)
 		lastSaved[player] = nil
+		knownFame[player] = nil
 	end)
 	game:BindToClose(function()
 		for _, player in Players:GetPlayers() do

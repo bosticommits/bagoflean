@@ -13,6 +13,7 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
+    python3 tools/economy_sim.py --cast-rate 1.0     # casts per second while online (default 0.35); 1.0 = the server cap, 1 / CastCooldown
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
@@ -228,6 +229,15 @@ pace.
 
 ## What to watch in playtests
 
+- Casting speed (checked 2026-10-10, typical player, 30 runs each). Faster casting moves the whole
+  curve: at 1.67 casts a second (the old 0.6 s server cap) 100% of players pulled a Legend in week one
+  (median day 3) and week-one income was about 156,000 a minute, against 70% (day 5) and about
+  82,000 at the assumed 0.35. At 1.0 a second: 93%, day 4, about 131,000. The reveal screen takes about
+  a second per cast by hand, so `CastCooldown` is now 1.0 s: it only limits scripted clients. Rarer
+  Superstar and Legend odds were tried instead (Superstar 1 in 8,000 and Legend 1 in 100,000: Legend 40%
+  and week-one income about 74,000 at 0.35 casts a second, and the first Superstar slips from minute 50
+  to 85). They fix fast casters but slow the typical player off the milestones above, so they were not
+  applied. Revisit them if real players cast much faster than 0.35 a second.
 - Cast rate. If real players cast much faster than one every 3 seconds (auto-clickers),
   Superstar and Legend come sooner. The first fix would be rarer odds, not higher prices.
 - Holding finished Epics for Award Night doubles them. The sim's player does this when an Award

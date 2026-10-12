@@ -24,6 +24,8 @@ local rebirthRemote = Remotes.get("Rebirth")
 local rebirthResult = Remotes.get("RebirthResult")
 
 local lastTry: { [Player]: number } = {}
+local lastCooldownReply: { [Player]: number } = {}
+local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "cooldown" answer per second
 
 local RebirthService = {}
 
@@ -43,7 +45,12 @@ local function onRebirth(player: Player)
 	local now = os.clock()
 	local last = lastTry[player]
 	if last ~= nil and now - last < Rebirth.Cooldown then
-		return fail(player, "cooldown")
+		local lastReply = lastCooldownReply[player]
+		if lastReply == nil or now - lastReply >= COOLDOWN_REPLY_INTERVAL then
+			lastCooldownReply[player] = now
+			fail(player, "cooldown")
+		end
+		return
 	end
 	lastTry[player] = now
 
@@ -105,6 +112,7 @@ end
 
 function RebirthService.forget(player: Player)
 	lastTry[player] = nil
+	lastCooldownReply[player] = nil
 end
 
 return RebirthService

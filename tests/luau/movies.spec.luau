@@ -114,3 +114,64 @@ test("payout follows the plan formula and is never below 1", function()
 	expect(Movies.fame(1) >= 1, "minimum Fame")
 	expect(Movies.fame(10000) > Movies.fame(100), "Fame grows with payout")
 end)
+
+-- Highest Star Power a cast can have: the best tier, the best variant, in its specialty genre.
+local function worstCasePower(): number
+	local bestActor, bestPower = Actors.List[1], 0
+	for _, actor in Actors.List do
+		local power = Movies.actorPower(Actors.key(actor.id, "Award"), actor.genre)
+		if power > bestPower then
+			bestActor, bestPower = actor, power
+		end
+	end
+	local cast = {}
+	for _ = 1, 3 do
+		table.insert(cast, Actors.key(bestActor.id, "Award"))
+	end
+	return Movies.castPower(cast, bestActor.genre)
+end
+
+test("worst-case variant x Star Power x genre x result stack is finite and under the ceiling", function()
+	local power = worstCasePower()
+	local maxCast = 3 -- Config.MaxCast
+	local best = Actors.Tiers[#Actors.Tiers].starPower
+	local award = Actors.getVariant("Award")
+	near(power, maxCast * best * award.multiplier * Movies.SpecialtyBonus, 1e-9, "three best Award actors in their specialty")
+	local epic = Movies.getLength("Epic")
+	local masterpiece = Movies.getResult("Masterpiece")
+	local payout = Movies.payout(epic, power, masterpiece, 1.15)
+	equal(payout, math.floor(epic.base * power * 1.15 * masterpiece.multiplier), "exact worst-case payout")
+	expect(payout > 0 and payout < Movies.MaxPayout, "worst case stays below the safety ceiling")
+	-- Award Night (x2) and a deep rebirth multiplier must still fit the ceiling.
+	expect(payout * 2 * 11 < Movies.MaxPayout, "Award Night and rebirths leave headroom")
+end)
+
+test("payout is clamped for absurd or invalid inputs", function()
+	local epic = Movies.getLength("Epic")
+	local masterpiece = Movies.getResult("Masterpiece")
+	equal(Movies.payout(epic, math.huge, masterpiece, 1.15), Movies.MaxPayout, "infinite power")
+	equal(Movies.payout(epic, 1e30, masterpiece, 1e30), Movies.MaxPayout, "huge stack")
+	equal(Movies.payout(epic, 0 / 0, masterpiece), 1, "NaN power")
+	equal(Movies.payout(epic, -50, masterpiece), 1, "negative power")
+	equal(Movies.fame(Movies.payout(epic, math.huge, masterpiece)), math.floor(math.sqrt(Movies.MaxPayout)), "Fame stays finite")
+end)
+
+test("premiere chances stay valid for NaN, infinite and negative Luck", function()
+	for _, luck in { 0 / 0, math.huge, -math.huge, -5, 1e300 } do
+		local chances = Movies.premiereChances(luck)
+		near(sum(chances), 1, 1e-9, `luck {luck}`)
+		for id, chance in chances do
+			expect(chance == chance and chance >= 0 and chance <= 1, `{id} = {chance} at luck {luck}`)
+		end
+	end
+	local random = H.Random.new(5)
+	for _, luck in { 0 / 0, math.huge } do
+		expect(Movies.getResult(Movies.rollResult(random, luck).id) ~= nil, "roll still returns a result")
+	end
+end)
+
+test("malformed cast keys cannot add Star Power", function()
+	local actor = Actors.List[1]
+	equal(Movies.castPower({ actor.id .. ":Normal:Extra", "::", actor.id }, actor.genre), 0, "malformed keys")
+end)
+

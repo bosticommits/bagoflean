@@ -25,8 +25,10 @@ return table.freeze({
 	CinemaStep = 0.25, -- royalty multiplier added per Cinema Size level
 	LuckStep = 0.1, -- Luck added per Luck upgrade level
 	ClapStep = 0.5, -- seconds added to each clapperboard tap per Clapperboard level
-	-- Minimum seconds between casting calls per player (server enforced).
-	CastCooldown = 0.6,
+	-- Minimum seconds between casting calls per player (server enforced). The reveal screen already
+	-- takes about a second per cast by hand; this stops scripted clients casting faster than that
+	-- (the economy sim showed casting speed drives Legend pulls and income, see ECONOMY.md).
+	CastCooldown = 1.0,
 
 	-- Movies (plan section 2).
 	StartingStages = 1, -- sound stages; M4 upgrades raise this to MaxStages

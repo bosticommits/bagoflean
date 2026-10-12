@@ -537,8 +537,16 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end
 
+	local SUSPENSE_TIMEOUT_SECONDS = 4 -- a "Casting..." screen with no answer closes itself
+
 	local function showSuspense()
 		revealToken += 1
+		local mine = revealToken
+		task.delay(SUSPENSE_TIMEOUT_SECONDS, function()
+			if revealToken == mine then
+				overlay.Visible = false
+			end
+		end)
 		overlay.Visible = true
 		setCardVisible(false)
 		stroke.Color = UiKit.FAINT

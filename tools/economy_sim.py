@@ -1010,6 +1010,9 @@ if __name__ == "__main__":
     parser.add_argument("--weekly-day", type=int, default=4,
                         help="day of each week the player finishes the weekly quests (1 = the very first day)")
     parser.add_argument("--no-events", action="store_true", help="switch the special events off (to compare)")
+    parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
+                        help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
     args = parser.parse_args()
+    CAST_RATE = args.cast_rate
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
            not args.no_events, not args.no_weekly, args.weekly_day)

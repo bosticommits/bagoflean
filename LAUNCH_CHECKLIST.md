@@ -104,7 +104,7 @@ reach everything.
       *Done when:* no Cash, actors or Index entries are lost or duplicated.
 - [x] Cheating: every remote is checked by the server and rate limited.
       *Done when:* a security review finds no way to get free Cash, rolls or timers.
-      (Reviewed 7 Oct: all 16 remote handlers check types, ranges, ownership and cooldowns. Note for
+      (Reviewed 7 Oct: all remote handlers check types, ranges, ownership and cooldowns. Re-reviewed: 24 live handlers (plus 1 Studio-only test remote), and rejection replies are limited to one per second per player. Note for
       tuning: an autoclicker on the clapperboard films about 5x faster.)
 - [ ] Performance on a low-end phone with 6 full lots. *Done when:* it stays smooth and
       memory does not keep climbing over a 30-minute session.
@@ -131,8 +131,24 @@ reach everything.
 - [ ] Social links (group, Discord or X) for the codes. *Done when:* linked on the game page.
 - [ ] Run the publish checklist (the `roblox-publish-checklist` skill).
       *Done when:* it says READY, with evidence for each gate.
+- [ ] Create the real game pass and developer product ids in the Creator Dashboard and paste
+      them into `src/shared/Shop.luau`. *Done when:* no id is `0` (all are `0` today, so nothing
+      can be bought). Proposed prices are in [STORE_LISTING.md](STORE_LISTING.md).
 - [ ] Rollback plan. *Done when:* the last good version is noted and it is known how to
-      revert to it.
+      revert to it. See the rollback note below.
+
+### Rollback note
+
+1. Before each publish, write down the current published version number (Studio, File, Game
+   Settings, or Creator Dashboard, Versions). That is the last good version.
+2. To revert, open Creator Dashboard, the experience, Version History, pick the last good
+   version and choose Restore, then publish. Servers pick up the older code as they restart.
+3. Player data is safe across a rollback. Saves use ProfileStore with a session lock, and new
+   fields are filled with defaults on load, so an older build should still load newer saves (confirm this in a test before launch). Do not
+   change what existing fields mean without adding a versioned migration in `DataService.migrate`
+   first.
+4. Purchases are logged by purchase id, so a redelivered receipt is not granted twice.
+5. Tell players in the group and Discord what happened, and that their progress is safe.
 - [ ] Switch the game to Public. *Done when:* it can be found and joined by anyone.
 
 ## 9. After launch (M7 and later)

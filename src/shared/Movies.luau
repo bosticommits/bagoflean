@@ -24,6 +24,11 @@ local Movies = {}
 
 Movies.SpecialtyBonus = 1.5 -- actor cast in their specialty genre (plan section 2)
 
+-- Safety ceilings, far above anything real play reaches (the worst legitimate stack is ~1e8 before
+-- rebirths). They only stop runaway values; they are not balance levers.
+Movies.MaxPayout = 1e12 -- one movie's payout, after variant x Star Power x genre x result
+Movies.MaxLuck = 1e6 -- Luck fed into the premiere odds
+
 Movies.Genres = { "Action", "Comedy", "Horror", "Romance", "Sci-Fi" }
 
 -- Plan section 2: Short Film 2 min, Indie 10 min, Feature 45 min, Epic 3 h. Base earnings per
@@ -99,6 +104,9 @@ end
 -- Star Power one actor-variant contributes to a movie of `genre`.
 function Movies.actorPower(actorKey: string, genre: string): number
 	local parts = string.split(actorKey, ":")
+	if #parts ~= 2 then
+		return 0 -- "actor:variant" only; extra segments are never worth Star Power
+	end
 	local actor = Actors.getActor(parts[1] or "")
 	local variant = Actors.getVariant(parts[2] or "")
 	if actor == nil or variant == nil then
@@ -123,7 +131,8 @@ end
 -- Chance of each result (sums to 1). Luck multiplies the three best results' chances; the extra
 -- comes out of Flop first, then Hit. At Luck 1 this is exactly the plan's table.
 function Movies.premiereChances(luck: number): { [string]: number }
-	local safeLuck = math.max(luck, 1)
+	-- NaN and infinite Luck would turn every chance into NaN; clamp to a sane finite range.
+	local safeLuck = if luck ~= luck then 1 else math.clamp(luck, 1, Movies.MaxLuck)
 	local chances: { [string]: number } = {}
 	for _, result in Movies.Results do
 		chances[result.id] = result.chance
@@ -166,8 +175,13 @@ end
 
 -- Plan section 2: script base x total Star Power x genre bonus x premiere result. The genre bonus
 -- comes from completing a genre's Index set (1 when not earned).
+-- Never NaN, never below 1 and never above Movies.MaxPayout, whatever the inputs stack to.
 function Movies.payout(length: Length, power: number, result: Result, genreBonus: number?): number
-	return math.max(1, math.floor(length.base * power * (genreBonus or 1) * result.multiplier))
+	local raw = length.base * power * (genreBonus or 1) * result.multiplier
+	if raw ~= raw then
+		return 1
+	end
+	return math.clamp(math.floor(raw), 1, Movies.MaxPayout)
 end
 
 -- Fame never resets and is never spent; the unlock thresholds are set from this curve (ECONOMY.md).

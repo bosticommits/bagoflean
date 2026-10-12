@@ -466,10 +466,16 @@ end
 -- Bottom-of-screen message that fades after two seconds.
 local toastLabel: TextLabel? = nil
 local toastToken = 0
+local TOAST_MAX_WIDTH = 340
 function UiKit.toast(gui: ScreenGui, text: string)
 	local label = toastLabel
 	if label == nil then
-		local created = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(340, 44), UDim2.new(0.5, -170, 1, -144))
+		local created = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.new(0.9, 0, 0, 44), UDim2.new(0.5, 0, 1, -144))
+		created.AnchorPoint = Vector2.new(0.5, 0)
+		-- 340 px on normal screens; narrower phones get 90% of the width instead.
+		local toastLimit = Instance.new("UISizeConstraint")
+		toastLimit.MaxSize = Vector2.new(TOAST_MAX_WIDTH, 44)
+		toastLimit.Parent = created
 		created.Name = "Toast"
 		created.BackgroundTransparency = 0.05
 		created.BackgroundColor3 = UiKit.NAVY
@@ -760,11 +766,29 @@ function UiKit.panelIcon(panel: Frame, header: TextLabel, iconId: string): Viewp
 	return viewport
 end
 
+-- Removes every row from a panel list. The list's own layout and padding stay (the padding gives
+-- the row outlines room; losing it clipped them after the first rebuild).
 function UiKit.clear(list: ScrollingFrame)
 	for _, child in list:GetChildren() do
-		if not child:IsA("UIListLayout") then
+		if not (child:IsA("UIListLayout") or child:IsA("UIPadding")) then
 			child:Destroy()
 		end
+	end
+end
+
+UiKit.ACTION_COOLDOWN_SECONDS = 0.4 -- default gap between two taps that each send a request
+
+-- Wraps `callback` so repeat calls within `cooldownSeconds` are ignored (double taps on buttons
+-- that send a request to the server).
+function UiKit.debounce(callback: () -> (), cooldownSeconds: number): () -> ()
+	local lastCallAt = -math.huge
+	return function()
+		local now = os.clock()
+		if now - lastCallAt < cooldownSeconds then
+			return
+		end
+		lastCallAt = now
+		callback()
 	end
 end
 
