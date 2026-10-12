@@ -12,7 +12,10 @@ local ActorModels = require(script.Parent.ActorModels)
 local Build = require(script.Parent.Build)
 local IconModels = require(script.Parent.IconModels)
 local LotModels = require(script.Parent.LotModels)
+local MapKit = require(script.Parent.MapKit)
+local MapScenery = require(script.Parent.MapScenery)
 local TownSets = require(script.Parent.TownSets)
+local Walkways = require(script.Parent.Walkways)
 
 type Builder = Build.Builder
 
@@ -309,13 +312,12 @@ end
 
 -- Streets ----------------------------------------------------------------------------------------
 
+-- The Blender double-globe street lamp, with one warm light (Future lighting makes it a real
+-- pool of light on the paving at dusk).
+local LAMP_LIGHT = { range = 16, brightness = 1.5, color = Color3.fromRGB(255, 214, 150) }
+
 local function lamp(b: Builder, at: Vector3)
-	local head = LotModels.lamp(b:sub(at), 9)
-	-- The neon head already glows; dozens of real lights would cost frame rate for little.
-	local light = head:FindFirstChildOfClass("PointLight")
-	if light ~= nil then
-		light:Destroy()
-	end
+	MapKit.place(b, "TownLamp", at, { solid = true, light = LAMP_LIGHT })
 end
 
 local function walkOfFameStar(b: Builder, x: number, z: number)
@@ -500,48 +502,33 @@ local function arch(b: Builder)
 	Build.sign(board, Enum.NormalId.Right, "HOLLYWOOD BLVD", P.Gold)
 end
 
+-- The Blender studio water tower, with "HOLLYWOOD RNG" on its sign plate.
 local function waterTower(b: Builder)
-	for _, x in { -3.5, 3.5 } do
-		for _, z in { -3.5, 3.5 } do
-			b:block("TowerLeg", v(0.8, 20, 0.8), v(x, 10, z), P.Steel, METAL)
-		end
-	end
-	b:block("TowerBrace", v(8, 0.5, 0.5), v(0, 8, -3.5), P.Steel, METAL)
-	b:block("TowerBrace", v(8, 0.5, 0.5), v(0, 8, 3.5), P.Steel, METAL)
-	b:cylinder("TowerDeck", 0.6, 13, v(0, 20.3, 0), P.Steel, METAL)
-	b:cylinder("TowerTank", 9, 11, v(0, 25, 0), P.Cream)
-	for _, y in { 21.5, 28.5 } do
-		b:cylinder("TowerBand", 0.6, 11.3, v(0, y, 0), P.Burgundy)
-	end
-	b:cylinder("TowerRoof", 1.2, 11.6, v(0, 30.1, 0), P.Burgundy)
-	b:cylinder("TowerRoofTop", 1, 7, v(0, 31.2, 0), P.Burgundy)
-	b:ball("TowerKnob", 1.2, v(0, 32, 0), P.Gold, METAL)
-	local plate = b:block("TowerSign", v(8, 3, 0.4), v(0, 25, -5.4), P.Cream)
+	MapKit.place(b, "WaterTower", CFrame.identity, { solid = true })
+	local plate = b:block("TowerSign", v(7.4, 2.6, 0.05), v(0, 25.2, -5.85), P.Cream)
+	plate.Transparency = 1
+	plate.CanCollide = false
+	plate.CanQuery = false
 	Build.sign(plate, Enum.NormalId.Front, "HOLLYWOOD RNG", P.Burgundy)
 end
 
+-- The near hills round the town: big balls sunk into the ground. The ones behind Dusty Gulch are
+-- sand-colored, in the desert. (The far ring of mountains is terrain, see MapScenery.)
+local SAND = Color3.fromRGB(236, 196, 128)
+MapModels.Hills = table.freeze({
+	{ at = v(0, -70, 360), size = 260, color = P.Green },
+	{ at = v(-200, -80, 335), size = 190, color = P.DarkGreen },
+	{ at = v(205, -78, 330), size = 180, color = P.DarkGreen },
+	{ at = v(70, -80, -365), size = 210, color = SAND },
+	{ at = v(-130, -85, -350), size = 190, color = Color3.fromRGB(222, 170, 110) },
+	{ at = v(270, -85, 20), size = 200, color = P.Green },
+	{ at = v(-275, -85, -20), size = 200, color = P.Green },
+} :: { { at: Vector3, size: number, color: Color3 } })
+
 local function hills(b: Builder)
-	local hillList: { { at: Vector3, size: number, color: Color3 } } = {
-		{ at = v(0, -70, 360), size = 260, color = P.Green },
-		{ at = v(-200, -80, 335), size = 190, color = P.DarkGreen },
-		{ at = v(205, -78, 330), size = 180, color = P.DarkGreen },
-		{ at = v(70, -80, -365), size = 210, color = P.Green },
-		{ at = v(-130, -85, -350), size = 190, color = P.DarkGreen },
-		{ at = v(270, -85, 20), size = 200, color = P.Green },
-		{ at = v(-275, -85, -20), size = 200, color = P.Green },
-	}
-	-- A far ring of hills all the way round, so the edge of the ground never shows.
-	for i = 0, 11 do
-		local a = math.rad(i * 30 + 15)
-		local size = if i % 2 == 0 then 320 else 280
-		table.insert(hillList, {
-			at = v(math.sin(a) * 540, -115, math.cos(a) * 540),
-			size = size,
-			color = if i % 3 == 0 then P.DarkGreen else P.Green,
-		})
-	end
+	local hillList = MapModels.Hills
 	for _, hill in hillList do
-		b:ball("Hill", hill.size, hill.at, hill.color, GRASS)
+		b:ball("Hill", hill.size, hill.at, hill.color, if hill.at.Z < MapScenery.DesertZ then Enum.Material.Sand else GRASS)
 	end
 	-- The landmark: a giant gold star sign on the big hill, leaning back into the slope.
 	local starAt = CFrame.new(Lay.hillStar) * CFrame.Angles(math.rad(-60), 0, 0)
@@ -667,9 +654,82 @@ local function landmarks(b: Builder)
 	TownSets.skyline(b:sub(CFrame.new(-470, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
 end
 
--- Invisible walls round the whole map, so nobody wanders off over the grass (or jumps the hedge
--- and keeps going). Tall enough that nothing in the town can be used to climb over them.
+-- Walkable ground ---------------------------------------------------------------------------------
+-- Players walk only on the paths: the boulevard and its sidewalks, the lots, the paths between
+-- and round them, the forecourt to the theatre, the road through the Studio Gate, Starlight
+-- Park's walks and Dusty Gulch's street. Invisible walls (Walkways.walls) run along the borders.
+
+local function walkAreas(): { Walkways.Rect }
+	local R = Walkways.rect
+	local x0, z0, ring = Lay.townX, Lay.townZ, Lay.ringWidth
+	local front, gap = Lay.sidewalkTo, Lay.endGap
+	local areas: { Walkways.Rect } = {
+		R(-x0, -34, x0, 34), -- the boulevard, the plaza and the sidewalks up to the lawns
+		R(Lay.theatreX, -gap, -x0, gap), -- forecourt to the theatre steps
+		R(Lay.theatreX - 8.5, -13, Lay.theatreX, 13), -- the steps and the porch under the marquee
+		R(x0, -gap, 175, gap), -- the road through the Studio Gate
+	}
+	-- Between the lawns, the sidewalks reach the lot gates, the paths between the lots and the
+	-- path round the outside.
+	for _, side in { -1, 1 } do
+		for _, span in { { -x0, -110 }, { -86, -74 }, { -50, -30 }, { -6, 6 }, { 30, 50 }, { 74, 86 }, { 110, x0 } } do
+			table.insert(areas, R(span[1], side * 34, span[2], side * front))
+		end
+		for _, sx in { -1, 1 } do
+			table.insert(areas, R(sx * (Lay.alleyX - Lay.alleyWidth / 2), side * front, sx * (Lay.alleyX + Lay.alleyWidth / 2), side * (z0 - ring)))
+			table.insert(areas, R(sx * (x0 - ring), side * front, sx * x0, side * z0))
+		end
+		table.insert(areas, R(-x0, side * (z0 - ring), x0, side * z0))
+		-- Out through the hedge gap to the park (back) and the Gulch (front).
+		table.insert(areas, R(-Lay.sideGap, side * z0, Lay.sideGap, side * (Lay.fenceZ + 1)))
+	end
+	for index = 1, 6 do
+		local p = MapModels.lotBase(index).Position
+		table.insert(areas, R(p.X - LOT_HALF, p.Z - LOT_HALF, p.X + LOT_HALF, p.Z + LOT_HALF))
+	end
+
+	-- Starlight Park (TownSets.park, laid out from z = edge toward +Z).
+	local e = Lay.fenceZ + 1
+	for _, r in {
+		R(-5.8, 0, 5.8, 90), -- the main path, with its curbs
+		R(-40, 45.2, 90, 54.8), -- the cross path through the fountain plaza
+		R(-12, 39, 12, 61), -- the fountain plaza
+		R(-8.6, 36.5, 8.6, 63.5),
+		R(55.2, 54, 64.8, 77), -- the spur to the bandstand
+		R(51, 77, 69, 95), -- the bandstand
+		R(-28.8, 54, -19.2, 86), -- the path to the pond
+		R(-54, 81.5, -19.2, 86.5), -- the bridge
+		R(-67.5, 77.5, -54, 90.5), -- the island
+		R(-20.4, 87.6, 20.4, 106.4), -- the square in front of the movie screen
+	} do
+		table.insert(areas, R(r.x0, e + r.z0, r.x1, e + r.z1))
+	end
+	-- Dusty Gulch (TownSets.westernTown, turned to run toward -Z): the street and boardwalks.
+	table.insert(areas, R(-20, -e - 150, 20, -e))
+	return areas
+end
+
+MapModels.WalkAreas = table.freeze(walkAreas())
+
+local WALL_HEIGHT = 120 -- higher than anything players could jump from
+local WALL_THICK = 2
+
+-- The invisible walls: one along each straight stretch of the walkable ground's border, standing
+-- just outside it, and a last ring round the whole map in case anything is missed.
 local function walls(b: Builder)
+	for _, wall in Walkways.walls(MapModels.WalkAreas) do
+		local length = (wall.b - wall.a).Magnitude
+		local mid = (wall.a + wall.b) / 2
+		local size, at
+		if wall.alongX then
+			size = v(length, WALL_HEIGHT, WALL_THICK)
+			at = v(mid.X, WALL_HEIGHT / 2 - 1, mid.Y + wall.out * WALL_THICK / 2)
+		else
+			size = v(WALL_THICK, WALL_HEIGHT, length)
+			at = v(mid.X + wall.out * WALL_THICK / 2, WALL_HEIGHT / 2 - 1, mid.Y)
+		end
+		b:block("PathWall", size, at, P.Grey)
+	end
 	local x, z, h = Lay.wallX, Lay.wallZ, 400
 	for _, s in { -1, 1 } do
 		b:block("MapWall", v(4, h, z * 2 + 8), v(s * (x + 2), h / 2, 0), P.Grey)
@@ -691,6 +751,7 @@ local GROUND_TRIM = {
 	Blanket = true,
 	BridgePlank = true,
 	DesertGround = true,
+	DesertFloor = true,
 	DustRut = true,
 	DustStreet = true,
 	FountainPlaza = true,
@@ -786,6 +847,7 @@ function MapModels.build(parent: Instance): Built
 	hills(b)
 	landmarks(b)
 	walls(b)
+	MapScenery.build(b, MapModels.WalkAreas, MapModels.Hills)
 
 	local stands = {}
 	for _, info in MapModels.Stands do
@@ -794,7 +856,7 @@ function MapModels.build(parent: Instance): Built
 
 	for _, part in parent:GetDescendants() do
 		if part:IsA("BasePart") then
-			if part.Name == "MapWall" then
+			if part.Name == "MapWall" or part.Name == "PathWall" then
 				part.Transparency = 1
 				part.CastShadow = false
 				part.CanQuery = false

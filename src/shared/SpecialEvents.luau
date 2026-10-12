@@ -219,8 +219,8 @@ SpecialEvents.CoinSpots = table.freeze({
 	-- Paths between the lots.
 	spot(40, 64), spot(40, 80), spot(-40, 64), spot(-40, 80),
 	spot(40, -64), spot(40, -80), spot(-40, -64), spot(-40, -80),
-	-- Back paths behind the lots, and the side paths at each end of town.
-	spot(0, 108), spot(80, 108), spot(-80, 108), spot(0, -108), spot(80, -108), spot(-80, -108),
+	-- Down the middle of the back paths behind the lots, and the side paths at each end of town.
+	spot(0, 110), spot(80, 110), spot(-80, 110), spot(0, -110), spot(80, -110), spot(-80, -110),
 	spot(120, 72), spot(120, -72), spot(-120, 72), spot(-120, -72),
 }) :: { Vector3 }
 

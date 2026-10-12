@@ -36,6 +36,9 @@ SHOTS = {
     "western": ((0, 7, -136), (0, 8, -220), 28),
     "gulch": ((70, 70, -110), (0, 0, -200), 30),
     "blimp": ((60, 40, -120), (0, 110, -240), 30),
+    "backlot": ((-236, 46, -96), (-120, 0, 0), 30),
+    "lanterns": ((10, 6, -150), (-14, 6, -200), 30),
+    "desert": ((0, 40, -250), (0, 10, -420), 30),
 }
 
 
@@ -45,7 +48,7 @@ def roblox(p):
 
 
 def main(names):
-    parts = [p for p in kit.dump("map") if p["name"] not in ("SearchlightBeam", "MapWall")]
+    parts = [p for p in kit.dump("map") if p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
     kit.new_scene(1280, 720, samples=48)
     kit.sky(top="#4A86E0", middle="#8FBDF2", horizon="#F4E6CF", glow="#FFD9A8", strength=1.0, light_strength=0.8)
     kit.light("SUN", (0, 0, 100), 3.2, "#FFF1DC", target=(-40, -60, 0), angle=4, name="Sun")

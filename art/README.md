@@ -12,7 +12,10 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
 | `src/shared/Models/TownSets.luau` | The town's landmarks and film sets: the Grand Premiere Theatre, the Studio Gate, the four back street sets, poster columns, the far skyline |
 | `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), and `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported) |
+| `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
+| `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |
+| `src/shared/Models/Walkways.luau` | Where players may walk, and the invisible walls along the path borders |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), and `map_kit` (22 map models in one file: street, park and western lamps, trees, cacti, rocks, mesas, the water towers, the bandstand, benches and Dusty Gulch's eight buildings; it also writes `src/shared/Models/MapKitShapes.luau`) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -37,6 +40,19 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   fake moon, crates), star trailers, and a food corner with a taco truck.
 - **Poster columns** on the sidewalks and a hazy **city skyline** behind the hills.
 - The town's palm trees and searchlights switch to the Blender meshes too, once imported.
+- **Paths only**: players can walk on the boulevard, sidewalks, lots, paths, the theatre
+  forecourt, the Studio Gate road, Starlight Park's walks and Dusty Gulch's street, and nowhere
+  else. Invisible walls (`PathWall`) run along every border (`MapModels.WalkAreas` lists the
+  walkable ground; add a rectangle there to open up a new area).
+- **Map kit** (`art/blender/map_kit.py`): the street lamps, park lamps, Gulch lanterns, park
+  trees, bandstand and benches, both water towers and all eight Gulch buildings are Blender models.
+- **Scenery**: woods of trees, pines and bushes round the town and behind the park, a desert of
+  cacti, boulders and mesas behind Dusty Gulch, trees up the hills, and a ring of terrain
+  mountains (snowy peaks, sandstone mesas behind the Gulch) on the horizon.
+- **Lighting**: `Future` lighting (set in `default.project.json`, so Rojo sets it when it
+  connects; without Rojo, set Lighting > Technology to Future by hand), a late-afternoon golden
+  sun, warm haze, sun rays and bloom (`MapService`), a warm light in every lamp and lantern, and a
+  mood shift per area (`src/client/AreaMood.luau`: warmer in the Gulch, greener in the park).
 
 Previews: `art/previews/town.png` and `art/previews/town_boulevard.png`. For lit Blender renders
 of the town from fixed spots (aerial, theatre, gate, each back street), run
@@ -47,8 +63,9 @@ of the town from fixed spots (aerial, theatre, gate, each back street), run
 Do this once. Until you do, the game shows the part-built versions, so nothing breaks.
 
 1. Build the FBX files on your Mac, from the repo folder:
-   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate mascots; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
-   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` six).
+   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate mascots map_kit; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
+   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` six,
+   `map_kit` one file holding all 22 map models).
 2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
 3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
 4. In the Explorer, open that Model, find its MeshPart, and:
@@ -72,6 +89,10 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `camera_bot.fbx` | `CameraBot` |
 | `spotlight_owl.fbx` | `SpotlightOwl` |
 | `premiere_dragon.fbx` | `PremiereDragon` |
+
+**The map kit is quicker**: import `map_kit.fbx` once (Home → Import 3D, with "Merge meshes"
+off), then drag the whole imported model into `ReplicatedStorage > LotMeshes` as it is. The game
+finds each model inside it by name and sets the colors itself, so there is nothing to rename.
 
 5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
 

@@ -7,6 +7,7 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
+local MapScenery = require(ReplicatedStorage.Shared.Models.MapScenery)
 
 local MapService = {}
 
@@ -25,33 +26,69 @@ local function clearTemplate()
 	end
 end
 
--- ART_STYLE.md section 5: a light warm haze (it also hides the far edge of the ground), a little
--- extra color, and a soft glow on neon signs. Each is added only when the place has none of its
--- own, so settings made in Studio win.
+-- The map's look: late-afternoon golden light, a warm haze that hides the far edge of the world,
+-- richer colors, a soft glow on neon and lit lamps, and sun rays. Lighting.Technology = Future
+-- (real shadows, and lamps that light the ground) is set in default.project.json, because game
+-- scripts can't change it; Rojo sets it on connect. Each effect reuses the place's own one if it
+-- has one (so the template's effects don't stack with ours) and sets it to the map's look.
+-- src/client/AreaMood.luau warms it up in Dusty Gulch and greens it up in Starlight Park.
+local function effect<T>(className: string): T
+	local found = Lighting:FindFirstChildOfClass(className :: any)
+	if found == nil or found.Name:sub(1, 12) == "SpecialEvent" then
+		found = Instance.new(className :: any)
+		found.Parent = Lighting
+	end
+	return (found :: any) :: T
+end
+
 local function addLook()
-	if Lighting:FindFirstChildOfClass("Atmosphere") == nil then
-		local air = Instance.new("Atmosphere")
-		air.Density = 0.3
-		air.Offset = 0.1
-		air.Color = Color3.fromRGB(240, 228, 210)
-		air.Decay = Color3.fromRGB(120, 125, 140)
-		air.Glare = 0
-		air.Haze = 1
-		air.Parent = Lighting
-	end
-	if Lighting:FindFirstChildOfClass("ColorCorrectionEffect") == nil then
-		local color = Instance.new("ColorCorrectionEffect")
-		color.Saturation = 0.15
-		color.Contrast = 0.05
-		color.Parent = Lighting
-	end
-	if Lighting:FindFirstChildOfClass("BloomEffect") == nil then
-		local bloom = Instance.new("BloomEffect")
-		bloom.Intensity = 0.5
-		bloom.Size = 20
-		bloom.Threshold = 1.6
-		bloom.Parent = Lighting
-	end
+	Lighting.ClockTime = 16
+	Lighting.GeographicLatitude = 28
+	Lighting.Brightness = 3
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 0.6
+	Lighting.OutdoorAmbient = Color3.fromRGB(146, 132, 124)
+	Lighting.ColorShift_Top = Color3.fromRGB(255, 222, 176)
+	Lighting.ShadowSoftness = 0.25
+	Lighting.GlobalShadows = true
+
+	local air = effect("Atmosphere") :: Atmosphere
+	air.Density = 0.32
+	air.Offset = 0.12
+	air.Color = Color3.fromRGB(255, 218, 178)
+	air.Decay = Color3.fromRGB(160, 126, 112)
+	air.Glare = 0.35
+	air.Haze = 1.4
+
+	local color = effect("ColorCorrectionEffect") :: ColorCorrectionEffect
+	color.Saturation = 0.18
+	color.Contrast = 0.08
+	color.Brightness = 0.01
+	color.TintColor = Color3.fromRGB(255, 249, 240)
+
+	local bloom = effect("BloomEffect") :: BloomEffect
+	bloom.Intensity = 0.6
+	bloom.Size = 24
+	bloom.Threshold = 1.4
+
+	local rays = effect("SunRaysEffect") :: SunRaysEffect
+	rays.Intensity = 0.07
+	rays.Spread = 0.55
+end
+
+-- The mountains on the horizon are terrain (MapScenery lists them). Built once, at start, a
+-- mountain a frame, without holding up the rest of the server.
+local function addMountains()
+	task.spawn(function()
+		local ok, err = pcall(function()
+			MapScenery.buildTerrain(workspace.Terrain, function()
+				task.wait()
+			end)
+		end)
+		if not ok then
+			warn(`[MapService] mountains not built: {err}`)
+		end
+	end)
 end
 
 local function addSpawn(folder: Instance)
@@ -91,6 +128,7 @@ function MapService.start()
 	end
 	addSpawn(folder)
 	folder.Parent = workspace
+	addMountains()
 end
 
 return MapService

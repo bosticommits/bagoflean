@@ -152,7 +152,9 @@ function Build.mesh(b: Builder, name: string, at: CFrame | Vector3, height: numb
 		return nil
 	end
 	local folder = dataModel:GetService("ReplicatedStorage"):FindFirstChild("LotMeshes")
-	local template: Instance? = if folder ~= nil then folder:FindFirstChild(name) else nil
+	-- Straight inside the folder, or inside a model dropped in whole (map_kit.fbx imports as one
+	-- model holding all its meshes).
+	local template: Instance? = if folder ~= nil then folder:FindFirstChild(name) or folder:FindFirstChild(name, true) else nil
 	if template ~= nil and template:IsA("Model") then
 		template = template:FindFirstChildWhichIsA("MeshPart", true)
 	end

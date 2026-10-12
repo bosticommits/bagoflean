@@ -4,9 +4,15 @@ local roblox = require("@lune/roblox")
 local H = require("./harness")
 local MapModels = H.require("Models/MapModels")
 local LotModels = H.require("Models/LotModels")
+local MapKit = H.require("Models/MapKit")
+local MapScenery = H.require("Models/MapScenery")
+local Walkways = H.require("Models/Walkways")
+local SpecialEvents = H.require("SpecialEvents")
 local test, expect, equal = H.test, H.expect, H.equal
 
 local Vector3 = roblox.Vector3
+local CFrame = roblox.CFrame
+local Color3 = roblox.Color3
 local Lay = MapModels.Layout
 local LOT_HALF = LotModels.Layout.size / 2
 
@@ -125,4 +131,164 @@ test("players spawn on the plaza, clear of the fountain", function()
 	expect(fromCentre > 11 and fromCentre < Lay.plazaRadius - 3, `spawn {p} is {fromCentre} from the fountain`)
 	-- Looking toward the centre of town (past the fountain), not at the edge of the map.
 	expect(Lay.spawn.LookVector:Dot(-p.Unit) > 0.9, "spawn faces the fountain")
+end)
+
+-- Walkways ---------------------------------------------------------------------------------------
+
+local walk = MapModels.WalkAreas
+local function walkable(x: number, z: number): boolean
+	return Walkways.isWalkable(walk, x, z)
+end
+
+test("everything players need is on walkable ground", function()
+	local spawn = Lay.spawn.Position
+	expect(walkable(spawn.X, spawn.Z), "spawn")
+	for _, info in MapModels.Stands do
+		local ring = MapModels.standBase(info) * CFrame.new(0, 0, -7.2)
+		expect(walkable(ring.Position.X, ring.Position.Z), `{info.title} prompt ring`)
+	end
+	for _, spot in SpecialEvents.CoinSpots do
+		expect(walkable(spot.X, spot.Z), `coin {spot}`)
+	end
+	for _, spot in SpecialEvents.CrateSpots do
+		expect(walkable(spot.X, spot.Z), `crate {spot}`)
+	end
+	for index = 1, 6 do
+		local gate = MapModels.lotBase(index) * CFrame.new(0, 0, -LOT_HALF - 1.5)
+		expect(walkable(gate.Position.X, gate.Position.Z), `lot {index} gate ramp`)
+	end
+end)
+
+test("every part of the map can be walked to from spawn", function()
+	-- Flood the walkable ground on a 2-stud grid, starting at spawn.
+	local step = 2
+	local seen: { [string]: boolean } = {}
+	local spawn = Lay.spawn.Position
+	local queue = { { math.round(spawn.X / step), math.round(spawn.Z / step) } }
+	seen[`{queue[1][1]},{queue[1][2]}`] = true
+	local head = 1
+	while head <= #queue do
+		local cell = queue[head]
+		head += 1
+		for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+			local i, j = cell[1] + d[1], cell[2] + d[2]
+			local key = `{i},{j}`
+			if not seen[key] and walkable(i * step, j * step) then
+				seen[key] = true
+				table.insert(queue, { i, j })
+			end
+		end
+	end
+	local function reached(x: number, z: number): boolean
+		return seen[`{math.round(x / step)},{math.round(z / step)}`] == true
+	end
+	for index = 1, 6 do
+		local p = MapModels.lotBase(index).Position
+		expect(reached(p.X, p.Z), `lot {index}`)
+	end
+	local e = Lay.fenceZ + 1
+	for _, place in {
+		{ "theatre steps", Lay.theatreX - 2, 0 },
+		{ "studio gate road", 170, 0 },
+		{ "park movie screen", 0, e + 100 },
+		{ "park bandstand", 60, e + 86 },
+		{ "park island", -60, e + 84 },
+		{ "Dusty Gulch's far end", 0, -e - 145 },
+		{ "back path corner", 120, 110 },
+	} do
+		expect(reached(place[2] :: number, place[3] :: number), place[1] :: string)
+	end
+end)
+
+test("invisible walls run along the path borders and never stand on a path", function()
+	local count = 0
+	for _, part in town:GetDescendants() do
+		if part.Name == "PathWall" then
+			count += 1
+			expect(part.Transparency == 1 and part.CanCollide and not part.CastShadow, `path wall {part.Transparency} {part.CanCollide} {part.CastShadow}`)
+			expect(part.Size.Y >= 100, "too tall to jump over")
+			-- The wall's middle is off the paths, and so is a point near each end.
+			local cf, size = part.CFrame, part.Size
+			for _, t in { -0.45, 0, 0.45 } do
+				local along = if size.X > size.Z then Vector3.new(size.X * t, 0, 0) else Vector3.new(0, 0, size.Z * t)
+				local p = cf.Position + along
+				expect(not walkable(p.X, p.Z), `{part.Name} at {p} stands on a path`)
+			end
+		end
+	end
+	expect(count > 40, `only {count} path walls`)
+end)
+
+test("the paths are walled on both sides: you can't step onto the grass", function()
+	-- Just off the edge of the boulevard's sidewalk, beside a lawn, and beside the park path.
+	local e = Lay.fenceZ + 1
+	for _, probe in { { -20, 37 }, { 18, -38 }, { 0, 102 }, { 126, 60 }, { 9, e + 20 }, { -24, -e - 60 } } do
+		local x, z = probe[1], probe[2]
+		expect(not walkable(x, z), `{x}, {z} should be off limits`)
+		-- And a wall stands between it and the nearest path.
+		local blocked = false
+		for _, part in town:GetDescendants() do
+			if part.Name == "PathWall" then
+				local lo, hi = bounds(part)
+				local d = Walkways.distance({ Walkways.rect(lo.X, lo.Z, hi.X, hi.Z) }, x, z)
+				if d <= Walkways.distance(walk, x, z) + 0.01 then
+					blocked = true
+				end
+			end
+		end
+		expect(blocked, `no wall between {x}, {z} and the path`)
+	end
+end)
+
+-- Scenery ----------------------------------------------------------------------------------------
+
+test("the scenery fills the background but stays off the paths", function()
+	local spots = MapScenery.spots(walk, MapModels.Hills)
+	expect(#spots > 250, `only {#spots} scenery props`)
+	expect(#spots < 900, `{#spots} scenery props is too many for phones`)
+	local kinds = {}
+	for _, spot in spots do
+		kinds[spot.name] = true
+		expect(Walkways.distance(walk, spot.at.X, spot.at.Z) > 7, `{spot.name} at {spot.at} is too close to a path`)
+		if spot.at.Z < MapScenery.DesertZ then
+			expect(spot.name == "Cactus" or spot.name == "DesertRock" or spot.name == "Mesa", `{spot.name} in the desert`)
+		end
+	end
+	for _, name in { "ParkTree", "PineTree", "Bush", "Cactus", "DesertRock", "Mesa" } do
+		expect(kinds[name], `no {name} in the scenery`)
+	end
+	-- Far scenery never collides or casts shadows.
+	local scenery = town:FindFirstChild("Scenery")
+	expect(scenery ~= nil, "scenery folder")
+	for _, part in (scenery :: any):GetDescendants() do
+		if part:IsA("BasePart") then
+			expect(not part.CanCollide and not part.CastShadow, `{part:GetFullName()} is light`)
+		end
+	end
+end)
+
+test("the mountains ring the map out past everything else", function()
+	expect(#MapScenery.Mountains >= 12, "mountains")
+	for _, m in MapScenery.Mountains do
+		local d = math.sqrt(m.x ^ 2 + m.z ^ 2)
+		expect(d - m.radius > 400, `mountain at {m.x}, {m.z} comes too close`)
+		expect(d + m.radius < 1000, `mountain at {m.x}, {m.z} runs off the ground`)
+		if m.z < -200 then
+			equal(m.style, "mesa", "mountains behind Dusty Gulch are desert mesas")
+		end
+	end
+end)
+
+test("every map kit model has a part version, a size and builds", function()
+	local names = MapKit.names()
+	expect(#names >= 20, "kit models")
+	local folder = roblox.Instance.new("Folder")
+	local Build = H.require("Models/Build")
+	for _, name in names do
+		local model = MapKit.place(Build.new(folder, CFrame.identity), name, CFrame.identity)
+		expect(#model:GetChildren() > 0, `{name} builds parts`)
+	end
+	-- Lamps and lanterns get a light.
+	local lamp = MapKit.place(Build.new(folder, CFrame.identity), "TownLamp", CFrame.identity, { light = { range = 10, brightness = 1, color = Color3.new(1, 1, 1) } })
+	expect(lamp:FindFirstChild("LightSpot") ~= nil, "lamp light")
 end)
