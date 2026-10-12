@@ -649,8 +649,7 @@ local function landmarks(b: Builder)
 	TownSets.westernTown(b:sub(CFrame.new(0, 0, -edge) * CFrame.Angles(0, math.pi, 0)))
 	TownSets.blimp(b:sub(CFrame.new(0, Lay.blimpHeight, -Lay.blimpRadius) * CFrame.Angles(0, math.rad(-90), 0)))
 
-	-- A hazy city skyline behind the hills, beyond the front lots and past the theatre.
-	TownSets.skyline(b:sub(v(0, -8, -450)), 16, 620, 7)
+	-- A hazy city skyline past the theatre (the front is desert and mesas now, behind Dusty Gulch).
 	TownSets.skyline(b:sub(CFrame.new(-470, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
 end
 

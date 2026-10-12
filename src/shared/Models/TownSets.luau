@@ -4,8 +4,9 @@
 -- street between the lots, poster columns on the sidewalks, and a far-off city skyline.
 --
 -- Each piece is laid out in its own space like the rest of the models (origin at the bottom
--- centre, front toward -Z); MapModels places them. Phones come first: no lights, small parts cast
--- no shadow (MapModels.build), and every piece stays within a few dozen parts.
+-- centre, front toward -Z); MapModels places them. Phones come first: lights only where they make
+-- a focal point (lamps, lanterns, the theatre marquee), small parts cast no shadow
+-- (MapModels.build), and every piece stays within a few dozen parts.
 local Build = require(script.Parent.Build)
 local IconModels = require(script.Parent.IconModels)
 local LotModels = require(script.Parent.LotModels)
@@ -90,7 +91,15 @@ function TownSets.theatre(b: Builder)
 	-- The marquee: a deep canopy over the doors, a lit board on its front and bulbs underneath.
 	b:block("Marquee", v(26, 3.6, 7), v(0, 10, 2.5), P.Burgundy)
 	b:block("MarqueeCrest", v(27, 0.6, 7.6), v(0, 12.1, 2.5), P.Gold, METAL)
-	b:block("MarqueeBulbs", v(25, 0.3, 6.4), v(0, 8.1, 2.5), P.Light, NEON)
+	local underside = b:block("MarqueeBulbs", v(25, 0.3, 6.4), v(0, 8.1, 2.5), P.Light, NEON)
+	-- The bulbs light the steps and the carpet below (a warm pool you walk into).
+	local spot = Instance.new("SpotLight")
+	spot.Face = Enum.NormalId.Bottom
+	spot.Angle = 120
+	spot.Range = 20
+	spot.Brightness = 2.2
+	spot.Color = Color3.fromRGB(255, 214, 150)
+	spot.Parent = underside
 	local board = b:block("MarqueeBoard", v(24, 2.6, 0.3), v(0, 10, -1.1), P.OffWhite)
 	Build.sign(board, Enum.NormalId.Front, "TONIGHT: YOUR PREMIERE", P.Burgundy)
 	for _, y in { 8.55, 11.45 } do
