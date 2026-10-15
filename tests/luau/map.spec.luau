@@ -292,3 +292,37 @@ test("every map kit model has a part version, a size and builds", function()
 	local lamp = MapKit.place(Build.new(folder, CFrame.identity), "TownLamp", CFrame.identity, { light = { range = 10, brightness = 1, color = Color3.new(1, 1, 1) } })
 	expect(lamp:FindFirstChild("LightSpot") ~= nil, "lamp light")
 end)
+
+test("grass tufts, flowers and boulders dress the lawns near the paths", function()
+	local spots = MapScenery.dressing(walk, MapModels.Hills)
+	expect(#spots > 150, `only {#spots} tufts and flowers`)
+	expect(#spots < 900, `{#spots} tufts and flowers is too many for phones`)
+	for _, spot in spots do
+		local d = Walkways.distance(walk, spot.at.X, spot.at.Z)
+		expect(d > 2.5, `{spot.name} at {spot.at} is on a path`)
+		expect(spot.at.Z > MapScenery.DesertZ, `{spot.name} at {spot.at} is in the desert`)
+	end
+end)
+
+test("the landmarks and street props are Blender kit models, not loose parts", function()
+	local kits = {}
+	for _, d in town:GetDescendants() do
+		if d:IsA("Model") and MapKit.names ~= nil then
+			kits[d.Name] = (kits[d.Name] or 0) + 1
+		end
+	end
+	for _, name in { "Theatre", "StudioGate", "PlazaFountain", "ParkArch", "GulchArch", "MovieScreen", "PondBridge", "BusStop", "NewsStand", "TacoTruck", "Wagon", "Mountain", "Hill" } do
+		expect(kits[name] ~= nil, `no {name} kit model in the town`)
+	end
+	for _, name in { "CarTeal", "CarPink", "CarGold", "CarRed" } do
+		equal(kits[name], 1, `one {name}`)
+	end
+	-- The ducks are tagged, for the client to paddle them round the pond.
+	local ducks = 0
+	for _, d in town:GetDescendants() do
+		if d.Name == "Duck" and d:HasTag("PondDuck") then
+			ducks += 1
+		end
+	end
+	equal(ducks, 3, "three pond ducks")
+end)

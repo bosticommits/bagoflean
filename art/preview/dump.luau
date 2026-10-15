@@ -46,10 +46,32 @@ local function load(path: string): any
 	return result
 end
 
+-- A Blender map kit model (MapKit tags it outside Roblox) is dumped as one "Kit" record, so the
+-- preview can draw the real mesh; the stand-in parts inside it are left out.
+local function inKit(d: any): boolean
+	local p = d.Parent
+	while p ~= nil do
+		if p:GetAttribute("Kit") ~= nil then
+			return true
+		end
+		p = p.Parent
+	end
+	return false
+end
+
 local function dumpParts(root): { any }
 	local out = {}
 	for _, d in root:GetDescendants() do
-		if d:IsA("BasePart") and d.Transparency < 1 then
+		local kit = if d.ClassName == "Model" then d:GetAttribute("Kit") else nil
+		if kit ~= nil and not inKit(d) then
+			table.insert(out, {
+				name = "Kit:" .. kit,
+				shape = "Kit",
+				kit = kit,
+				scale = d:GetAttribute("KitScale"),
+				cframe = { d:GetAttribute("KitCFrame"):GetComponents() },
+			})
+		elseif d:IsA("BasePart") and d.Transparency < 1 and not inKit(d) then
 			local cf = d.CFrame
 			local shape = "Block"
 			if d.ClassName == "WedgePart" then

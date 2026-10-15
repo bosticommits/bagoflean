@@ -626,6 +626,16 @@ KIT = [
 # --- Mesh ------------------------------------------------------------------------------------
 
 
+def star_rim():
+    """The ten rim points (x, z) of a unit star, tip up: five points 0.5 out, five 0.21 in."""
+    out = []
+    for i in range(10):
+        r = 0.5 if i % 2 == 0 else 0.21
+        a = math.radians(i * 36)
+        out.append((math.sin(a) * r, math.cos(a) * r))
+    return out
+
+
 def unit_shape(s):
     """A bmesh of the shape in studs, centred on the origin."""
     kind, size = s["kind"], s["size"]
@@ -635,6 +645,19 @@ def unit_shape(s):
         biggest = max(size)
         u = 14 if biggest > 1.0 else 10 if biggest > 0.4 else 8
         bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=max(5, u * 2 // 3), radius=0.5)
+    elif kind == "facet":
+        # A faceted ball with flat, even facets (hills, moons, clouds): more facets when big.
+        biggest = max(size)
+        bmesh.ops.create_icosphere(bm, subdivisions=1 if biggest < 1.5 else 2 if biggest < 40 else 3, radius=0.5)
+    elif kind == "star":
+        # A five-point star in the XZ plane, facing -Y, its middle raised front and back.
+        rim = star_rim()
+        verts = [bm.verts.new((x, 0, z)) for x, z in rim]
+        front, back = bm.verts.new((0, -0.5, 0)), bm.verts.new((0, 0.5, 0))
+        for i in range(len(verts)):
+            a, b = verts[i], verts[(i + 1) % len(verts)]
+            bm.faces.new((front, b, a))
+            bm.faces.new((back, a, b))
     elif kind == "blob":
         bmesh.ops.create_icosphere(bm, subdivisions=1, radius=0.5)
         # Nudge the corners a little so neighbouring blobs don't look stamped out.
@@ -690,11 +713,13 @@ class Piece:
         tmp = unit_shape(s)
         world = Matrix.Scale(STUD, 4) @ m
         mat = self.mat(s["color"], s["neon"])
+        # Hills, mountains and clouds mix a few shades over their facets, for the low-poly look.
+        tones = [self.mat(t, s["neon"]) for t in s.get("tones") or ()]
         smooth = s["kind"] == "ball"
         vs = {v: self.bm.verts.new(world @ v.co) for v in tmp.verts}
-        for f in tmp.faces:
+        for i, f in enumerate(tmp.faces):
             face = self.bm.faces.new([vs[v] for v in f.verts])
-            face.material_index = mat
+            face.material_index = tones[(i * 7 + (i * i) // 3) % len(tones)] if tones else mat
             face.smooth = smooth
         tmp.free()
 
@@ -712,7 +737,7 @@ class Piece:
 
 def lowest(s, m):
     sx, sy, sz = (v / 2 for v in s["size"])
-    if s["kind"] in ("ball", "blob"):
+    if s["kind"] in ("ball", "blob", "facet"):
         r = m.to_3x3() @ Matrix.Diagonal((sx, sy, sz))
         return m.translation.z - (r.transposed() @ Vector((0, 0, -1))).length
     corners = [m @ Vector((x * sx, y * sy, z * sz)) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
@@ -737,6 +762,49 @@ def to_roblox(s, m):
     rot = P @ m.to_3x3() @ P
     sx, sy, sz = s["size"]
     return pos, rot, (sx, sz, sy)
+
+
+def wedge_line(cf_rows, center, size, color):
+    vals = (*center, *cf_rows[0], *cf_rows[1], *cf_rows[2])
+    cf = ", ".join(num(v) for v in vals)
+    return f"\tS(\"wedge\", CFrame.new({cf}), Vector3.new({', '.join(num(v) for v in size)}), \"{color.lstrip('#')}\"),"
+
+
+def right_wedge(corner, leg_d, leg_h, normal, thickness, color):
+    """A WedgePart filling the right triangle with its right angle at `corner` and its legs
+    ending at `leg_d` (the bottom edge) and `leg_h` (the tall edge), in Roblox space."""
+    z = corner - leg_d
+    d = z.length
+    y = leg_h - corner
+    h = y.length
+    z.normalize()
+    y.normalize()
+    x = y.cross(z)
+    if x.dot(normal) < 0:
+        # Keep the frame right-handed whichever way round the triangle is.
+        x = -x
+    center = corner + y * (h / 2) - z * (d / 2)
+    rows = [(x[i], y[i], z[i]) for i in range(3)]
+    return wedge_line(rows, center, (thickness, h, d), color)
+
+
+def star_wedges(s, m):
+    """The part version of a star: each of its ten triangles as two WedgeParts."""
+    sx, sy, sz = s["size"]
+    pts = [P @ (m @ Vector((x * sx, 0, z * sz))) for x, z in star_rim()]
+    middle = P @ m.translation
+    normal = (P @ (m.to_3x3() @ Vector((0, -1, 0)))).normalized()
+    out = []
+    for i in range(10):
+        a, b, c = middle, pts[i], pts[(i + 1) % 10]
+        # Split along the altitude onto the longest side, so both halves are right triangles.
+        sides = [(a, b, c), (b, c, a), (c, a, b)]
+        p, q, r = max(sides, key=lambda t: (t[1] - t[0]).length)
+        pq = q - p
+        foot = p + pq * ((r - p).dot(pq) / pq.dot(pq))
+        out.append(right_wedge(foot, p, r, normal, sy * 0.6, s["color"]))
+        out.append(right_wedge(foot, q, r, normal, sy * 0.6, s["color"]))
+    return out
 
 
 def write_luau(results):
@@ -769,9 +837,13 @@ def write_luau(results):
         lines.append(f"MapKitShapes.Shapes.{name} = {{")
         glow = []
         for s, m in flat:
+            if s["kind"] == "star":
+                for wedge in star_wedges(s, m):
+                    lines.append(wedge)
+                continue
             pos, r, size = to_roblox(s, m)
             cf = ", ".join(num(v) for v in (*pos, r[0][0], r[0][1], r[0][2], r[1][0], r[1][1], r[1][2], r[2][0], r[2][1], r[2][2]))
-            kind = "ball" if s["kind"] == "blob" else s["kind"]
+            kind = "ball" if s["kind"] in ("blob", "facet") else s["kind"]
             extra = ""
             if s["neon"] or kind == "cone":
                 extra = f", {'true' if s['neon'] else 'nil'}"
@@ -818,12 +890,21 @@ def export_all(objs):
     print("Exported", os.path.join(mmkit.EXPORTS, "map_kit.fbx"))
 
 
+def full_kit():
+    """Both halves of the kit: this file's models and map_kit_town's."""
+    import map_kit_town
+
+    return KIT + map_kit_town.KIT, map_kit_town.LINEUPS
+
+
 def main():
+    kit_list, town_lineups = full_kit()
     os.makedirs(mmkit.PREVIEWS, exist_ok=True)
     os.makedirs(mmkit.EXPORTS, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     results, objs = [], []
-    for name, builder in KIT:
+    only = os.environ.get("KIT_ONLY")
+    for name, builder in kit_list:
         obj, flat = build(name, builder)
         tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
         lo, hi = bounds(obj)
@@ -837,17 +918,22 @@ def main():
     export_all(objs)
 
     if not os.environ.get("KIT_NO_RENDER"):
-        # Two line-ups: the props and plants, and Dusty Gulch's buildings.
-        lineup(["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
-               ["WaterTower", "WaterTank", "Bandstand", "Mesa"], "map_kit_props.png")
-        lineup(["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]], "map_kit_buildings.png")
+        # Line-ups of the models, for checking them by eye. KIT_ONLY=<part of a file name> renders one.
+        lineups = [
+            (["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
+             ["WaterTower", "WaterTank", "Bandstand", "Mesa"], "map_kit_props.png"),
+            (["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]], "map_kit_buildings.png"),
+        ] + town_lineups
+        for front, back, file_name in lineups:
+            if not only or only in file_name:
+                lineup(front, back, file_name, dict(kit_list))
 
 
-def lineup(front, back, file_name):
+def lineup(front, back, file_name, builders):
     """Render two rows of kit models (front row nearer the camera)."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     names = front + back
-    objs = {n: build(n, dict(KIT)[n])[0] for n in names}
+    objs = {n: build(n, builders[n])[0] for n in names}
     shown = []
     y = 0.0
     for row in (front, back):
