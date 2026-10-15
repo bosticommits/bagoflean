@@ -63,6 +63,11 @@ Sounds.Slots = {
 	premiereMasterpiece = slot("jingle"), -- the music dips under it
 	premiereFlash = slot("clap", 1.6), -- camera flashes on premiere night
 	premiereStamp = slot("clap", 0.6), -- the result stamp lands on the poster
+	-- Direct the scene (TakeUi): the TAKE! card pops up, then the verdict on CUT!
+	takePop = slot("pop", 1.1),
+	takePerfect = slot("stinger", 1.15),
+	takeGood = slot("clap", 1.05),
+	takeMiss = slot("low", 0.9),
 
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed

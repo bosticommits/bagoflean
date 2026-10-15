@@ -18,6 +18,7 @@ export type Film = {
 	cast: { string }, -- "actorId:variantId" keys; these copies are busy until the premiere
 	startTime: number,
 	endTime: number,
+	takes: { string }?, -- "Direct the scene" verdicts so far (Takes.luau); nil before the first
 }
 
 -- A premiered movie sitting in the cinema earning royalties.
