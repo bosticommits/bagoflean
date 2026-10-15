@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -18,13 +19,15 @@ local lastCollectAttempt: { [Player]: number } = {}
 
 local EconomyService = {}
 
--- Cash per second the cinema earns right now.
+-- Cash per second the cinema earns right now, with a box office mascot's buff. Rewards that pay
+-- "N minutes of box office" use the same rate, so they match what the screens show.
 function EconomyService.rate(data: DataService.PlayerData): number
 	local royalties = 0
 	for _, movie in data.cinema do
 		royalties += movie.payout * Config.RoyaltyRate
 	end
-	return Config.CinemaIncomePerSecond + royalties * Upgrades.royaltyMultiplier(data)
+	local base = Config.CinemaIncomePerSecond + royalties * Upgrades.royaltyMultiplier(data)
+	return base * (1 + Mascots.boost(data, "boxOffice", os.time()))
 end
 
 local function bankedAt(data: DataService.PlayerData, now: number): number

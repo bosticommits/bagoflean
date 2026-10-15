@@ -291,6 +291,26 @@ without takes (for example first Superstar 71 against 61 minutes and first Maste
 the casual player). The takes are there to give the 2-minute wait something to do, not to change
 the pace.
 
+## Mascot buffs
+
+Each studio mascot gives one small buff, and only the one a player has out counts
+(`src/shared/Mascots.luau`): Popcorn Pup +5% movie Cash, Clapper Croc films 10% faster, Reel Kitty
+x1.1 casting Luck, Camera Bot +15% box office, Spotlight Owl x1.2 casting Luck and Premiere Dragon
++20% movie Cash. Every kind has a hard cap (`Mascots.Caps`: Cash +20%, Luck x1.2, filming 10%,
+box office +15%) that tests keep under the Robux pass doing the same job (x2 Luck, 25% faster
+filming). Cash is added after Fame is worked out, like the rebirth bonus, so Fame unlocks do not
+move. Rewards paid as "minutes of box office" follow the boosted rate, as the screens show it. A
+buff only works 30 seconds after equipping, so swapping mascots
+between casting and premiering cannot collect two buffs; mascots are earned, never sold.
+
+The sim's `--mascots` option keeps the strongest earned mascot of one kind out (the pup until
+then). Typical player, 150 runs, end of week one: no buffs $96,562/min, Cash mascots
+$112,093 (+16%), box office $100,778 (+4%), Luck and speed within run-to-run noise ($95,386 and
+$94,649). Rebirth 1 stays on day 2 at 75 minutes and Legend in week one stays at 65 to 69% in
+every setup. If every cap applied at once (what stacking would do; simulated on the retuned odds
+of PR #43) a typical player would earn
+about 64% more, which is why only one mascot counts.
+
 ## What to watch in playtests
 
 - Casting speed (checked 2026-10-10, typical player, 30 runs each). Faster casting moves the whole

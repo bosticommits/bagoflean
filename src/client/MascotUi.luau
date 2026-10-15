@@ -1,8 +1,9 @@
 --!strict
 -- Mascots screen (rules in Shared/Mascots, checks in src/server/MascotService). At the top, the
 -- mascot following you turns on a spotlight in its rarity color, with a button to hide or show it.
--- Under it, a picture card for each of the six: earned ones say EQUIP (or EQUIPPED), the others
--- show a black silhouette, how to earn them and how far along you are.
+-- Under it, a picture card for each of the six with its buff: earned ones say EQUIP (or EQUIPPED),
+-- the others show a black silhouette, how to earn them and how far along you are. The spotlight
+-- counts down the buff's warm-up after a swap (Mascots.WarmUp).
 -- Earning a mascot says so at the bottom of the screen and puts a red badge on the Mascots button
 -- until the screen is opened. The client only names the mascot it wants; the server checks it.
 local Players = game:GetService("Players")
@@ -47,6 +48,16 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 	UiKit.panelIcon(panel, header, "mascot:PopcornPup")
 
 	local shown = "" -- signature of what the screen shows; rebuilt only when it changes
+	local heroLine: TextLabel? = nil -- the spotlight's buff line, ticked while the buff warms up
+	local heroMascot: Mascots.Mascot? = nil
+
+	-- "+20% movie Cash", then whether it works yet. Equip time comes from the server.
+	local function buffLine(mascot: Mascots.Mascot): string
+		local since = player:GetAttribute("MascotSince")
+		local left = math.ceil(Mascots.warmUpLeft({ mascotSince = since }, workspace:GetServerTimeNow()))
+		local status = if left > 0 then `starts in {left}s` else "active"
+		return `{mascot.blurb}\nBuff: {Mascots.describe(mascot.buff)} ({status})`
+	end
 	local stopSpin: (() -> ())? = nil
 	local fresh: { [string]: boolean } = {} -- earned this session and not seen on the screen yet
 
@@ -55,7 +66,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 		local equipped = player:GetAttribute("Mascot")
 		local current = if type(equipped) == "string" then equipped else ""
 		local progress = split(player:GetAttribute("MascotProgress"))
-		local signature = UiKit.signature({ unlocked = unlocked, current = current, progress = progress, compact = UiKit.isCompact() } :: any)
+		local signature = UiKit.signature({ unlocked = unlocked, current = current, progress = progress, since = player:GetAttribute("MascotSince"), compact = UiKit.isCompact() } :: any)
 		if signature == shown then
 			return
 		end
@@ -98,11 +109,13 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 			Icon3D.glow(view, color, 1.6)
 			stopSpin = Icon3D.spin(view, 6)
 			name = makeTitle(hero, mascot.name, UiKit.WHITE, UDim2.new(0.58, 0, 0.3, 0), UDim2.fromScale(0.4, 0.08), 3)
-			line = makeLabel(hero, `{mascot.blurb} Follows you everywhere.`, UiKit.MUTED, UDim2.new(0.56, 0, 0.2, 0), UDim2.fromScale(0.4, 0.38))
+			line = makeLabel(hero, buffLine(mascot), UiKit.MUTED, UDim2.new(0.56, 0, 0.2, 0), UDim2.fromScale(0.4, 0.38))
 		else
 			name = makeTitle(hero, "No mascot", UiKit.WHITE, UDim2.new(0.58, 0, 0.3, 0), UDim2.fromScale(0.4, 0.08), 3)
 			line = makeLabel(hero, "Your mascot is hidden. Pick one below.", UiKit.MUTED, UDim2.new(0.56, 0, 0.2, 0), UDim2.fromScale(0.4, 0.38))
 		end
+		heroLine = if mascot ~= nil then line else nil
+		heroMascot = mascot
 		name.TextXAlignment = Enum.TextXAlignment.Left
 		UiKit.textConstraint(name, 34)
 		line.TextXAlignment = Enum.TextXAlignment.Left
@@ -165,7 +178,8 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 			title.Name = "Title"
 			title.ZIndex = 3
 			UiKit.textConstraint(title, 22)
-			local text = makeLabel(card, if earned then m.blurb else m.unlock, if earned then UiKit.WHITE else UiKit.GOLD, UDim2.fromScale(0.9, 0.13), UDim2.fromScale(0.05, 0.62))
+			local buff = Mascots.describe(m.buff)
+			local text = makeLabel(card, if earned then buff else `{m.unlock}\n{buff}`, if earned then UiKit.WHITE else UiKit.GOLD, UDim2.fromScale(0.9, 0.14), UDim2.fromScale(0.05, 0.62))
 			text.Name = "Description"
 			text.ZIndex = 3
 			UiKit.outline(text, 1.5)
@@ -256,6 +270,16 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 	player:GetAttributeChangedSignal("MascotsUnlocked"):Connect(onUnlocked)
 	player:GetAttributeChangedSignal("Mascot"):Connect(update)
 	player:GetAttributeChangedSignal("MascotProgress"):Connect(update)
+	player:GetAttributeChangedSignal("MascotSince"):Connect(update)
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local line, mascot = heroLine, heroMascot
+			if panel.Visible and line ~= nil and line.Parent ~= nil and mascot ~= nil then
+				line.Text = buffLine(mascot)
+			end
+		end
+	end)
 end
 
 return MascotUi

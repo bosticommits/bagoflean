@@ -15,6 +15,7 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
     python3 tools/economy_sim.py --no-takes          # the player ignores the TAKE! cards (to compare)
+    python3 tools/economy_sim.py --mascots cash      # the player keeps its best Cash mascot out
 
 The player model is deliberately plain: it collects, claps, premieres as soon as a film is
 ready, buys the cheapest useful upgrade it can afford, picks the best script and cast it owns,
@@ -127,6 +128,7 @@ def load_tuning() -> dict:
     specials_text = (SHARED / "SpecialEvents.luau").read_text()
     takes_text = (SHARED / "Takes.luau").read_text()
     take_luck = {k: _num(v) for k, v in re.findall(r"(Perfect|Good|Miss) = ([\d.]+)", re.search(r"Takes\.Luck = table\.freeze\(\{([^}]*)\}", takes_text).group(1))}
+    mascots_text = (SHARED / "Mascots.luau").read_text()
 
     return {
         "config": config,
@@ -168,6 +170,12 @@ def load_tuning() -> dict:
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
         "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
         "upgrades": {u["id"]: u for u in upgrades},
+        # Mascots.List: (id, stat, target or None for the Talent Agency's Fame, buff kind, amount)
+        "mascots": [
+            (m.group(1), m.group(2), None if m.group(3) == "talentFame" else _num(m.group(3)), m.group(4), _num(m.group(5)))
+            for m in re.finditer(r'id = "(\w+)".*?stat = "(\w+)", target = (\w+).*?buff = \{ kind = "(\w+)", amount = ([\d.]+)',
+                                 _block(mascots_text, "Mascots.List"))
+        ],
         "specials": {
             "events": [(m.group(1), _num(m.group(2))) for m in re.finditer(
                 r'id = "(\w+)",.*?seconds = ([\d.]+)', _block(specials_text, "SpecialEvents.List"), re.S)],
@@ -351,6 +359,11 @@ class Game:
 
 UPGRADE_ORDER = ["Stages", "Cinema", "Luck", "Offline", "Clap"]
 
+# Which mascot the player keeps out (Mascots.luau buffs): "none", or the kind of buff it goes for,
+# always taking the strongest earned mascot of that kind (the Popcorn Pup until then). Set by
+# --mascots. Players here never swap, so the warm-up after equipping does not come up.
+MASCOTS = "none"
+
 
 class Player:
     def __init__(self, game: Game, rng: random.Random, clap_rate: float, cast_rate: float):
@@ -412,7 +425,24 @@ class Player:
 
     # rebirth (Rebirth.luau and RebirthService)
     def cash_mult(self) -> float:
-        return 1 + self.g.t["rebirth"]["CashStep"] * self.rebirths
+        return (1 + self.g.t["rebirth"]["CashStep"] * self.rebirths) * (1 + self.mascot_boost("cash"))
+
+    # mascots (Mascots.boost)
+    def mascot_earned(self, stat: str, target: float | None) -> bool:
+        if target is None:
+            target = next(a["fame"] for a in self.g.t["agencies"] if a["id"] == "Talent")
+        have = {"free": 0, "premiere": self.premieres, "index": len(self.index), "fame": self.fame,
+                "rebirths": self.rebirths, "masterpiece": self.trophies}[stat]
+        return have >= target
+
+    def mascot_boost(self, kind: str) -> float:
+        if MASCOTS == "none":
+            return 0.0
+        out = self.g.t["mascots"][0]  # the Popcorn Pup, everyone's first
+        for mascot in self.g.t["mascots"]:
+            if mascot[3] == MASCOTS and self.mascot_earned(mascot[1], mascot[2]) and mascot[4] >= out[4]:
+                out = mascot
+        return out[4] if out[3] == kind else 0.0
 
     def rebirth_cost(self) -> float | None:
         r = self.g.t["rebirth"]
@@ -462,7 +492,7 @@ class Player:
         live = self.special()
         if live is not None and live[0] == "LuckyStar":
             luck *= self.g.t["specials"]["luck"]
-        return luck
+        return luck * (1 + self.mascot_boost("luck"))
 
     def clap_seconds(self) -> float:
         return self.g.c["ClapSeconds"] + self.g.c["ClapStep"] * self.level("Clap")
@@ -473,7 +503,8 @@ class Player:
     def rate(self) -> float:
         c = self.g.c
         royalties = sum(p * c["RoyaltyRate"] for p in self.cinema)
-        return c["CinemaIncomePerSecond"] + royalties * (1 + c["CinemaStep"] * self.level("Cinema"))
+        base = c["CinemaIncomePerSecond"] + royalties * (1 + c["CinemaStep"] * self.level("Cinema"))
+        return base * (1 + self.mascot_boost("boxOffice"))
 
     def mark(self, name: str):
         self.events.setdefault(name, self.now)
@@ -685,6 +716,8 @@ class Player:
             if not self.first_film_done:
                 seconds = min(seconds, self.g.c["FirstFilmSeconds"])
                 self.first_film_done = True
+            if self.mascot_boost("speed") > 0:
+                seconds = max(1, math.floor(seconds * (1 - self.mascot_boost("speed"))))
             self.films.append({"stage": stage, "start": self.now, "end": self.now + seconds, "length": length,
                                "genre": genre, "cast": cast, "power": power, "takes": 0, "take_luck": 0.0,
                                "takes_ok": not tutorial})
@@ -1085,7 +1118,10 @@ if __name__ == "__main__":
                         help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
     parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
     parser.add_argument("--no-takes", action="store_true", help="the player ignores the TAKE! cards (to compare)")
+    parser.add_argument("--mascots", default="none", choices=["none", "cash", "luck", "speed", "boxOffice"],
+                        help="the kind of mascot buff the player keeps out (default: none)")
     args = parser.parse_args()
     CAST_RATE = args.cast_rate
+    MASCOTS = args.mascots
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
            not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start, not args.no_takes)

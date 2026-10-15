@@ -77,3 +77,41 @@ test("progress never errors on an old or broken save", function()
 		equal(Mascots.progress(mascot, { stats = "x", index = 3, fame = "y" }), 0, `{mascot.id} on a broken save`)
 	end
 end)
+
+test("no mascot buff goes over its cap, and the caps stay under the Robux passes", function()
+	local Config = H.require("Config")
+	for _, mascot in Mascots.List do
+		local cap = Mascots.Caps[mascot.buff.kind]
+		expect(cap ~= nil, `{mascot.id} has an unknown buff kind {mascot.buff.kind}`)
+		expect(mascot.buff.amount > 0 and mascot.buff.amount <= cap, `{mascot.id} gives {mascot.buff.amount}, over {cap}`)
+		expect(Mascots.describe(mascot.buff) ~= "", `{mascot.id} needs its buff words`)
+	end
+	expect(1 + Mascots.Caps.luck < Config.PassLuckMultiplier, "a Luck mascot beats the 2x Luck pass")
+	expect(Mascots.Caps.speed < 1 - Config.FastFilmingMultiplier, "a speed mascot beats Faster Filming")
+end)
+
+test("only the equipped mascot's buff counts, after its warm-up", function()
+	local data: any = { stats = {}, index = {}, fame = 0, rebirths = 1, trophies = 1, mascot = "PremiereDragon", mascotSince = 1000 }
+	local warm = 1000 + Mascots.WarmUp
+	equal(Mascots.boost(data, "cash", warm - 1), 0, "still warming up")
+	equal(Mascots.warmUpLeft(data, warm - 10), 10, "seconds left")
+	equal(Mascots.boost(data, "cash", warm), 0.2, "Dragon's Cash once warm")
+	equal(Mascots.boost(data, "luck", warm), 0, "Dragon gives no Luck while the Owl stays home")
+	data.mascot = "SpotlightOwl"
+	equal(Mascots.boost(data, "luck", warm), 0.2, "Owl's Luck")
+	equal(Mascots.boost(data, "cash", warm), 0, "no Cash from the Owl")
+	data.mascot = ""
+	for kind in Mascots.Caps do
+		equal(Mascots.boost(data, kind, warm), 0, `a hidden mascot gives no {kind}`)
+	end
+	data.mascot = "CameraBot"
+	data.fame = 0
+	equal(Mascots.boost(data, "boxOffice", warm), 0, "a mascot not earned yet gives nothing")
+	equal(Mascots.boost(data, "cash", warm), 0.05, "it falls back to the pup, whose buff counts")
+end)
+
+test("an older save with no equip time gets its buff straight away", function()
+	local data = { stats = {}, index = {}, fame = 0, rebirths = 0, trophies = 0 }
+	equal(Mascots.boost(data, "cash", 1800000000), 0.05, "the pup's Cash")
+	equal(Mascots.warmUpLeft(data, 1800000000), 0, "no warm-up")
+end)

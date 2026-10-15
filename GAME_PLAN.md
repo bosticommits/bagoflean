@@ -342,19 +342,20 @@ exciting by M3, fix the core before adding anything else.
 
 - **Mascots** button (the Popcorn Pup, side menu, second column under Rebirth) opens the Mascots
   screen. Your mascot follows you round town, trotting a step behind your right shoulder and
-  hopping as it walks; every player on the server sees everyone's mascot.
-- **Cosmetic only.** Mascots give no Cash, Luck or speed, and none are sold. Each is earned by a
-  milestone the save already records, so they reward playing without touching the curve in
-  ECONOMY.md:
+  hopping as it walks, and jumps a moment after you jump; every player on the server sees
+  everyone's mascot.
+- **Small buffs, never sold.** Each mascot is earned by a milestone the save already records and
+  gives one capped buff while it is out (only one mascot counts, and a buff starts 30 seconds
+  after equipping). Caps and what they cost the curve are in ECONOMY.md ("Mascot buffs"):
 
-  | Mascot | Rarity color | How to earn it |
-  |---|---|---|
-  | Popcorn Pup (a puppy in a popcorn bucket) | Newcomer | Every studio starts with it |
-  | Clapper Croc (its top jaw is a clapperboard) | Rising | Premiere 10 movies |
-  | Reel Kitty (film reels for ears) | Pro | Discover 15 actors in the Index |
-  | Camera Bot (a hovering film camera) | Star | Open the Talent Agency (its Fame) |
-  | Spotlight Owl (spotlights for eyes) | Superstar | Make a Sequel (rebirth) |
-  | Premiere Dragon (red-carpet colors) | Legend | Make a Masterpiece |
+  | Mascot | Rarity color | How to earn it | Buff |
+  |---|---|---|---|
+  | Popcorn Pup (a puppy in a popcorn bucket) | Newcomer | Every studio starts with it | +5% movie Cash |
+  | Clapper Croc (its top jaw is a clapperboard) | Rising | Premiere 10 movies | Films 10% faster |
+  | Reel Kitty (film reels for ears) | Pro | Discover 15 actors in the Index | x1.1 casting Luck |
+  | Camera Bot (a hovering film camera) | Star | Open the Talent Agency (its Fame) | +15% box office |
+  | Spotlight Owl (spotlights for eyes) | Superstar | Make a Sequel (rebirth) | x1.2 casting Luck |
+  | Premiere Dragon (red-carpet colors) | Legend | Make a Masterpiece | +20% movie Cash |
 
 - **Screen**: your mascot turns on a spotlight in its rarity color, with HIDE to put it away. Under
   it, a picture card for each mascot: EQUIP or EQUIPPED for earned ones; a black silhouette, how
@@ -368,7 +369,8 @@ exciting by M3, fix the core before adding anything else.
   player attributes, and checks every equip (rules in `src/shared/Mascots.luau`). Each client
   draws and moves all mascots itself (`src/client/MascotWorld.luau`), so they never lag over the
   network or collide with anything.
-- **Saving**: the chosen mascot as `mascot` in the profile ("" when hidden); a missing choice
-  shows the Popcorn Pup, so older profiles need no migration.
+- **Saving**: the chosen mascot as `mascot` in the profile ("" when hidden) and when it changed as
+  `mascotSince`; a missing choice shows the Popcorn Pup and a missing time counts as long ago, so
+  older profiles need no migration.
 - **Studio checks pending**: not yet seen in Studio or on a phone, and the imported meshes'
   orientation still needs checking.

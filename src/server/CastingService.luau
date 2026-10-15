@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
+local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -38,7 +39,8 @@ function CastingService.getLuck(player: Player): number
 end
 
 -- Luck for Casting Calls: the stat Luck above times the 2x Luck pass, an active Lucky Casting
--- boost, Award Night and a Lucky Star special event. Premieres use the stat Luck only.
+-- boost, Award Night, a Lucky Star special event and a Luck mascot. Premieres use the stat Luck
+-- only.
 function CastingService.castLuck(player: Player): number
 	local data = DataService.getData(player)
 	if data == nil then
@@ -58,6 +60,7 @@ function CastingService.castLuck(player: Player): number
 	if eventLuckUntil > now then
 		luck *= eventLuck
 	end
+	luck *= 1 + Mascots.boost(data, "luck", now)
 	return luck
 end
 
