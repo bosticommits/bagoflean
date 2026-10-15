@@ -372,3 +372,15 @@ exciting by M3, fix the core before adding anything else.
   shows the Popcorn Pup, so older profiles need no migration.
 - **Studio checks pending**: not yet seen in Studio or on a phone, and the imported meshes'
   orientation still needs checking.
+
+## 18. As built ("Next up" first-ten-minutes chain)
+- A **"Next up" strip** under the box office bar shows the first unclaimed goal of a new `start` group
+  in `src/shared/Achievements.luau`: cast 5 actors, finish a film, buy Luck I, premiere a Blockbuster,
+  open the second stage, discover a Star. Tap the strip to open Goals; CLAIM works right on it.
+- **No new framework.** The six goals are ordinary achievements (same claim remote, same Goals row, same
+  badge). Two new stats read the save: `stages` and `upgrade:<id>`; buying an upgrade now tells
+  AchievementTracker so the strip updates at once.
+- It hides while the Director tutorial is up and once all six are claimed. Rewards are $20-$40 each
+  (no income scaling) plus 3 minutes of Luck on the Star goal; prices and odds are untouched. Sim: day-one
+  milestones unchanged (`tools/economy_sim.py` now understands the two new stats).
+- Studio and phone checks of the strip's placement are pending.

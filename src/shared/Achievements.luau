@@ -23,8 +23,17 @@ export type Achievement = {
 	reward: Reward,
 }
 
--- Grouped and ordered easy to hard within each group.
+-- Grouped and ordered easy to hard within each group. The first group, "start", is the "Next up"
+-- chain: six quick goals for the first ten minutes (shown as a strip on the HUD until the chain is
+-- claimed). Its rewards are tiny on purpose; they never change prices or odds.
 Achievements.List = {
+	{ id = "Start1", group = "start", stat = "cast", target = 5, text = "Cast 5 actors", reward = { cash = 20 } },
+	{ id = "Start2", group = "start", stat = "premiere", target = 1, text = "Finish your first film", reward = { cash = 25 } },
+	{ id = "Start3", group = "start", stat = "upgrade:Luck", target = 1, text = "Buy Luck I", reward = { cash = 30 } },
+	{ id = "Start4", group = "start", stat = "hit", target = 1, text = "Premiere a Blockbuster", reward = { cash = 35 } },
+	{ id = "Start5", group = "start", stat = "stages", target = 2, text = "Open your second stage", reward = { cash = 40 } },
+	{ id = "Start6", group = "start", stat = "tier:Star", target = 1, text = "Discover your first Star", reward = { cash = 40, luckMinutes = 3 } },
+
 	{ id = "Cast1", group = "cast", stat = "cast", target = 10, text = "Hold 10 Casting Calls", reward = { cash = 50, cashMinutes = 2 } },
 	{ id = "Cast2", group = "cast", stat = "cast", target = 100, text = "Hold 100 Casting Calls", reward = { cash = 150, cashMinutes = 3 } },
 	{ id = "Cast3", group = "cast", stat = "cast", target = 500, text = "Hold 500 Casting Calls", reward = { cash = 1000, cashMinutes = 10 } },
@@ -95,6 +104,8 @@ export type View = {
 	index: { [string]: boolean },
 	trophies: number,
 	fame: number,
+	upgrades: { [string]: number }?, -- upgrade id -> level
+	stageCount: number?, -- sound stages owned
 }
 
 -- How far along `stat` the player is.
@@ -103,6 +114,10 @@ function Achievements.value(view: View, stat: string): number
 		return view.trophies
 	elseif stat == "fame" then
 		return view.fame
+	elseif stat == "stages" then
+		return view.stageCount or 1
+	elseif string.sub(stat, 1, 8) == "upgrade:" then
+		return (view.upgrades or {})[string.sub(stat, 9)] or 0
 	elseif stat == "actors" then
 		-- Different actors found, in any variant (an Award-Winning Icon is too rare to require).
 		local count = 0
