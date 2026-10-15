@@ -78,10 +78,65 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 	UiKit.panelIcon(panel, header, "popcorn")
 
 	local build: () -> ()
-	local function rebuildIfOpen()
-		if panel.Visible then
-			build()
+	local builtFor = ""
+
+	-- Everything the cards show, as a string: a sync that changes none of it keeps the cards (a
+	-- rebuilt 3D icon is blank until Roblox redraws it).
+	local function shopSignature(): string
+		local parts = { tostring(UiKit.isCompact()), tostring(math.floor(player:GetAttribute("Rate") or 0)), tostring(player:GetAttribute("PaidRandomRestricted")) }
+		for _, pass in Shop.Passes do
+			table.insert(parts, tostring(player:GetAttribute("Pass" .. pass.key) == true))
 		end
+		table.insert(parts, tostring(if ClientState.studio ~= nil then ClientState.studio.skips or 0 else 0))
+		local priceKeys = {}
+		for key, price in prices do
+			table.insert(priceKeys, `{key}={price}`)
+		end
+		table.sort(priceKeys)
+		table.insert(parts, table.concat(priceKeys, ","))
+		return table.concat(parts, "|")
+	end
+
+	-- Rebuilds only when something shown changed.
+	local function refresh()
+		local signature = shopSignature()
+		if signature == builtFor then
+			return
+		end
+		builtFor = signature
+		-- Keep the scroll position when the shop updates under the player (a price arriving).
+		local scroll = list.CanvasPosition
+		build()
+		task.defer(function()
+			list.CanvasPosition = scroll
+		end)
+	end
+
+	-- Several attributes and prices arrive in a burst: rebuild once, after the burst.
+	local rebuildQueued = false
+	local function rebuildIfOpen()
+		if rebuildQueued then
+			return
+		end
+		rebuildQueued = true
+		task.defer(function()
+			rebuildQueued = false
+			if panel.Visible then
+				refresh()
+			end
+		end)
+	end
+
+	-- Opening the shop from a stand or button can land twice in a frame; one prompt per second.
+	local PURCHASE_COOLDOWN_SECONDS = 1
+	local lastPromptAt = -PURCHASE_COOLDOWN_SECONDS
+	local function promptAllowed(): boolean
+		local now = os.clock()
+		if now - lastPromptAt < PURCHASE_COOLDOWN_SECONDS then
+			return false
+		end
+		lastPromptAt = now
+		return true
 	end
 
 	local function priceText(kind: string, id: number, key: string): string
@@ -184,7 +239,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 				priceButton(c, priceText("pass", pass.id, pass.key), pass.id ~= 0).Activated:Connect(function()
 					if pass.id == 0 then
 						UiKit.toast(gui, "Coming soon!")
-					else
+					elseif promptAllowed() then
 						MarketplaceService:PromptGamePassPurchase(player, pass.id)
 					end
 				end)
@@ -266,6 +321,9 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 				continue
 			end
 			priceButton(c, priceText("product", product.id, product.key), product.id ~= 0).Activated:Connect(function()
+				if not promptAllowed() then
+					return
+				end
 				if not ShopUi.promptProduct(product.key) then
 					UiKit.toast(gui, "Coming soon!")
 				end
@@ -289,12 +347,12 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		end
 	end)
 	shopButton.Activated:Connect(function()
-		UiKit.togglePanel(panel, build)
+		UiKit.togglePanel(panel, refresh)
 	end)
 	if cashButton ~= nil then
 		cashButton.Activated:Connect(function()
 			if not panel.Visible then
-				UiKit.togglePanel(panel, build)
+				UiKit.togglePanel(panel, refresh)
 			end
 			-- Scroll to Boosts and Cash once the layout has placed it and sized the canvas.
 			task.spawn(function()
@@ -308,7 +366,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 	end
 	Screens.register("Shop", function()
 		if not panel.Visible then
-			UiKit.togglePanel(panel, build)
+			UiKit.togglePanel(panel, refresh)
 		end
 	end)
 end

@@ -34,10 +34,10 @@ Actors.Tiers = {
 	{ id = "Newcomer", name = "Newcomer", oneIn = 2, starPower = 1, color = Color3.fromRGB(167, 169, 172) },
 	{ id = "Rising", name = "Rising", oneIn = 6, starPower = 3, color = Color3.fromRGB(76, 199, 100) },
 	{ id = "Pro", name = "Pro", oneIn = 40, starPower = 8, color = Color3.fromRGB(58, 141, 255) },
-	{ id = "Star", name = "Star", oneIn = 500, starPower = 20, color = Color3.fromRGB(160, 77, 255) },
-	{ id = "Superstar", name = "Superstar", oneIn = 5000, starPower = 50, color = Color3.fromRGB(255, 194, 26) },
-	{ id = "Legend", name = "Legend", oneIn = 60000, starPower = 120, color = Color3.fromRGB(255, 90, 46) },
-	{ id = "Icon", name = "Icon", oneIn = 1000000, starPower = 300, color = Color3.fromRGB(255, 95, 210) },
+	{ id = "Star", name = "Star", oneIn = 700, starPower = 20, color = Color3.fromRGB(160, 77, 255) },
+	{ id = "Superstar", name = "Superstar", oneIn = 8000, starPower = 50, color = Color3.fromRGB(255, 194, 26) },
+	{ id = "Legend", name = "Legend", oneIn = 220000, starPower = 120, color = Color3.fromRGB(255, 90, 46) },
+	{ id = "Icon", name = "Icon", oneIn = 5000000, starPower = 300, color = Color3.fromRGB(255, 95, 210) },
 } :: { Tier }
 
 Actors.List = {
@@ -143,29 +143,45 @@ end
 
 -- Chance of each tier as a fraction (sums to 1). Tiers are tried rarest first: each hits its
 -- "1 in N" (`oneIn` in Actors.Tiers) with whatever probability is left, so at Luck 1 at Open
--- Casting Icon is exactly its oneIn (1 in 1,000,000) and the other rare tiers are within a hair
--- of theirs. Luck divides N (Luck x2 turns Superstar's 1 in 5,000 into 1 in 2,500).
--- An agency's `minTier` removes the tiers below it from the pool: their share is dropped and the
--- rest is scaled back up to 1, so the rare tiers get proportionally more likely.
+-- Casting Icon is exactly its oneIn (1 in 5,000,000) and the other rare tiers are within a hair
+-- of theirs. An agency's `minTier` removes the tiers below it from the pool: their share is dropped
+-- and the rest is scaled back up to 1, so the rare tiers get proportionally more likely.
+-- Luck divides N at every agency (Luck x2 turns the Talent Agency's Legend 1 in ~41,500 into 1 in
+-- ~20,800). It is applied after the agency's floor, so the floor tier takes what Luck moves up;
+-- before, Luck mostly turned Newcomers into Risings, which the better agencies remove anyway.
 function Actors.tierChances(luck: number, minTier: number?): { [string]: number }
 	local floorIndex = math.clamp(minTier or 1, 1, #Actors.Tiers)
-	local open: { [string]: number } = {}
+	local safeLuck = if luck ~= luck then 1 else math.max(luck, 1)
+
+	-- The agency's pool at Luck 1: the "1 in N" chain, bottom tiers dropped, rest scaled up.
+	local base: { [string]: number } = {}
 	local remaining = 1
 	for index = #Actors.Tiers, 2, -1 do
 		local tier = Actors.Tiers[index]
-		local chance = remaining * math.min(1, math.max(luck, 1) / tier.oneIn)
-		open[tier.id] = chance
+		local chance = remaining / tier.oneIn
+		base[tier.id] = chance
 		remaining -= chance
 	end
-	open[Actors.Tiers[1].id] = remaining
-
+	base[Actors.Tiers[1].id] = remaining
 	local removed = 0
 	for index = 1, floorIndex - 1 do
-		removed += open[Actors.Tiers[index].id]
+		removed += base[Actors.Tiers[index].id]
 	end
+
+	-- The same chain over the agency's pool, with Luck dividing each tier's "1 in N" in it.
 	local chances: { [string]: number } = {}
-	for index, tier in Actors.Tiers do
-		chances[tier.id] = if index < floorIndex then 0 else open[tier.id] / (1 - removed)
+	local baseLeft, left = 1, 1
+	for index = #Actors.Tiers, floorIndex + 1, -1 do
+		local id = Actors.Tiers[index].id
+		local pooled = base[id] / (1 - removed)
+		local chance = left * math.min(1, safeLuck * pooled / baseLeft)
+		chances[id] = chance
+		baseLeft -= pooled
+		left -= chance
+	end
+	chances[Actors.Tiers[floorIndex].id] = left
+	for index = 1, floorIndex - 1 do
+		chances[Actors.Tiers[index].id] = 0
 	end
 	return chances
 end

@@ -111,6 +111,18 @@ local function findFilm(data: DataService.PlayerData, stage: number): (DataServi
 	return nil, nil
 end
 
+-- A film can never be more than its script length from done. A saved endTime that is NaN, not a
+-- number, or absurdly far ahead (corrupt data, a bad clock write) is pulled back to that bound so
+-- the film cannot be stuck forever, and NaN cannot make `endTime > now` false (instant premiere).
+local function repairEndTime(film: DataService.Film, now: number)
+	local length = Movies.getLength(film.length)
+	local latestEnd = now + (if length ~= nil then length.seconds else 0)
+	local endTime: any = film.endTime
+	if type(endTime) ~= "number" or endTime ~= endTime or endTime > latestEnd then
+		film.endTime = latestEnd
+	end
+end
+
 local function copiesInUse(data: DataService.PlayerData): { [string]: number }
 	local used: { [string]: number } = {}
 	for _, film in data.films do
@@ -277,6 +289,9 @@ local function onClap(player: Player, stage: any)
 	end
 	local film = findFilm(data, stage)
 	local now = os.time()
+	if film ~= nil then
+		repairEndTime(film, now)
+	end
 	if film == nil or film.endTime <= now then
 		MovieService.sync(player) -- nothing to speed up; resync so the client catches up
 		return
@@ -305,6 +320,7 @@ local function onPremiere(player: Player, stage: any)
 		studioError:FireClient(player, "none")
 		return
 	end
+	repairEndTime(film, os.time())
 	if film.endTime > os.time() then
 		studioError:FireClient(player, "notready")
 		return
@@ -329,7 +345,7 @@ local function onPremiere(player: Player, stage: any)
 	-- Rebirths multiply the Cash, not the Fame, so Fame unlocks stay where ECONOMY.md puts them.
 	-- The cinema keeps the boosted payout, so the box office grows with it.
 	local rebirthBonus = Rebirth.cashMultiplier(data.rebirths)
-	payout = math.floor(payout * rebirthBonus)
+	payout = math.min(math.floor(payout * rebirthBonus), Movies.MaxPayout)
 
 	table.remove(data.films, filmIndex) -- frees the stage and the cast copies
 	EconomyService.accrue(data) -- bank royalties at the old rate before the rate changes
@@ -352,6 +368,10 @@ local function onPremiere(player: Player, stage: any)
 	end
 	local unlocked = Unlocks.crossed(data.fame, data.fame + fame)
 	data.fame += fame
+	for _, name in unlocked do
+		-- This premiere's lifetime number as the value, so real unlock timing can be checked against ECONOMY.md.
+		Analytics.event(player, "Unlock", (data.stats.premiere or 0) + 1, name)
+	end
 	EconomyService.addCash(player, payout, "Gameplay", "Premiere")
 
 	premiereResult:FireClient(player, {
@@ -419,6 +439,9 @@ local function onUseSkip(player: Player, stage: any)
 	end
 	local film = findFilm(data, stage)
 	local now = os.time()
+	if film ~= nil then
+		repairEndTime(film, now)
+	end
 	if film == nil or film.endTime <= now then
 		MovieService.sync(player)
 		return

@@ -123,7 +123,11 @@ local releasing: { [number]: boolean } = {}
 
 local DataService = {}
 
--- Repairs malformed fields. Add `if version < N` steps here when the schema changes.
+-- Repairs malformed fields. New fields need nothing here (Reconcile fills them from TEMPLATE).
+-- When a change alters the MEANING of existing data (a rescaled price, a renamed key, a changed
+-- multiplier), add a step before the final `data.version = CURRENT_VERSION` line, for example:
+--   if data.version < 9 then ... convert the old data ... end
+-- and raise CURRENT_VERSION. Run steps in order; never skip one for old profiles.
 local function migrate(data: any)
 	if type(data.cash) ~= "number" or data.cash ~= data.cash or data.cash < 0 then
 		data.cash = 0
@@ -270,11 +274,23 @@ function DataService.grantPurchaseOnce(player: Player, purchaseId: string, grant
 	end
 	local data = profile.Data :: PlayerData
 	if table.find(data.purchaseIds, purchaseId) == nil then
+		-- Remember what a reward can touch, so a grant that errors halfway is undone completely and
+		-- the retried receipt cannot apply the first half of it twice.
+		local before = {
+			cash = data.cash,
+			luckBoostUntil = data.luckBoostUntil,
+			skips = data.skips,
+			scripts = table.clone(data.scripts),
+		}
 		local ok, err = pcall(function()
 			grant(data)
 		end)
 		if not ok then
-			warn(`[DataService] purchase {purchaseId} grant failed: {err}`)
+			data.cash = before.cash
+			data.luckBoostUntil = before.luckBoostUntil
+			data.skips = before.skips
+			data.scripts = before.scripts
+			warn(`[DataService] purchase {purchaseId} grant failed and was undone: {err}`)
 			return false
 		end
 		table.insert(data.purchaseIds, purchaseId)

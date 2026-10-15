@@ -62,6 +62,27 @@ Answer honestly in the Experience Questionnaire. The parts that apply to this ga
   apart from "Horror" and "Romance" being movie genres in name only.
 - Expected result: a Minimal or Mild rating, suitable for all ages.
 
+## Price justification
+
+Prices are set in the Creator Dashboard, not in code. The prices below are proposals to start from;
+compare them with similar RNG and tycoon games before launch and adjust. Rules: odds stay visible,
+no item buys a specific rare actor, and every item can be earned for free.
+
+| Item | Type | Proposed Robux | What the player gets | Why this price |
+|---|---|---|---|---|
+| 2x Luck | Game pass | 399 | Double casting Luck, forever | Biggest permanent power boost, so the highest pass price. Counts as paid random items |
+| Auto-Collect | Game pass | 199 | Box office cash comes to you | Comfort only; saves taps, adds no power |
+| +1 Sound Stage | Game pass | 249 | Film one more movie at once | Permanent income boost of about one stage; priced below Luck |
+| Faster Filming | Game pass | 149 | Every movie films 25% faster | Small boost that also shortens waits; lowest-priced power pass |
+| VIP | Game pass | 99 | Gold VIP tag, chat tag, starred marquee | Cosmetic only; low price, easy first purchase |
+| Lucky Casting | Product | 49 | x2 Luck for 15 minutes | Cheap trial of 2x Luck that nudges players toward the pass. Counts as paid random items |
+| Skip Filming | Product | 25 | Finish one movie instantly | Impulse buy that removes one wait; offered on long timers |
+| Box Office Bag | Product | 49 | 30 minutes of box office cash (5,000 Cash) | Small top-up for a player who is a few Cash short. Counts as paid random items |
+| Box Office Vault | Product | 249 | 4 hours of box office cash (50,000 Cash) | Bigger bundle priced about 20 percent better per minute than the Bag. Counts as paid random items |
+
+Check before launch: that the Vault's Cash is no more than a few hours of play at the stage it is
+offered, and that nothing here lets a player skip casting, which is the core hook.
+
 ## Before going public
 
 - Developer product and game pass IDs are pasted into `src/shared/Shop.luau` (any left at `0`

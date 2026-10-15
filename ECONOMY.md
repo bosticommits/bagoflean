@@ -13,6 +13,7 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
+    python3 tools/economy_sim.py --cast-rate 1.0     # casts per second while online (default 0.35); 1.0 = the server cap, 1 / CastCooldown
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
@@ -29,17 +30,16 @@ Robux cash packs. Treat it as the shape of the curve, not a promise: playtests d
   are where spare Cash goes for the rest of the hour, so the third sound stage comes at the start
   of day 2.
 - **Days 2 to 3.** The overnight box office pays for the **first rebirth** early on day 2
-  (Movie Cash x1.5). The first **Superstar** comes around the end of day 1 or early on day 2, the
-  first **Masterpiece** on day 2 or 3. The **second rebirth** and **Epic** scripts come late on
-  day 3.
-- **Days 4 to 7.** The fourth stage comes on day 4 and the **third rebirth** on day 5. Every
-  upgrade is maxed again by day 6, and **Hollywood Casting** opens on day 6. About two thirds of
-  players pull a **Legend** in week one. **Icon** stays a rare brag (about 1 in 20 players in week
-  one). Most of the Index (about 35 of 63 slots) is left
-  for week two.
-- **Weeks 2 to 4.** Rebirths keep coming, each further apart: the fourth on day 8, the fifth on
-  day 12, the sixth on day 19, the seventh in week five. That is the long goal once the week-one
-  unlocks are done.
+  (Movie Cash x1.5). The first **Superstar** comes early on day 2, the first **Masterpiece** on
+  day 2 or 3. **Epic** scripts and the **second rebirth** come on day 3, and the fourth stage
+  late on day 3.
+- **Days 4 to 7.** The **third rebirth** comes on day 4 and every upgrade is maxed again on day 5.
+  **Hollywood Casting** opens on day 6. About two thirds of players pull a **Legend** in week one.
+  **Icon** stays a rare brag (about 1 in 17 players in week one). About 38 of the 63 Index slots
+  are found in week one.
+- **Weeks 2 to 4.** Rebirths keep coming, each further apart: the fourth on day 6 or 7, the fifth
+  on day 10, the sixth on day 17, the seventh in week five. The Legend row of the Index is done
+  around day 13, and about half of players have an Icon by day 28.
 
 How you earn changes over the week. Early on, active play (Short Films plus clapping) is most of
 the income. By the end of the week, about three quarters comes from time away: overnight Epics
@@ -54,42 +54,76 @@ stage 4" and "maxed" mean the first time.
 | Milestone | Median | Slow 10% |
 |---|---|---|
 | Horror and Romance scripts | day 1, 6 min played | 8 min |
-| Sound stage 2 | day 1, 6 min | 9 min |
-| First Star actor | day 1, 17 min | 30 min |
-| Feature scripts | day 1, 35 min | 39 min |
-| Sci-Fi scripts | day 1, 38 min | 44 min |
+| Sound stage 2 | day 1, 7 min | 9 min |
+| First Star actor | day 1, 19 min | 35 min |
 | Talent Agency | day 1, 30 min | 35 min |
+| Feature scripts | day 1, 36 min | 40 min |
+| Sci-Fi scripts | day 1, 39 min | 44 min |
 | Sound stage 3 | day 2 (60 min) | day 2 (60 min) |
-| First Superstar | day 2 (60 min), often late day 1 | day 3 |
-| **Rebirth 1** (Movie Cash x1.5) | day 2 (75 min) | day 2 (99 min) |
-| First Masterpiece | day 3 (113 min) | day 6 |
-| **Rebirth 2** (x2) | day 3 (136 min) | day 4 |
-| Epic scripts | day 3 (146 min) | day 4 |
-| Sound stage 4 | day 4 (150 min) | day 4 |
-| Cinema, Offline, Clapperboard maxed | day 4 | day 5 |
-| **Rebirth 3** (x2.5) | day 5 (195 min) | day 5 |
-| All upgrades maxed | day 6 (98% in week one) | day 7 |
+| First Superstar | day 2 (66 min) | day 3 (139 min) |
+| **Rebirth 1** (Movie Cash x1.5) | day 2 (75 min) | day 2 (101 min) |
+| First Masterpiece | day 2 (100 min) | day 6 |
+| Epic scripts | day 3 (106 min) | day 3 (120 min) |
+| **Rebirth 2** (x2) | day 3 (120 min) | day 3 (146 min) |
+| Sound stage 4 | day 3 (142 min) | day 4 |
+| Cinema, Offline, Clapperboard maxed | day 4 | day 4 |
+| **Rebirth 3** (x2.5) | day 4 (165 min) | day 5 |
+| All upgrades maxed | day 5 (210 min) | day 6 |
+| Hollywood Casting | day 6 (243 min) | day 6 (270 min) |
 | First Legend | day 6 (64% of players in week one) | |
-| Hollywood Casting | day 6 (258 min) | day 7 |
 | First Icon | 6% of players in week one | |
-| **Rebirth 4** (x3) | day 8 (52% in week one) | day 11 |
-| **Rebirth 5** (x3.5) | day 12 | day 14 |
-| **Rebirth 6** (x4) | day 19 | day 22 |
-
-Without rebirths (`--no-rebirth`) the week-one unlocks land within a few minutes of the same times
-(Epic scripts at 147 minutes instead of 150), Legend is 57% and Icon 5%, and income at the end of
-the week is about 30,000 a minute instead of 80,000.
+| **Rebirth 4** (x3) | day 6 (75% in week one) | day 9 |
+| **Rebirth 5** (x3.5) | day 10 | day 12 |
+| **Rebirth 6** (x4) | day 17 | day 19 |
 
 Other players:
 - **Casual** (25 min on day one, then 20 min a day): Talent Agency on day 2 (30 min played),
-  the first rebirth on day 3,
-  first Superstar on day 4, the second rebirth on day 6, Epic scripts on day 7. Legend 12 to 20%,
-  Icon 1% in week one.
-- **Hardcore** (about 2 hours a day): Talent Agency at 30 minutes, the first rebirth near the
-  end of day 1, the second on day 2, Hollywood on day 3, the third rebirth and a Legend (95%) on
-  day 4, Icon 11% in week one, all upgrades maxed again on day 5.
-- **2x Luck pass** (typical schedule): Talent Agency at 26 minutes, first rebirth at 60 minutes,
-  Superstar in the first hour, Legend about 80%, Icon 7 to 9%. Faster, but nothing a free player cannot reach.
+  the first rebirth and first Superstar on day 3, Epic scripts and the second rebirth on day 5,
+  the third rebirth on day 7 (70%). Legend 8% and Icon under 1% in week one; Legend on day 13
+  (99% by day 28).
+- **Hardcore** (about 2 hours a day): Talent Agency at 30 minutes, the first rebirth and Epic
+  scripts on day 1, the second rebirth on day 2, Hollywood on day 3, a Legend on day 4 (95% in
+  week one), Icon 17% in week one.
+- **2x Luck pass** (typical schedule): Talent Agency at 27 minutes, Superstar at 46 minutes,
+  first rebirth at 60, Hollywood on day 5, Legend 96% and Icon 12% in week one, and about 1.8
+  times the income at the end of the week. Faster, but nothing a free player cannot reach.
+
+## Economy fixes (2026-10-15)
+
+From the review in `ECONOMY_SUMMARY.md` (project files, 2026-10-12). Numbers are sim estimates.
+
+- **Luck works at every agency.** Agencies used to remove their bottom tiers after Luck was
+  applied, and Luck mostly turned Newcomers into Risings, which the Talent Agency removes anyway:
+  going from Luck 2 to 4 moved its Legend odds by 5% and Hollywood's by under 1%, so the Luck
+  upgrade, Lucky Casting, Award Night and the 2x Luck pass did almost nothing to rare pulls once
+  a player left Open Casting. `Actors.tierChances` now applies Luck to the agency's own pool, so
+  Luck x2 halves every "1 in N" at every agency. Open Casting is unchanged.
+- **Rare odds retuned to match.** Luck now counts at the agencies, so with the old odds a typical
+  player pulled a Legend 99% of the time in week one, an Icon 32% of the time, and earned twice as
+  much. Star 1 in 500 to 700, Superstar 5,000 to 8,000, Legend 60,000 to 220,000, Icon 1,000,000
+  to 5,000,000 put the typical week back on the curve: first Superstar at 66 minutes (was 60),
+  Legend 64% (was 69%), Icon 6% (was 5%). Week-one income ends about 118,000 a minute (was 92,000),
+  partly from the earlier Epics below. Players with more Luck now gain more: casual players get
+  fewer Legends in week one (8%, was 17%) but nearly all of them have one by day 28, and the 2x Luck
+  pass gives 96% instead of 76%.
+- **Epic scripts at Fame 10,000 (was 16,000).** Casual players had a quiet day 4 and 5: nothing
+  new between the first rebirth (day 3) and the second (day 6), with Epics on day 7. Epics now
+  come on day 5 for casual players and at 106 minutes (day 3) for typical ones, and casual players
+  reach the third rebirth in week one 70% of the time (was 22%).
+- **Flop never drops below 5%** (`Movies.MinFlop`). Premiere Luck took its extra good results out of
+  Flop first, so from Luck 2 (day 3) Flops vanished. Luck now takes Flop down to 5%, then takes from
+  Hit.
+- **"Discover all 21 actors"** replaces "Complete the whole Index" (achievement `Index5`, new stat
+  `actors`). All 63 slots included an Award-Winning Icon, tens of millions of casts even at
+  Hollywood Casting, so nobody could earn it.
+- **Casting speed.** `Config.CastCooldown` is 1.0 s (from the `economy-safety` branch), so
+  scripted clients cannot cast faster than a person can (see "What to watch in playtests").
+- **Unlock analytics.** Each Fame unlock a premiere crosses logs a custom "Unlock" event with the
+  unlock's name and the player's premiere count, so real timings can be checked against the table
+  above.
+- **Left as it is:** time away earns about 72% of a typical player's Cash by day 7. That is the
+  design (it drives log-ins); `Config.RoyaltyRate` is the lever if playtests say late-week active
+  play feels weak.
 
 ## Talent Agency at 30 minutes (review, 2026-10-08)
 
@@ -131,8 +165,8 @@ times per tier (up to 20,000), so every rare pull multiplied income, which bough
 the old numbers a player had every upgrade maxed after 35 minutes and earned 270 million a minute
 by day 7.
 
-**Odds are rarer at the top** (Star 1 in 500, Superstar 1 in 5,000, Legend 1 in 60,000, Icon
-1 in 1,000,000). Casting soon costs almost nothing compared with income, so how fast rare actors
+**Odds are rarer at the top** (Star 1 in 700, Superstar 1 in 8,000, Legend 1 in 220,000, Icon
+1 in 5,000,000, at Luck 1 at Open Casting). Casting soon costs almost nothing compared with income, so how fast rare actors
 arrive depends on how many casts a player makes. The odds are set for about one cast every
 3 seconds of play.
 
@@ -155,7 +189,7 @@ that say "N minutes of box office income" use this rate.
 
 **Fame** is still about the square root of each payout. Its gates were set from the sim's Fame
 curve to land each unlock at the time above: Horror and Romance 100, Feature 1,800, Sci-Fi 2,000,
-Talent Agency 1,400, Epic 16,000, Hollywood 50,000, stages 50 / 2,800 / 16,000.
+Talent Agency 1,400, Epic 10,000, Hollywood 50,000, stages 50 / 2,800 / 16,000.
 
 **Upgrade prices** grow 4 to 8 times per level. Other upgrade levels no longer have Fame gates;
 cash alone sets their pace.
@@ -203,7 +237,7 @@ has the player finish all three ten minutes into a session (`--no-weekly` leaves
 4% more Cash per minute (about 92k against 88k) and the milestones do not move. The worst case,
 finishing all three in the very first session (`--weekly-day 1`), moves the typical player's day-one
 milestones a few minutes sooner (first Star 17 to 14 minutes, Sound stage 3 49 to 47, Talent Agency
-54 to 53, the first rebirth 75 to 71) and week one ends 2% richer. The cut floors barely change that
+54 to 53, the first rebirth 75 to 71; measured before the Talent Agency's Fame gate dropped to 1,400) and week one ends 2% richer. The cut floors barely change that
 (the first draft gave 14, 47, 52 and 70): most of the early effect is the Luck boost and Skips, not
 Cash. Real players will finish fewer, so these are the upper end. They cannot change the odds of rare actors.
 
@@ -228,6 +262,15 @@ pace.
 
 ## What to watch in playtests
 
+- Casting speed (checked 2026-10-10, typical player, 30 runs each). Faster casting moves the whole
+  curve: at 1.67 casts a second (the old 0.6 s server cap) 100% of players pulled a Legend in week one
+  (median day 3) and week-one income was about 156,000 a minute, against 70% (day 5) and about
+  82,000 at the assumed 0.35. At 1.0 a second: 93%, day 4, about 131,000. The reveal screen takes about
+  a second per cast by hand, so `CastCooldown` is now 1.0 s: it only limits scripted clients. Rarer
+  Superstar and Legend odds were tried instead (Superstar 1 in 8,000 and Legend 1 in 100,000: Legend 40%
+  and week-one income about 74,000 at 0.35 casts a second, and the first Superstar slips from minute 50
+  to 85). They fix fast casters but slow the typical player off the milestones above, so they were not
+  applied. Revisit them if real players cast much faster than 0.35 a second.
 - Cast rate. If real players cast much faster than one every 3 seconds (auto-clickers),
   Superstar and Legend come sooner. The first fix would be rarer odds, not higher prices.
 - Holding finished Epics for Award Night doubles them. The sim's player does this when an Award

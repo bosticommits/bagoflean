@@ -140,7 +140,27 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
+-- Lists every pass or product whose Roblox id is still 0 (not created on the Creator Hub yet), so an
+-- unset id cannot reach a public launch unnoticed.
+local function warnAboutUnsetIds()
+	local unset: { string } = {}
+	for _, pass in Shop.Passes do
+		if pass.id == 0 then
+			table.insert(unset, `pass {pass.key}`)
+		end
+	end
+	for _, product in Shop.Products do
+		if product.id == 0 then
+			table.insert(unset, `product {product.key}`)
+		end
+	end
+	if #unset > 0 then
+		warn(`[ShopService] {#unset} shop item(s) have no Roblox id yet and cannot be bought: {table.concat(unset, ", ")}`)
+	end
+end
+
 function ShopService.start()
+	warnAboutUnsetIds()
 	MarketplaceService.ProcessReceipt = processReceipt
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 		if not purchased then

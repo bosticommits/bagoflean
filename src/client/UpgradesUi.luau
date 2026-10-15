@@ -38,7 +38,30 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	local panel, list, header = UiKit.makePanel(gui, "UpgradesPanel", "Upgrades", nil, nil, nil, UiKit.AWARD_GOLD)
 	UiKit.panelIcon(panel, header, "arrow")
 
+	-- Everything the rows show, as a string. Cash changes every few seconds, but the rows only
+	-- depend on whether each upgrade is affordable, so a Cash tick that changes nothing visible
+	-- keeps the rows (and their 3D icons, which are blank until Roblox redraws a rebuilt one).
+	local builtFor = ""
+	local function displaySignature(): string
+		local stats = ClientState.stats()
+		local cash = player:GetAttribute("Cash") or 0
+		local fame = player:GetAttribute("Fame") or 0
+		local rate = if ClientState.studio ~= nil then ClientState.studio.rate else Config.CinemaIncomePerSecond
+		local parts = { UiKit.signature(stats), tostring(fame), string.format("%.2f", rate), tostring(UiKit.isCompact()) }
+		for _, upgrade in Upgrades.List do
+			local level = Upgrades.level(stats, upgrade.id)
+			local cost = upgrade.costs[level + 1]
+			table.insert(parts, if cost ~= nil and cash >= cost then "1" else "0")
+		end
+		return table.concat(parts, "|")
+	end
+
 	local function build()
+		local signature = displaySignature()
+		if signature == builtFor then
+			return
+		end
+		builtFor = signature
 		UiKit.clear(list)
 		local stats = ClientState.stats()
 		local cash = player:GetAttribute("Cash") or 0

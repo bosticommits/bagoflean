@@ -17,6 +17,8 @@ local Remotes = require(script.Parent.Remotes)
 local random = Random.new()
 local lastCast: { [Player]: number } = {}
 local lastRosterRequest: { [Player]: number } = {}
+local lastCooldownReply: { [Player]: number } = {}
+local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "cooldown" answer per second
 -- A special event's casting Luck for everyone (the Lucky Star), until an os.time() stamp.
 local eventLuck, eventLuckUntil = 1, 0
 
@@ -126,8 +128,13 @@ local function onCast(player: Player, agencyId: any)
 	local now = os.clock()
 	local last = lastCast[player]
 	if last ~= nil and now - last < Config.CastCooldown then
-		-- Always answer so the client never waits on a result that will not come.
-		castResult:FireClient(player, { ok = false, reason = "cooldown" })
+		-- A rejection only happens within the cooldown of a cast that was answered, so the client is
+		-- never left waiting; the extra "cooldown" answer is limited to one per second.
+		local lastReply = lastCooldownReply[player]
+		if lastReply == nil or now - lastReply >= COOLDOWN_REPLY_INTERVAL then
+			lastCooldownReply[player] = now
+			castResult:FireClient(player, { ok = false, reason = "cooldown" })
+		end
 		return
 	end
 	lastCast[player] = now
@@ -193,6 +200,7 @@ end
 function CastingService.forget(player: Player)
 	lastCast[player] = nil
 	lastRosterRequest[player] = nil
+	lastCooldownReply[player] = nil
 end
 
 return CastingService

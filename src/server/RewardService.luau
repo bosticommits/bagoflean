@@ -26,6 +26,8 @@ local rewardResult = Remotes.get("RewardResult")
 local lastAction: { [Player]: { [string]: number } } = {}
 local lastSync: { [Player]: number } = {}
 local joinedAt: { [Player]: number } = {}
+local lastCooldownReply: { [Player]: number } = {}
+local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "Slow down!" per second
 
 local RewardService = {}
 
@@ -78,7 +80,11 @@ local function allow(player: Player, action: string, cooldown: number): boolean
 	end
 	local last = perPlayer[action]
 	if last ~= nil and now - last < cooldown then
-		fail(player, "Slow down!")
+		local lastReply = lastCooldownReply[player]
+		if lastReply == nil or now - lastReply >= COOLDOWN_REPLY_INTERVAL then
+			lastCooldownReply[player] = now
+			fail(player, "Slow down!")
+		end
 		return false
 	end
 	perPlayer[action] = now
@@ -228,6 +234,7 @@ function RewardService.forget(player: Player)
 	lastAction[player] = nil
 	lastSync[player] = nil
 	joinedAt[player] = nil
+	lastCooldownReply[player] = nil
 end
 
 return RewardService

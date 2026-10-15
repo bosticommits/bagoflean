@@ -35,4 +35,17 @@ test("poster and result text", function()
 	equal(PremiereNight.bonusLine(1, nil, 1), "")
 	equal(PremiereNight.bonusLine(1.5, 2, nil), "Award Night x2  -  genre set x1.5")
 	expect(PremiereNight.DRUMROLL_SECONDS <= 3, "the build-up stays under 3 seconds (ART_STYLE.md)")
+
+test("bonus line lists every stacked bonus in order and ignores bad numbers", function()
+	equal(PremiereNight.bonusLine(1.5, 2, 3), "Award Night x2  -  genre set x1.5  -  rebirth x3")
+	equal(PremiereNight.bonusLine(0 / 0, nil, nil), "", "NaN bonus is not shown")
+	equal(PremiereNight.bonusLine(0, 0, 0), "", "zero bonuses are not shown")
+	equal(PremiereNight.billing({ "Solo" }), "STARRING  Solo")
+end)
+
+test("unknown ids fall back safely", function()
+	equal(PremiereNight.stampText("Mystery"), "MYSTERY!")
+	equal(PremiereNight.lengthLine("Mini"), "MINI  -  NOW SHOWING")
+end)
+
 end)

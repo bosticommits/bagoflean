@@ -60,17 +60,17 @@ offline up to a cap (start at 4 h, raised by upgrades).
 ## 3. Casting rarity (actors)
 
 All actors are **original fictional characters**: no real celebrities, names or likenesses.
-Luck divides the "1 in N" chance (Luck ×2 turns 1/5,000 into 1/2,500).
+Luck divides the "1 in N" chance at every agency (Luck ×2 turns 1/8,000 into 1/4,000).
 
 | Tier | Example actors | Base chance | Star Power |
 |---|---|---|---|
 | Newcomer | Nervous Intern, Stunt Double | 1 in 2 | 1 |
 | Rising | Soap Opera Regular, Ad Model | 1 in 6 | 3 |
 | Pro | Action Veteran, Comedy Duo | 1 in 40 | 8 |
-| Star | Teen Heartthrob, Method Actor | 1 in 500 | 20 |
-| Superstar | Box Office King, Scream Queen | 1 in 5,000 | 50 |
-| Legend | Golden Age Diva | 1 in 60,000 | 120 |
-| Icon | The Mogul's Muse | 1 in 1,000,000 | 300 |
+| Star | Teen Heartthrob, Method Actor | 1 in 700 | 20 |
+| Superstar | Box Office King, Scream Queen | 1 in 8,000 | 50 |
+| Legend | Golden Age Diva | 1 in 220,000 | 120 |
+| Icon | The Mogul's Muse | 1 in 5,000,000 | 300 |
 
 **Variants**, rolled on top of any actor: *Shiny* (1 in 40, ×2) and *Award-Winning*
 (1 in 800, ×5). Each variant has its own Index slot. Version 1 ships 21 actors (3 per tier),
@@ -155,11 +155,11 @@ exciting by M3, fix the core before adding anything else.
   Newcomer gets the rest (about 80%, not "1 in 2"): both cannot be true at once.
 - **Agencies**: Open Casting $10 (Fame 0), Talent Agency $1,000 (Fame 1,400), Hollywood
   Casting $100,000 (Fame 50,000). Removing bottom tiers rescales the rest of the pool, so better
-  agencies make rare tiers more likely (Icon: 1 in 1,000,000, 189,301 and 27,162).
+  agencies make rare tiers more likely (Icon: 1 in 5,000,000, 943,830 and 132,596 at Luck 1). Luck divides those numbers at every agency.
 - **Actors are not used up.** A copy is busy while it is filming and returns after the
   premiere, so duplicates and extra stages matter.
 - **Fame** is a threshold, never spent: about the square root of each payout. It gates
-  agencies, Feature (1,800) and Epic (16,000) scripts, Horror and Romance (100), Sci-Fi (2,000),
+  agencies, Feature (1,800) and Epic (10,000) scripts, Horror and Romance (100), Sci-Fi (2,000),
   and stages 2 to 4 (50, 2,800, 16,000).
 - **Index rewards**: a complete tier row gives +0.05 Luck; a complete genre set gives x1.15
   payout for that genre. Both are claimed in the Collection screen.

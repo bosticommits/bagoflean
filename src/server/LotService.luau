@@ -353,7 +353,8 @@ local function playerFromHit(hit: BasePart): Player?
 end
 
 local function claim(player: Player, lot: Lot)
-	if lot.owner ~= nil or lotOf[player] ~= nil then
+	-- A player who is already leaving (their release has run) must not take a lot nobody can free.
+	if player.Parent ~= Players or lot.owner ~= nil or lotOf[player] ~= nil then
 		return
 	end
 	lotOf[player] = lot

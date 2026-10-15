@@ -134,3 +134,15 @@ test("rolls follow the odds and respect the agency floor", function()
 		expect(tierIndex ~= nil and tierIndex >= floor, `rolled {actor.tier} below the agency floor`)
 	end
 end)
+
+test("Luck divides N at every agency, not only at Open Casting", function()
+	for _, agency in Actors.Agencies do
+		local base = Actors.tierChances(1, agency.minTier)
+		local doubled = Actors.tierChances(2, agency.minTier)
+		for index = agency.minTier + 2, #Actors.Tiers do
+			local id = Actors.Tiers[index].id
+			-- Rare tiers double (within a hair, from the tiers above taking their share first).
+			near(doubled[id] / base[id], 2, 0.01, `{agency.id} {id} at Luck 2`)
+		end
+	end
+end)

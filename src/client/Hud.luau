@@ -17,6 +17,9 @@ local UiKit = require(script.Parent.UiKit)
 local Hud = {}
 
 local WALLET_CARD_MIN = 150
+local HUD_WIDTH = 420 -- width of the event lines at full scale
+local HUD_SIDE_MARGIN = 12 -- gap kept to each screen edge
+local HUD_MIN_SCALE = 0.5 -- smallest the event lines shrink to on a narrow screen
 
 local function comma(n: number): string
 	local s = tostring(math.floor(n))
@@ -47,7 +50,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	-- stay clear of the player's character.
 	local frame = Instance.new("Frame")
 	frame.Name = "Hud"
-	frame.Size = UDim2.fromOffset(420, 70)
+	frame.Size = UDim2.fromOffset(HUD_WIDTH, 70)
 	frame.BackgroundTransparency = 1
 	frame.Parent = gui
 	local frameScale = Instance.new("UIScale")
@@ -66,7 +69,9 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			frame.AnchorPoint = Vector2.new(0.5, 0)
 			frame.Position = UDim2.new(0.5, 0, 0, if typeof(below) == "number" then math.max(y, below) else y)
 		end
-		frameScale.Scale = if right and UiKit.isCompact() then 0.72 else 1
+		-- Narrow screens (portrait phones) shrink the 420 px event lines to fit between the edges.
+		local widthFit = math.clamp((UiKit.viewport().X - HUD_SIDE_MARGIN * 2) / HUD_WIDTH, HUD_MIN_SCALE, 1)
+		frameScale.Scale = math.min(if right and UiKit.isCompact() then 0.72 else 1, widthFit)
 		for _, label in labels do
 			label.TextXAlignment = if right then Enum.TextXAlignment.Right else Enum.TextXAlignment.Center
 		end
