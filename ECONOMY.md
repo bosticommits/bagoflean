@@ -226,6 +226,22 @@ and the chance of a Legend or Icon in week one moves no more than run-to-run noi
 to make the town feel alive and to give a reason to stay a few more minutes, not to change the
 pace.
 
+## Directing takes (premiere Luck while filming)
+
+While a movie films, a TAKE! card pops up at each quarter of the shoot (`src/shared/Takes.luau`,
+3 per film). A Good take adds +0.04 Luck to that film's premiere and a Perfect one +0.08, capped at
++0.24 per film. Takes only open while the film is still shooting and after the tutorial, so offline
+films and offline income are unchanged, and casting Luck is never touched. At Luck 1 three perfect
+takes lift the average premiere from x1.57 to about x1.76 (a test keeps the best case under +15%).
+
+The sim's player plays every card with a so-so aim (25% Perfect, 45% Good, 30% Miss, about +0.13
+Luck a film; `TAKE_SKILL`) and `--no-takes` turns them off. Over 150 typical, 150 casual and 100
+hardcore runs the milestones and week-one income land within run-to-run noise of the same week
+without takes (for example first Superstar 71 against 61 minutes and first Masterpiece 99 against
+118 for the typical player, rebirth 1 at 75 minutes either way, week-one Fame 72.0 against 71.9 for
+the casual player). The takes are there to give the 2-minute wait something to do, not to change
+the pace.
+
 ## What to watch in playtests
 
 - Cast rate. If real players cast much faster than one every 3 seconds (auto-clickers),
