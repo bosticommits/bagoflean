@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local ProfileStore = require(script.Parent.ProfileStore)
 
@@ -68,12 +69,14 @@ export type PlayerData = {
 	-- and which studios this player toured and applauded today.
 	likes: number,
 	visits: { day: number, toured: { [string]: boolean }, applauded: { [string]: boolean } },
+	-- "Discovered!" hot start (Actors.HotStart): casts counted so far, up to Actors.HotStartLength.
+	hotStart: number,
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
 export type Carried = { key: string, id: string, scope: string }
 
-local CURRENT_VERSION = 8 -- 6: rebirths, 7: weekly quests, 8: studio visits
+local CURRENT_VERSION = 9 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -110,6 +113,7 @@ local TEMPLATE: PlayerData = {
 	eventClaims = {},
 	likes = 0,
 	visits = { day = 0, toured = {}, applauded = {} },
+	hotStart = Actors.HotStartLength, -- profiles from before v9 have played already; load() sets 0 for new ones
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -154,6 +158,10 @@ local function migrate(data: any)
 	if type(data.visits) ~= "table" or type(data.visits.day) ~= "number" or type(data.visits.toured) ~= "table" or type(data.visits.applauded) ~= "table" then
 		data.visits = { day = 0, toured = {}, applauded = {} }
 	end
+	if type(data.hotStart) ~= "number" or data.hotStart ~= data.hotStart or data.hotStart < 0 then
+		data.hotStart = Actors.HotStartLength
+	end
+	data.hotStart = math.min(math.floor(data.hotStart), Actors.HotStartLength)
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end
@@ -238,6 +246,7 @@ function DataService.load(player: Player): PlayerData?
 		profile.Data.lastCollect = os.time()
 		profile.Data.cash = Config.StartingCash
 		profile.Data.funnel = 0 -- a new player: log their onboarding funnel
+		profile.Data.hotStart = 0 -- and give them the "Discovered!" hot start
 	end
 	migrate(profile.Data)
 

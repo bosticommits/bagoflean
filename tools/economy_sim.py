@@ -11,6 +11,7 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --days 28           # four weeks (rebirths keep going)
     python3 tools/economy_sim.py --no-rebirth        # the player never rebirths
     python3 tools/economy_sim.py --no-events         # the same week without special events
+    python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
 
@@ -156,6 +157,7 @@ def load_tuning() -> dict:
         "actors": _rows(_block(actors_text, "Actors.List")),
         "variants": _rows(_block(actors_text, "Actors.Variants")),
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
+        "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
         "upgrades": {u["id"]: u for u in upgrades},
         "specials": {
             "events": [(m.group(1), _num(m.group(2))) for m in re.finditer(
@@ -274,13 +276,15 @@ class Game:
         shiny = (1 - award) * min(1.0, luck / shiny_one_in)
         return {"Normal": 1 - award - shiny, "Shiny": shiny, "Award": award}
 
-    def roll_actor(self, rng: random.Random, luck: float, min_tier: int) -> tuple[str, str]:
+    def roll_actor(self, rng: random.Random, luck: float, min_tier: int, floor_tier: str | None = None) -> tuple[str, str]:
         pick, running, chosen = rng.random(), 0.0, None
         for tier_id, chance in self.tier_chances(luck, min_tier):
             running += chance
             chosen = tier_id
             if pick < running:
                 break
+        if floor_tier is not None and self.tier_index[chosen] < self.tier_index[floor_tier]:
+            chosen = floor_tier  # a "Discovered!" hot start guarantee (Actors.HotStart)
         actor = rng.choice(self.by_tier[chosen])
         v = self.variant_chances(luck)
         vp = rng.random()
@@ -384,6 +388,7 @@ class Player:
         self.curve: dict[int, dict] = {}
         self.rebirths = 0
         self.rebirth_enabled = True
+        self.hot_start = 0  # casts counted toward the "Discovered!" hot start; a new player starts at 0
 
     # stats
     def level(self, uid: str) -> int:
@@ -791,7 +796,12 @@ class Player:
             self.roll(agency, self.cast_luck())
 
     def roll(self, agency: dict, luck: float):
-        actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]))
+        floor_tier = None
+        hot = self.g.t["hot_start"]
+        if hot and self.hot_start < max(hot):
+            self.hot_start += 1
+            floor_tier = hot.get(self.hot_start)
+        actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]), floor_tier)
         key = f"{actor_id}:{variant}"
         self.roster[key] = self.roster.get(key, 0) + 1
         self.index.add(key)
@@ -973,12 +983,16 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
 
 
 def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7, rebirth: bool = True,
-           achievements: bool = True, specials: bool = True, weekly: bool = True, weekly_day: int = 4):
+           achievements: bool = True, specials: bool = True, weekly: bool = True, weekly_day: int = 4,
+           hot_start: bool = True):
     tuning = load_tuning()
+    if not hot_start:
+        tuning["hot_start"] = {}
     game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials, weekly, weekly_day)
     owns = " with the 2x Luck pass" if luck_pass else ""
     never = ", never rebirths" if not rebirth else ""
     without = ", no special events" if not specials else ""
+    without += ", no hot start" if not hot_start else ""
     print(f"# Movie Mogul economy sim: {kind} player{owns}{never}{without}, {runs} runs\n")
     total_played = sum(on for _, on, _ in sched)
     print(f"Schedule: {total_played / 60:.1f} h played over {days} days.\n")
@@ -1029,7 +1043,8 @@ if __name__ == "__main__":
     parser.add_argument("--no-events", action="store_true", help="switch the special events off (to compare)")
     parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
                         help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
+    parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
     args = parser.parse_args()
     CAST_RATE = args.cast_rate
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
-           not args.no_events, not args.no_weekly, args.weekly_day)
+           not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start)

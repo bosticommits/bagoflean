@@ -74,6 +74,7 @@ function CastingService.refresh(player: Player)
 	local data = DataService.getData(player)
 	if data ~= nil then
 		player:SetAttribute("LuckBoostUntil", data.luckBoostUntil)
+		player:SetAttribute("HotStart", data.hotStart)
 	end
 end
 
@@ -99,9 +100,22 @@ function CastingService.grant(player: Player, actorId: string, variantId: string
 	return isNew, data.roster[key]
 end
 
+-- A new player's casts count toward the "Discovered!" hot start (Actors.HotStart). Returns the tier
+-- this cast is guaranteed, if any. Never yields.
+local function hotStartFloor(player: Player): string?
+	local data = DataService.getData(player)
+	if data == nil or data.hotStart >= Actors.HotStartLength then
+		return nil
+	end
+	data.hotStart += 1
+	player:SetAttribute("HotStart", data.hotStart)
+	return Actors.hotStartTier(data.hotStart)
+end
+
 -- Rolls an actor from `agency` at `luck`, grants it and shows the reveal. Never yields.
 local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
-	local actor, variant = Actors.roll(random, luck, agency.minTier)
+	local floorTier = hotStartFloor(player)
+	local actor, variant = Actors.roll(random, luck, agency.minTier, floorTier)
 	local isNew, count = CastingService.grant(player, actor.id, variant.id)
 	castResult:FireClient(player, {
 		ok = true,
@@ -109,6 +123,7 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 		variantId = variant.id,
 		isNew = isNew,
 		count = count,
+		discovered = floorTier ~= nil, -- a hot start guarantee: the reveal says "DISCOVERED!"
 	})
 	-- Counted first, so a slow or failing lot redraw below can never lose a cast's progress.
 	QuestTracker.track(player, "cast")
