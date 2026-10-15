@@ -4,6 +4,11 @@
 -- player, and moves them every frame, so they never lag behind over the network or bump into
 -- anything. Walking mascots hop, hovering ones (Camera Bot) bob in the air, and an idle mascot
 -- turns to face where its owner faces. Mascots far from the camera stop moving to save work.
+--
+-- Height has its own little physics so a mascot never sticks to its owner in mid-air: it stands on
+-- the ground under itself, jumps a moment after its owner jumps, leaps up onto a ledge its owner
+-- climbed, and falls with gravity when it walks off one. Hovering mascots use the same rules with
+-- softer gravity, so they drift up and settle back.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -20,17 +25,32 @@ local TURN = 9
 local SNAP = 40 -- further than this (a teleport, a respawn) and it jumps straight there
 local FAR = 220 -- beyond this from the camera it is left where it is
 local HOVER = 1.4 -- how high a hovering mascot floats
-local GROUND_EVERY = 0.15 -- seconds between ground checks
+local GRAVITY = 150 -- studs/s² pulling a jumping mascot down (a little floatier than a player)
+local HOVER_GRAVITY = 60 -- hovering mascots drift down slower
+local HOP = 4.2 -- how high a mascot jumps when its owner jumps
+local HOVER_HOP = 2.6
+local JUMP_DELAY = 0.08 -- seconds after its owner leaves the ground, so it reads as following
+local OWNER_JUMP = 18 -- owner's upward speed (studs/s) that counts as a jump (a jump starts near 50)
+local STANDING = 2 -- owner's vertical speed below this means they are standing on something
+local STEP_UP = 1.6 -- ground this much higher than the mascot's feet needs a jump, lower is a step
+local STEP_DOWN = 0.8 -- ground this much lower and it falls instead of walking down
+local STEP_SPEED = 18 -- how fast it walks up or down small steps (higher is snappier)
+local LAND_TIME = 0.16 -- seconds of the little nod when it lands
 local INK = Color3.fromRGB(11, 15, 31)
 
 type Follower = {
 	model: Model,
 	id: string,
 	hover: boolean,
-	position: Vector3,
+	position: Vector3, -- where it is across the ground; the height is `y`
+	y: number, -- the height of its feet
+	vy: number, -- how fast it is going up (negative is falling)
+	grounded: boolean,
+	jumpAt: number?, -- when it will copy its owner's jump
+	floor: number, -- the last height its owner stood at
+	ownerVy: number, -- its owner's vertical speed last frame, to spot the start of a jump
+	landedAt: number,
 	yaw: number,
-	ground: number?,
-	groundAt: number,
 	phase: number,
 }
 
@@ -97,9 +117,14 @@ local function spawnFor(player: Player)
 		id = id,
 		hover = mascot.hover == true,
 		position = start,
+		y = start.Y,
+		vy = 0,
+		grounded = false, -- drops onto whatever is under it on the first frame
+		jumpAt = nil,
+		floor = start.Y,
+		ownerVy = 0,
+		landedAt = -math.huge,
 		yaw = yaw,
-		ground = nil,
-		groundAt = 0,
 		phase = math.random() * 10,
 	}
 	model:PivotTo(CFrame.new(start) * CFrame.Angles(0, yaw, 0))
@@ -108,18 +133,65 @@ end
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
 rayParams.IgnoreWater = true
+rayParams.RespectCanCollide = true -- leaves, beams and other walk-through decor are not ground
 
--- The ground under a point (the owner's feet height if nothing is found close below).
-local function groundUnder(point: Vector3, feet: number): number
-	local origin = Vector3.new(point.X, feet + 4, point.Z)
-	local hit = workspace:Raycast(origin, Vector3.new(0, -12, 0), rayParams)
-	if hit ~= nil and math.abs(hit.Position.Y - feet) < 6 then
-		return hit.Position.Y
+-- The top of the ground under (x, z), looking down from `from`. Starting just above the mascot or
+-- its owner, whichever is higher, keeps roofs and arches overhead from counting as ground.
+local function groundAt(x: number, z: number, from: number): number?
+	local hit = workspace:Raycast(Vector3.new(x, from, z), Vector3.new(0, -60, 0), rayParams)
+	return if hit ~= nil then hit.Position.Y else nil
+end
+
+local function jump(f: Follower, height: number)
+	local gravity = if f.hover then HOVER_GRAVITY else GRAVITY
+	f.vy = math.sqrt(2 * gravity * height)
+	f.grounded = false
+	f.jumpAt = nil
+end
+
+-- Moves one mascot's height for this frame: standing, stepping, jumping or falling.
+local function moveHeight(f: Follower, root: BasePart, feet: number, now: number, dt: number)
+	local ownerVy = root.AssemblyLinearVelocity.Y
+	if math.abs(ownerVy) < STANDING then
+		f.floor = feet
 	end
-	return feet
+	-- The owner just jumped: copy it a moment later (not again until this one lands).
+	if ownerVy > OWNER_JUMP and f.ownerVy <= OWNER_JUMP and f.grounded and f.jumpAt == nil then
+		f.jumpAt = now + JUMP_DELAY
+	end
+	f.ownerVy = ownerVy
+
+	local ground = groundAt(f.position.X, f.position.Z, math.max(f.y, f.floor) + 3.5) or f.floor
+	if f.grounded then
+		if f.jumpAt ~= nil and now >= f.jumpAt then
+			jump(f, if f.hover then HOVER_HOP else HOP)
+		elseif ground > f.y + STEP_UP then
+			-- A ledge its owner climbed: leap just over it.
+			jump(f, ground - f.y + 1.2)
+		elseif ground < f.y - STEP_DOWN then
+			f.grounded = false
+			f.vy = 0
+		else
+			f.y += (ground - f.y) * (1 - math.exp(-STEP_SPEED * dt))
+		end
+	end
+	if not f.grounded then
+		f.vy -= (if f.hover then HOVER_GRAVITY else GRAVITY) * dt
+		f.y += f.vy * dt
+		if f.vy <= 0 and f.y <= ground then
+			f.y = ground
+			f.vy = 0
+			f.grounded = true
+			f.landedAt = now
+		end
+	end
+	if f.jumpAt ~= nil and now - f.jumpAt > 0.4 then
+		f.jumpAt = nil -- it was still in the air; skip this jump rather than hop late
+	end
 end
 
 local function step(dt: number)
+	dt = math.min(dt, 1 / 15) -- a long hitch would otherwise fling a falling mascot through the floor
 	local camera = workspace.CurrentCamera
 	local eye = if camera ~= nil then camera.CFrame.Position else Vector3.zero
 	local now = os.clock()
@@ -142,17 +214,19 @@ local function step(dt: number)
 		local target = root.CFrame:PointToWorldSpace(Vector3.new(SIDE, 0, BEHIND))
 		target = Vector3.new(target.X, feet, target.Z)
 		local flat = Vector3.new(target.X - f.position.X, 0, target.Z - f.position.Z)
-		if flat.Magnitude > SNAP or math.abs(target.Y - f.position.Y) > SNAP then
+		if flat.Magnitude > SNAP or math.abs(feet - f.y) > SNAP then
+			-- A teleport or respawn: appear beside the owner and drop onto the ground there.
 			f.position = target
+			f.y = feet
+			f.floor = feet
+			f.vy = 0
+			f.grounded = false
+			f.jumpAt = nil
 		else
 			local k = 1 - math.exp(-FOLLOW * dt)
 			f.position = f.position:Lerp(target, k)
 		end
-		if now - f.groundAt > GROUND_EVERY or f.ground == nil then
-			f.groundAt = now
-			f.ground = groundUnder(f.position, feet)
-		end
-		local ground = f.ground or feet
+		moveHeight(f, root, feet, now, dt)
 
 		-- Face the way it is going while it moves, else the way its owner faces.
 		local speed = flat.Magnitude / math.max(dt, 1 / 240)
@@ -168,10 +242,13 @@ local function step(dt: number)
 		f.yaw += diff * (1 - math.exp(-TURN * dt))
 
 		f.phase += dt
-		local lift, tilt = 0, 0
+		local lift, tilt, pitch = 0, 0, 0
 		if f.hover then
 			lift = HOVER + math.sin(f.phase * 2.2) * 0.25
-			tilt = math.clamp(speed * 0.02, 0, 0.25)
+			pitch = math.clamp(speed * 0.02, 0, 0.25)
+		elseif not f.grounded then
+			-- Nose up on the way up, down on the way down.
+			pitch = math.clamp(-f.vy * 0.012, -0.3, 0.3)
 		elseif moving then
 			-- A hop per step; quicker hops when it runs to catch up.
 			local rate = math.clamp(8 + speed * 0.4, 8, 14)
@@ -180,8 +257,12 @@ local function step(dt: number)
 		else
 			lift = math.abs(math.sin(f.phase * 1.6)) * 0.08
 		end
-		local at = Vector3.new(f.position.X, ground + lift, f.position.Z)
-		f.model:PivotTo(CFrame.new(at) * CFrame.Angles(0, f.yaw, 0) * CFrame.Angles(-tilt, 0, if f.hover then 0 else tilt))
+		local sinceLand = now - f.landedAt
+		if not f.hover and sinceLand < LAND_TIME then
+			pitch += math.sin(sinceLand / LAND_TIME * math.pi) * 0.18 -- a little nod as it lands
+		end
+		local at = Vector3.new(f.position.X, f.y + lift, f.position.Z)
+		f.model:PivotTo(CFrame.new(at) * CFrame.Angles(0, f.yaw, 0) * CFrame.Angles(-pitch, 0, tilt))
 	end
 end
 
