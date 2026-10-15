@@ -565,6 +565,12 @@ end
 -- Panels --------------------------------------------------------------------------------------
 local exclusivePanels: { Frame } = {}
 
+-- Makes a full-screen screen (not built with makePanel) exclusive like the panels: opening any
+-- panel closes it, and opening it with togglePanel closes the panels.
+function UiKit.addExclusive(frame: Frame)
+	table.insert(exclusivePanels, frame)
+end
+
 function UiKit.closePanels()
 	for _, panel in exclusivePanels do
 		panel.Visible = false
