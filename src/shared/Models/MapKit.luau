@@ -1,9 +1,10 @@
 --!strict
--- Places a piece of the Blender map kit (art/blender/map_kit.py): street and park lamps, trees,
--- cacti and rocks, the water towers, the bandstand, benches and Dusty Gulch's buildings. Once the
--- owner imports map_kit.fbx into ReplicatedStorage.LotMeshes (art/README.md), the game shows the
--- Blender meshes. Until then it builds the same shapes from parts (MapKitShapes, written by the
--- Blender script), so the map looks the same, only less smooth.
+-- Places a piece of the Blender map kit (art/blender/map_kit.py and town_kit.py): every model on
+-- the map, from lamps, trees and rocks to the store stands, the theatre, the film sets, Dusty
+-- Gulch and Starlight Park. Once the owner imports map_kit.fbx into ReplicatedStorage.LotMeshes
+-- (art/README.md), the game shows the Blender meshes. Until then it builds the same shapes from
+-- parts (MapKitShapes, written by the Blender script), so the map looks the same, only blockier.
+-- Words are never part of a model: signs have named spots, and `labels` letters them.
 local Build = require(script.Parent.Build)
 local MapKitShapes = require(script.Parent.MapKitShapes)
 
@@ -16,7 +17,20 @@ export type Options = {
 	solid: boolean?, -- players bump into it (default: yes, unless it is far scenery)
 	light: { range: number, brightness: number, color: Color3 }?, -- a PointLight where it glows
 	far: boolean?, -- far scenery: no shadow, never collides or blocks clicks
+	-- Players walk on or through it (steps, a bridge, a stand's floor): the mesh doesn't collide;
+	-- invisible boxes in the shapes of its blocks do, so walking on it is smooth.
+	hitbox: boolean?,
+	-- Text lettered on the model's sign spots (MapKitShapes.Spots), keyed by spot name.
+	labels: { [string]: Label }?,
 }
+
+export type Label = {
+	text: string,
+	color: Color3,
+	stroke: number?, -- dark outline thickness (0 for none; default 3)
+}
+
+local INK = Color3.fromRGB(11, 15, 31) -- the menus' outline color (UiKit.INK)
 
 local function partFor(shape: MapKitShapes.Shape, b: Builder, scale: number, lite: boolean): { BasePart }
 	local parts: { BasePart } = {}
@@ -44,6 +58,11 @@ local function partFor(shape: MapKitShapes.Shape, b: Builder, scale: number, lit
 		end
 	elseif shape.kind == "wedge" then
 		table.insert(parts, b:wedge("Kit", size, cf, shape.color, material))
+	elseif shape.kind == "star" then
+		-- Two crossed squares standing up: an eight-point star from the front.
+		local square = Vector3.new(size.X * 0.6, size.Y * 0.6, size.Z)
+		table.insert(parts, b:block("Kit", square, cf, shape.color, material))
+		table.insert(parts, b:block("Kit", square, cf * CFrame.Angles(0, 0, math.rad(45)), shape.color, material))
 	else
 		table.insert(parts, b:block("Kit", size, cf, shape.color, material))
 	end
@@ -59,9 +78,15 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 	local bounds = MapKitShapes.Bounds[name]
 	assert(shapes ~= nil and bounds ~= nil, `no map kit model called {name}`)
 	local g, model = b:group(name, at)
+	-- Its pivot is its feet, so code that moves it (MapLife) knows where it stands; the preview
+	-- renders (art/preview) read which kit model it is.
+	model.WorldPivot = g:at(CFrame.identity)
+	model:SetAttribute("Kit", name)
+	model:SetAttribute("KitScale", scale * b.scale)
 
 	local mesh = Build.mesh(g, name, CFrame.new(bounds.center.X * scale, 0, bounds.center.Z * scale), bounds.size.Y * scale)
 	local parts: { BasePart } = {}
+	local hitboxes: { BasePart } = {}
 	if mesh ~= nil then
 		mesh.Name = "Mesh"
 		-- The baked vertex colors show on white.
@@ -69,6 +94,25 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 		mesh.Material = Enum.Material.SmoothPlastic
 		model:SetAttribute("Meshed", true)
 		table.insert(parts, mesh)
+		if opts.hitbox and not opts.far then
+			for _, shape in shapes do
+				-- Anything wider than a rod or a rail (a thin floor board still counts: it is
+				-- what players stand on).
+				local dims = { shape.size.X, shape.size.Y, shape.size.Z }
+				table.sort(dims)
+				local big = dims[2] * scale >= 1
+				if big and (shape.kind == "box" or shape.kind == "wedge" or shape.kind == "cyl") then
+					for _, p in partFor(shape, g, scale, true) do
+						p.Name = "Hitbox"
+						p.Transparency = 1
+						p.CastShadow = false
+						p.CanTouch = false
+						p.CanCollide = true
+						table.insert(hitboxes, p)
+					end
+				end
+			end
+		end
 	else
 		for _, shape in shapes do
 			-- Far away, thin details (ribs, rails, flowers) can't be seen: skip them to save parts.
@@ -88,8 +132,32 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 			p.CanTouch = false
 			p.CastShadow = false
 		else
-			p.CanCollide = opts.solid ~= false
+			p.CanCollide = opts.solid ~= false and not (opts.hitbox and #hitboxes > 0)
 			p.CanTouch = false
+		end
+	end
+
+	-- Sign text on the model's spots: an invisible board with the words on its front.
+	if opts.labels ~= nil then
+		local spots = MapKitShapes.Spots[name]
+		for spotName, label in opts.labels do
+			local spot = if spots ~= nil then spots[spotName] else nil
+			assert(spot ~= nil, `map kit model {name} has no spot called {spotName}`)
+			local cf = spot.cf - spot.cf.Position + spot.cf.Position * scale
+			local board = g:block("SignText", spot.size * scale, cf, Color3.new(1, 1, 1))
+			board.Transparency = 1
+			board.CanCollide = false
+			board.CanQuery = false
+			board.CanTouch = false
+			board.CastShadow = false
+			local text = Build.sign(board, Enum.NormalId.Front, label.text, label.color)
+			local thickness = label.stroke or 3
+			if thickness > 0 then
+				local stroke = Instance.new("UIStroke")
+				stroke.Color = INK
+				stroke.Thickness = thickness
+				stroke.Parent = text
+			end
 		end
 	end
 
@@ -120,6 +188,23 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 		light.Parent = holder
 	end
 	return model
+end
+
+-- Where spot `spotName` of kit model `name` sits in the model's own space (standing on y = 0,
+-- facing -Z), at `scale`. Errors if there is no such spot.
+function MapKit.spot(name: string, spotName: string, scale: number?): CFrame
+	local spots = MapKitShapes.Spots[name]
+	local spot = if spots ~= nil then spots[spotName] else nil
+	assert(spot ~= nil, `map kit model {name} has no spot called {spotName}`)
+	local k = scale or 1
+	return spot.cf - spot.cf.Position + spot.cf.Position * k
+end
+
+-- The size of kit model `name` and where its middle sits above its feet, at scale 1.
+function MapKit.bounds(name: string): { size: Vector3, center: Vector3 }
+	local bounds = MapKitShapes.Bounds[name]
+	assert(bounds ~= nil, `no map kit model called {name}`)
+	return bounds
 end
 
 -- Kit model names, for tests and previews.

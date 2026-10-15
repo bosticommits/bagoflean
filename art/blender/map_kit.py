@@ -50,117 +50,9 @@ LUAU_OUT = os.path.join(mmkit.REPO, "src", "shared", "Models", "MapKitShapes.lua
 SAMPLES = int(os.environ.get("KIT_SAMPLES", "48"))
 MAX_TRIS = 10000
 
-# Colors: the game palette (Build.Palette) plus the outer ring's own (TownSets).
-COL = {
-    "Cream": "#F4E7CF",
-    "Burgundy": "#7A1F2B",
-    "Carpet": "#C8202F",
-    "Gold": "#F5B82E",
-    "Blue": "#2E86DE",
-    "Navy": "#1B2340",
-    "Green": "#5BBF5A",
-    "DarkGreen": "#388C46",
-    "Charcoal": "#2E2C34",
-    "Steel": "#6E7078",
-    "Bark": "#7A5434",
-    "Wood": "#96623C",
-    "Light": "#FFECBE",
-    "OffWhite": "#FAF6EC",
-    "Glass": "#96CDF0",
-    "Leaf": "#4FB548",
-    "LeafDark": "#2F8F3E",
-    "LeafLight": "#7ED35F",
-    "Pine": "#24704A",
-    "PineDark": "#1B5A3C",
-    "Blossom": "#FFA0CD",
-    "BlossomDark": "#F27BB4",
-    "Cactus": "#46AF50",
-    "CactusDark": "#368C40",
-    "Sand": "#F0CD8C",
-    "Rock": "#D67C48",
-    "RockDark": "#B5613A",
-    "RockLight": "#E89A62",
-    "Iron": "#2A3A34",
-    "ParkGreen": "#2F6B4F",
-    "Flame": "#FFB347",
-}
-
-
-def shade(hex_color, amount):
-    """Darker (amount > 0) or lighter (amount < 0) version of a hex color."""
-    h = hex_color.lstrip("#")
-    rgb = [int(h[i : i + 2], 16) for i in (0, 2, 4)]
-    if amount >= 0:
-        rgb = [round(c * (1 - amount)) for c in rgb]
-    else:
-        rgb = [round(c + (255 - c) * -amount) for c in rgb]
-    return "#" + "".join(f"{c:02X}" for c in rgb)
-
-
-def c(name):
-    return COL.get(name, name)
-
-
-# --- Shapes ----------------------------------------------------------------------------------
-# Blender coordinates in studs: Z up, the model faces -Y, standing on Z = 0.
-
-
-def B(at, size, color, rot=(0, 0, 0), bevel=0.0, neon=False):
-    """Box centred on `at`."""
-    return {"kind": "box", "at": at, "size": size, "color": c(color), "rot": rot, "bevel": bevel, "neon": neon}
-
-
-def C(at, radius, length, color, rot=(0, 0, 0), seg=12, neon=False):
-    """Cylinder centred on `at`, its axis along local Z."""
-    return {"kind": "cyl", "at": at, "size": (2 * radius, 2 * radius, length), "color": c(color), "rot": rot, "seg": seg, "neon": neon}
-
-
-def K(at, r_bottom, r_top, length, color, rot=(0, 0, 0), seg=8, neon=False):
-    """Cone (or tapered cylinder) centred on `at`, axis along local Z, wide end down."""
-    return {
-        "kind": "cone", "at": at, "size": (2 * r_bottom, 2 * r_bottom, length), "top": r_top / r_bottom,
-        "color": c(color), "rot": rot, "seg": seg, "neon": neon,
-    }
-
-
-def E(at, radii, color, rot=(0, 0, 0), neon=False):
-    """Smooth ellipsoid centred on `at` with half-sizes `radii`."""
-    return {"kind": "ball", "at": at, "size": tuple(2 * r for r in radii), "color": c(color), "rot": rot, "neon": neon}
-
-
-def L(at, radii, color, rot=(0, 0, 0)):
-    """Faceted low-poly blob (foliage, rocks); a ball in the part version."""
-    return {"kind": "blob", "at": at, "size": tuple(2 * r for r in radii), "color": c(color), "rot": rot, "neon": False}
-
-
-def W(at, size, color, rot=(0, 0, 0)):
-    """Wedge like a Roblox WedgePart: tall side at local +Y (the back), slope facing -Y and up."""
-    return {"kind": "wedge", "at": at, "size": size, "color": c(color), "rot": rot, "neon": False}
-
-
-def G(at, rot, *children):
-    return {"kind": "group", "at": at, "rot": rot, "children": children}
-
-
-def mirror_x(shapes):
-    out = []
-    for s in shapes:
-        rx, ry, rz = s["rot"]
-        m = {**s, "at": (-s["at"][0], *s["at"][1:]), "rot": (rx, -ry, -rz)}
-        if s["kind"] == "group":
-            m["children"] = tuple(mirror_x(list(s["children"])))
-        out.append(m)
-    return out
-
-
-def ring(n, radius, z, make, start=0.0):
-    """`make(x, y, angle_deg)` for n points round a circle."""
-    out = []
-    for i in range(n):
-        a = start + i * 360 / n
-        out.append(make(math.sin(math.radians(a)) * radius, math.cos(math.radians(a)) * radius, a))
-    return out
-
+# The shape helpers (B box, C cylinder, K cone, E ellipsoid, L blob, W wedge, S star, H hill,
+# G group, T spot) and the colors live in kitdsl.py, shared with town_kit.py.
+from kitdsl import COL, B, C, E, G, K, L, T, W, c, ring, shade  # noqa: E402,F401
 
 # --- Lamps -----------------------------------------------------------------------------------
 
@@ -489,6 +381,7 @@ def western(w, h, color, balcony, extra):
     s += [
         B((0, -0.55, sign_z), (w - 3, 0.5, 4), "Bark", bevel=0.1),
         B((0, -0.75, sign_z), (w - 4, 0.4, 3.2), "Cream"),
+        T((0, -0.98, sign_z), (w - 4.4, 0.05, 3.0), "Sign"),
     ]
     for x in (-1, 1):
         s.append(E((x * (w / 2 - 2.2), -0.85, sign_z), (0.22, 0.12, 0.22), "Gold"))
@@ -626,6 +519,16 @@ KIT = [
 # --- Mesh ------------------------------------------------------------------------------------
 
 
+def star_points(n=5, inner=0.45):
+    """Outline of an n-point star of radius 0.5 in the XZ plane, first point straight up."""
+    pts = []
+    for k in range(n * 2):
+        r = 0.5 if k % 2 == 0 else 0.5 * inner
+        a = math.pi * k / n
+        pts.append((math.sin(a) * r, math.cos(a) * r))
+    return pts
+
+
 def unit_shape(s):
     """A bmesh of the shape in studs, centred on the origin."""
     kind, size = s["kind"], s["size"]
@@ -641,6 +544,10 @@ def unit_shape(s):
         for i, v in enumerate(bm.verts):
             k = 1.0 + 0.09 * math.sin(i * 2.3 + sx)
             v.co *= k
+    elif kind == "hill":
+        # Fine enough that the faces stay within a stud or two of the true sphere the game uses
+        # for the ground height (MapScenery.groundAt), coarse enough to read as low-poly.
+        bmesh.ops.create_icosphere(bm, subdivisions=4, radius=0.5)
     elif kind in ("cyl", "cone"):
         top = s.get("top", 1.0)
         bmesh.ops.create_cone(bm, cap_ends=True, segments=s.get("seg", 12), radius1=0.5, radius2=0.5 * top, depth=1.0)
@@ -651,6 +558,20 @@ def unit_shape(s):
         )]
         for f in ((0, 3, 2, 1), (0, 1, 5, 4), (1, 2, 5), (2, 3, 4, 5), (3, 0, 4)):
             bm.faces.new([verts[i] for i in f])
+    elif kind == "star":
+        # A star prism: the outline in XZ, pushed out along Y. The front face is a fan round a
+        # middle point raised a little, so the star catches the light like a cut gem.
+        outline = star_points()
+        n = len(outline)
+        front = [bm.verts.new((x, -0.5, z)) for x, z in outline]
+        back = [bm.verts.new((x, 0.5, z)) for x, z in outline]
+        tip_f = bm.verts.new((0, -0.9, 0))
+        tip_b = bm.verts.new((0, 0.9, 0))
+        for k in range(n):
+            j = (k + 1) % n
+            bm.faces.new((front[k], front[j], back[j], back[k]))
+            bm.faces.new((tip_f, front[j], front[k]))
+            bm.faces.new((tip_b, back[k], back[j]))
     else:
         bmesh.ops.create_cube(bm, size=1.0)
     bmesh.ops.scale(bm, vec=(sx, sy, sz), verts=bm.verts)
@@ -689,12 +610,16 @@ class Piece:
     def shape(self, s, m):
         tmp = unit_shape(s)
         world = Matrix.Scale(STUD, 4) @ m
-        mat = self.mat(s["color"], s["neon"])
+        jitter = s.get("jitter", 0.0)
+        # Facets in a few nearby shades (fixed, so every export is the same).
+        shades = [self.mat(s["color"], s["neon"])]
+        if jitter > 0:
+            shades += [self.mat(shade(s["color"], jitter), False), self.mat(shade(s["color"], -jitter), False)]
         smooth = s["kind"] == "ball"
         vs = {v: self.bm.verts.new(world @ v.co) for v in tmp.verts}
-        for f in tmp.faces:
+        for k, f in enumerate(tmp.faces):
             face = self.bm.faces.new([vs[v] for v in f.verts])
-            face.material_index = mat
+            face.material_index = shades[(k * 7 + int(f.calc_center_median().z * 13)) % len(shades)] if jitter > 0 else shades[0]
             face.smooth = smooth
         tmp.free()
 
@@ -712,20 +637,24 @@ class Piece:
 
 def lowest(s, m):
     sx, sy, sz = (v / 2 for v in s["size"])
-    if s["kind"] in ("ball", "blob"):
+    if s["kind"] in ("ball", "blob", "hill"):
         r = m.to_3x3() @ Matrix.Diagonal((sx, sy, sz))
         return m.translation.z - (r.transposed() @ Vector((0, 0, -1))).length
     corners = [m @ Vector((x * sx, y * sy, z * sz)) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
     return min(p.z for p in corners)
 
 
-def build(name, builder):
+def build(name, builder, lift_to_ground=True):
+    """The model's mesh object and its flattened shapes (spots included, not drawn)."""
     flat = flatten(builder())
-    lift = Matrix.Translation((0, 0, -min(0.0, min(lowest(s, m) for s, m in flat))))
-    flat = [(s, lift @ m) for s, m in flat]
+    solid = [(s, m) for s, m in flat if s["kind"] != "spot"]
+    if lift_to_ground:
+        lift = Matrix.Translation((0, 0, -min(0.0, min(lowest(s, m) for s, m in solid))))
+        flat = [(s, lift @ m) for s, m in flat]
     piece = Piece(name)
     for s, m in flat:
-        piece.shape(s, m)
+        if s["kind"] != "spot":
+            piece.shape(s, m)
     return piece.obj(), flat
 
 
@@ -739,16 +668,23 @@ def to_roblox(s, m):
     return pos, rot, (sx, sz, sy)
 
 
+def cframe(s, m):
+    pos, r, _ = to_roblox(s, m)
+    return ", ".join(num(v) for v in (*pos, r[0][0], r[0][1], r[0][2], r[1][0], r[1][1], r[1][2], r[2][0], r[2][1], r[2][2]))
+
+
 def write_luau(results):
     lines = [
         "--!strict",
-        "-- GENERATED by art/blender/map_kit.py from the Blender map kit. Do not edit by hand: change",
-        "-- the shapes there and run it again. Each model is a list of shapes in studs, standing on",
-        "-- y = 0 and facing -Z. MapKit builds them as parts until the Blender meshes are imported.",
-        "-- kind: \"box\", \"ball\" (an ellipsoid), \"cyl\" or \"cone\" (axis along the CFrame's Y; a cone's",
-        "-- top is `top` times its bottom width) or \"wedge\" (a WedgePart).",
+        "-- GENERATED by art/blender/map_kit.py from the Blender map kit (map_kit.py and town_kit.py).",
+        "-- Do not edit by hand: change the shapes there and run it again. Each model is a list of",
+        "-- shapes in studs, standing on y = 0 and facing -Z. MapKit builds them as parts until the",
+        "-- Blender meshes are imported. kind: \"box\", \"ball\" (an ellipsoid), \"cyl\" or \"cone\" (axis",
+        "-- along the CFrame's Y; a cone's top is `top` times its bottom width), \"wedge\" (a WedgePart)",
+        "-- or \"star\" (two crossed squares standing up, facing -Z).",
         "",
         "export type Shape = { kind: string, cf: CFrame, size: Vector3, color: Color3, neon: boolean?, top: number? }",
+        "export type Spot = { cf: CFrame, size: Vector3 }",
         "",
         "local function S(kind: string, cf: CFrame, size: Vector3, hex: string, neon: boolean?, top: number?): Shape",
         "\treturn { kind = kind, cf = cf, size = size, color = Color3.fromHex(hex), neon = neon, top = top }",
@@ -764,14 +700,20 @@ def write_luau(results):
         "-- Where each model glows (lamp globes, lanterns), for the lights the game adds.",
         "MapKitShapes.Glow = {} :: { [string]: { Vector3 } }",
         "",
+        "-- Named spots on a model: boards the game letters signs on (text on the -Z face), and places",
+        "-- for effects.",
+        "MapKitShapes.Spots = {} :: { [string]: { [string]: Spot } }",
+        "",
     ]
     for name, flat, (lo, hi) in results:
         lines.append(f"MapKitShapes.Shapes.{name} = {{")
-        glow = []
+        glow, spots = [], []
         for s, m in flat:
-            pos, r, size = to_roblox(s, m)
-            cf = ", ".join(num(v) for v in (*pos, r[0][0], r[0][1], r[0][2], r[1][0], r[1][1], r[1][2], r[2][0], r[2][1], r[2][2]))
-            kind = "ball" if s["kind"] == "blob" else s["kind"]
+            pos, _, size = to_roblox(s, m)
+            if s["kind"] == "spot":
+                spots.append((s["name"], cframe(s, m), size))
+                continue
+            kind = "ball" if s["kind"] in ("blob", "hill") else s["kind"]
             extra = ""
             if s["neon"] or kind == "cone":
                 extra = f", {'true' if s['neon'] else 'nil'}"
@@ -779,7 +721,7 @@ def write_luau(results):
                     extra += f", {num(s['top'])}"
             if s["neon"]:
                 glow.append(pos)
-            lines.append(f"\tS(\"{kind}\", CFrame.new({cf}), Vector3.new({', '.join(num(v) for v in size)}), \"{s['color'].lstrip('#')}\"{extra}),")
+            lines.append(f"\tS(\"{kind}\", CFrame.new({cframe(s, m)}), Vector3.new({', '.join(num(v) for v in size)}), \"{s['color'].lstrip('#')}\"{extra}),")
         lines.append("}")
         lo_r, hi_r = P @ lo, P @ hi
         mn = [min(a, b) for a, b in zip(lo_r, hi_r)]
@@ -791,6 +733,11 @@ def write_luau(results):
         )
         if glow:
             lines.append(f"MapKitShapes.Glow.{name} = {{ " + ", ".join(f"Vector3.new({', '.join(num(v) for v in p)})" for p in glow) + " }")
+        if spots:
+            lines.append(f"MapKitShapes.Spots.{name} = {{")
+            for spot_name, cf, size in spots:
+                lines.append(f"\t{spot_name} = {{ cf = CFrame.new({cf}), size = Vector3.new({', '.join(num(v) for v in size)}) }},")
+            lines.append("}")
         lines.append("")
     lines.append("return MapKitShapes")
     with open(LUAU_OUT, "w") as f:
@@ -818,14 +765,23 @@ def export_all(objs):
     print("Exported", os.path.join(mmkit.EXPORTS, "map_kit.fbx"))
 
 
+def full_kit():
+    """Every model: this file's, then the town's set pieces (town_kit.py)."""
+    import town_kit  # here, not at the top: town_kit uses this file's helpers
+
+    return KIT + town_kit.KIT
+
+
 def main():
     os.makedirs(mmkit.PREVIEWS, exist_ok=True)
     os.makedirs(mmkit.EXPORTS, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     results, objs = [], []
-    for name, builder in KIT:
+    total = 0
+    for name, builder in full_kit():
         obj, flat = build(name, builder)
         tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
+        total += tris
         lo, hi = bounds(obj)
         size = hi - lo
         print(f"{name}: {tris} tris, {size.x:.1f} x {size.y:.1f} x {size.z:.1f} studs")
@@ -833,24 +789,34 @@ def main():
         results.append((name, flat, (lo, hi)))
         mmkit.bake_vertex_colors(obj.data)
         objs.append(obj)
+    print(f"{len(objs)} models, {total} tris in all")
     write_luau(results)
     export_all(objs)
 
     if not os.environ.get("KIT_NO_RENDER"):
-        # Two line-ups: the props and plants, and Dusty Gulch's buildings.
-        lineup(["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
-               ["WaterTower", "WaterTank", "Bandstand", "Mesa"], "map_kit_props.png")
-        lineup(["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]], "map_kit_buildings.png")
+        import town_kit
+
+        for file_name, (front, back) in [
+            ("map_kit_props.png", (["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
+                                   ["WaterTower", "WaterTank", "Bandstand", "Mesa"])),
+            ("map_kit_buildings.png", (["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]])),
+        ] + list(town_kit.LINEUPS.items()):
+            if os.environ.get("KIT_ONLY") and os.environ["KIT_ONLY"] not in file_name:
+                continue
+            lineup(front, back, file_name)
 
 
 def lineup(front, back, file_name):
     """Render two rows of kit models (front row nearer the camera)."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     names = front + back
-    objs = {n: build(n, dict(KIT)[n])[0] for n in names}
+    kit = dict(full_kit())
+    objs = {n: build(n, kit[n])[0] for n in names}
     shown = []
     y = 0.0
     for row in (front, back):
+        if not row:
+            continue
         widths = [(bounds(objs[n])[1] - bounds(objs[n])[0]).x for n in row]
         gap = 2.5
         x = -(sum(widths) + gap * (len(row) - 1)) / 2

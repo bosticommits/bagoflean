@@ -25,7 +25,7 @@ local REACH = 470
 local SPACING = 28
 
 export type Mountain = { x: number, z: number, radius: number, height: number, style: string }
-export type Hill = { at: Vector3, size: number, color: Color3 }
+export type Hill = { at: Vector3, size: number, kit: string } -- kit: map kit Hill<kit>
 
 -- Big mountains in a ring round the map, out past the props. "peak" mountains have grass, rock
 -- and snow; "mesa" ones are flat-topped sandstone, behind Dusty Gulch.

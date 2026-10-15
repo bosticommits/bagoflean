@@ -3,8 +3,9 @@
 -- baseplate: the boulevard with its red carpet, the spawn plaza and fountain, sidewalks with
 -- Walk of Fame stars, paths that join every lot, the store stands, and hills with the gold star
 -- sign around the edge. The landmarks at the ends of the boulevard and the film sets in the back
--- streets come from TownSets. Built from parts in the style of ART_STYLE.md (section 7). Curved props
--- use the Blender meshes once imported (palm trees, searchlights, the trophy statue).
+-- streets come from TownSets. Every prop and building is a Blender model from the map kit
+-- (art/blender/map_kit.py and town_kit.py, placed by MapKit); the ground (roads, paths, lawns) is
+-- flat parts.
 --
 -- World space: X runs along the boulevard, Z across it. Lots 1-3 sit at -Z and lots 4-6 at +Z,
 -- all facing the boulevard. The grass is at y = 0 and paths are 0.2 studs thick on top of it.
@@ -79,6 +80,7 @@ export type StandInfo = {
 	icon: string, -- IconModels id on the roof
 	iconScale: number?, -- default 2 (the film camera is already tall)
 	color: Color3, -- awning and counter, matching the screen's menu button
+	kit: string, -- the map kit stand in that color: StoreStand<kit>
 	keeper: string, -- the (common) actor serving behind the counter
 	x: number,
 	z: number, -- on the sidewalk; stands face the boulevard
@@ -90,14 +92,14 @@ local INK = Color3.fromRGB(11, 15, 31) -- the menus' outline color (UiKit.INK)
 
 -- From spawn, players look past the fountain at the Shop and Rewards stands.
 MapModels.Stands = table.freeze({
-	{ screen = "Shop", title = "SHOP", action = "Open Shop", icon = "popcorn", color = P.Gold, keeper = "AdModel", x = -22, z = 28 },
-	{ screen = "Daily", title = "REWARDS", action = "Daily Rewards", icon = "gift", color = PURPLE, keeper = "BackgroundExtra", x = 22, z = 28 },
-	{ screen = "Requests", title = "REQUESTS", action = "Studio Requests", icon = "clapper", color = P.Carpet, keeper = "NervousIntern", x = -40, z = 28 },
-	{ screen = "Codes", title = "CODES", action = "Enter a Code", icon = "ticket", color = P.Blue, keeper = "IndieSidekick", x = 40, z = 28 },
-	{ screen = "Studio", title = "MOVIES", action = "Make a Movie", icon = "camera", iconScale = 1.1, color = P.Green, keeper = "StuntDouble", x = -40, z = -28 },
-	{ screen = "Upgrades", title = "UPGRADES", action = "Upgrade Studio", icon = "arrow", color = TEAL, keeper = "SoapRegular", x = -22, z = -28 },
-	{ screen = "Odds", title = "CASTING ODDS", action = "See the Odds", icon = "dice", color = P.Blue, keeper = "AdModel", x = 22, z = -28 },
-	{ screen = "Actors", title = "TALENT INDEX", action = "Your Actors", icon = "star", color = PURPLE, keeper = "NervousIntern", x = 40, z = -28 },
+	{ screen = "Shop", title = "SHOP", action = "Open Shop", icon = "popcorn", color = P.Gold, kit = "Gold", keeper = "AdModel", x = -22, z = 28 },
+	{ screen = "Daily", title = "REWARDS", action = "Daily Rewards", icon = "gift", color = PURPLE, kit = "Purple", keeper = "BackgroundExtra", x = 22, z = 28 },
+	{ screen = "Requests", title = "REQUESTS", action = "Studio Requests", icon = "clapper", color = P.Carpet, kit = "Red", keeper = "NervousIntern", x = -40, z = 28 },
+	{ screen = "Codes", title = "CODES", action = "Enter a Code", icon = "ticket", color = P.Blue, kit = "Blue", keeper = "IndieSidekick", x = 40, z = 28 },
+	{ screen = "Studio", title = "MOVIES", action = "Make a Movie", icon = "camera", iconScale = 1.1, color = P.Green, kit = "Green", keeper = "StuntDouble", x = -40, z = -28 },
+	{ screen = "Upgrades", title = "UPGRADES", action = "Upgrade Studio", icon = "arrow", color = TEAL, kit = "Teal", keeper = "SoapRegular", x = -22, z = -28 },
+	{ screen = "Odds", title = "CASTING ODDS", action = "See the Odds", icon = "dice", color = P.Blue, kit = "Blue", keeper = "AdModel", x = 22, z = -28 },
+	{ screen = "Actors", title = "TALENT INDEX", action = "Your Actors", icon = "star", color = PURPLE, kit = "Purple", keeper = "NervousIntern", x = 40, z = -28 },
 } :: { StandInfo })
 
 -- Where a stand stands: on the sidewalk, front (-Z in its own space) toward the boulevard.
@@ -124,61 +126,39 @@ local function outline(label: TextLabel, thickness: number)
 	stroke.Parent = label
 end
 
--- A market stand: counter, striped awning, lit sign with the store's name, a big 3D icon
--- on the roof, its name floating above, and an actor serving. Returns the invisible part the
--- prompt goes on.
+-- An invisible, non-colliding part (a holder for a prompt, a billboard or an effect).
+local function ghost(b: Builder, name: string, at: CFrame | Vector3): BasePart
+	local part = b:block(name, v(1, 1, 1), at, P.OffWhite)
+	part.Transparency = 1
+	part.CanCollide = false
+	part.CanTouch = false
+	part.CanQuery = false
+	part.CastShadow = false
+	return part
+end
+
+-- A market stand (map kit StoreStand<kit>: counter, striped awning, shelves of goods, a lit sign
+-- and potted plants), with the store's name on its sign, the action on its counter, a big 3D
+-- icon on the roof, its name floating above, and an actor serving. Returns the invisible part
+-- the prompt goes on.
 function MapModels.stand(parent: Instance, base: CFrame, info: StandInfo): BasePart
 	local model = Instance.new("Model")
 	model.Name = "Stand_" .. info.screen
 	model.Parent = parent
 	local b = Build.new(model, base)
-	local accent = info.color
-
-	-- Floor, walls and shelves.
-	-- The raised floor stops at the counter, so walking up to it is flat.
-	b:block("StandFloor", v(12, 0.4, 6.5), v(0, 0.2, 1.85), P.Paving)
-	b:block("StandFloorTrim", v(12.4, 0.2, 6.9), v(0, 0.1, 1.85), P.Burgundy)
-	b:block("BackWall", v(11, 7, 0.8), v(0, 3.9, 4.6), P.Cream)
-	for _, side in { -1, 1 } do
-		b:block("SideWall", v(0.8, 7, 5.4), v(side * 5.1, 3.9, 2.3), P.Cream)
-		b:cylinder("Post", 3.8, 0.7, v(side * 5.1, 5.5, -1.1), P.Cream)
-	end
-	for i, y in { 4.6, 6.2 } do
-		b:block("Shelf", v(9, 0.25, 1.1), v(0, y, 3.7), P.Wood)
-		for j = -2, 2 do
-			local shade = if (i + j) % 2 == 0 then accent else accent:Lerp(P.OffWhite, 0.45)
-			b:block("Goods", v(1.1, 0.9, 0.8), v(j * 1.7, y + 0.57, 3.7), shade)
-		end
-	end
-
-	-- Counter with the store name on its front.
-	local counter = b:block("Counter", v(10.2, 3, 1.6), v(0, 1.9, -0.6), accent)
-	b:block("CounterBand", v(10.4, 0.5, 1.7), v(0, 0.65, -0.6), P.Burgundy)
-	b:block("CounterTop", v(11, 0.4, 2.2), v(0, 3.6, -0.7), P.Wood)
-	outline(Build.sign(counter, Enum.NormalId.Front, info.action, P.OffWhite), 4)
-
-	-- Roof and a striped awning sloping down over the counter, with a flap along its edge.
-	b:block("Roof", v(12, 0.6, 7.2), v(0, 7.7, 1.5), P.Burgundy)
-	local slope = math.atan2(1.3, 3)
-	local stripes = 6
-	for i = 0, stripes - 1 do
-		local x = -6 + (i + 0.5) * 12 / stripes
-		local color = if i % 2 == 0 then accent else P.OffWhite
-		b:block("Awning", v(12 / stripes, 0.3, 3.3), CFrame.new(x, 7.05, -3.6) * CFrame.Angles(-slope, 0, 0), color)
-		b:block("Valance", v(12 / stripes, 0.9, 0.2), v(x, 5.95, -5.1), if i % 2 == 0 then P.OffWhite else accent)
-	end
-
-	-- Lit sign on the roof, and the big icon above it.
-	b:block("SignFrame", v(10.8, 3.6, 0.4), v(0, 9.9, -0.7), accent)
-	local board = b:block("Sign", v(10, 2.8, 0.3), v(0, 9.9, -0.95), P.Navy)
-	outline(Build.sign(board, Enum.NormalId.Front, info.title, P.Gold), 4)
-	for i = 0, 5 do
-		b:ball("SignBulb", 0.45, v(-4.5 + i * 1.8, 11.85, -0.9), P.Light, NEON)
-	end
+	local kit = "StoreStand" .. info.kit
+	MapKit.place(b, kit, CFrame.identity, {
+		hitbox = true,
+		labels = {
+			Counter = { text = info.action, color = P.OffWhite, stroke = 4 },
+			Sign = { text = info.title, color = P.Gold, stroke = 4 },
+		},
+	})
 	IconModels.build(model, info.icon, b:at(v(0, 11.9, -0.4)), info.iconScale or 2)
 
 	-- The name again, floating over the icon and turned to the camera, so it reads from anywhere
 	-- down the street (white letters with a dark outline, like the menu buttons).
+	local board = ghost(b, "StandNameAnchor", MapKit.spot(kit, "Sign"))
 	local nameGui = Instance.new("BillboardGui")
 	nameGui.Name = "StandName"
 	nameGui.Size = UDim2.fromScale(13, 2.6) -- studs
@@ -197,63 +177,32 @@ function MapModels.stand(parent: Instance, base: CFrame, info: StandInfo): BaseP
 	name.Parent = nameGui
 	outline(name, 2)
 
-	-- Someone serving (on a step, so they show over the counter), and a plant on either side.
-	b:block("KeeperStep", v(3, 0.6, 2), v(0, 0.7, 1.9), P.Wood)
+	-- Someone serving, on the step behind the counter.
 	ActorModels.build(model, b:at(v(0, 1, 1.8)), info.keeper)
-	for _, side in { -1, 1 } do
-		b:cylinder("PlantPot", 1.2, 1.6, v(side * 7.2, 0.6, -2.4), P.Burgundy)
-		b:ball("Plant", 2, v(side * 7.2, 1.9, -2.4), P.DarkGreen, GRASS)
-	end
 
 	-- A glowing ring on the ground in front, where the prompt appears.
-	b:cylinder("PromptRing", 0.06, 6, v(0, 0.03, -7.2), accent, NEON)
+	b:cylinder("PromptRing", 0.06, 6, v(0, 0.03, -7.2), info.color, NEON)
 	b:cylinder("PromptSpot", 0.12, 5.2, v(0, 0.06, -7.2), P.Paving)
 
-	local anchor = b:block("PromptAnchor", v(1, 1, 1), v(0, 3, -2.4), P.OffWhite)
-	anchor.Transparency = 1
-	anchor.CanCollide = false
-	anchor.CanTouch = false
-	anchor.CanQuery = false
-	return anchor
+	return ghost(b, "PromptAnchor", v(0, 3, -2.4))
 end
 
 -- Plaza ------------------------------------------------------------------------------------------
 
 local function bench(b: Builder)
-	b:block("BenchSeat", v(5, 0.4, 1.6), v(0, 1.3, 0), P.Wood)
-	b:block("BenchBack", v(5, 1.4, 0.3), v(0, 2.2, 0.75), P.Wood)
-	for _, x in { -2, 2 } do
-		b:block("BenchLeg", v(0.4, 1.1, 1.6), v(x, 0.55, 0), P.Charcoal, METAL)
-	end
+	MapKit.place(b, "ParkBench", CFrame.identity)
 end
 
 local function planter(b: Builder, palmHeight: number)
-	b:cylinder("Planter", 1, 5, v(0, 0.5, 0), P.Burgundy)
-	b:cylinder("PlanterSoil", 0.2, 4.2, v(0, 1.05, 0), P.DarkGreen, GRASS)
+	MapKit.place(b, "Planter", CFrame.identity)
 	LotModels.palm(b:sub(v(0, 1, 0)), palmHeight, 7)
 end
 
--- Fountain with a giant gold trophy in the middle of the spawn plaza.
+-- Fountain (map kit PlazaFountain: basin, rim and pedestal) with a giant gold trophy in the
+-- middle of the spawn plaza, water jets and spray.
 local function fountain(b: Builder)
-	local radius = 9
-	b:cylinder("FountainBasin", 1.4, radius * 2, v(0, 0.7, 0), P.Cream)
-	local water = b:cylinder("FountainWater", 0.1, radius * 2 - 1.4, v(0, 1.45, 0), Color3.fromRGB(110, 190, 245), Enum.Material.Glass)
-	water.Transparency = 0.25
-	-- Rim: a ring of blocks round the edge.
-	local segments = 18
-	for i = 0, segments - 1 do
-		local a = math.rad(i * 360 / segments)
-		local width = 2 * math.pi * radius / segments + 0.3
-		b:block("FountainRim", v(width, 0.5, 1.3), CFrame.Angles(0, a, 0) * CFrame.new(0, 1.65, -radius + 0.55), P.Burgundy)
-	end
-	-- Pedestal and statue.
-	b:cylinder("StatueBase", 3.2, 6, v(0, 1.6, 0), P.Burgundy)
-	b:cylinder("StatueBand", 0.4, 6.3, v(0, 3, 0), P.Gold, METAL)
-	b:cylinder("StatueTop", 0.6, 6.6, v(0, 3.5, 0), P.Cream)
-	for _, side in { -1, 1 } do
-		local plaque = b:block("Plaque", v(3.4, 1, 0.2), CFrame.Angles(0, if side > 0 then 0 else math.pi, 0) * CFrame.new(0, 2.3, -3.05), P.Gold)
-		Build.sign(plaque, Enum.NormalId.Front, "HOLLYWOOD RNG", P.Burgundy)
-	end
+	local words: MapKit.Label = { text = "HOLLYWOOD RNG", color = P.Burgundy, stroke = 0 }
+	MapKit.place(b, "PlazaFountain", CFrame.identity, { labels = { PlaqueFront = words, PlaqueBack = words } })
 	LotModels.trophy(Build.new(b.parent, b:at(v(0, 3.8, 0)), 3.6))
 	-- Water jets round the statue.
 	for i = 0, 5 do
@@ -262,9 +211,7 @@ local function fountain(b: Builder)
 		jet.Transparency = 0.35
 		jet.CanCollide = false
 	end
-	local spray = b:block("SprayAnchor", v(1, 1, 1), v(0, 4.5, 0), P.OffWhite)
-	spray.Transparency = 1
-	spray.CanCollide = false
+	local spray = ghost(b, "SprayAnchor", v(0, 4.5, 0))
 	local drops = Instance.new("ParticleEmitter")
 	drops.Name = "Spray"
 	drops.Color = ColorSequence.new(Color3.fromRGB(200, 235, 255))
@@ -378,7 +325,6 @@ local function streets(b: Builder)
 	-- Lawns with bushes and flowers along the lot fronts, leaving the gates, the paths between the
 	-- lots and the corners clear.
 	local lawnFrom, lawnTo = 34, front - 0.5
-	local flowers = { P.Carpet, P.Gold, Color3.fromRGB(240, 140, 150), P.OffWhite }
 	for _, side in { -1, 1 } do
 		for _, span in { { -110, -86 }, { -74, -50 }, { -30, -6 }, { 6, 30 }, { 50, 74 }, { 86, 110 } } do
 			local left, right = span[1], span[2]
@@ -389,10 +335,9 @@ local function streets(b: Builder)
 			for x = left + 3, right - 2, 5 do
 				n += 1
 				if n % 2 == 1 then
-					b:ball("Bush", 2.6, v(x, 1, side * (lawnTo - 2)), P.DarkGreen, GRASS)
+					MapKit.place(b, "Bush", CFrame.new(x, 0.34, side * (lawnTo - 2)) * CFrame.Angles(0, n, 0), { scale = 0.7 })
 				else
-					b:ball("Flower", 1, v(x, 0.6, side * (lawnTo - 2.2)), flowers[(n // 2) % #flowers + 1])
-					b:ball("Flower", 0.9, v(x + 0.9, 0.55, side * (lawnTo - 3.6)), flowers[(n // 2 + 1) % #flowers + 1])
+					MapKit.place(b, "FlowerPatch", CFrame.new(x + 0.4, 0.34, side * (lawnTo - 2.8)) * CFrame.Angles(0, n, 0), { solid = false })
 				end
 			end
 		end
@@ -421,12 +366,12 @@ local function streets(b: Builder)
 		local behind = z0 - ring - 4
 		for x = -104, 104, 8 do
 			if math.abs(math.abs(x) - Lay.alleyX) > Lay.alleyWidth / 2 + 1 then
-				b:ball("Bush", 2.6, v(x, 1, sx * behind), P.DarkGreen, GRASS)
+				MapKit.place(b, "Bush", CFrame.new(x, 0, sx * behind) * CFrame.Angles(0, x, 0), { scale = 0.75 })
 			end
 		end
 		for z = front + 6, behind, 8 do
 			for _, sz in { -1, 1 } do
-				b:ball("Bush", 2.6, v(sx * (x0 - ring - 4), 1, sz * z), P.DarkGreen, GRASS)
+				MapKit.place(b, "Bush", CFrame.new(sx * (x0 - ring - 4), 0, sz * z) * CFrame.Angles(0, z, 0), { scale = 0.75 })
 			end
 		end
 	end
@@ -434,30 +379,35 @@ end
 
 -- Edge of town -----------------------------------------------------------------------------------
 
--- Hedge round the town with cream pillars, like the lots' own fences.
+-- Hedge round the town with cream pillars, like the lots' own fences (map kit HedgeSection and
+-- TownPillar).
+local function hedgeRun(b: Builder, from: Vector3, to: Vector3)
+	local delta = to - from
+	local length = delta.Magnitude
+	local sections = math.max(1, math.round(length / 10))
+	local each = length / sections
+	local turn = if math.abs(delta.X) > math.abs(delta.Z) then CFrame.identity else CFrame.Angles(0, math.pi / 2, 0)
+	for i = 0, sections - 1 do
+		local mid = from + delta * ((i + 0.5) / sections)
+		MapKit.place(b, "HedgeSection", CFrame.new(mid) * turn, { scale = each / 10 })
+	end
+end
+
 local function fence(b: Builder)
 	local fx, fz = Lay.fenceX, Lay.fenceZ
-	local h = 3
-	local function hedge(center: Vector3, size: Vector3)
-		b:block("TownHedge", v(size.X, h, size.Z), center + v(0, h / 2, 0), P.DarkGreen, GRASS)
-		b:block("TownHedgeTop", v(size.X + 0.2, 0.5, size.Z + 0.2), center + v(0, h + 0.25, 0), P.Green, GRASS)
-	end
 	-- The hedges at the boulevard's ends leave a gap for the road out to the landmarks.
 	local gap = Lay.endGap
 	for _, s in { -1, 1 } do
 		for _, sz in { -1, 1 } do
-			hedge(v(s * fx, 0, sz * (gap + fz) / 2), v(2, 0, fz - gap))
+			hedgeRun(b, v(s * fx, 0, sz * gap), v(s * fx, 0, sz * fz))
 		end
 		local half = Lay.sideGap
 		for _, sx in { -1, 1 } do
-			local length = fx + 1 - half
-			hedge(v(sx * (half + length / 2), 0, s * fz), v(length, 0, 2))
+			hedgeRun(b, v(sx * half, 0, s * fz), v(sx * (fx + 1), 0, s * fz))
 		end
 	end
 	local function pillar(x: number, z: number)
-		b:block("TownPillar", v(2.8, 4.8, 2.8), v(x, 2.4, z), P.Cream)
-		b:block("TownPillarCap", v(3.2, 0.6, 3.2), v(x, 5.1, z), P.Burgundy)
-		b:ball("TownPillarLamp", 1.2, v(x, 6, z), P.Light, NEON)
+		MapKit.place(b, "TownPillar", v(x, 0, z))
 	end
 	local count = 8
 	for i = 0, count do
@@ -484,19 +434,11 @@ local function fence(b: Builder)
 	end
 end
 
--- "HOLLYWOOD BLVD" arch over each end of the boulevard (its signs face along the boulevard).
+-- "HOLLYWOOD BLVD" arch over each end of the boulevard (map kit BoulevardArch; its signs face
+-- along the boulevard).
 local function arch(b: Builder)
-	local span = Lay.roadHalf + 3.5
-	for _, side in { -1, 1 } do
-		b:block("ArchFoot", v(3.6, 1.2, 3.6), v(0, 0.6, side * span), P.Burgundy)
-		b:block("ArchPost", v(2.6, 14, 2.6), v(0, 8.2, side * span), P.Cream)
-		b:ball("ArchLamp", 2, v(0, 17.6, side * span), P.Light, NEON)
-	end
-	b:block("ArchBeam", v(2, 1, span * 2 + 2.6), v(0, 15.6, 0), P.Burgundy)
-	b:block("ArchSignTrim", v(1, 4.8, span * 2 - 3), v(0, 12.9, 0), P.Gold)
-	local board = b:block("ArchSign", v(1.2, 4, span * 2 - 4), v(0, 12.9, 0), P.Navy)
-	Build.sign(board, Enum.NormalId.Left, "HOLLYWOOD BLVD", P.Gold)
-	Build.sign(board, Enum.NormalId.Right, "HOLLYWOOD BLVD", P.Gold)
+	local words: MapKit.Label = { text = "HOLLYWOOD BLVD", color = P.Gold, stroke = 4 }
+	MapKit.place(b, "BoulevardArch", CFrame.identity, { labels = { SignA = words, SignB = words } })
 end
 
 -- The Blender studio water tower, with "HOLLYWOOD RNG" on its sign plate.
@@ -509,30 +451,27 @@ local function waterTower(b: Builder)
 	Build.sign(plate, Enum.NormalId.Front, "HOLLYWOOD RNG", P.Burgundy)
 end
 
--- The near hills round the town: big balls sunk into the ground. The ones behind Dusty Gulch are
--- sand-colored, in the desert. (The far ring of mountains is terrain, see MapScenery.)
-local SAND = Color3.fromRGB(236, 196, 128)
+-- The near hills round the town: big low-poly balls (map kit Hill<kit>, modelled 100 across)
+-- sunk into the ground. The ones behind Dusty Gulch are sand-colored, in the desert. (The far ring
+-- of mountains is terrain, see MapScenery.)
 MapModels.Hills = table.freeze({
-	{ at = v(0, -70, 360), size = 260, color = P.Green },
-	{ at = v(-200, -80, 335), size = 190, color = P.DarkGreen },
-	{ at = v(205, -78, 330), size = 180, color = P.DarkGreen },
-	{ at = v(70, -80, -365), size = 210, color = SAND },
-	{ at = v(-130, -85, -350), size = 190, color = Color3.fromRGB(222, 170, 110) },
-	{ at = v(270, -85, 20), size = 200, color = P.Green },
-	{ at = v(-275, -85, -20), size = 200, color = P.Green },
-} :: { { at: Vector3, size: number, color: Color3 } })
+	{ at = v(0, -70, 360), size = 260, kit = "Green" },
+	{ at = v(-200, -80, 335), size = 190, kit = "Dark" },
+	{ at = v(205, -78, 330), size = 180, kit = "Dark" },
+	{ at = v(70, -80, -365), size = 210, kit = "Sand" },
+	{ at = v(-130, -85, -350), size = 190, kit = "Dust" },
+	{ at = v(270, -85, 20), size = 200, kit = "Green" },
+	{ at = v(-275, -85, -20), size = 200, kit = "Green" },
+} :: { MapScenery.Hill })
 
 local function hills(b: Builder)
-	local hillList = MapModels.Hills
-	for _, hill in hillList do
-		b:ball("Hill", hill.size, hill.at, hill.color, if hill.at.Z < MapScenery.DesertZ then Enum.Material.Sand else GRASS)
+	for _, hill in MapModels.Hills do
+		local feet = hill.at - v(0, hill.size / 2, 0)
+		MapKit.place(b, "Hill" .. hill.kit, CFrame.new(feet) * CFrame.Angles(0, hill.size, 0), { scale = hill.size / 100, far = true })
 	end
-	-- The landmark: a giant gold star sign on the big hill, leaning back into the slope.
-	local starAt = CFrame.new(Lay.hillStar) * CFrame.Angles(math.rad(-60), 0, 0)
-	local sign = b:sub(starAt)
-	sign:block("HillStar", v(24, 1.5, 24), CFrame.identity, P.Gold, NEON)
-	sign:block("HillStar", v(24, 1.5, 24), CFrame.Angles(0, math.rad(45), 0), P.Gold, NEON)
-	sign:cylinder("HillStarMiddle", 1.7, 14, CFrame.identity, P.Light, NEON)
+	-- The landmark: a giant gold star sign on the big hill, leaning back into the slope (the kit
+	-- model stands upright with the star's middle 15 up).
+	MapKit.place(b, "HillStar", CFrame.new(Lay.hillStar) * CFrame.Angles(math.rad(30), 0, 0) * CFrame.new(0, -15, 0), { far = true })
 end
 
 -- Big sound stages and the water towers outside the hedge.
@@ -596,29 +535,29 @@ local function landmarks(b: Builder)
 
 	-- Poster columns on the sidewalks.
 	local posters = {
-		{ x = -62, z = 26, title = "MONSTER\nISLAND", color = Color3.fromRGB(110, 190, 80) },
-		{ x = 62, z = 26, title = "SPACE\nCOWBOYS", color = P.Blue },
-		{ x = -62, z = -26, title = "LOVE IN\nPARIS", color = Color3.fromRGB(255, 120, 170) },
-		{ x = 62, z = -26, title = "THE LAST\nHEIST", color = P.Carpet },
+		{ x = -62, z = 26, title = "MONSTER\nISLAND", kit = "Green" },
+		{ x = 62, z = 26, title = "SPACE\nCOWBOYS", kit = "Blue" },
+		{ x = -62, z = -26, title = "LOVE IN\nPARIS", kit = "Pink" },
+		{ x = 62, z = -26, title = "THE LAST\nHEIST", kit = "Red" },
 	}
 	for _, poster in posters do
 		local face = if poster.z > 0 then CFrame.identity else CFrame.Angles(0, math.pi, 0)
-		TownSets.posterColumn(b:sub(CFrame.new(poster.x, 0.2, poster.z) * face), poster.title, poster.color)
+		TownSets.posterColumn(b:sub(CFrame.new(poster.x, 0.2, poster.z) * face), poster.title, poster.kit)
 	end
 
 	-- Street life: vintage cars parked at the boulevard's ends (the middle stays clear for the
 	-- Mystery Crate and Cash Rain coins) and on the backlot road, a bus stop, a news stand,
 	-- hydrants and bins.
 	local cars = {
-		{ x = 117.5, z = 1, color = Color3.fromRGB(32, 178, 190) },
-		{ x = -117.5, z = -1, color = Color3.fromRGB(255, 120, 170) },
-		{ x = 158, z = 1, color = P.Gold },
-		{ x = 164, z = -1, color = P.Carpet },
+		{ x = 117.5, z = 1, kit = "Teal" },
+		{ x = -117.5, z = -1, kit = "Pink" },
+		{ x = 158, z = 1, kit = "Gold" },
+		{ x = 164, z = -1, kit = "Red" },
 	}
 	for _, car in cars do
 		-- Driving on the right: +Z side heads toward -X, -Z side toward +X.
 		local yaw = if car.z > 0 then math.rad(90) else math.rad(-90)
-		TownSets.car(b:sub(CFrame.new(car.x, 0.15, car.z * 6.6) * CFrame.Angles(0, yaw, 0)), car.color)
+		TownSets.car(b:sub(CFrame.new(car.x, 0.15, car.z * 6.6) * CFrame.Angles(0, yaw, 0)), car.kit)
 	end
 	TownSets.busStop(b:sub(CFrame.new(96, 0.2, -22) * CFrame.Angles(0, math.pi, 0)))
 	TownSets.newsStand(b:sub(v(-96, 0.2, 24)))
