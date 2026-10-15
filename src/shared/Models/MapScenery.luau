@@ -132,7 +132,7 @@ end
 -- apart from `build` so tests can check where things go without building them.
 export type Spot = { name: string, at: Vector3, scale: number, yaw: number }
 
-function MapScenery.spots(walk: { Walkways.Rect }, hills: { Hill }): { Spot }
+function MapScenery.spots(walk: { Walkways.Rect }, play: { Walkways.Rect }, hills: { Hill }): { Spot }
 	local spots: { Spot } = {}
 	for gx = -REACH, REACH, SPACING do
 		for gz = -REACH, REACH, SPACING do
@@ -140,7 +140,10 @@ function MapScenery.spots(walk: { Walkways.Rect }, hills: { Hill }): { Spot }
 			local x = gx + (noise(gx, gz, 4) - 0.5) * SPACING * 0.8
 			local z = gz + (noise(gx, gz, 5) - 0.5) * SPACING * 0.8
 			local inTown = math.abs(x) < TOWN_X and math.abs(z) < TOWN_Z
-			if not inTown and x * x + z * z < REACH * REACH and clear(x, z, KEEP_CLEAR) then
+			-- Far props never collide, so none stand where players can walk (the play areas, with
+			-- room to spare so none pokes through the invisible walls).
+			local inPlay = Walkways.distance(play, x, z) < MARGIN
+			if not inTown and not inPlay and x * x + z * z < REACH * REACH and clear(x, z, KEEP_CLEAR) then
 				local name, scale = choose(x, z)
 				if name ~= nil and Walkways.distance(walk, x, z) > MARGIN + scale * 4 then
 					local y = MapScenery.groundAt(hills, x, z)
@@ -158,12 +161,12 @@ function MapScenery.spots(walk: { Walkways.Rect }, hills: { Hill }): { Spot }
 	return spots
 end
 
-function MapScenery.build(b: Builder, walk: { Walkways.Rect }, hills: { Hill })
+function MapScenery.build(b: Builder, walk: { Walkways.Rect }, play: { Walkways.Rect }, hills: { Hill })
 	local folder = Instance.new("Folder")
 	folder.Name = "Scenery"
 	folder.Parent = b.parent
 	local sb = Build.new(folder, b.base, b.scale)
-	for _, spot in MapScenery.spots(walk, hills) do
+	for _, spot in MapScenery.spots(walk, play, hills) do
 		MapKit.place(sb, spot.name, CFrame.new(spot.at) * CFrame.Angles(0, math.rad(spot.yaw), 0), { scale = spot.scale, far = true })
 	end
 	-- Sand under the desert, out to the mountains (just above the grass, so the two never

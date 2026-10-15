@@ -200,56 +200,106 @@ test("every part of the map can be walked to from spawn", function()
 	end
 end)
 
-test("invisible walls run along the path borders and never stand on a path", function()
-	local count = 0
-	for _, part in town:GetDescendants() do
-		if part.Name == "PathWall" then
-			count += 1
-			expect(part.Transparency == 1 and part.CanCollide and not part.CastShadow, `path wall {part.Transparency} {part.CanCollide} {part.CastShadow}`)
-			expect(part.Size.Y >= 100, "too tall to jump over")
-			-- The wall's middle is off the paths, and so is a point near each end.
-			local cf, size = part.CFrame, part.Size
-			for _, t in { -0.45, 0, 0.45 } do
-				local along = if size.X > size.Z then Vector3.new(size.X * t, 0, 0) else Vector3.new(0, 0, size.Z * t)
-				local p = cf.Position + along
-				expect(not walkable(p.X, p.Z), `{part.Name} at {p} stands on a path`)
-			end
+local play = MapModels.PlayAreas
+local function inPlay(x: number, z: number): boolean
+	return Walkways.isWalkable(play, x, z)
+end
+
+test("every path lies inside the playable map", function()
+	for _, r in walk do
+		for _, corner in { { r.x0, r.z0 }, { r.x1, r.z0 }, { r.x0, r.z1 }, { r.x1, r.z1 } } do
+			expect(inPlay(corner[1], corner[2]), `path corner {corner[1]}, {corner[2]} is outside the map`)
 		end
 	end
-	expect(count > 40, `only {count} path walls`)
 end)
 
-test("the paths are walled on both sides: you can't step onto the grass", function()
-	-- Just off the edge of the boulevard's sidewalk, beside a lawn, and beside the park path.
+local mapWalls = {}
+for _, part in town:GetDescendants() do
+	if part.Name == "MapWall" then
+		table.insert(mapWalls, part)
+	end
+	expect(part.Name ~= "PathWall", "no walls along the paths any more")
+end
+
+-- Is there an invisible wall within `reach` studs of (x, z)?
+local function wallNear(x: number, z: number, reach: number): boolean
+	for _, part in mapWalls do
+		local lo, hi = bounds(part)
+		if Walkways.distance({ Walkways.rect(lo.X, lo.Z, hi.X, hi.Z) }, x, z) <= reach then
+			return true
+		end
+	end
+	return false
+end
+
+test("the only invisible walls run round the outside of the map", function()
+	expect(#mapWalls >= 12, `only {#mapWalls} walls`)
+	for _, part in mapWalls do
+		expect(part.Transparency == 1 and part.CanCollide and not part.CastShadow, `wall {part.Transparency} {part.CanCollide} {part.CastShadow}`)
+		expect(part.Size.Y >= 300, "too tall to jump over")
+		local lo, hi = bounds(part)
+		local mid = (lo + hi) / 2
+		for _, p in { mid, Vector3.new(lo.X + 0.5, 0, lo.Z + 0.5), Vector3.new(hi.X - 0.5, 0, hi.Z - 0.5) } do
+			expect(not inPlay(p.X, p.Z), `wall at {p} stands inside the map`)
+		end
+	end
+	-- Lawns, grass between the paths, the park's lawns and the Gulch's desert: no wall anywhere near.
 	local e = Lay.fenceZ + 1
-	for _, probe in { { -20, 37 }, { 18, -38 }, { 0, 102 }, { 126, 60 }, { 9, e + 20 }, { -24, -e - 60 } } do
+	for _, probe in { { -20, 37 }, { 18, -38 }, { 0, 102 }, { 126, 60 }, { 9, e + 20 }, { -24, -e - 60 }, { -60, e + 40 }, { 60, -e - 100 } } do
 		local x, z = probe[1], probe[2]
-		expect(not walkable(x, z), `{x}, {z} should be off limits`)
-		-- And a wall stands between it and the nearest path.
-		local blocked = false
-		for _, part in town:GetDescendants() do
-			if part.Name == "PathWall" then
-				local lo, hi = bounds(part)
-				local d = Walkways.distance({ Walkways.rect(lo.X, lo.Z, hi.X, hi.Z) }, x, z)
-				if d <= Walkways.distance(walk, x, z) + 0.01 then
-					blocked = true
+		expect(inPlay(x, z), `{x}, {z} is part of the map`)
+		expect(not wallNear(x, z, 3), `a wall stands inside the map near {x}, {z}`)
+	end
+end)
+
+test("players can't walk off the map: walls close every way out", function()
+	-- Flood outward from spawn on a 2-stud grid through the play areas: it must stay inside, and a
+	-- wall must stand on every edge it reaches.
+	local step = 2
+	local spawn = Lay.spawn.Position
+	local seen: { [string]: boolean } = {}
+	local queue = { { math.round(spawn.X / step), math.round(spawn.Z / step) } }
+	seen[`{queue[1][1]},{queue[1][2]}`] = true
+	local head, edges, open = 1, 0, 0
+	while head <= #queue do
+		local cell = queue[head]
+		head += 1
+		for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+			local i, j = cell[1] + d[1], cell[2] + d[2]
+			local key = `{i},{j}`
+			if not seen[key] then
+				if inPlay(i * step, j * step) then
+					seen[key] = true
+					table.insert(queue, { i, j })
+				else
+					edges += 1
+					if not wallNear(i * step, j * step, step) then
+						open += 1
+					end
 				end
 			end
 		end
-		expect(blocked, `no wall between {x}, {z} and the path`)
+	end
+	expect(edges > 100, `only {edges} edge cells`)
+	equal(open, 0, "edge cells with no wall")
+	-- The whole map is one piece: spawn reaches the park, the Gulch, the theatre and the gate road.
+	local e = Lay.fenceZ + 1
+	for _, place in { { 0, e + 100 }, { 0, -e - 145 }, { Lay.theatreX - 2, 0 }, { 160, 0 }, { 120, 110 } } do
+		expect(seen[`{math.round(place[1] / step)},{math.round(place[2] / step)}`] == true, `can't reach {place[1]}, {place[2]}`)
 	end
 end)
 
 -- Scenery ----------------------------------------------------------------------------------------
 
 test("the scenery fills the background but stays off the paths", function()
-	local spots = MapScenery.spots(walk, MapModels.Hills)
+	local spots = MapScenery.spots(walk, play, MapModels.Hills)
 	expect(#spots > 250, `only {#spots} scenery props`)
 	expect(#spots < 900, `{#spots} scenery props is too many for phones`)
 	local kinds = {}
 	for _, spot in spots do
 		kinds[spot.name] = true
 		expect(Walkways.distance(walk, spot.at.X, spot.at.Z) > 7, `{spot.name} at {spot.at} is too close to a path`)
+		expect(not inPlay(spot.at.X, spot.at.Z), `{spot.name} at {spot.at} stands inside the map but never collides`)
 		if spot.at.Z < MapScenery.DesertZ then
 			expect(spot.name == "Cactus" or spot.name == "DesertRock" or spot.name == "Mesa", `{spot.name} in the desert`)
 		end

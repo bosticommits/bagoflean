@@ -53,10 +53,7 @@ MapModels.Layout = table.freeze({
 	gateX = 146,
 	-- Pass 3: a gap in the middle of the front and back hedges leads out to Dusty Gulch, the
 	-- western film town (front, -Z), and Starlight Park (back, +Z). The blimp circles the town.
-	-- Invisible walls at wallX / wallZ keep players from wandering off the map.
 	sideGap = 8,
-	wallX = 260,
-	wallZ = 290,
 	blimpHeight = 120,
 	blimpRadius = 240,
 })
@@ -654,9 +651,10 @@ local function landmarks(b: Builder)
 end
 
 -- Walkable ground ---------------------------------------------------------------------------------
--- Players walk only on the paths: the boulevard and its sidewalks, the lots, the paths between
--- and round them, the forecourt to the theatre, the road through the Studio Gate, Starlight
--- Park's walks and Dusty Gulch's street. Invisible walls (Walkways.walls) run along the borders.
+-- The paths: the boulevard and its sidewalks, the lots, the paths between and round them, the
+-- forecourt to the theatre, the road through the Studio Gate, Starlight Park's walks and Dusty
+-- Gulch's street. Everything players need stands on them, and the background scenery keeps off
+-- them. (Players may also walk on the grass: the invisible walls only run round PlayAreas.)
 
 local function walkAreas(): { Walkways.Rect }
 	local R = Walkways.rect
@@ -710,29 +708,49 @@ end
 
 MapModels.WalkAreas = table.freeze(walkAreas())
 
-local WALL_HEIGHT = 120 -- higher than anything players could jump from
-local WALL_THICK = 2
+-- The playable map: the town inside its hedge, the theatre forecourt, the road through the Studio
+-- Gate, Starlight Park and Dusty Gulch. Players walk anywhere inside (paths, lawns, grass); the
+-- only invisible walls run round the outside of all of it together, so nobody wanders off into
+-- the woods or the desert, and there are no walls inside the map.
+local function playAreas(): { Walkways.Rect }
+	local R = Walkways.rect
+	local fx, fz = Lay.fenceX + 1, Lay.fenceZ + 1 -- the outer face of the hedge
+	return {
+		R(-fx, -fz, fx, fz), -- the town, inside the hedge
+		R(Lay.theatreX - 8.5, -30, -fx, 30), -- the theatre forecourt, its palms and flower beds
+		R(fx, -30, 176, 30), -- the Studio Gate road up to the sound stage door
+		R(-108, fz, 108, fz + 128), -- Starlight Park, to its ranch fences and the movie screen
+		R(-86, -fz - 158, 86, -fz), -- Dusty Gulch and its desert edges
+	}
+end
 
--- The invisible walls: one along each straight stretch of the walkable ground's border, standing
--- just outside it, and a last ring round the whole map in case anything is missed.
+MapModels.PlayAreas = table.freeze(playAreas())
+
+local WALL_HEIGHT = 400 -- far higher than anything players could jump from
+local WALL_THICK = 4
+
+-- The invisible walls: one along each straight stretch of the play areas' outline, standing just
+-- outside it, and a square post filling each outside corner where two walls meet.
 local function walls(b: Builder)
-	for _, wall in Walkways.walls(MapModels.WalkAreas) do
+	local y = WALL_HEIGHT / 2 - 1
+	local half = WALL_THICK / 2
+	for _, wall in Walkways.walls(MapModels.PlayAreas) do
 		local length = (wall.b - wall.a).Magnitude
 		local mid = (wall.a + wall.b) / 2
-		local size, at
 		if wall.alongX then
-			size = v(length, WALL_HEIGHT, WALL_THICK)
-			at = v(mid.X, WALL_HEIGHT / 2 - 1, mid.Y + wall.out * WALL_THICK / 2)
+			b:block("MapWall", v(length, WALL_HEIGHT, WALL_THICK), v(mid.X, y, mid.Y + wall.out * half), P.Grey)
 		else
-			size = v(WALL_THICK, WALL_HEIGHT, length)
-			at = v(mid.X + wall.out * WALL_THICK / 2, WALL_HEIGHT / 2 - 1, mid.Y)
+			b:block("MapWall", v(WALL_THICK, WALL_HEIGHT, length), v(mid.X + wall.out * half, y, mid.Y), P.Grey)
 		end
-		b:block("PathWall", size, at, P.Grey)
-	end
-	local x, z, h = Lay.wallX, Lay.wallZ, 400
-	for _, s in { -1, 1 } do
-		b:block("MapWall", v(4, h, z * 2 + 8), v(s * (x + 2), h / 2, 0), P.Grey)
-		b:block("MapWall", v(x * 2 + 8, h, 4), v(0, h / 2, s * (z + 2)), P.Grey)
+		for _, endInfo in { { at = wall.a, beyond = -1 }, { at = wall.b, beyond = 1 } } do
+			local p = endInfo.at
+			local corner = if wall.alongX
+				then Vector2.new(p.X + endInfo.beyond * half, p.Y + wall.out * half)
+				else Vector2.new(p.X + wall.out * half, p.Y + endInfo.beyond * half)
+			if not Walkways.isWalkable(MapModels.PlayAreas, corner.X, corner.Y) then
+				b:block("MapWall", v(WALL_THICK, WALL_HEIGHT, WALL_THICK), v(corner.X, y, corner.Y), P.Grey)
+			end
+		end
 	end
 end
 
@@ -846,7 +864,7 @@ function MapModels.build(parent: Instance): Built
 	hills(b)
 	landmarks(b)
 	walls(b)
-	MapScenery.build(b, MapModels.WalkAreas, MapModels.Hills)
+	MapScenery.build(b, MapModels.WalkAreas, MapModels.PlayAreas, MapModels.Hills)
 
 	local stands = {}
 	for _, info in MapModels.Stands do
@@ -855,7 +873,7 @@ function MapModels.build(parent: Instance): Built
 
 	for _, part in parent:GetDescendants() do
 		if part:IsA("BasePart") then
-			if part.Name == "MapWall" or part.Name == "PathWall" then
+			if part.Name == "MapWall" then
 				part.Transparency = 1
 				part.CastShadow = false
 				part.CanQuery = false

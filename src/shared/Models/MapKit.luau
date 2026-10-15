@@ -13,7 +13,7 @@ local MapKit = {}
 
 export type Options = {
 	scale: number?, -- 1 = the size it was modelled at
-	solid: boolean?, -- players bump into it (default: walk through, for far scenery)
+	solid: boolean?, -- players bump into it (default: yes, unless it is far scenery)
 	light: { range: number, brightness: number, color: Color3 }?, -- a PointLight where it glows
 	far: boolean?, -- far scenery: no shadow, never collides or blocks clicks
 }
@@ -88,7 +88,7 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 			p.CanTouch = false
 			p.CastShadow = false
 		else
-			p.CanCollide = opts.solid == true
+			p.CanCollide = opts.solid ~= false
 			p.CanTouch = false
 		end
 	end
