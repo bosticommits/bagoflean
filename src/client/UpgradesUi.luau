@@ -54,12 +54,14 @@ end
 
 -- Board colors, from the reference: amber nodes, deeper brown "?" nodes, blue owned nodes, orange
 -- arrows and a green title.
-local AMBER_TOP = Color3.fromRGB(240, 178, 70)
-local AMBER = Color3.fromRGB(196, 126, 44)
-local HIDDEN = Color3.fromRGB(128, 82, 38)
-local OWNED = Color3.fromRGB(92, 96, 222)
-local ARROW = Color3.fromRGB(236, 146, 52)
-local TITLE_GREEN = Color3.fromRGB(150, 230, 92)
+-- Saturated on purpose: under the dimmed world, softer colors read as pale.
+local AMBER_TOP = Color3.fromRGB(255, 188, 46)
+local AMBER = Color3.fromRGB(232, 140, 28)
+local HIDDEN = Color3.fromRGB(150, 88, 34)
+local OWNED = Color3.fromRGB(76, 92, 242)
+local ARROW = Color3.fromRGB(255, 152, 38)
+local TITLE_GREEN = Color3.fromRGB(132, 236, 72)
+local TITLE_GREEN_DEEP = Color3.fromRGB(58, 176, 40)
 local PRICE_RED = Color3.fromRGB(255, 128, 116)
 
 -- Board geometry, in unzoomed pixels.
@@ -124,11 +126,22 @@ local function bevel(frame: GuiObject)
 	shade.Rotation = 90
 	shade.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-		ColorSequenceKeypoint.new(0.78, Color3.fromRGB(225, 225, 225)),
-		ColorSequenceKeypoint.new(0.82, Color3.fromRGB(170, 170, 170)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 160, 160)),
+		ColorSequenceKeypoint.new(0.68, Color3.fromRGB(238, 238, 238)),
+		ColorSequenceKeypoint.new(0.72, Color3.fromRGB(165, 165, 165)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(138, 138, 138)),
 	})
 	shade.Parent = frame
+	-- A glossy strip along the top, like the reference buttons.
+	local shine = Instance.new("Frame")
+	shine.Name = "Shine"
+	shine.BorderSizePixel = 0
+	shine.BackgroundColor3 = Color3.new(1, 1, 1)
+	shine.BackgroundTransparency = 0.68
+	shine.Position = UDim2.new(0, 14, 0, 5)
+	shine.Size = UDim2.new(1, -28, 0, 7)
+	shine.ZIndex = frame.ZIndex + 1
+	shine.Parent = frame
+	UiKit.corner(shine, 4)
 end
 
 -- Orange connector line from (x1, y1) to (x2, y2) (straight across or straight down), with an
@@ -138,20 +151,22 @@ local function line(parent: Instance, x1: number, y1: number, x2: number, y2: nu
 	bar.Name = "Arrow"
 	bar.BorderSizePixel = 0
 	bar.BackgroundColor3 = ARROW
-	bar.Position = UDim2.fromOffset(math.min(x1, x2) - 2, math.min(y1, y2) - 2)
-	bar.Size = UDim2.fromOffset(math.abs(x2 - x1) + 5, math.abs(y2 - y1) + 5)
+	bar.Position = UDim2.fromOffset(math.min(x1, x2) - 4, math.min(y1, y2) - 4)
+	bar.Size = UDim2.fromOffset(math.abs(x2 - x1) + 8, math.abs(y2 - y1) + 8)
 	bar.Parent = parent
-	UiKit.corner(bar, 2)
+	UiKit.corner(bar, 3)
+	UiKit.border(bar, 2)
 	if head then
 		local tip = Instance.new("Frame")
 		tip.Name = "Head"
 		tip.BorderSizePixel = 0
 		tip.BackgroundColor3 = ARROW
 		tip.AnchorPoint = Vector2.new(0.5, 0.5)
-		tip.Position = UDim2.fromOffset(x2, y2 - 5)
-		tip.Size = UDim2.fromOffset(12, 12)
+		tip.Position = UDim2.fromOffset(x2, y2 - 6)
+		tip.Size = UDim2.fromOffset(16, 16)
 		tip.Rotation = 45
 		tip.Parent = parent
+		UiKit.border(tip, 2)
 	end
 end
 
@@ -208,6 +223,7 @@ type Node = {
 	price: TextLabel,
 	unknown: TextLabel,
 	art: Frame,
+	halo: Frame,
 	hasIcon: boolean,
 }
 
@@ -225,7 +241,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	local screen = Instance.new("Frame")
 	screen.Name = "UpgradeTree"
 	screen.BackgroundColor3 = Color3.fromRGB(8, 10, 22)
-	screen.BackgroundTransparency = 0.35
+	screen.BackgroundTransparency = 0.18
 	screen.BorderSizePixel = 0
 	screen.Size = UDim2.fromScale(1, 1)
 	screen.Visible = false
@@ -233,10 +249,28 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	screen.Active = true -- taps on the board don't reach the world
 	screen.Parent = gui
 	UiKit.addExclusive(screen)
+	-- Darker at the top and bottom, so the board in the middle stands out.
+	local vignette = Instance.new("UIGradient")
+	vignette.Rotation = 90
+	vignette.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.25, 0.25),
+		NumberSequenceKeypoint.new(0.75, 0.25),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	vignette.Parent = screen
 
-	local title = makeTitle(screen, "UPGRADE TREE", TITLE_GREEN, UDim2.new(0.7, 0, 0, 52), UDim2.new(0.15, 0, 0, 8), 4)
+	-- Chunky title: light-to-deep green letters, a thick dark outline and a drop shadow.
+	local titleShadow = makeTitle(screen, "UPGRADE TREE", UiKit.INK, UDim2.new(0.7, 0, 0, 52), UDim2.new(0.15, 0, 0, 13), 5)
+	titleShadow.ZIndex = 3
+	UiKit.textConstraint(titleShadow, 58)
+	local title = makeTitle(screen, "UPGRADE TREE", Color3.new(1, 1, 1), UDim2.new(0.7, 0, 0, 52), UDim2.new(0.15, 0, 0, 8), 5)
 	title.ZIndex = 3
-	UiKit.textConstraint(title, 54)
+	UiKit.textConstraint(title, 58)
+	local titleFill = Instance.new("UIGradient")
+	titleFill.Rotation = 90
+	titleFill.Color = ColorSequence.new(TITLE_GREEN, TITLE_GREEN_DEEP)
+	titleFill.Parent = title
 	-- Gold stars either side of the title, like a premiere marquee.
 	local titleStars: { Frame } = {}
 	for _, side in { -1, 1 } do
@@ -251,7 +285,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		Icon3D.outlined(star, "star")
 		table.insert(titleStars, star)
 	end
-	local subtitle = makeTitle(screen, "Grow Your Studio to Boost Luck and Box Office", UiKit.WHITE, UDim2.new(0.7, 0, 0, 22), UDim2.new(0.15, 0, 0, 60), 2)
+	local subtitle = makeTitle(screen, "Grow Your Studio to Boost Luck and Box Office", UiKit.WHITE, UDim2.new(0.7, 0, 0, 22), UDim2.new(0.15, 0, 0, 60), 3)
 	subtitle.ZIndex = 3
 	UiKit.textConstraint(subtitle, 22)
 	local statsLabel = makeLabel(screen, "", UiKit.MUTED, UDim2.new(0.7, 0, 0, 18), UDim2.new(0.15, 0, 0, 84))
@@ -364,6 +398,8 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		local headerHeight = if compact then 70 else 108
 		title.Size = UDim2.new(0.7, 0, 0, if compact then 36 else 52)
 		title.Position = UDim2.new(0.15, 0, 0, if compact then 4 else 8)
+		titleShadow.Size = title.Size
+		titleShadow.Position = title.Position + UDim2.fromOffset(0, if compact then 3 else 5)
 		local starSize = if compact then 36 else 54
 		for _, star in titleStars do
 			star.Size = UDim2.fromOffset(starSize, starSize)
@@ -428,9 +464,33 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		tile.Size = UDim2.fromOffset(NODE, NODE)
 		tile.BackgroundColor3 = HIDDEN
 		tile.ZIndex = 3
+		-- Soft drop shadow and (for nodes you can buy) a gold halo, both behind the node.
+		local shadow = Instance.new("Frame")
+		shadow.Name = "Shadow"
+		shadow.BorderSizePixel = 0
+		shadow.BackgroundColor3 = UiKit.INK
+		shadow.BackgroundTransparency = 0.35
+		shadow.AnchorPoint = Vector2.new(0.5, 0)
+		shadow.Position = UDim2.fromOffset(x, y + 7)
+		shadow.Size = UDim2.fromOffset(NODE, NODE)
+		shadow.ZIndex = 2
+		shadow.Parent = content
+		UiKit.corner(shadow, 16)
+		local halo = Instance.new("Frame")
+		halo.Name = "Halo"
+		halo.BorderSizePixel = 0
+		halo.BackgroundColor3 = UiKit.GOLD
+		halo.BackgroundTransparency = 0.45
+		halo.AnchorPoint = Vector2.new(0.5, 0.5)
+		halo.Position = UDim2.fromOffset(x, y + NODE / 2)
+		halo.Size = UDim2.fromOffset(NODE + 18, NODE + 18)
+		halo.Visible = false
+		halo.ZIndex = 2
+		halo.Parent = content
+		UiKit.corner(halo, 22)
 		tile.Parent = content
 		UiKit.corner(tile, 14)
-		UiKit.border(tile, 4)
+		UiKit.border(tile, 5)
 		bevel(tile)
 		sprockets(tile)
 		local art = Instance.new("Frame")
@@ -441,16 +501,16 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		art.Size = UDim2.fromOffset(NODE - 26, NODE - 26)
 		art.ZIndex = 4
 		art.Parent = tile
-		local price = makeTitle(tile, "", UiKit.CASH_GREEN, UDim2.new(1, -8, 0, 24), UDim2.new(0, 4, 1, -28), 2)
-		price.ZIndex = 5
-		local unknown = makeTitle(tile, "?", UiKit.WHITE, UDim2.fromScale(0.7, 0.7), UDim2.fromScale(0.15, 0.12), 3)
+		local price = makeTitle(tile, "", UiKit.CASH_GREEN, UDim2.new(1, -6, 0, 26), UDim2.new(0, 3, 1, -29), 2.5)
+		price.ZIndex = 6
+		local unknown = makeTitle(tile, "?", UiKit.WHITE, UDim2.fromScale(0.7, 0.7), UDim2.fromScale(0.15, 0.12), 4)
 		unknown.ZIndex = 5
 		UiKit.textConstraint(unknown, 64)
-		local name = makeTitle(content, "", UiKit.WHITE, UDim2.fromOffset(COLUMN - 6, 26), UDim2.fromOffset(x - (COLUMN - 6) / 2, y - 22), 2.5)
+		local name = makeTitle(content, "", UiKit.WHITE, UDim2.fromOffset(COLUMN - 6, 28), UDim2.fromOffset(x - (COLUMN - 6) / 2, y - 24), 3)
 		name.ZIndex = 6 -- overlaps the node's top edge, like the reference
-		UiKit.textConstraint(name, 24)
+		UiKit.textConstraint(name, 26)
 		marksPress(tile)
-		return { tile = tile, name = name, price = price, unknown = unknown, art = art, hasIcon = false }
+		return { tile = tile, name = name, price = price, unknown = unknown, art = art, halo = halo, hasIcon = false }
 	end
 
 	-- The studio: the root every chain branches from.
@@ -474,7 +534,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	-- The card next to a tapped node: what that level gives and its Buy button.
 	local card = Instance.new("Frame")
 	card.Name = "Card"
-	card.Size = UDim2.fromOffset(250, 170)
+	card.Size = UDim2.fromOffset(256, 172)
 	card.BackgroundColor3 = UiKit.NAVY
 	card.Visible = false
 	card.ZIndex = 10
@@ -483,13 +543,30 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	marksPress(card)
 	UiKit.corner(card, 14)
 	UiKit.border(card, 4)
-	local cardTitle = makeTitle(card, "", UiKit.WHITE, UDim2.new(1, -20, 0, 30), UDim2.fromOffset(10, 8))
-	cardTitle.ZIndex = 11
-	local cardNow = makeLabel(card, "", UiKit.MUTED, UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 42))
+	-- Burgundy title band across the top, like the other windows' title bars.
+	local band = Instance.new("Frame")
+	band.Name = "Band"
+	band.BorderSizePixel = 0
+	band.BackgroundColor3 = UiKit.BURGUNDY
+	band.Size = UDim2.new(1, 0, 0, 40)
+	band.ZIndex = 10
+	band.Parent = card
+	UiKit.corner(band, 12)
+	local bandEdge = Instance.new("Frame")
+	bandEdge.BorderSizePixel = 0
+	bandEdge.BackgroundColor3 = UiKit.INK
+	bandEdge.AnchorPoint = Vector2.new(0, 1)
+	bandEdge.Position = UDim2.fromScale(0, 1)
+	bandEdge.Size = UDim2.new(1, 0, 0, 3)
+	bandEdge.ZIndex = 11
+	bandEdge.Parent = band
+	local cardTitle = makeTitle(card, "", UiKit.WHITE, UDim2.new(1, -20, 0, 30), UDim2.fromOffset(10, 5), 3)
+	cardTitle.ZIndex = 12
+	local cardNow = makeLabel(card, "", UiKit.MUTED, UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 48))
 	cardNow.ZIndex = 11
-	local cardNext = makeLabel(card, "", UiKit.CASH_GREEN, UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 66))
+	local cardNext = makeLabel(card, "", UiKit.CASH_GREEN, UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 72))
 	cardNext.ZIndex = 11
-	local cardButton = makeButton(card, "", UiKit.GREEN, UDim2.new(1, -20, 0, 50), UDim2.fromOffset(10, 106))
+	local cardButton = makeButton(card, "", UiKit.GREEN, UDim2.new(1, -20, 0, 50), UDim2.fromOffset(10, 108))
 	cardButton.ZIndex = 11
 	marksPress(cardButton)
 
@@ -577,6 +654,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 				UiKit.pulse(tile, 1.07)
 			end
 		end
+		node.halo.Visible = state == "buy"
 	end
 
 	-- Places the card beside the selected node (on the left for the right-hand chains).
