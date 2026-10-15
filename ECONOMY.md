@@ -294,22 +294,32 @@ the pace.
 ## Mascot buffs
 
 Each studio mascot gives one small buff, and only the one a player has out counts
-(`src/shared/Mascots.luau`): Popcorn Pup +5% movie Cash, Clapper Croc films 10% faster, Reel Kitty
-x1.1 casting Luck, Camera Bot +15% box office, Spotlight Owl x1.2 casting Luck and Premiere Dragon
-+20% movie Cash. Every kind has a hard cap (`Mascots.Caps`: Cash +20%, Luck x1.2, filming 10%,
-box office +15%) that tests keep under the Robux pass doing the same job (x2 Luck, 25% faster
-filming). Cash is added after Fame is worked out, like the rebirth bonus, so Fame unlocks do not
-move. Rewards paid as "minutes of box office" follow the boosted rate, as the screens show it. A
-buff only works 30 seconds after equipping, so swapping mascots
-between casting and premiering cannot collect two buffs; mascots are earned, never sold.
+(`src/shared/Mascots.luau`). The Popcorn Pup is free; the rest are bought once with Cash and kept
+through rebirths (never sold for Robux):
 
-The sim's `--mascots` option keeps the strongest earned mascot of one kind out (the pup until
-then). Typical player, 150 runs, end of week one: no buffs $117,966/min, Cash mascots $157,321
-(+33%), Luck mascots $145,791 (+24%), box office $135,157 (+15%), speed $125,329 (+6%). Cash
-compounds: buying upgrades sooner brings the first rebirth from 71 to 63 minutes played. Legend in
-week one stays at 69 to 74% and Icon at 3 to 7% in every setup (run-to-run noise). For scale, the
-2x Luck pass adds about 80%. If every cap applied at once (what stacking would do) a typical player
-would earn about 64% more on top of the base, which is why only one mascot counts.
+| Mascot | Price | Buff | Typical player buys it (sim median) |
+|---|---|---|---|
+| Popcorn Pup | free | +5% movie Cash | from the start |
+| Clapper Croc | $5,000 | films 10% faster | day 1, 15 min played |
+| Reel Kitty | $25,000 | x1.1 casting Luck | day 1, 20 min |
+| Camera Bot | $75,000 | +15% box office | day 2, 60 min |
+| Spotlight Owl | $1,000,000 | x1.2 casting Luck | day 3, 120 min |
+| Premiere Dragon | $5,000,000 | +20% movie Cash | day 4, 150 min (casual: day 6) |
+
+Every kind has a hard cap (`Mascots.Caps`: Cash +20%, Luck x1.2, filming 10%, box office +15%)
+that tests keep under the Robux pass doing the same job (x2 Luck, 25% faster filming). Cash is
+added after Fame is worked out, like the rebirth bonus, so Fame unlocks do not move. Rewards paid
+as "minutes of box office" follow the boosted rate, as the screens show it. A buff only works 30
+seconds after equipping, so swapping mascots between casting and premiering cannot collect two.
+
+The sim's `--mascots` player buys the mascots of one kind as it buys upgrades (never while saving
+for a rebirth) and keeps the best one out. Typical player, 150 runs, end of week one: no mascot
+buffs $117,966/min; Cash (Pup, then Dragon) $153,235 (+30%); box office $132,347 (+12%); Luck
+$127,583 (+8%); speed $122,253 (+4%). Casual player: $33,305 against $40,680 with the Dragon
+(+22%). Rebirth 1 stays within a few minutes of 70 minutes played, and Legend in week one stays
+at 68 to 76% (typical) and 9 to 11% (casual), within run-to-run noise. For scale, the 2x Luck
+pass adds about 80%. If every cap applied at once (what stacking would do) a typical player would
+earn about 64% more, which is why only one mascot counts.
 
 ## What to watch in playtests
 
