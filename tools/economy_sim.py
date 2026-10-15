@@ -585,6 +585,10 @@ class Player:
             return len(self.index)
         if stat == "actors":
             return len({k.split(":")[0] for k in self.index})
+        if stat == "stages":
+            return self.stage_count
+        if stat.startswith("upgrade:"):
+            return self.upgrades.get(stat[8:], 0)
         if stat.startswith("tier:"):
             return sum(1 for k in self.index if self.g.actor[k.split(":")[0]]["tier"] == stat[5:])
         if stat.startswith("variant:"):
