@@ -6,15 +6,21 @@ package and Lune, like the store art:
       art/preview/map_shots.py [shot ...]
 
 Writes $STORE_OUT/map/<shot>.png (default /tmp/store). Set STORE_SAMPLES / STORE_SCALE to trade
-quality for time. Text on signs is not drawn.
+quality for time. Text on signs is not drawn. Map kit models are drawn as their real Blender
+meshes (art/blender/map_kit.py), as players see them once map_kit.fbx is imported.
 """
 
 import os
 import sys
 
+import bpy
+from mathutils import Matrix
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "blender", "store"))
+sys.path.insert(0, os.path.join(HERE, "..", "blender"))
 import kit  # noqa: E402
+import map_kit  # noqa: E402
 
 # Shots in Roblox coordinates: camera position, target, lens.
 SHOTS = {
@@ -47,12 +53,35 @@ def roblox(p):
     return (-x, z, y)
 
 
+def place_kit(records):
+    """Draw each map kit model as its real Blender mesh (what players see once map_kit.fbx is
+    imported), one shared mesh per model, placed and scaled like the game does."""
+    builders = dict(map_kit.full_kit()[0])
+    meshes = {}
+    flip = Matrix(((-1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))  # Roblox <-> Blender
+    coll = bpy.context.scene.collection
+    for r in records:
+        name = r["kit"]
+        if name not in meshes:
+            obj, _ = map_kit.build(name, builders[name])
+            coll.objects.unlink(obj)
+            meshes[name] = obj.data
+        c = r["cframe"]
+        cf = Matrix(((c[3], c[4], c[5], c[0]), (c[6], c[7], c[8], c[1]), (c[9], c[10], c[11], c[2]), (0, 0, 0, 1)))
+        inst = bpy.data.objects.new(name, meshes[name])
+        coll.objects.link(inst)
+        inst.matrix_world = flip @ cf @ Matrix.Scale(r["scale"] / map_kit.STUD, 4) @ flip
+    print(f"{len(records)} kit models ({len(meshes)} kinds)")
+
+
 def main(names):
-    parts = [p for p in kit.dump("map") if p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
+    dumped = kit.dump("map")
+    parts = [p for p in dumped if p["shape"] != "Kit" and p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
     kit.new_scene(1280, 720, samples=48)
     kit.sky(top="#4A86E0", middle="#8FBDF2", horizon="#F4E6CF", glow="#FFD9A8", strength=1.0, light_strength=0.8)
     kit.light("SUN", (0, 0, 100), 3.2, "#FFF1DC", target=(-40, -60, 0), angle=4, name="Sun")
     kit.import_parts(parts, "Town", bevel=0.05)
+    place_kit([p for p in dumped if p["shape"] == "Kit"])
     out = os.path.join(kit.OUT, "map")
     for name in names or SHOTS:
         location, target, lens = SHOTS[name]

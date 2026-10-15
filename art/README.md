@@ -15,7 +15,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
 | `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |
 | `src/shared/Models/Walkways.luau` | Where players may walk, and the invisible walls along the path borders |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), and `map_kit` (22 map models in one file: street, park and western lamps, trees, cacti, rocks, mesas, the water towers, the bandstand, benches and Dusty Gulch's eight buildings; it also writes `src/shared/Models/MapKitShapes.luau`) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), and `map_kit` (75 map models in one file: street, park and western lamps, trees, cacti, rocks, mesas, the water towers, the bandstand, benches and Dusty Gulch's eight buildings, plus, from `map_kit_town.py`, the theatre, the Studio Gate, the fountains and arches, the movie screen, cars, street furniture, the film sets' props, the low-poly hills and mountains, grass, flowers, clouds, gulls and butterflies; it also writes `src/shared/Models/MapKitShapes.luau`) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -44,11 +44,21 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   forecourt, the Studio Gate road, Starlight Park's walks and Dusty Gulch's street, and nowhere
   else. Invisible walls (`PathWall`) run along every border (`MapModels.WalkAreas` lists the
   walkable ground; add a rectangle there to open up a new area).
-- **Map kit** (`art/blender/map_kit.py`): the street lamps, park lamps, Gulch lanterns, park
-  trees, bandstand and benches, both water towers and all eight Gulch buildings are Blender models.
+- **Map kit** (`art/blender/map_kit.py` and `map_kit_town.py`): everything on the map apart from
+  the lots, the store stands and the ground is a low-poly Blender model: lamps, trees, the
+  bandstand, water towers and Gulch buildings, the Grand Premiere Theatre, the Studio Gate, both
+  fountains, the park and Gulch arches, the movie screen, the bridge, the cars, bus stop, news
+  stand, poster columns, hydrants and bins, every film set prop, the wagon, barrels and hay, and
+  the ducks. Signs are blank on the models; the game writes their words on a see-through board in
+  front. Big ones players walk round or onto (theatre steps, gate, bridge, bandstand floor) have
+  plain invisible blocks to bump into, which walk better than a mesh's outline.
 - **Scenery**: woods of trees, pines and bushes round the town and behind the park, a desert of
-  cacti, boulders and mesas behind Dusty Gulch, trees up the hills, and a ring of terrain
-  mountains (snowy peaks, sandstone mesas behind the Gulch) on the horizon.
+  cacti, boulders and mesas behind Dusty Gulch, trees up faceted low-poly hills, grass tufts,
+  flower clumps and mossy boulders on the lawns near the paths, and a ring of low-poly mountains
+  (snowy peaks, sandstone mesas behind the Gulch) on the horizon.
+- **Life** (`src/client/MapLife.luau`, on each player's screen): clouds drift across the sky,
+  gulls circle over the town, the park and the Gulch, butterflies flit over the park's flower
+  beds and the pond's ducks paddle slow circles.
 - **Lighting**: `Future` lighting (set in `default.project.json`, so Rojo sets it when it
   connects; without Rojo, set Lighting > Technology to Future by hand), a late-afternoon golden
   sun, warm haze, sun rays and bloom (`MapService`), a warm light in every lamp and lantern, and a
@@ -65,7 +75,7 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 1. Build the FBX files on your Mac, from the repo folder:
    `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate mascots map_kit; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
    This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` six,
-   `map_kit` one file holding all 22 map models).
+   `map_kit` one file holding all 75 map models).
 2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
 3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
 4. In the Explorer, open that Model, find its MeshPart, and:

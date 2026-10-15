@@ -62,6 +62,13 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 
 	local mesh = Build.mesh(g, name, CFrame.new(bounds.center.X * scale, 0, bounds.center.Z * scale), bounds.size.Y * scale)
 	local parts: { BasePart } = {}
+	if (game :: any) == nil then
+		-- Outside Roblox (the preview renders in art/preview): say which kit model this is and
+		-- where, so the preview can draw the real Blender mesh in place of the parts.
+		model:SetAttribute("Kit", name)
+		model:SetAttribute("KitScale", scale * g.scale)
+		model:SetAttribute("KitCFrame", g.base)
+	end
 	if mesh ~= nil then
 		mesh.Name = "Mesh"
 		-- The baked vertex colors show on white.
@@ -120,6 +127,17 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 		light.Parent = holder
 	end
 	return model
+end
+
+-- Whether model `name`'s Blender mesh is imported (in ReplicatedStorage.LotMeshes). Outside Roblox
+-- (tests, previews) it says yes, so they see everything the game will build.
+function MapKit.meshed(name: string): boolean
+	local dataModel = (game :: any) :: DataModel?
+	if dataModel == nil then
+		return true
+	end
+	local folder = dataModel:GetService("ReplicatedStorage"):FindFirstChild("LotMeshes")
+	return folder ~= nil and folder:FindFirstChild(name, true) ~= nil
 end
 
 -- Kit model names, for tests and previews.

@@ -223,11 +223,7 @@ end
 -- Plaza ------------------------------------------------------------------------------------------
 
 local function bench(b: Builder)
-	b:block("BenchSeat", v(5, 0.4, 1.6), v(0, 1.3, 0), P.Wood)
-	b:block("BenchBack", v(5, 1.4, 0.3), v(0, 2.2, 0.75), P.Wood)
-	for _, x in { -2, 2 } do
-		b:block("BenchLeg", v(0.4, 1.1, 1.6), v(x, 0.55, 0), P.Charcoal, METAL)
-	end
+	MapKit.place(b, "ParkBench", CFrame.identity, { solid = true })
 end
 
 local function planter(b: Builder, palmHeight: number)
@@ -236,25 +232,23 @@ local function planter(b: Builder, palmHeight: number)
 	LotModels.palm(b:sub(v(0, 1, 0)), palmHeight, 7)
 end
 
--- Fountain with a giant gold trophy in the middle of the spawn plaza.
+-- Fountain with a giant gold trophy in the middle of the spawn plaza: the stone is the Blender kit's
+-- PlazaFountain; the water, the jets and the spray stay parts (see-through and moving).
 local function fountain(b: Builder)
 	local radius = 9
-	b:cylinder("FountainBasin", 1.4, radius * 2, v(0, 0.7, 0), P.Cream)
+	MapKit.place(b, "PlazaFountain", CFrame.identity)
+	-- One round block to bump into round the basin, and one for the pedestal.
+	for _, info in { { d = radius * 2 + 0.6, h = 2, y = 1 }, { d = 6.8, h = 3.8, y = 1.9 } } do
+		local block = b:cylinder("Blocker", info.h, info.d, v(0, info.y, 0), P.Grey)
+		block.Transparency = 1
+		block.CastShadow = false
+	end
 	local water = b:cylinder("FountainWater", 0.1, radius * 2 - 1.4, v(0, 1.45, 0), Color3.fromRGB(110, 190, 245), Enum.Material.Glass)
 	water.Transparency = 0.25
-	-- Rim: a ring of blocks round the edge.
-	local segments = 18
-	for i = 0, segments - 1 do
-		local a = math.rad(i * 360 / segments)
-		local width = 2 * math.pi * radius / segments + 0.3
-		b:block("FountainRim", v(width, 0.5, 1.3), CFrame.Angles(0, a, 0) * CFrame.new(0, 1.65, -radius + 0.55), P.Burgundy)
-	end
-	-- Pedestal and statue.
-	b:cylinder("StatueBase", 3.2, 6, v(0, 1.6, 0), P.Burgundy)
-	b:cylinder("StatueBand", 0.4, 6.3, v(0, 3, 0), P.Gold, METAL)
-	b:cylinder("StatueTop", 0.6, 6.6, v(0, 3.5, 0), P.Cream)
 	for _, side in { -1, 1 } do
-		local plaque = b:block("Plaque", v(3.4, 1, 0.2), CFrame.Angles(0, if side > 0 then 0 else math.pi, 0) * CFrame.new(0, 2.3, -3.05), P.Gold)
+		local plaque = b:block("Plaque", v(3.4, 1, 0.05), CFrame.Angles(0, if side > 0 then 0 else math.pi, 0) * CFrame.new(0, 2.3, -3.15), P.Gold)
+		plaque.Transparency = 1
+		plaque.CanCollide = false
 		Build.sign(plaque, Enum.NormalId.Front, "HOLLYWOOD RNG", P.Burgundy)
 	end
 	LotModels.trophy(Build.new(b.parent, b:at(v(0, 3.8, 0)), 3.6))
@@ -512,23 +506,25 @@ local function waterTower(b: Builder)
 	Build.sign(plate, Enum.NormalId.Front, "HOLLYWOOD RNG", P.Burgundy)
 end
 
--- The near hills round the town: big balls sunk into the ground. The ones behind Dusty Gulch are
--- sand-colored, in the desert. (The far ring of mountains is terrain, see MapScenery.)
-local SAND = Color3.fromRGB(236, 196, 128)
+-- The near hills round the town: big low-poly balls (Blender kit Hill, HillDark, HillSand, their
+-- facets in a few shades) sunk into the ground. The ones behind Dusty Gulch are sand-colored, in
+-- the desert. (The far ring of mountains is in MapScenery.)
 MapModels.Hills = table.freeze({
-	{ at = v(0, -70, 360), size = 260, color = P.Green },
-	{ at = v(-200, -80, 335), size = 190, color = P.DarkGreen },
-	{ at = v(205, -78, 330), size = 180, color = P.DarkGreen },
-	{ at = v(70, -80, -365), size = 210, color = SAND },
-	{ at = v(-130, -85, -350), size = 190, color = Color3.fromRGB(222, 170, 110) },
-	{ at = v(270, -85, 20), size = 200, color = P.Green },
-	{ at = v(-275, -85, -20), size = 200, color = P.Green },
-} :: { { at: Vector3, size: number, color: Color3 } })
+	{ at = v(0, -70, 360), size = 260, kit = "Hill" },
+	{ at = v(-200, -80, 335), size = 190, kit = "HillDark" },
+	{ at = v(205, -78, 330), size = 180, kit = "HillDark" },
+	{ at = v(70, -80, -365), size = 210, kit = "HillSand" },
+	{ at = v(-130, -85, -350), size = 190, kit = "HillSand" },
+	{ at = v(270, -85, 20), size = 200, kit = "Hill" },
+	{ at = v(-275, -85, -20), size = 200, kit = "Hill" },
+} :: { MapScenery.Hill })
 
 local function hills(b: Builder)
 	local hillList = MapModels.Hills
-	for _, hill in hillList do
-		b:ball("Hill", hill.size, hill.at, hill.color, if hill.at.Z < MapScenery.DesertZ then Enum.Material.Sand else GRASS)
+	for i, hill in hillList do
+		-- The kit hill is 100 across and stands on its lowest point; turned so no two look alike.
+		local feet = CFrame.new(hill.at - v(0, hill.size / 2, 0)) * CFrame.Angles(0, math.rad(i * 53), 0)
+		MapKit.place(b, hill.kit, feet, { scale = hill.size / 100, far = true })
 	end
 	-- The landmark: a giant gold star sign on the big hill, leaning back into the slope.
 	local starAt = CFrame.new(Lay.hillStar) * CFrame.Angles(math.rad(-60), 0, 0)
@@ -613,15 +609,15 @@ local function landmarks(b: Builder)
 	-- Mystery Crate and Cash Rain coins) and on the backlot road, a bus stop, a news stand,
 	-- hydrants and bins.
 	local cars = {
-		{ x = 117.5, z = 1, color = Color3.fromRGB(32, 178, 190) },
-		{ x = -117.5, z = -1, color = Color3.fromRGB(255, 120, 170) },
-		{ x = 158, z = 1, color = P.Gold },
-		{ x = 164, z = -1, color = P.Carpet },
+		{ x = 117.5, z = 1, kit = "CarTeal" },
+		{ x = -117.5, z = -1, kit = "CarPink" },
+		{ x = 158, z = 1, kit = "CarGold" },
+		{ x = 164, z = -1, kit = "CarRed" },
 	}
 	for _, car in cars do
 		-- Driving on the right: +Z side heads toward -X, -Z side toward +X.
 		local yaw = if car.z > 0 then math.rad(90) else math.rad(-90)
-		TownSets.car(b:sub(CFrame.new(car.x, 0.15, car.z * 6.6) * CFrame.Angles(0, yaw, 0)), car.color)
+		TownSets.car(b:sub(CFrame.new(car.x, 0.15, car.z * 6.6) * CFrame.Angles(0, yaw, 0)), car.kit)
 	end
 	TownSets.busStop(b:sub(CFrame.new(96, 0.2, -22) * CFrame.Angles(0, math.pi, 0)))
 	TownSets.newsStand(b:sub(v(-96, 0.2, 24)))

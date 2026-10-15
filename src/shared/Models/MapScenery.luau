@@ -3,8 +3,8 @@
 -- woods of leafy trees, pines and bushes round the town and behind Starlight Park, a desert of
 -- cacti, boulders and striped mesas behind Dusty Gulch, trees climbing the hills, and a ring of
 -- big mountains on the horizon (snowy peaks behind the park, sandstone mesas behind the Gulch).
--- The props are the Blender map kit (MapKit); the mountains are Roblox terrain, filled in by the
--- server (MapService) from the list here.
+-- Close to the paths, grass tufts, flower clumps and mossy boulders break up the flat lawns.
+-- Everything is the low-poly Blender map kit (MapKit), mountains included.
 local Build = require(script.Parent.Build)
 local MapKit = require(script.Parent.MapKit)
 local Walkways = require(script.Parent.Walkways)
@@ -25,7 +25,7 @@ local REACH = 470
 local SPACING = 28
 
 export type Mountain = { x: number, z: number, radius: number, height: number, style: string }
-export type Hill = { at: Vector3, size: number, color: Color3 }
+export type Hill = { at: Vector3, size: number, kit: string }
 
 -- Big mountains in a ring round the map, out past the props. "peak" mountains have grass, rock
 -- and snow; "mesa" ones are flat-topped sandstone, behind Dusty Gulch.
@@ -158,6 +158,44 @@ function MapScenery.spots(walk: { Walkways.Rect }, hills: { Hill }): { Spot }
 	return spots
 end
 
+-- The small things on the grass near the paths, where players see them up close: grass tufts,
+-- flower clumps and mossy boulders, on a finer grid than the woods, inside the town's outer ring
+-- and round the park. Not in the desert, on a path, or under something big.
+local DRESS_SPACING = 14
+local DRESS_REACH = 290
+local DRESS_NEAR = 55
+
+-- Like KEEP_CLEAR, but the park's lawns are dressed too: only its pond is left alone.
+local DRESS_CLEAR: { Walkways.Rect } = table.clone(KEEP_CLEAR)
+table.remove(DRESS_CLEAR, 8) -- Starlight Park, the 8th above
+table.insert(DRESS_CLEAR, Walkways.rect(-84, 173, -26, 231)) -- the pond
+
+function MapScenery.dressing(walk: { Walkways.Rect }, hills: { Hill }): { Spot }
+	local spots: { Spot } = {}
+	for gx = -DRESS_REACH, DRESS_REACH, DRESS_SPACING do
+		for gz = -DRESS_REACH, DRESS_REACH, DRESS_SPACING do
+			local x = gx + (noise(gx, gz, 7) - 0.5) * DRESS_SPACING * 0.9
+			local z = gz + (noise(gx, gz, 8) - 0.5) * DRESS_SPACING * 0.9
+			local d = Walkways.distance(walk, x, z)
+			if z > MapScenery.DesertZ + 4 and d > 2.5 and d < DRESS_NEAR and clear(x, z, DRESS_CLEAR) then
+				local roll = noise(x, z, 9)
+				local name = if roll < 0.55 then "GrassTuft" elseif roll < 0.85 then "FlowerPatch" else "Boulder"
+				local scale = if name == "Boulder" then 0.6 + noise(x, z, 10) * 0.6 else 1 + noise(x, z, 10) * 0.6
+				if name ~= "Boulder" or d > 6 then
+					local spot: Spot = {
+						name = name,
+						at = Vector3.new(x, MapScenery.groundAt(hills, x, z), z),
+						scale = scale,
+						yaw = noise(x, z, 11) * 360,
+					}
+					table.insert(spots, spot)
+				end
+			end
+		end
+	end
+	return spots
+end
+
 function MapScenery.build(b: Builder, walk: { Walkways.Rect }, hills: { Hill })
 	local folder = Instance.new("Folder")
 	folder.Name = "Scenery"
@@ -166,42 +204,27 @@ function MapScenery.build(b: Builder, walk: { Walkways.Rect }, hills: { Hill })
 	for _, spot in MapScenery.spots(walk, hills) do
 		MapKit.place(sb, spot.name, CFrame.new(spot.at) * CFrame.Angles(0, math.rad(spot.yaw), 0), { scale = spot.scale, far = true })
 	end
+	-- The lawn dressing only once the meshes are imported: as stand-in parts it would cost phones
+	-- a thousand parts for a few blobs.
+	if MapKit.meshed("GrassTuft") then
+		for _, spot in MapScenery.dressing(walk, hills) do
+			MapKit.place(sb, spot.name, CFrame.new(spot.at) * CFrame.Angles(0, math.rad(spot.yaw), 0), { scale = spot.scale, far = true })
+		end
+	end
+	-- The ring of mountains: snowy low-poly peaks (kit Mountain, 200 across, sized to each
+	-- mountain's width) and, behind Dusty Gulch, the striped sandstone Mesa (about 26 tall,
+	-- sized to the mountain's height so the desert stays low and wide open).
+	for i, m in MapScenery.Mountains do
+		local at = CFrame.new(m.x, -4, m.z) * CFrame.Angles(0, math.rad(i * 41), 0)
+		if m.style == "mesa" then
+			MapKit.place(sb, "Mesa", at, { scale = m.height / 26, far = true })
+		else
+			MapKit.place(sb, "Mountain", at, { scale = m.radius / 100, far = true })
+		end
+	end
 	-- Sand under the desert, out to the mountains (just above the grass, so the two never
 	-- flicker). Two pieces: one part can be at most 2048 studs long.
 	b:block("DesertFloor", Vector3.new(2048, 0.2, 900), Vector3.new(0, -0.07, MapScenery.DesertZ - 450), Color3.fromRGB(236, 196, 128), Enum.Material.Sand)
-end
-
--- Fills the mountains into the terrain. Server only (terrain built there replicates). Each
--- mountain is a stack of 4-stud slices, narrower toward the top. `pause` runs after each
--- mountain, so the server can spread the work over a few frames.
-function MapScenery.buildTerrain(terrain: Terrain, pause: (() -> ())?)
-	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(96, 178, 84))
-	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(128, 122, 130))
-	terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(246, 248, 255))
-	terrain:SetMaterialColor(Enum.Material.Sandstone, Color3.fromRGB(214, 124, 72))
-	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(236, 196, 128))
-	local slice = 4
-	for _, m in MapScenery.Mountains do
-		local y = -8
-		while y < m.height do
-			local t = math.max(y, 0) / m.height
-			local radius, material
-			if m.style == "mesa" then
-				-- Steep sides in steps, then a flat top.
-				local step = math.floor(t * 4)
-				radius = m.radius * (1 - step * 0.09) * (if t > 0.9 then 0.9 else 1)
-				material = if t < 0.12 then Enum.Material.Sand else Enum.Material.Sandstone
-			else
-				radius = m.radius * (1 - t) ^ 1.25 + 6
-				material = if t < 0.38 then Enum.Material.Grass elseif t < 0.74 then Enum.Material.Rock else Enum.Material.Snow
-			end
-			terrain:FillCylinder(CFrame.new(m.x, y + slice / 2, m.z), slice, radius, material)
-			y += slice
-		end
-		if pause ~= nil then
-			pause()
-		end
-	end
 end
 
 return MapScenery

@@ -7,7 +7,6 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
-local MapScenery = require(ReplicatedStorage.Shared.Models.MapScenery)
 
 local MapService = {}
 
@@ -76,21 +75,6 @@ local function addLook()
 	rays.Spread = 0.55
 end
 
--- The mountains on the horizon are terrain (MapScenery lists them). Built once, at start, a
--- mountain a frame, without holding up the rest of the server.
-local function addMountains()
-	task.spawn(function()
-		local ok, err = pcall(function()
-			MapScenery.buildTerrain(workspace.Terrain, function()
-				task.wait()
-			end)
-		end)
-		if not ok then
-			warn(`[MapService] mountains not built: {err}`)
-		end
-	end)
-end
-
 local function addSpawn(folder: Instance)
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "Spawn"
@@ -128,7 +112,6 @@ function MapService.start()
 	end
 	addSpawn(folder)
 	folder.Parent = workspace
-	addMountains()
 end
 
 return MapService
