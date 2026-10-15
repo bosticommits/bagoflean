@@ -175,3 +175,12 @@ test("malformed cast keys cannot add Star Power", function()
 	equal(Movies.castPower({ actor.id .. ":Normal:Extra", "::", actor.id }, actor.genre), 0, "malformed keys")
 end)
 
+
+test("Luck never takes Flop below MinFlop", function()
+	for _, luck in { 1.5, 2, 3, 5, 50, 1e6 } do
+		local chances = Movies.premiereChances(luck)
+		expect(chances.Flop >= Movies.MinFlop - 1e-12, `Flop {chances.Flop} at luck {luck}`)
+		near(sum(chances), 1, 1e-9, `sum at luck {luck}`)
+	end
+	near(Movies.premiereChances(2).Flop, Movies.MinFlop, 1e-12, "Luck 2 reaches the floor")
+end)

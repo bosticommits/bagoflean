@@ -368,6 +368,10 @@ local function onPremiere(player: Player, stage: any)
 	end
 	local unlocked = Unlocks.crossed(data.fame, data.fame + fame)
 	data.fame += fame
+	for _, name in unlocked do
+		-- This premiere's lifetime number as the value, so real unlock timing can be checked against ECONOMY.md.
+		Analytics.event(player, "Unlock", (data.stats.premiere or 0) + 1, name)
+	end
 	EconomyService.addCash(player, payout, "Gameplay", "Premiere")
 
 	premiereResult:FireClient(player, {

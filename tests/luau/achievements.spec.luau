@@ -16,7 +16,7 @@ test("every achievement has a unique id, a known stat and a valid reward", funct
 		expect(a.target > 0 and a.target == math.floor(a.target), `{a.id} target`)
 		expect(#a.text > 0, `{a.id} text`)
 		local stat = a.stat
-		local known = table.find(Achievements.Counted, stat) ~= nil or stat == "masterpiece" or stat == "fame" or stat == "index"
+		local known = table.find(Achievements.Counted, stat) ~= nil or stat == "masterpiece" or stat == "fame" or stat == "index" or stat == "actors"
 		local tier = string.match(stat, "^tier:(.+)$")
 		local variant = string.match(stat, "^variant:(.+)$")
 		known = known or (tier ~= nil and Actors.getTier(tier) ~= nil) or (variant ~= nil and Actors.getVariant(variant) ~= nil)
@@ -47,6 +47,8 @@ test("goals in a group get harder and the Index goal fits the Index", function()
 	for _, a in Achievements.List do
 		if a.stat == "index" then
 			expect(a.target <= Actors.IndexSlots, `{a.id} needs more than the Index holds`)
+		elseif a.stat == "actors" then
+			expect(a.target <= #Actors.List, `{a.id} needs more actors than exist`)
 		end
 	end
 end)
@@ -70,6 +72,22 @@ test("progress counts stats, the Index, trophies and Fame", function()
 	equal(Achievements.value(view(nil, index), "tier:Star"), 1, "a Star discovered")
 	equal(Achievements.value(view(nil, index), "tier:Legend"), 0, "no Legend")
 	equal(Achievements.value(view(nil, index), "variant:Shiny"), 1, "a Shiny discovered")
+	equal(Achievements.value(view(nil, index), "actors"), 2, "actors count each actor once, in any variant")
+end)
+
+test("the top Index goal is every actor, not every variant", function()
+	-- An Award-Winning Icon is about 1 in 26 million casts even at Hollywood Casting, so a goal that
+	-- needs all 63 slots could never be earned (see ECONOMY_SUMMARY.md).
+	local top = Achievements.get("Index5")
+	expect(top ~= nil, "Index5 exists")
+	local goal = top :: Achievements.Achievement
+	equal(goal.stat, "actors", "Index5 counts actors")
+	equal(goal.target, #Actors.List, "Index5 asks for every actor")
+	local every = {}
+	for _, actor in Actors.List do
+		every[Actors.key(actor.id, "Normal")] = true
+	end
+	expect(Achievements.isDone(view(nil, every), goal), "one of each actor completes it")
 end)
 
 test("claimable lists finished goals that are not claimed", function()

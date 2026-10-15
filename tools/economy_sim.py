@@ -144,6 +144,7 @@ def load_tuning() -> dict:
             if (m := re.search(r'id = "(\w+)".*stat = "([\w:-]+)", target = (\d+)', line))
         ],
         "specialty": _num(re.search(r"Movies.SpecialtyBonus = ([\d.]+)", movies_text).group(1)),
+        "min_flop": _num(re.search(r"Movies.MinFlop = ([\d.]+)", movies_text).group(1)),
         "fame_exponent": _num(re.search(r"Movies.FameExponent = ([\d.]+)", movies_text).group(1))
         if "Movies.FameExponent" in movies_text
         else 0.5,
@@ -237,19 +238,31 @@ class Game:
         return live if live is not None and live[1] <= clock < live[2] else None
 
     def tier_chances(self, luck: float, min_tier: int) -> list[tuple[str, float]]:
+        """Actors.tierChances: the agency's pool at Luck 1, then Luck divides each "1 in N" in it."""
         key = (round(luck, 4), min_tier)
         if key in self._tier_cache:
             return self._tier_cache[key]
         tiers = self.t["tiers"]
-        open_ = {}
+        luck = max(luck, 1.0)
+        base = {}
         remaining = 1.0
         for tier in reversed(tiers[1:]):
-            chance = remaining * min(1.0, max(luck, 1.0) / tier["oneIn"])
-            open_[tier["id"]] = chance
+            chance = remaining / tier["oneIn"]
+            base[tier["id"]] = chance
             remaining -= chance
-        open_[tiers[0]["id"]] = remaining
-        removed = sum(open_[tiers[i]["id"]] for i in range(min_tier - 1))
-        out = [(tier["id"], 0.0 if i < min_tier - 1 else open_[tier["id"]] / (1 - removed)) for i, tier in enumerate(tiers)]
+        base[tiers[0]["id"]] = remaining
+        removed = sum(base[tiers[i]["id"]] for i in range(min_tier - 1))
+        chances = {}
+        base_left, left = 1.0, 1.0
+        for i in range(len(tiers) - 1, min_tier - 1, -1):
+            tid = tiers[i]["id"]
+            pooled = base[tid] / (1 - removed)
+            chance = left * min(1.0, luck * pooled / base_left)
+            chances[tid] = chance
+            base_left -= pooled
+            left -= chance
+        chances[tiers[min_tier - 1]["id"]] = left
+        out = [(tier["id"], chances.get(tier["id"], 0.0)) for tier in tiers]
         self._tier_cache[key] = out
         return out
 
@@ -285,12 +298,14 @@ class Game:
             add = chances[rid] * (luck - 1)
             chances[rid] += add
             extra += add
-        for rid in ("Flop", "Hit"):
-            take = min(chances[rid], extra)
-            chances[rid] -= take
-            extra -= take
-        total = sum(chances.values())
-        out = {k: v / total for k, v in chances.items()}
+        # Movies.premiereChances: out of Flop down to MinFlop, then out of Hit, then the rest is
+        # scaled to fit beside Flop.
+        take = min(max(chances["Flop"] - self.t["min_flop"], 0.0), extra)
+        chances["Flop"] -= take
+        extra -= take
+        chances["Hit"] -= min(chances["Hit"], extra)
+        others = sum(v for k, v in chances.items() if k != "Flop")
+        out = {k: v if k == "Flop" else v * (1 - chances["Flop"]) / others for k, v in chances.items()}
         self._premiere_cache[key] = out
         return out
 
@@ -514,6 +529,8 @@ class Player:
             return self.fame
         if stat == "index":
             return len(self.index)
+        if stat == "actors":
+            return len({k.split(":")[0] for k in self.index})
         if stat.startswith("tier:"):
             return sum(1 for k in self.index if self.g.actor[k.split(":")[0]]["tier"] == stat[5:])
         if stat.startswith("variant:"):

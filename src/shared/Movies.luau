@@ -23,6 +23,7 @@ export type Result = {
 local Movies = {}
 
 Movies.SpecialtyBonus = 1.5 -- actor cast in their specialty genre (plan section 2)
+Movies.MinFlop = 0.05 -- Luck never pushes a premiere's Flop chance below this
 
 -- Safety ceilings, far above anything real play reaches (the worst legitimate stack is ~1e8 before
 -- rebirths). They only stop runaway values; they are not balance levers.
@@ -38,7 +39,7 @@ Movies.Lengths = {
 	{ id = "Short", name = "Short Film", seconds = 2 * 60, base = 12, cost = 15, fame = 0 },
 	{ id = "Indie", name = "Indie", seconds = 10 * 60, base = 55, cost = 60, fame = 0 },
 	{ id = "Feature", name = "Feature", seconds = 45 * 60, base = 220, cost = 250, fame = 1800},
-	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 780, cost = 900, fame = 16000},
+	{ id = "Epic", name = "Epic", seconds = 3 * 60 * 60, base = 780, cost = 900, fame = 10000},
 } :: { Length }
 
 -- Fame needed before a genre's scripts can be bought (plan section 6: Fame unlocks genres).
@@ -129,7 +130,8 @@ function Movies.castPower(castKeys: { string }, genre: string): number
 end
 
 -- Chance of each result (sums to 1). Luck multiplies the three best results' chances; the extra
--- comes out of Flop first, then Hit. At Luck 1 this is exactly the plan's table.
+-- comes out of Flop first, down to MinFlop, then out of Hit. At Luck 1 this is exactly the plan's
+-- table. Flop never drops below MinFlop, so even a very lucky studio still sees the odd Flop.
 function Movies.premiereChances(luck: number): { [string]: number }
 	-- NaN and infinite Luck would turn every chance into NaN; clamp to a sane finite range.
 	local safeLuck = if luck ~= luck then 1 else math.clamp(luck, 1, Movies.MaxLuck)
@@ -143,17 +145,22 @@ function Movies.premiereChances(luck: number): { [string]: number }
 		chances[id] += add
 		extra += add
 	end
-	for _, id in { "Flop", "Hit" } do
-		local take = math.min(chances[id], extra)
-		chances[id] -= take
-		extra -= take
-	end
-	local total = 0
-	for _, value in chances do
-		total += value
+	local take = math.clamp(chances.Flop - Movies.MinFlop, 0, extra)
+	chances.Flop -= take
+	extra -= take
+	take = math.min(chances.Hit, extra)
+	chances.Hit -= take
+	-- Whatever Hit could not cover is shared out by scaling the other results to fit beside Flop.
+	local others = 0
+	for id, value in chances do
+		if id ~= "Flop" then
+			others += value
+		end
 	end
 	for id, value in chances do
-		chances[id] = value / total
+		if id ~= "Flop" then
+			chances[id] = value * (1 - chances.Flop) / others
+		end
 	end
 	return chances
 end

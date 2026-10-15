@@ -49,7 +49,7 @@ Achievements.List = {
 	{ id = "Index2", group = "index", stat = "index", target = 15, text = "Discover 15 actors in the Index", reward = { cash = 200, cashMinutes = 5 } },
 	{ id = "Index3", group = "index", stat = "index", target = 30, text = "Discover 30 actors in the Index", reward = { skips = 1, cash = 1500, cashMinutes = 15 } },
 	{ id = "Index4", group = "index", stat = "index", target = 45, text = "Discover 45 actors in the Index", reward = { luckMinutes = 15, skips = 1 } },
-	{ id = "Index5", group = "index", stat = "index", target = 63, text = "Complete the whole Index", reward = { luckMinutes = 60, skips = 5, cash = 10000, cashMinutes = 60 } },
+	{ id = "Index5", group = "index", stat = "actors", target = 21, text = "Discover all 21 actors", reward = { luckMinutes = 60, skips = 5, cash = 10000, cashMinutes = 60 } },
 
 	{ id = "RareStar", group = "rare", stat = "tier:Star", target = 1, text = "Discover a Star actor", reward = { luckMinutes = 5 } },
 	{ id = "RareSuperstar", group = "rare", stat = "tier:Superstar", target = 1, text = "Discover a Superstar actor", reward = { luckMinutes = 10 } },
@@ -103,6 +103,18 @@ function Achievements.value(view: View, stat: string): number
 		return view.trophies
 	elseif stat == "fame" then
 		return view.fame
+	elseif stat == "actors" then
+		-- Different actors found, in any variant (an Award-Winning Icon is too rare to require).
+		local count = 0
+		for _, actor in Actors.List do
+			for _, variant in Actors.Variants do
+				if view.index[Actors.key(actor.id, variant.id)] == true then
+					count += 1
+					break
+				end
+			end
+		end
+		return count
 	elseif stat == "index" or string.sub(stat, 1, 5) == "tier:" or string.sub(stat, 1, 8) == "variant:" then
 		local tierId = string.match(stat, "^tier:(.+)$")
 		local variantId = string.match(stat, "^variant:(.+)$")
