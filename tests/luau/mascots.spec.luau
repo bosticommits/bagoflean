@@ -16,8 +16,8 @@ test("every mascot has a Blender design, a rarity color and a goal", function()
 		expect(bounds ~= nil, `{mascot.id} has no bounds`)
 		-- About the height of a character's chest: big enough to see, small enough not to block.
 		expect(bounds.size.Y > 2 and bounds.size.Y < 4.5, `{mascot.id} is {bounds.size.Y} studs tall`)
-		expect(mascot.unlock ~= "" and mascot.blurb ~= "" and mascot.name ~= "", `{mascot.id} needs its words`)
-		expect(mascot.stat == "free" or mascot.target > 0, `{mascot.id} has no target`)
+		expect(mascot.blurb ~= "" and mascot.name ~= "", `{mascot.id} needs its words`)
+		expect(mascot.price >= 0 and mascot.price == math.floor(mascot.price), `{mascot.id} has a broken price`)
 	end
 	for id in MascotShapes.Shapes do
 		expect(seen[id], `MascotShapes has {id}, which is not in the list`)
@@ -27,55 +27,54 @@ end)
 
 test("a brand-new player has the Popcorn Pup and nothing else", function()
 	local data = { stats = {}, index = {}, fame = 0, rebirths = 0, trophies = 0 }
-	local unlocked = Mascots.unlocked(data)
+	local unlocked = Mascots.owned(data)
 	equal(#unlocked, 1, "one mascot")
 	equal(unlocked[1], "PopcornPup", "the pup")
 	equal(Mascots.equipped(data), "PopcornPup", "shown by default")
 end)
 
-test("each mascot unlocks from the milestone it names", function()
-	local data = { stats = { premiere = 9 }, index = {}, fame = 0, rebirths = 0, trophies = 0 }
-	local croc = Mascots.get("ClapperCroc")
-	expect(not Mascots.isUnlocked(croc, data), "9 premieres is not enough")
-	data.stats.premiere = 10
-	expect(Mascots.isUnlocked(croc, data), "10 premieres")
-	for i = 1, 15 do
-		data.index[`Actor{i}:Normal`] = true
+test("only the starter is free, and prices and buffs rise together", function()
+	local free = 0
+	local previous = -1
+	for _, mascot in Mascots.List do
+		if mascot.price == 0 then
+			free += 1
+		end
+		expect(mascot.price > previous, `{mascot.id} is not dearer than the one before it`)
+		previous = mascot.price
 	end
-	expect(Mascots.isUnlocked(Mascots.get("ReelKitty"), data), "15 Index slots")
-	local talent
-	for _, agency in Actors.Agencies do
-		if agency.id == "Talent" then
-			talent = agency.fame
+	equal(free, 1, "one free mascot")
+	equal(Mascots.List[1].id, Mascots.Default, "the free one is the default")
+	-- The two strongest buffs cost the most.
+	for _, mascot in Mascots.List do
+		if mascot.buff.amount >= 0.2 then
+			expect(mascot.price >= 1000000, `{mascot.id}'s top buff is too cheap`)
 		end
 	end
-	data.fame = talent
-	expect(Mascots.isUnlocked(Mascots.get("CameraBot"), data), "the Talent Agency's Fame")
-	data.rebirths = 1
-	expect(Mascots.isUnlocked(Mascots.get("SpotlightOwl"), data), "a rebirth")
-	expect(not Mascots.isUnlocked(Mascots.get("PremiereDragon"), data), "no Masterpiece yet")
-	data.trophies = 1
-	equal(#Mascots.unlocked(data), #Mascots.List, "everything after a Masterpiece")
 end)
 
-test("the saved choice is kept only while it is earned, and hiding sticks", function()
-	local data = { stats = {}, index = {}, fame = 0, rebirths = 0, trophies = 1, mascot = "PremiereDragon" }
-	equal(Mascots.equipped(data), "PremiereDragon", "an earned choice")
+test("a bought mascot is owned for good, others are not", function()
+	local data: any = { stats = {}, index = {}, fame = 0, rebirths = 0, trophies = 0 }
+	local kitty = Mascots.get("ReelKitty")
+	expect(not Mascots.owns(kitty, data), "not bought yet")
+	data.mascotsOwned = { ReelKitty = true }
+	expect(Mascots.owns(kitty, data), "bought")
+	equal(#Mascots.owned(data), 2, "the pup and the kitty")
+	data.mascotsOwned = "broken"
+	equal(#Mascots.owned(data), 1, "a broken set leaves just the pup")
+end)
+
+test("the saved choice is kept only while it is owned, and hiding sticks", function()
+	local data: any = { mascot = "PremiereDragon", mascotsOwned = { PremiereDragon = true } }
+	equal(Mascots.equipped(data), "PremiereDragon", "an owned choice")
 	data.mascot = "CameraBot"
-	equal(Mascots.equipped(data), "PopcornPup", "a choice not earned falls back to the pup")
+	equal(Mascots.equipped(data), "PopcornPup", "a choice not owned falls back to the pup")
 	data.mascot = ""
 	equal(Mascots.equipped(data), "", "hidden")
 	data.mascot = 42
 	equal(Mascots.equipped(data), "PopcornPup", "a broken save shows the pup")
 	data.mascot = "NoSuchMascot"
 	equal(Mascots.equipped(data), "PopcornPup", "an unknown id shows the pup")
-end)
-
-test("progress never errors on an old or broken save", function()
-	for _, mascot in Mascots.List do
-		equal(Mascots.progress(mascot, {}), 0, `{mascot.id} on an empty save`)
-		equal(Mascots.progress(mascot, { stats = "x", index = 3, fame = "y" }), 0, `{mascot.id} on a broken save`)
-	end
 end)
 
 test("no mascot buff goes over its cap, and the caps stay under the Robux passes", function()
@@ -91,7 +90,7 @@ test("no mascot buff goes over its cap, and the caps stay under the Robux passes
 end)
 
 test("only the equipped mascot's buff counts, after its warm-up", function()
-	local data: any = { stats = {}, index = {}, fame = 0, rebirths = 1, trophies = 1, mascot = "PremiereDragon", mascotSince = 1000 }
+	local data: any = { mascot = "PremiereDragon", mascotsOwned = { PremiereDragon = true, SpotlightOwl = true }, mascotSince = 1000 }
 	local warm = 1000 + Mascots.WarmUp
 	equal(Mascots.boost(data, "cash", warm - 1), 0, "still warming up")
 	equal(Mascots.warmUpLeft(data, warm - 10), 10, "seconds left")
@@ -105,8 +104,7 @@ test("only the equipped mascot's buff counts, after its warm-up", function()
 		equal(Mascots.boost(data, kind, warm), 0, `a hidden mascot gives no {kind}`)
 	end
 	data.mascot = "CameraBot"
-	data.fame = 0
-	equal(Mascots.boost(data, "boxOffice", warm), 0, "a mascot not earned yet gives nothing")
+	equal(Mascots.boost(data, "boxOffice", warm), 0, "a mascot not bought gives nothing")
 	equal(Mascots.boost(data, "cash", warm), 0.05, "it falls back to the pup, whose buff counts")
 end)
 

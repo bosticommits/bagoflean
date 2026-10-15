@@ -170,10 +170,10 @@ def load_tuning() -> dict:
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
         "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
         "upgrades": {u["id"]: u for u in upgrades},
-        # Mascots.List: (id, stat, target or None for the Talent Agency's Fame, buff kind, amount)
+        # Mascots.List: (id, Cash price, buff kind, amount)
         "mascots": [
-            (m.group(1), m.group(2), None if m.group(3) == "talentFame" else _num(m.group(3)), m.group(4), _num(m.group(5)))
-            for m in re.finditer(r'id = "(\w+)".*?stat = "(\w+)", target = (\w+).*?buff = \{ kind = "(\w+)", amount = ([\d.]+)',
+            (m.group(1), _num(m.group(2)), m.group(3), _num(m.group(4)))
+            for m in re.finditer(r'id = "(\w+)".*?price = (\d+).*?buff = \{ kind = "(\w+)", amount = ([\d.]+)',
                                  _block(mascots_text, "Mascots.List"))
         ],
         "specials": {
@@ -359,9 +359,10 @@ class Game:
 
 UPGRADE_ORDER = ["Stages", "Cinema", "Luck", "Offline", "Clap"]
 
-# Which mascot the player keeps out (Mascots.luau buffs): "none", or the kind of buff it goes for,
-# always taking the strongest earned mascot of that kind (the Popcorn Pup until then). Set by
-# --mascots. Players here never swap, so the warm-up after equipping does not come up.
+# Which mascot the player keeps out (Mascots.luau buffs): "none", or the kind of buff it goes for.
+# It buys the mascots of that kind with Cash, cheapest first, the way it buys upgrades (not while
+# saving for a rebirth), and keeps the strongest one it owns out (the free Popcorn Pup until then).
+# Set by --mascots. Players here never swap, so the warm-up after equipping does not come up.
 MASCOTS = "none"
 
 
@@ -410,6 +411,7 @@ class Player:
         self.curve: dict[int, dict] = {}
         self.rebirths = 0
         self.rebirth_enabled = True
+        self.mascots_owned: set[str] = set()
         self.hot_start = 0  # casts counted toward the "Discovered!" hot start; a new player starts at 0
         self.takes_on = True
 
@@ -427,22 +429,28 @@ class Player:
     def cash_mult(self) -> float:
         return (1 + self.g.t["rebirth"]["CashStep"] * self.rebirths) * (1 + self.mascot_boost("cash"))
 
-    # mascots (Mascots.boost)
-    def mascot_earned(self, stat: str, target: float | None) -> bool:
-        if target is None:
-            target = next(a["fame"] for a in self.g.t["agencies"] if a["id"] == "Talent")
-        have = {"free": 0, "premiere": self.premieres, "index": len(self.index), "fame": self.fame,
-                "rebirths": self.rebirths, "masterpiece": self.trophies}[stat]
-        return have >= target
-
+    # mascots (Mascots.boost, MascotService)
     def mascot_boost(self, kind: str) -> float:
         if MASCOTS == "none":
             return 0.0
-        out = self.g.t["mascots"][0]  # the Popcorn Pup, everyone's first
+        out = self.g.t["mascots"][0]  # the Popcorn Pup, free for everyone
         for mascot in self.g.t["mascots"]:
-            if mascot[3] == MASCOTS and self.mascot_earned(mascot[1], mascot[2]) and mascot[4] >= out[4]:
+            if mascot[0] in self.mascots_owned and mascot[3] >= out[3]:
                 out = mascot
-        return out[4] if out[3] == kind else 0.0
+        return out[3] if out[2] == kind else 0.0
+
+    def buy_mascots(self):
+        if MASCOTS == "none" or self.saving_for_rebirth() is not None:
+            return
+        for mascot_id, price, kind, _ in self.g.t["mascots"]:
+            if kind != MASCOTS or price <= 0 or mascot_id in self.mascots_owned:
+                continue
+            if price > self.cash:
+                return  # saving for this one
+            self.accrue()
+            self.cash -= price
+            self.mascots_owned.add(mascot_id)
+            self.mark(f"Mascot {mascot_id}")
 
     def rebirth_cost(self) -> float | None:
         r = self.g.t["rebirth"]
@@ -930,6 +938,7 @@ class Player:
             self.claim_rewards()
             self.claim_achievements()
             self.try_rebirth()
+            self.buy_mascots()
             self.buy_upgrades()
             remaining = end - self.now
             self.start_films(None if remaining > 180 else remaining + offline_after)

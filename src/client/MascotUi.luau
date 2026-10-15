@@ -1,10 +1,10 @@
 --!strict
 -- Mascots screen (rules in Shared/Mascots, checks in src/server/MascotService). At the top, the
 -- mascot following you turns on a spotlight in its rarity color, with a button to hide or show it.
--- Under it, a picture card for each of the six with its buff: earned ones say EQUIP (or EQUIPPED),
--- the others show a black silhouette, how to earn them and how far along you are. The spotlight
+-- Under it, a picture card for each of the six with its buff: owned ones say EQUIP (or EQUIPPED),
+-- the others a BUY button with their Cash price (grey until you can afford it). The spotlight
 -- counts down the buff's warm-up after a swap (Mascots.WarmUp).
--- Earning a mascot says so at the bottom of the screen and puts a red badge on the Mascots button
+-- A new mascot says so at the bottom of the screen and puts a red badge on the Mascots button
 -- until the screen is opened. The client only names the mascot it wants; the server checks it.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -44,6 +44,7 @@ end
 function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 	local player = Players.LocalPlayer
 	local equip = remotes:WaitForChild("EquipMascot") :: RemoteEvent
+	local buy = remotes:WaitForChild("BuyMascot") :: RemoteEvent
 	local panel, list, header = UiKit.makePanel(gui, "MascotsPanel", "Mascots", nil, nil, nil, UiKit.PURPLE)
 	UiKit.panelIcon(panel, header, "mascot:PopcornPup")
 
@@ -65,8 +66,13 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 		local unlocked = unlockedSet(player)
 		local equipped = player:GetAttribute("Mascot")
 		local current = if type(equipped) == "string" then equipped else ""
-		local progress = split(player:GetAttribute("MascotProgress"))
-		local signature = UiKit.signature({ unlocked = unlocked, current = current, progress = progress, since = player:GetAttribute("MascotSince"), compact = UiKit.isCompact() } :: any)
+		local cash = player:GetAttribute("Cash")
+		local wallet = if type(cash) == "number" then cash else 0
+		local affordable = {}
+		for _, m in Mascots.List do
+			affordable[m.id] = wallet >= m.price
+		end
+		local signature = UiKit.signature({ unlocked = unlocked, current = current, affordable = affordable, since = player:GetAttribute("MascotSince"), compact = UiKit.isCompact() } :: any)
 		if signature == shown then
 			return
 		end
@@ -172,14 +178,14 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 			pic.Position = UDim2.fromScale(0.5, 0.03)
 			pic.Size = UDim2.fromScale(0.62, 0.46)
 			pic.Parent = card
-			local view = Icon3D.mascot(pic, m.id, not earned)
+			local view = Icon3D.mascot(pic, m.id)
 			Icon3D.glow(view, if earned then Color3.new(1, 1, 1) else tint, if earned then 1 else 0.7)
-			local title = makeTitle(card, if earned then m.name else "???", UiKit.WHITE, UDim2.fromScale(0.94, 0.14), UDim2.fromScale(0.03, 0.48), 2.5)
+			local title = makeTitle(card, m.name, UiKit.WHITE, UDim2.fromScale(0.94, 0.14), UDim2.fromScale(0.03, 0.48), 2.5)
 			title.Name = "Title"
 			title.ZIndex = 3
 			UiKit.textConstraint(title, 22)
 			local buff = Mascots.describe(m.buff)
-			local text = makeLabel(card, if earned then buff else `{m.unlock}\n{buff}`, if earned then UiKit.WHITE else UiKit.GOLD, UDim2.fromScale(0.9, 0.14), UDim2.fromScale(0.05, 0.62))
+			local text = makeLabel(card, buff, if earned then UiKit.WHITE else UiKit.GOLD, UDim2.fromScale(0.9, 0.13), UDim2.fromScale(0.05, 0.62))
 			text.Name = "Description"
 			text.ZIndex = 3
 			UiKit.outline(text, 1.5)
@@ -198,27 +204,17 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 					Sfx.play("reward")
 				end)
 			else
-				-- How far along: a bar with "7 / 10" on it.
-				local have = tonumber(progress[slot]) or 0
-				local bar = Instance.new("Frame")
-				bar.Name = "Progress"
-				bar.BackgroundColor3 = UiKit.DARK
-				bar.Size = actionSize
-				bar.Position = actionPos
-				bar.ZIndex = 3
-				bar.Parent = card
-				UiKit.corner(bar, 8)
-				UiKit.border(bar, 2)
-				local fill = Instance.new("Frame")
-				fill.BackgroundColor3 = tint
-				fill.BorderSizePixel = 0
-				fill.Size = UDim2.fromScale(math.clamp(have / math.max(m.target, 1), 0, 1), 1)
-				fill.ZIndex = 4
-				fill.Parent = bar
-				UiKit.corner(fill, 8)
-				local count = makeTitle(bar, `{Hud.comma(math.min(have, m.target))} / {Hud.comma(m.target)}`, UiKit.WHITE, UDim2.fromScale(1, 1), UDim2.new(), 2)
-				count.ZIndex = 5
-				UiKit.textConstraint(count, 18)
+				-- For sale: the price, green once you can afford it. The server checks the Cash.
+				local canBuy = affordable[m.id] == true
+				local shop = makeButton(card, `BUY ${Hud.comma(m.price)}`, if canBuy then UiKit.GREEN else UiKit.DISABLED, actionSize, actionPos)
+				shop.Name = "Buy"
+				shop.ZIndex = 3
+				UiKit.textConstraint(shop, 20)
+				shop.Activated:Connect(function()
+					if canBuy then
+						buy:FireServer(m.id)
+					end
+				end)
 			end
 		end
 	end
@@ -269,7 +265,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 	end
 	player:GetAttributeChangedSignal("MascotsUnlocked"):Connect(onUnlocked)
 	player:GetAttributeChangedSignal("Mascot"):Connect(update)
-	player:GetAttributeChangedSignal("MascotProgress"):Connect(update)
+	player:GetAttributeChangedSignal("Cash"):Connect(update) -- rebuilds only when a price becomes affordable
 	player:GetAttributeChangedSignal("MascotSince"):Connect(update)
 	task.spawn(function()
 		while true do
