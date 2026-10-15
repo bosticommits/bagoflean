@@ -10,6 +10,7 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local PremiereNight = require(ReplicatedStorage.Shared.PremiereNight)
+local Takes = require(ReplicatedStorage.Shared.Takes)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
@@ -151,7 +152,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local tabButtons: { [string]: TextButton } = {}
 
 	-- Stage rows that need a live countdown: updated in place so buttons are not rebuilt each tick.
-	local timers: { { stage: number, time: TextLabel, fill: Frame, button: TextButton, skip: TextButton, ready: boolean } } = {}
+	local timers: { { stage: number, time: TextLabel, fill: Frame, button: TextButton, skip: TextButton, takes: TextLabel, ready: boolean } } = {}
 	-- Stage the player wanted to skip when they had no token: used as soon as a bought one arrives.
 	local pendingSkipStage: number? = nil
 
@@ -226,8 +227,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			for _, key in film.cast do
 				table.insert(names, actorLabel(key))
 			end
-			local cast = makeLabel(row, "Cast: " .. table.concat(names, ", "), WHITE, UDim2.new(1, -(20 + castWidth), 0, 18), UDim2.fromOffset(10, 58))
+			local cast = makeLabel(row, "Cast: " .. table.concat(names, ", "), WHITE, UDim2.new(0.6, -(20 + castWidth * 0.6), 0, 18), UDim2.fromOffset(10, 58))
 			cast.TextXAlignment = Enum.TextXAlignment.Left
+			-- "Direct the scene": takes played so far and the premiere Luck they added.
+			local takes = makeLabel(row, "", UiKit.GOLD, UDim2.new(0.4, -castWidth * 0.4, 0, 18), UDim2.new(0.6, -castWidth * 0.6, 0, 58))
+			takes.Name = "Takes"
+			takes.TextXAlignment = Enum.TextXAlignment.Right
 
 			local bar = Instance.new("Frame")
 			bar.BackgroundColor3 = UiKit.DARK
@@ -257,7 +262,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					UiKit.toast(gui, "Skip Filming is coming soon")
 				end
 			end)
-			table.insert(timers, { stage = stage, time = time, fill = fill, button = button, skip = skip, ready = false })
+			table.insert(timers, { stage = stage, time = time, fill = fill, button = button, skip = skip, takes = takes, ready = false })
 			button.Activated:Connect(function()
 				-- Look the film up now: this row is updated in place, so `film` may be stale.
 				local current = filmAt(stage)
@@ -826,6 +831,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local remaining = film.endTime - serverNow()
 			local total = math.max(1, film.endTime - film.startTime)
 			entry.fill.Size = UDim2.fromScale(math.clamp(1 - remaining / total, 0, 1), 1)
+			local played, luck = Takes.count(film.takes), Takes.luck(film.takes)
+			entry.takes.Text = if played == 0 then (if remaining <= 0 or not state.tutorialDone then "" else `Takes 0/{Takes.PerFilm}`)
+				else `Takes {played}/{Takes.PerFilm}  +{string.format("%.2f", luck)} Luck`
 			local ready = remaining <= 0
 			entry.skip.Visible = not ready
 			if not ready then

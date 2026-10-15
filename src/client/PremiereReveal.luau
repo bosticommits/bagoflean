@@ -543,7 +543,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		bonusLabel.Text = PremiereNight.bonusLine(
 			if type(result.genreBonus) == "number" then result.genreBonus else nil,
 			if result.awardNight then Config.AwardNightPayoutMultiplier else nil,
-			if type(result.rebirthBonus) == "number" then result.rebirthBonus else nil
+			if type(result.rebirthBonus) == "number" then result.rebirthBonus else nil,
+			if type(result.directed) == "number" then result.directed else nil
 		)
 		local fame = if type(result.fame) == "number" then result.fame else 0
 		local power = if type(result.power) == "number" then result.power else 0

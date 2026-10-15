@@ -9,6 +9,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
+local Takes = require(ReplicatedStorage.Shared.Takes)
 local Unlocks = require(ReplicatedStorage.Shared.Unlocks)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
@@ -32,10 +33,16 @@ local premiereResult = Remotes.get("PremiereResult")
 local studioError = Remotes.get("StudioError")
 local tutorialDone = Remotes.get("TutorialDone")
 local useSkip = Remotes.get("UseSkip")
+local takeStart = Remotes.get("TakeStart")
+local takeTap = Remotes.get("TakeTap")
+local takeResult = Remotes.get("TakeResult")
 
 local lastAction: { [Player]: { [string]: number } } = {}
 local lastCooldownReply: { [Player]: number } = {}
 local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "slow down" per second
+-- The take each player is playing right now (Takes.luau). Memory only: a rejoin starts a new sweep.
+type OpenTake = { stage: number, index: number, startTime: number, startedAt: number }
+local openTakes: { [Player]: OpenTake } = {}
 
 local MovieService = {}
 
@@ -317,7 +324,9 @@ local function onPremiere(player: Player, stage: any)
 
 	-- Roll and settle with no yield, so the film cannot be premiered twice.
 	local power = Movies.castPower(film.cast, film.genre)
-	local result = Movies.rollResult(random, CastingService.getLuck(player))
+	-- Good takes while filming add a little Luck to this premiere only (capped in Takes.luck).
+	local directed = Takes.luck(film.takes)
+	local result = Movies.rollResult(random, CastingService.getLuck(player) + directed)
 	local genreBonus = Upgrades.genreBonus(data, film.genre)
 	local payout = Movies.payout(length, power, result, genreBonus)
 	-- Award Night doubles premiere payouts (plan section 5).
@@ -366,6 +375,8 @@ local function onPremiere(player: Player, stage: any)
 		genreBonus = genreBonus,
 		awardNight = awardNight,
 		rebirthBonus = rebirthBonus,
+		directed = directed, -- premiere Luck the takes added
+		takes = Takes.count(film.takes),
 		unlocked = unlocked, -- what this premiere's Fame just opened (see Unlocks)
 	})
 	if result.id == "Masterpiece" then
@@ -434,6 +445,67 @@ local function onUseSkip(player: Player, stage: any)
 	Analytics.event(player, "SkipUsed", 1, film.length)
 end
 
+-- The TAKE! card appeared and its marker started sweeping. Remembers when, so the tap can be
+-- judged against the server's own clock. Silent on rejection: the card asks again shortly.
+local function onTakeStart(player: Player, stage: any)
+	if not allow(player, "takeStart", 0.3, true) then
+		return
+	end
+	local data = DataService.getData(player)
+	if data == nil or not data.tutorialDone or not isInt(stage, 1, Config.StageLimit) then
+		return
+	end
+	local film = findFilm(data, stage)
+	if film == nil or Takes.waiting(film.takes, film.startTime, film.endTime, os.time()) < 1 then
+		return
+	end
+	openTakes[player] = {
+		stage = stage,
+		index = Takes.count(film.takes) + 1,
+		startTime = film.startTime,
+		startedAt = os.clock(),
+	}
+end
+
+-- CUT! The client sends how long after the sweep began it tapped; that is used only when it agrees
+-- with the server's own measurement (Takes.ClockTolerance), so lag cannot be bent into a better take.
+local function onTakeTap(player: Player, stage: any, clientElapsed: any)
+	if not allow(player, "takeTap", 0.2, true) then
+		return
+	end
+	local open = openTakes[player]
+	if open == nil or open.stage ~= stage then
+		takeResult:FireClient(player, stage, "none")
+		return
+	end
+	openTakes[player] = nil
+	local data = DataService.getData(player)
+	if data == nil then
+		return
+	end
+	-- The same film, the take it opened for, and not already premiered (findFilm fails after that).
+	local film = findFilm(data, open.stage)
+	local serverElapsed = os.clock() - open.startedAt
+	if film == nil or film.startTime ~= open.startTime or Takes.count(film.takes) + 1 ~= open.index
+		or open.index > Takes.PerFilm or serverElapsed > Takes.MaxOpenSeconds then
+		takeResult:FireClient(player, open.stage, "none")
+		return
+	end
+	local elapsed = serverElapsed
+	if type(clientElapsed) == "number" and clientElapsed == clientElapsed and clientElapsed >= 0
+		and math.abs(clientElapsed - serverElapsed) <= Takes.ClockTolerance then
+		elapsed = clientElapsed
+	end
+	local verdict = Takes.judge(elapsed, Takes.target(film.startTime, open.stage, open.index), open.index)
+	local takes = film.takes or {}
+	table.insert(takes, verdict)
+	film.takes = takes
+	DataService.markDirty(player)
+	takeResult:FireClient(player, open.stage, verdict)
+	MovieService.sync(player)
+	Analytics.event(player, "Take", 1, verdict, film.length)
+end
+
 -- Takes `seconds` off every film still shooting (Golden Hour runs this every second), never
 -- past now, and shows the new times.
 function MovieService.fastForward(player: Player, seconds: number)
@@ -467,11 +539,14 @@ function MovieService.start()
 	premiereRemote.OnServerEvent:Connect(onPremiere)
 	tutorialDone.OnServerEvent:Connect(onTutorialDone)
 	useSkip.OnServerEvent:Connect(onUseSkip)
+	takeStart.OnServerEvent:Connect(onTakeStart)
+	takeTap.OnServerEvent:Connect(onTakeTap)
 end
 
 function MovieService.forget(player: Player)
 	lastAction[player] = nil
 	lastCooldownReply[player] = nil
+	openTakes[player] = nil
 end
 
 return MovieService

@@ -53,8 +53,12 @@ function PremiereNight.billing(names: { string }): string
 end
 
 -- The payout bonuses on one line, e.g. "Award Night x2  -  genre set x1.5". Empty without bonuses.
-function PremiereNight.bonusLine(genreBonus: number?, awardNight: number?, rebirthBonus: number?): string
+-- `directed` is the premiere Luck the film's takes added (Takes.luau).
+function PremiereNight.bonusLine(genreBonus: number?, awardNight: number?, rebirthBonus: number?, directed: number?): string
 	local parts = {}
+	if directed ~= nil and directed > 0 then
+		table.insert(parts, `takes +{string.format("%.2f", directed)} Luck`)
+	end
 	if awardNight ~= nil and awardNight > 1 then
 		table.insert(parts, `Award Night x{awardNight}`)
 	end
