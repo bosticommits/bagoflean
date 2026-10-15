@@ -304,12 +304,12 @@ buff only works 30 seconds after equipping, so swapping mascots
 between casting and premiering cannot collect two buffs; mascots are earned, never sold.
 
 The sim's `--mascots` option keeps the strongest earned mascot of one kind out (the pup until
-then). Typical player, 150 runs, end of week one: no buffs $96,562/min, Cash mascots
-$112,093 (+16%), box office $100,778 (+4%), Luck and speed within run-to-run noise ($95,386 and
-$94,649). Rebirth 1 stays on day 2 at 75 minutes and Legend in week one stays at 65 to 69% in
-every setup. If every cap applied at once (what stacking would do; simulated on the retuned odds
-of PR #43) a typical player would earn
-about 64% more, which is why only one mascot counts.
+then). Typical player, 150 runs, end of week one: no buffs $117,966/min, Cash mascots $157,321
+(+33%), Luck mascots $145,791 (+24%), box office $135,157 (+15%), speed $125,329 (+6%). Cash
+compounds: buying upgrades sooner brings the first rebirth from 71 to 63 minutes played. Legend in
+week one stays at 69 to 74% and Icon at 3 to 7% in every setup (run-to-run noise). For scale, the
+2x Luck pass adds about 80%. If every cap applied at once (what stacking would do) a typical player
+would earn about 64% more on top of the base, which is why only one mascot counts.
 
 ## What to watch in playtests
 
