@@ -96,6 +96,39 @@ Actors.Agencies = {
 	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 50000, minTier = 3 },
 } :: { Agency }
 
+-- "Discovered!" hot start: a brand-new player's first casts carry guaranteed pulls, so the first
+-- Star lands in the first session (about minute 7 in the economy sim) instead of around minute 17.
+-- Each row says the lowest tier that cast can be; a luckier roll keeps its better tier. Counted per
+-- account (crate casts too) and never again after the last row, so later play is unchanged.
+export type HotStartStep = { cast: number, tier: string }
+
+Actors.HotStart = {
+	{ cast = 3, tier = "Rising" },
+	{ cast = 10, tier = "Pro" },
+	{ cast = 25, tier = "Star" },
+} :: { HotStartStep }
+Actors.HotStartLength = Actors.HotStart[#Actors.HotStart].cast
+
+-- The tier guaranteed on the player's `castNumber`-th cast (1 = their first), or nil.
+function Actors.hotStartTier(castNumber: number): string?
+	for _, step in Actors.HotStart do
+		if step.cast == castNumber then
+			return step.tier
+		end
+	end
+	return nil
+end
+
+-- The next guarantee after `castsDone` casts, or nil once the hot start is over.
+function Actors.nextHotStart(castsDone: number): HotStartStep?
+	for _, step in Actors.HotStart do
+		if step.cast > castsDone then
+			return step
+		end
+	end
+	return nil
+end
+
 local agencyById: { [string]: Agency } = {}
 for _, agency in Actors.Agencies do
 	agencyById[agency.id] = agency
@@ -178,8 +211,9 @@ function Actors.variantChances(luck: number): { [string]: number }
 	return { Normal = 1 - award - shiny, Shiny = shiny, Award = award }
 end
 
--- `random` is a Random object so the server owns the seed.
-function Actors.roll(random: Random, luck: number, minTier: number?): (Actor, Variant)
+-- `random` is a Random object so the server owns the seed. `floorTier` (a hot start guarantee)
+-- raises a lower roll to that tier; the variant is rolled as usual.
+function Actors.roll(random: Random, luck: number, minTier: number?, floorTier: string?): (Actor, Variant)
 	local chances = Actors.tierChances(luck, minTier)
 	local pick = random:NextNumber()
 	local chosenTier = Actors.Tiers[1]
@@ -190,6 +224,10 @@ function Actors.roll(random: Random, luck: number, minTier: number?): (Actor, Va
 		if pick < running then
 			break
 		end
+	end
+	local floor = if floorTier ~= nil then tierById[floorTier] else nil
+	if floor ~= nil and (table.find(Actors.Tiers, chosenTier) :: number) < (table.find(Actors.Tiers, floor) :: number) then
+		chosenTier = floor
 	end
 
 	local pool = Actors.actorsInTier(chosenTier.id)

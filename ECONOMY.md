@@ -13,6 +13,7 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
+    python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
@@ -21,9 +22,9 @@ Robux cash packs. Treat it as the shape of the curve, not a promise: playtests d
 
 ## The curve in plain words
 
-- **First session (about 20 minutes).** The first casts already give a Rising and usually a Pro
-  actor. A second sound stage and the Horror and Romance scripts unlock around minute 8. Most
-  players see their first purple **Star** actor around minute 20.
+- **First session (about 20 minutes).** The "Discovered!" hot start guarantees a Rising on the 3rd
+  cast, a Pro on the 10th and a purple **Star** on the 25th, so the first Star lands around minute
+  7 (4 to 9). A second sound stage and the Horror and Romance scripts unlock around minute 6.
 - **Day one (about an hour).** The **Talent Agency** opens around minute 30, and the premiere
   that unlocks it says so. Feature scripts and Sci-Fi follow by minute 40. Talent Agency casts
   are where spare Cash goes for the rest of the hour, so the third sound stage comes at the start
@@ -53,12 +54,13 @@ stage 4" and "maxed" mean the first time.
 
 | Milestone | Median | Slow 10% |
 |---|---|---|
-| Horror and Romance scripts | day 1, 6 min played | 8 min |
-| Sound stage 2 | day 1, 6 min | 9 min |
-| First Star actor | day 1, 17 min | 30 min |
-| Feature scripts | day 1, 35 min | 39 min |
-| Sci-Fi scripts | day 1, 38 min | 44 min |
-| Talent Agency | day 1, 30 min | 35 min |
+| First Pro actor | day 1, 3 min played | 5 min |
+| Horror and Romance scripts | day 1, 6 min | 7 min |
+| Sound stage 2 | day 1, 6 min | 8 min |
+| First Star actor | day 1, 7 min | 9 min |
+| Talent Agency | day 1, 28 min | 31 min |
+| Feature scripts | day 1, 33 min | 37 min |
+| Sci-Fi scripts | day 1, 37 min | 45 min |
 | Sound stage 3 | day 2 (60 min) | day 2 (60 min) |
 | First Superstar | day 2 (60 min), often late day 1 | day 3 |
 | **Rebirth 1** (Movie Cash x1.5) | day 2 (75 min) | day 2 (99 min) |
@@ -206,6 +208,19 @@ milestones a few minutes sooner (first Star 17 to 14 minutes, Sound stage 3 49 t
 54 to 53, the first rebirth 75 to 71) and week one ends 2% richer. The cut floors barely change that
 (the first draft gave 14, 47, 52 and 70): most of the early effect is the Luck boost and Skips, not
 Cash. Real players will finish fewer, so these are the upper end. They cannot change the odds of rare actors.
+
+**The "Discovered!" hot start (2026-10-15).** Before it, a new player's best pull in the first 10
+minutes was a Pro and the first Star came around minute 17 (slow 10%: minute 30). Now a brand-new
+account's casts carry guarantees (`Actors.HotStart`): at least a Rising on cast 3, a Pro on cast 10
+and a Star on cast 25, with a bar over the Cast button counting down. A luckier roll keeps its
+better tier, and crate casts count too. It is one saved counter (`hotStart`, save version 9);
+profiles from before it count as done, and after cast 25 nothing changes. Cast 25 was picked from
+the sim: the typical player makes their 25th cast around minute 6 to 7. Sim, typical player, 300
+runs, with against without: first Star 7 against 17 minutes (slow 10%: 9 against 30), first Pro 3
+against 4, Talent Agency 28 against 30, the first rebirth unchanged at 75 minutes, and week one
+ends within 1% on Cash per minute. Casual players: first Star 7 against 15 minutes, week one ends
+about 4% richer on Cash per minute (the early Star's films pay a bit more all day one). Compare
+with `--no-hot-start`. No price, odds or payout changed.
 
 ## Special events
 

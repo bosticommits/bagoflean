@@ -123,6 +123,51 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	end
 	refreshCastButton()
 
+	-- "Discovered!" hot start: a bar over the Cast button counts down to a new player's next
+	-- guaranteed pull (Actors.HotStart). Shown from their first cast until the last guarantee.
+	local hotBar = Instance.new("Frame")
+	hotBar.Name = "HotStart"
+	hotBar.BackgroundColor3 = UiKit.DARK
+	hotBar.Position = UDim2.fromOffset(0, -34)
+	hotBar.Size = UDim2.fromOffset(240, 28)
+	hotBar.Visible = false
+	hotBar.Parent = bar
+	corner(hotBar, 14)
+	UiKit.border(hotBar, 3)
+	local hotFill = Instance.new("Frame")
+	hotFill.Name = "Fill"
+	hotFill.BorderSizePixel = 0
+	hotFill.Size = UDim2.fromScale(0, 1)
+	hotFill.Parent = hotBar
+	corner(hotFill, 14)
+	local hotLabel = UiKit.makeTitle(hotBar, "", WHITE, UDim2.new(1, -16, 1, -6), UDim2.fromOffset(8, 3), 2)
+	hotLabel.ZIndex = hotFill.ZIndex + 1
+	textConstraint(hotLabel, 18)
+	local function refreshHotStart()
+		local done = player:GetAttribute("HotStart")
+		local step = if type(done) == "number" then Actors.nextHotStart(done) else nil
+		hotBar.Visible = step ~= nil and (done :: number) > 0
+		if step == nil then
+			return
+		end
+		local castsDone = done :: number
+		local tier = Actors.getTier(step.tier) :: Actors.Tier
+		local previous = 0
+		for _, other in Actors.HotStart do
+			if other.cast < step.cast then
+				previous = other.cast
+			end
+		end
+		local left = step.cast - castsDone
+		hotLabel.Text = if left == 1
+			then `{string.upper(tier.name)} GUARANTEED NEXT CAST!`
+			else `{string.upper(tier.name)} GUARANTEED IN {left} CASTS`
+		hotFill.BackgroundColor3 = tier.color
+		local fraction = math.clamp((castsDone - previous) / (step.cast - previous), 0, 1)
+		TweenService:Create(hotFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(fraction, 1) }):Play()
+	end
+	refreshHotStart()
+
 	-- Odds panel (with agency selector) --------------------------------------------------------
 	local oddsPanel, oddsList, oddsHeader = UiKit.makePanel(gui, "OddsPanel", "Casting odds", 108)
 	UiKit.panelIcon(oddsPanel, oddsHeader, "dice")
@@ -598,11 +643,14 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			powerLabel.Text = "Star Power " .. Hud.comma(tier.starPower * variant.multiplier)
 			powerLabel.TextColor3 = UiKit.GOLD
 			local tag = if result.isNew then "NEW!" else "x" .. result.count
+			if result.discovered then
+				tag = "DISCOVERED!  " .. tag
+			end
 			if variant.id ~= "Normal" then
 				tag = variant.name .. "  " .. tag
 				tagLabel.TextColor3 = variant.color
 			else
-				tagLabel.TextColor3 = if result.isNew then UiKit.GOLD else UiKit.MUTED
+				tagLabel.TextColor3 = if result.isNew or result.discovered then UiKit.GOLD else UiKit.MUTED
 			end
 			tagLabel.Text = tag
 			Fx.castReveal(tier.id, variant.id)
@@ -683,6 +731,8 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	player.AttributeChanged:Connect(function(name)
 		if (name == "Luck" or name == "Fame") and oddsPanel.Visible then
 			buildOdds()
+		elseif name == "HotStart" then
+			refreshHotStart()
 		end
 	end)
 
