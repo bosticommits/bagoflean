@@ -1,10 +1,10 @@
 --!strict
 -- Small moving things that make the map feel alive: gulls gliding over the town and the park,
--- clouds drifting overhead, butterflies over Starlight Park's lawns, ducks paddling round the
--- pond and tumbleweeds rolling down Dusty Gulch's street. All Blender map kit models.
+-- clouds drifting overhead, butterflies over Starlight Park's lawns and ducks paddling round the
+-- pond. All Blender map kit models.
 --
 -- Each player moves their own copies, so it costs the server nothing: the birds, clouds and
--- butterflies are made here; the ducks and tumbleweeds are the town's own (TownSets), moved here.
+-- butterflies are made here; the ducks are the town's own (TownSets), moved here.
 -- About thirty models a frame, none of which collide.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -137,37 +137,13 @@ local function ducks(town: Instance, movers: { Mover })
 	end)
 end
 
--- Dusty Gulch's tumbleweeds roll and bounce down the street away from town, then start over.
-local function tumbleweeds(town: Instance, movers: { Mover })
-	local radius = MapKit.bounds("Tumbleweed").size.Y / 2
-	local roll, rest = 24, 14 -- seconds rolling, seconds out of sight
-	local from, length = -EDGE - 12, 132
-	each(town, "Tumbleweed", function(model, index)
-		local lane = if index % 2 == 0 then 5 else -5
-		local offset = index * 17
-		table.insert(movers, function(t)
-			local s = (t + offset) % (roll + rest)
-			if s > roll then
-				model:PivotTo(CFrame.new(0, -60, from))
-				return
-			end
-			local distance = s / roll * length
-			local bounce = math.abs(math.sin(s * 2.4)) * 1.2
-			local at = Vector3.new(lane + math.sin(s * 0.5) * 3, 0.2 + bounce, from - distance)
-			-- Turning round its middle, not its feet.
-			local spin = CFrame.new(0, radius, 0) * CFrame.Angles(-distance / radius, 0, 0) * CFrame.new(0, -radius, 0)
-			model:PivotTo(CFrame.new(at) * spin)
-		end)
-	end)
-end
-
 function MapLife.start()
 	task.spawn(function()
 		local town = workspace:WaitForChild("Town", 60)
 		if town == nil then
 			return
 		end
-		-- Let the town finish arriving before looking for its ducks and tumbleweeds.
+		-- Let the town finish arriving before looking for its ducks.
 		town:WaitForChild("Blimp", 30)
 
 		local folder = Instance.new("Folder")
@@ -180,7 +156,6 @@ function MapLife.start()
 		clouds(folder, movers)
 		butterflies(folder, movers)
 		ducks(town, movers)
-		tumbleweeds(town, movers)
 
 		RunService.Heartbeat:Connect(function()
 			local t = os.clock()

@@ -50,8 +50,7 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   Walk-on models (stands, the theatre steps, arches, the bridge) get invisible box colliders;
   sign text is lettered on named spots, so it stays sharp.
 - **Life** (`src/client/MapLife.luau`, each player's own copy): gulls gliding in flocks, clouds
-  drifting overhead, butterflies over the park, ducks paddling on the pond and tumbleweeds
-  rolling down Dusty Gulch.
+  drifting overhead, butterflies over the park and ducks paddling on the pond.
 - **Scenery**: woods of trees, pines and bushes round the town and behind the park, a desert of
   cacti, boulders and mesas behind Dusty Gulch, trees up the hills, and a ring of terrain
   mountains (snowy peaks, sandstone mesas behind the Gulch) on the horizon.

@@ -330,7 +330,7 @@ function TownSets.westernTown(b: Builder)
 	crate(b, v(-15.8, 0.8, 76), 2.4, 30)
 	MapKit.place(b, "HayBale", CFrame.new(16, 0.8, 75) * yaw(90))
 	MapKit.place(b, "HayBale", CFrame.new(16, 2.8, 75.4) * yaw(80))
-	-- Tumbleweeds (src/client/MapLife.luau rolls them down the street now and then).
+	-- Tumbleweeds resting in the street.
 	for _, at in { v(-4, 0.2, 60), v(6, 0.2, 112) } do
 		MapKit.place(b, "Tumbleweed", at, { solid = false })
 	end
