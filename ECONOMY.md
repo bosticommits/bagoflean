@@ -301,13 +301,18 @@ box office +15%) that tests keep under the Robux pass doing the same job (x2 Luc
 filming). Cash is added after Fame is worked out, like the rebirth bonus, so Fame unlocks do not
 move. Rewards paid as "minutes of box office" follow the boosted rate, as the screens show it. A
 buff only works 30 seconds after equipping, so swapping mascots
-between casting and premiering cannot collect two buffs; mascots are earned, never sold.
+between casting and premiering cannot collect two buffs. Mascots are bought once with in-game
+Cash and kept through rebirths, never sold for Robux: Popcorn Pup free, Clapper Croc $5,000, Reel
+Kitty $25,000, Camera Bot $75,000, Spotlight Owl $1,000,000, Premiere Dragon $5,000,000.
 
-The sim's `--mascots` option keeps the strongest earned mascot of one kind out (the pup until
-then). Typical player, 150 runs, end of week one: no buffs $117,966/min, Cash mascots $157,321
-(+33%), Luck mascots $145,791 (+24%), box office $135,157 (+15%), speed $125,329 (+6%). Cash
-compounds: buying upgrades sooner brings the first rebirth from 71 to 63 minutes played. Legend in
-week one stays at 69 to 74% and Icon at 3 to 7% in every setup (run-to-run noise). For scale, the
+The sim's `--mascots` option buys the mascots of one kind with Cash, cheapest first, the way it
+buys upgrades (not while saving for a rebirth), and keeps the strongest one it owns out (the pup
+until then). Typical player, 150 runs, end of week one (rerun 2026-10-20 with the Cash prices): no
+buffs $117,966/min, Cash mascots $153,235 (+30%), Luck mascots $127,583 (+8%), box office $132,347
+(+12%), speed $122,253 (+4%). The Luck gain is small because the x1.2 Spotlight Owl costs
+$1,000,000. Cash compounds: buying upgrades sooner brings the first rebirth from 71 to 64 minutes
+played. Legend in week one stays at 68 to 76% and Icon at 3 to 5% in every setup (run-to-run
+noise). For scale, the
 2x Luck pass adds about 80%. If every cap applied at once (what stacking would do) a typical player
 would earn about 64% more on top of the base, which is why only one mascot counts.
 

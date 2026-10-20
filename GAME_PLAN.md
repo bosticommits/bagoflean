@@ -344,33 +344,37 @@ exciting by M3, fix the core before adding anything else.
   screen. Your mascot follows you round town, trotting a step behind your right shoulder and
   hopping as it walks, and jumps a moment after you jump; every player on the server sees
   everyone's mascot.
-- **Small buffs, never sold.** Each mascot is earned by a milestone the save already records and
-  gives one capped buff while it is out (only one mascot counts, and a buff starts 30 seconds
-  after equipping). Caps and what they cost the curve are in ECONOMY.md ("Mascot buffs"):
+- **Small buffs, bought with Cash, never Robux.** Every studio starts with the Popcorn Pup; the
+  others are bought once with in-game Cash and kept for good (a rebirth resets Cash, never
+  mascots). A bought mascot goes straight out. Each gives one capped buff while it is out (only one
+  mascot counts, and a buff starts 30 seconds after equipping). Caps and what they cost the curve
+  are in ECONOMY.md ("Mascot buffs"). (Until 15 Oct 2026 mascots were earned by milestones.)
 
-  | Mascot | Rarity color | How to earn it | Buff |
+  | Mascot | Rarity color | Price (Cash) | Buff |
   |---|---|---|---|
-  | Popcorn Pup (a puppy in a popcorn bucket) | Newcomer | Every studio starts with it | +5% movie Cash |
-  | Clapper Croc (its top jaw is a clapperboard) | Rising | Premiere 10 movies | Films 10% faster |
-  | Reel Kitty (film reels for ears) | Pro | Discover 15 actors in the Index | x1.1 casting Luck |
-  | Camera Bot (a hovering film camera) | Star | Open the Talent Agency (its Fame) | +15% box office |
-  | Spotlight Owl (spotlights for eyes) | Superstar | Make a Sequel (rebirth) | x1.2 casting Luck |
-  | Premiere Dragon (red-carpet colors) | Legend | Make a Masterpiece | +20% movie Cash |
+  | Popcorn Pup (a puppy in a popcorn bucket) | Newcomer | Free, every studio starts with it | +5% movie Cash |
+  | Clapper Croc (its top jaw is a clapperboard) | Rising | $5,000 | Films 10% faster |
+  | Reel Kitty (film reels for ears) | Pro | $25,000 | x1.1 casting Luck |
+  | Camera Bot (a hovering film camera) | Star | $75,000 | +15% box office |
+  | Spotlight Owl (spotlights for eyes) | Superstar | $1,000,000 | x1.2 casting Luck |
+  | Premiere Dragon (red-carpet colors) | Legend | $5,000,000 | +20% movie Cash |
 
 - **Screen**: your mascot turns on a spotlight in its rarity color, with HIDE to put it away. Under
-  it, a picture card for each mascot: EQUIP or EQUIPPED for earned ones; a black silhouette, how
-  to earn it and a progress bar ("7 / 10") for the rest. Earning one says "New mascot: Reel Kitty!"
-  with a jingle and puts a red badge on the button until the screen is opened.
+  it, a picture card for each mascot with its buff: EQUIP or EQUIPPED for owned ones, a BUY button
+  with the Cash price for the rest (grey until you can afford it). A new mascot says "New mascot:
+  Reel Kitty!" with a jingle and puts a red badge on the button until the screen is opened.
 - **Models**: every mascot is a Blender design (`art/blender/mascots.py`: chunky toy shapes with
   glossy eyes and a thick dark outline). Until the six meshes are imported into
   `ReplicatedStorage.LotMeshes` (art/README.md), the game builds the same Blender shapes from
   parts, outlined with a Highlight.
-- **Server**: `src/server/MascotService.luau` publishes what each player has earned and shows as
-  player attributes, and checks every equip (rules in `src/shared/Mascots.luau`). Each client
+- **Server**: `src/server/MascotService.luau` publishes what each player owns and shows as
+  player attributes, and checks every purchase (ownership and Cash) and every equip (rules in
+  `src/shared/Mascots.luau`); the remotes carry only the mascot's id. Each client
   draws and moves all mascots itself (`src/client/MascotWorld.luau`), so they never lag over the
   network or collide with anything.
-- **Saving**: the chosen mascot as `mascot` in the profile ("" when hidden) and when it changed as
-  `mascotSince`; a missing choice shows the Popcorn Pup and a missing time counts as long ago, so
+- **Saving**: the chosen mascot as `mascot` in the profile ("" when hidden), when it changed as
+  `mascotSince`, and the bought ones as `mascotsOwned` (a set of ids); a missing choice shows the
+  Popcorn Pup, a missing time counts as long ago and a missing set means only the free mascot, so
   older profiles need no migration.
 - **Studio checks pending**: not yet seen in Studio or on a phone, and the imported meshes'
   orientation still needs checking.
