@@ -105,7 +105,11 @@ reach everything.
 - [x] Cheating: every remote is checked by the server and rate limited.
       *Done when:* a security review finds no way to get free Cash, rolls or timers.
       (Reviewed 7 Oct: all remote handlers check types, ranges, ownership and cooldowns. Re-reviewed: 24 live handlers (plus 1 Studio-only test remote), and rejection replies are limited to one per second per player. Note for
-      tuning: an autoclicker on the clapperboard films about 5x faster.)
+      tuning: an autoclicker on the clapperboard films about 5x faster.
+      Re-reviewed 20 Oct: 27 live handlers (plus 1 Studio-only test remote), with takes, mascots,
+      visits and achievements added; same checks, nothing found. Accepted limits: a teleport exploit can
+      reach every Cash Rain coin, the crate and the Spotlight lot (each pays once per event), and a
+      bot can hit Perfect on every TAKE! card (capped at +0.24 premiere Luck per film).)
 - [ ] Performance on a low-end phone with 6 full lots. *Done when:* it stays smooth and
       memory does not keep climbing over a 30-minute session.
 - [ ] No errors in the output during a full play session. *Done when:* a clean log is saved.
