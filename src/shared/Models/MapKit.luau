@@ -84,7 +84,10 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 	model:SetAttribute("Kit", name)
 	model:SetAttribute("KitScale", scale * b.scale)
 
-	local mesh = Build.mesh(g, name, CFrame.new(bounds.center.X * scale, 0, bounds.center.Z * scale), bounds.size.Y * scale)
+	-- The mesh's bottom goes where the shapes' bottom is: on the ground for most models, below the
+	-- joint for rig pieces that hang from it (art/blender/crew_kit.py).
+	local bottom = bounds.center.Y - bounds.size.Y / 2
+	local mesh = Build.mesh(g, name, CFrame.new(bounds.center.X * scale, bottom * scale, bounds.center.Z * scale), bounds.size.Y * scale)
 	local parts: { BasePart } = {}
 	local hitboxes: { BasePart } = {}
 	if mesh ~= nil then

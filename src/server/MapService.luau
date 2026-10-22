@@ -6,6 +6,7 @@
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local MapScenery = require(ReplicatedStorage.Shared.Models.MapScenery)
 
@@ -117,6 +118,24 @@ local function addPrompt(info: MapModels.StandInfo, anchor: BasePart)
 	prompt.Parent = anchor
 end
 
+-- The buy prompt at a film set's gate. FilmSetWorld sends the purchase and hides the prompt for
+-- owners on their own screen; FilmSetService checks and charges.
+local function addFilmSetPrompt(id: string, anchor: BasePart)
+	local set = FilmSets.get(id)
+	if set == nil then
+		return
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "FilmSetPrompt"
+	prompt.ActionText = `Buy for {FilmSets.priceText(set)}`
+	prompt.ObjectText = `{set.name} Film Set`
+	prompt.HoldDuration = 0.4
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("FilmSet", id)
+	prompt.Parent = anchor
+end
+
 function MapService.start()
 	clearTemplate()
 	addLook()
@@ -125,6 +144,9 @@ function MapService.start()
 	local built = MapModels.build(folder)
 	for _, stand in built.stands do
 		addPrompt(stand.info, stand.anchor)
+	end
+	for _, gate in built.filmSets do
+		addFilmSetPrompt(gate.id, gate.anchor)
 	end
 	addSpawn(folder)
 	folder.Parent = workspace
