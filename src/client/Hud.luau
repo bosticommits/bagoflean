@@ -8,6 +8,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
@@ -29,8 +30,8 @@ local BOX_WIDTH = 310
 local TAB_WIDTH = 64
 local TAB_HEIGHT = 64
 local TAB_OVERHANG = 14 -- past the right edge, so only its left corners show
--- Above the middle: clear of the Studio-only "Events" test button at the right middle, the speaker
--- button over it on phones, and the jump button under it.
+-- Computers: above the middle, clear of the Studio-only "Events" test button at the right middle.
+-- Touch screens: at the middle, under the speaker button (top right there) and over the jump button.
 local TAB_Y = -56
 local SLIDE = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut)
 local SAVE_DELAY = 0.6 -- batch quick taps into one save
@@ -259,8 +260,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	UiKit.textConstraint(barText, 15)
 	local boxFull = false
 
-	-- X beside the box office card: tucks the stack away. On the outer side of the card, so on
-	-- touch screens (stack at the top right) it sits on the card's left.
+	-- X beside the box office card: tucks the stack away. On touch screens (stack at the top right)
+	-- it sits off the card's lower left corner, below the wallet at the top centre.
 	local tuck = UiKit.makeButton(box, "X", UiKit.CLOSE_RED, UDim2.fromOffset(34, 34))
 	tuck.Name = "Tuck"
 	tuck.ZIndex = 6
@@ -270,8 +271,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		badgeLayout.HorizontalAlignment = if right then Enum.HorizontalAlignment.Right else Enum.HorizontalAlignment.Center
 		box.AnchorPoint = Vector2.new(if right then 1 else 0.5, 0)
 		box.Position = if right then UDim2.new(1, -4, 0, 56) else UDim2.new(0.5, 0, 0, 56)
-		tuck.AnchorPoint = Vector2.new(if right then 1 else 0, 0.5)
-		tuck.Position = if right then UDim2.new(0, -26, 0.5, 0) else UDim2.new(1, 8, 0.5, 0)
+		tuck.AnchorPoint = if right then Vector2.new(1, 0) else Vector2.new(0, 0.5)
+		tuck.Position = if right then UDim2.new(0, -22, 1, 4) else UDim2.new(1, 8, 0.5, 0)
 	end
 
 	local function refreshBox()
@@ -395,9 +396,10 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	tab.Name = "HudTab"
 	tab.AnchorPoint = Vector2.new(1, 0.5)
 	tab.Visible = false
-	local tabShown = UDim2.new(1, TAB_OVERHANG, 0.5, TAB_Y)
-	local tabHidden = UDim2.new(1, TAB_WIDTH + 24, 0.5, TAB_Y)
-	tab.Position = tabHidden
+	local function tabAt(shown: boolean): UDim2
+		local y = if UserInputService.TouchEnabled then 0 else TAB_Y
+		return UDim2.new(1, if shown then TAB_OVERHANG else TAB_WIDTH + 24, 0.5, y)
+	end
 	local tabScale = Instance.new("UIScale")
 	tabScale.Parent = tab
 	local tabArt = Instance.new("Frame")
@@ -410,6 +412,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	Icon3D.outlined(tabArt, "trophy", 0.95)
 	UiKit.onViewportChanged(function()
 		tabScale.Scale = if UiKit.isCompact() then 0.8 else 1
+		tab.Position = tabAt(tucked)
 	end)
 	local function showReady()
 		local count = gui:GetAttribute("ClaimReady")
@@ -434,7 +437,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		frame.Visible = true
 		tab.Visible = true
 		local slide = TweenService:Create(frame, info, if value then { AnchorPoint = Vector2.new(0, 0), Position = away(position) } else { AnchorPoint = anchor, Position = position })
-		TweenService:Create(tab, info, { Position = if value then tabShown else tabHidden }):Play()
+		TweenService:Create(tab, info, { Position = tabAt(value) }):Play()
 		slide.Completed:Connect(function()
 			if mine == slideToken then
 				frame.Visible = not value

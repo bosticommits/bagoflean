@@ -708,7 +708,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			`x{Config.AwardNightLuckMultiplier} casting Luck, x{Config.AwardNightPayoutMultiplier} premiere payouts`,
 			if active then left / Events.AwardNightLength else 1 - left / (Events.AwardNightPeriod - Events.AwardNightLength),
 			Hud.clock(left),
-			if active then "LIVE NOW" else "Starts soon"
+			if active then "LIVE NOW" else "Coming up"
 		)
 		awardRow.waiting.TextColor3 = if active then UiKit.GOLD else UiKit.MUTED
 		local boostLeft = (player:GetAttribute("LuckBoostUntil") or 0) - now
