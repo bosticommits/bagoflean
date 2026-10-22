@@ -780,9 +780,20 @@ def full_kit():
     """Every model: this file's, then the town's set pieces (town_kit.py)."""
     import boulevard_kit  # here, not at the top: the kits use this file's helpers
     import crew_kit
+    import jungle_kit
+    import space_kit
     import town_kit
 
-    return KIT + town_kit.KIT + boulevard_kit.KIT + crew_kit.KIT
+    return KIT + town_kit.KIT + boulevard_kit.KIT + crew_kit.KIT + space_kit.KIT + jungle_kit.KIT
+
+
+def keeps_origin(name):
+    """Models built where they are instead of lifted onto the ground: rig pieces and props keep
+    their joint at the origin, and a few set pieces are meant to sink into the ground."""
+    import crew_kit
+    import space_kit
+
+    return name in crew_kit.NO_LIFT or name in space_kit.NO_LIFT
 
 
 def main():
@@ -791,10 +802,8 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     results, objs = [], []
     total = 0
-    import crew_kit
-
     for name, builder in full_kit():
-        obj, flat = build(name, builder, lift_to_ground=name not in crew_kit.NO_LIFT)
+        obj, flat = build(name, builder, lift_to_ground=not keeps_origin(name))
         tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
         total += tris
         lo, hi = bounds(obj)
@@ -810,13 +819,16 @@ def main():
 
     if not os.environ.get("KIT_NO_RENDER"):
         import boulevard_kit
+        import crew_kit
+        import jungle_kit
+        import space_kit
         import town_kit
 
         for file_name, (front, back) in [
             ("map_kit_props.png", (["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
                                    ["WaterTower", "WaterTank", "Bandstand", "Mesa"])),
             ("map_kit_buildings.png", (["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]])),
-        ] + list(town_kit.LINEUPS.items()) + list(boulevard_kit.LINEUPS.items()) + list(crew_kit.LINEUPS.items()):
+        ] + list(town_kit.LINEUPS.items()) + list(boulevard_kit.LINEUPS.items()) + list(crew_kit.LINEUPS.items()) + list(space_kit.LINEUPS.items()) + list(jungle_kit.LINEUPS.items()):
             if os.environ.get("KIT_ONLY") and os.environ["KIT_ONLY"] not in file_name:
                 continue
             lineup(front, back, file_name)
@@ -827,9 +839,7 @@ def lineup(front, back, file_name):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     names = front + back
     kit = dict(full_kit())
-    import crew_kit
-
-    objs = {n: build(n, kit[n], lift_to_ground=n not in crew_kit.NO_LIFT)[0] for n in names}
+    objs = {n: build(n, kit[n], lift_to_ground=not keeps_origin(n))[0] for n in names}
     shown = []
     y = 0.0
     for row in (front, back):

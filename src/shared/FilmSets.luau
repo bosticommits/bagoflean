@@ -29,11 +29,13 @@ FilmSets.Caps = table.freeze({
 -- How often the box office bonus pays out while inside (seconds).
 FilmSets.PayEvery = 5
 
--- Dusty Gulch first; the space station and the jungle temple come later, priced along the typical
--- player's Cash curve (ECONOMY_SUMMARY.md): the Gulch during the first day, the others as goals for
--- later days.
+-- Priced along the typical player's Cash curve (ECONOMY_SUMMARY.md): the Gulch during the first
+-- day, Moon Base and the Jungle Temple as goals for later days. Moon Base's gate is inside the
+-- Gulch, so it comes second.
 FilmSets.List = {
 	{ id = "Gulch", name = "Dusty Gulch", price = 25000, luck = 0.05, boxOffice = 1 },
+	{ id = "MoonBase", name = "Moon Base", price = 250000, luck = 0.1, boxOffice = 1 },
+	{ id = "Jungle", name = "Jungle Temple", price = 2500000, luck = 0.15, boxOffice = 1 },
 } :: { FilmSet }
 
 local byId: { [string]: FilmSet } = {}

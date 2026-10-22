@@ -28,6 +28,9 @@ local PROPS: { [string]: { string } } = {
 	Clapper = { "PropClapper" },
 	Sheriff = { "PropRevolver" },
 	Outlaw = { "PropRevolver" },
+	Astronaut = { "PropFlag" },
+	Explorer = { "PropIdol" },
+	Guide = { "PropTorch" },
 }
 
 export type Rig = {
@@ -43,7 +46,7 @@ export type Rig = {
 	bubbleGui: BillboardGui,
 }
 
--- Where each piece goes for `pose`, with `base` the film set's space (MapModels.GulchFrame).
+-- Where each piece goes for `pose`, with `base` the film set's space (MapModels.FilmSets[...].frame).
 -- Pure CFrame math; FilmSetWorld moves the parts there and tests check it.
 function CrewRig.cframes(base: CFrame, pose: FilmScenes.Pose, stick: number): { [string]: CFrame }
 	local root = base * CFrame.new(pose.at) * CFrame.Angles(0, math.rad(pose.yaw), 0)
@@ -92,7 +95,7 @@ local function collect(model: Model, pivot: CFrame): { { part: BasePart, offset:
 	return list
 end
 
--- Builds `who` (one of FilmScenes.Cast) into `parent`, standing at the origin.
+-- Builds `who` (one of a set's FilmScenes cast) into `parent`, standing at the origin.
 function CrewRig.build(parent: Instance, who: string): Rig
 	local model = Instance.new("Model")
 	model.Name = "Crew" .. who

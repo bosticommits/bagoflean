@@ -1,65 +1,65 @@
 --!strict
--- The film crew's day on the Dusty Gulch film set: two scenes, shot over and over, take after take.
---   1 The showdown  the sheriff and the outlaw walk out, draw, and the outlaw falls.
---   2 The stunt     the outlaw fires at the stunt double on the hotel balcony, who flips off it
---                   onto the hay bales below and gets up to a thumbs up.
+-- The film crews at work on the film sets (rules in Shared/FilmSets), shot over and over, take
+-- after take:
+--   Dusty Gulch  two scenes that take turns:
+--                1 The showdown: the sheriff and the outlaw walk out, draw, and the outlaw falls.
+--                2 The stunt: the outlaw fires at the stunt double on the hotel balcony, who flips
+--                  off it onto the hay bales below and gets up to a thumbs up.
+--   Moon Base    The first step: an astronaut climbs down from the lander, hops across the moon
+--                and plants a flag, and an alien sneaks up behind for a surprise hello.
+--   Jungle       The idol: an explorer climbs the temple steps and grabs the golden idol, a boulder
+--                rolls out after him, and he dives clear just in time.
 -- Each take: the clapper loader slates it ("Scene 1, take 3!") and snaps the clapperboard, the
 -- director calls "ACTION!" through the megaphone, the actors play the scene, the director calls
--- "CUT!" and the crew claps; then the actors walk to their marks for the other scene.
+-- "CUT!" and the crew claps. The Gulch's actors then walk to their marks for the other scene; on
+-- the other sets the take rewinds, everyone running backwards to their first marks.
 --
--- FilmScenes.frame(t) says where everyone is at time t (seconds; the game passes the server clock,
--- so every player sees the same take). It is pure numbers, so tests can play it outside Roblox;
--- src/client/FilmSetWorld.luau puts the Blender crew (CrewRig) in each pose. Positions are in
--- Dusty Gulch's own space (MapModels.GulchFrame): the street runs along +Z from the welcome arch,
--- its ground is at y = 0.2 and the boardwalks at y = 0.8. The camera stands on the east side of
--- the street (+X) and films across it, toward the hotel (-X).
+-- FilmScenes.frame(id, t) says where everyone is at time t (seconds; the game passes the server
+-- clock, so every player sees the same take). It is pure numbers, so tests can play it outside
+-- Roblox; src/client/FilmSetWorld.luau puts the Blender crew (CrewRig) in each pose. Positions are
+-- in the set's own space (MapModels.FilmSets[...].frame): the way in from the gate runs along +Z
+-- and the set's ground is at y = 0.2. Facings are degrees about Y: 0 faces -Z, 90 faces -X, -90
+-- faces +X, 180 faces +Z.
 local FilmScenes = {}
 
--- The six people on set, in the order CrewRig builds them (each is a set of Blender pieces,
--- Crew<Who><Part>, from art/blender/crew_kit.py).
-FilmScenes.Cast = { "Director", "Clapper", "Operator", "Sheriff", "Outlaw", "Stunt" }
-
-FilmScenes.TakeLength = 24 -- seconds per take; the two scenes take turns
+FilmScenes.TakeLength = 24 -- seconds per take
 FilmScenes.Takes = 9 -- the take number counts up to this, then starts again at 1
-
--- Where the crew's gear stands (TownSets.westernTown places it): kit model, feet, facing (degrees
--- about Y: 0 faces -Z, 90 faces -X, -90 faces +X).
-FilmScenes.Gear = {
-	{ kit = "CameraCrane", at = Vector3.new(10, 0.2, 114), yaw = 90 },
-	{ kit = "DirectorChair", at = Vector3.new(13, 0.2, 106), yaw = 90, label = "DIRECTOR" },
-	{ kit = "LightStand", at = Vector3.new(9, 0.2, 122.5), yaw = 70 },
-	-- The stunt double's landing, under the hotel balcony.
-	{ kit = "HayBale", at = Vector3.new(-7.7, 0.2, 114), yaw = 90 },
-	{ kit = "HayBale", at = Vector3.new(-10.3, 0.2, 114), yaw = 90 },
-} :: { { kit: string, at: Vector3, yaw: number, label: string? } }
-
--- The middle of the action, and how far the set's area reaches round it (for tests and for when
--- FilmSetWorld starts animating).
-FilmScenes.Centre = Vector3.new(0, 0, 114)
 
 export type Arm = { number } -- { swing forward (radians; pi/2 points ahead, pi straight up), out to the side }
 
 export type Pose = {
-	at: Vector3, -- the feet (in Gulch space)
+	at: Vector3, -- the feet (in the set's space)
 	yaw: number, -- degrees about Y: 0 faces -Z, 90 faces -X, -90 faces +X, 180 faces +Z
 	tilt: number, -- leaning back (radians) about a point `pivot` studs above the feet; pi/2 lies flat
 	pivot: number,
 	legs: { number }, -- left, right: swing forward (radians)
 	arms: { Arm }, -- left, right
 	head: number, -- turn to the left (radians)
-	hold: string?, -- the kit prop in the right hand (PropMegaphone, PropRevolver, PropClapper)
+	hold: string?, -- the kit prop in the right hand (PropMegaphone, PropRevolver, PropClapper, ...)
 	level: boolean?, -- hold the prop pointing straight ahead, whatever the arm does
 	hidden: boolean?, -- off set (walked indoors)
 }
 
 export type Frame = {
-	scene: number, -- 1 the showdown, 2 the stunt
+	scene: number, -- the Gulch: 1 the showdown, 2 the stunt; 1 on the other sets
 	take: number,
 	time: number, -- seconds into the take
 	poses: { [string]: Pose },
 	stick: number, -- how far the clapperboard's top is open (radians)
 	say: { [string]: string }, -- speech bubbles, by who says them
 	shot: string?, -- who fires a shot this moment (a flash at their revolver's muzzle)
+	things: { [string]: CFrame }, -- loose props standing on set (kit name: where), like a planted flag
+}
+
+-- A film set's crew, actors and gear.
+export type Gear = { kit: string, at: Vector3, yaw: number, label: string?, light: boolean? }
+
+export type SetScenes = {
+	cast: { string }, -- everyone on set, in the order CrewRig builds them
+	things: { string }, -- loose props the scene may show (Frame.things)
+	gear: { Gear }, -- what stands on set all the time (MapModels places it)
+	centre: Vector3, -- the middle of the action
+	frame: (t: number) -> Frame,
 }
 
 -- Helpers --------------------------------------------------------------------------------------
@@ -164,13 +164,30 @@ end
 
 local GROUND, BOARDWALK, BALCONY = 0.2, 0.8, 10 -- feet heights: the street, boardwalks, the hotel balcony
 
+-- Where the crew stands on a set, and which ways the camera and the shot face.
+type CrewMarks = {
+	director: Vector3,
+	clapperHome: Vector3,
+	slate: Vector3,
+	operator: Vector3,
+	shotSide: number, -- facing the action (the way the camera points)
+	cameraSide: number, -- facing the camera
+	rewind: boolean?, -- the director calls a rewind after the cut
+}
+
+-- Dusty Gulch: the camera stands on the east side of the street (+X) and films across it, toward
+-- the hotel (-X).
 local CAMERA_SIDE = -90 -- facing the camera (+X)
 local SHOT_SIDE = 90 -- facing the shot (-X)
 
-local DIRECTOR_MARK = v(10.6, GROUND, 106.8)
-local CLAPPER_HOME = v(10.4, GROUND, 118.6)
-local SLATE_MARK = v(3, GROUND, 114)
-local OPERATOR_MARK = v(10, GROUND, 111.4)
+local GULCH_CREW: CrewMarks = {
+	director = v(10.6, GROUND, 106.8),
+	clapperHome = v(10.4, GROUND, 118.6),
+	slate = v(3, GROUND, 114),
+	operator = v(10, GROUND, 111.4),
+	shotSide = SHOT_SIDE,
+	cameraSide = CAMERA_SIDE,
+}
 
 -- Where the actors stand when each scene starts.
 local SHERIFF_START = { v(-5, GROUND, 102), v(3, GROUND, 128) }
@@ -191,9 +208,10 @@ local CUT = { 14.5, 11.5 }
 
 -- The crew -------------------------------------------------------------------------------------
 
-local function crew(scene: number, take: number, s: number, frame: Frame)
+local function crew(marks: CrewMarks, cut: number, s: number, frame: Frame)
 	local poses, say = frame.poses, frame.say
-	local cut = CUT[scene]
+	local scene, take = frame.scene, frame.take
+	local CLAPPER_HOME, SLATE_MARK, SHOT_SIDE, CAMERA_SIDE = marks.clapperHome, marks.slate, marks.shotSide, marks.cameraSide
 
 	-- The clapper loader: out to the slate mark, slates the take and snaps it, back again.
 	local clapper = follow({
@@ -214,18 +232,19 @@ local function crew(scene: number, take: number, s: number, frame: Frame)
 		breathe(clapper, s, 1)
 	end
 
-	local director = pose(DIRECTOR_MARK, SHOT_SIDE)
+	local director = pose(marks.director, SHOT_SIDE)
 	breathe(director, s, 2)
 	director.hold = "PropMegaphone"
 	director.level = true
-	if (s >= 4.2 and s < 5.8) or (s >= cut and s < cut + 1.6) then
+	local rewind = marks.rewind and s >= cut + 3.2 and s < cut + 4.8
+	if (s >= 4.2 and s < 5.8) or (s >= cut and s < cut + 1.6) or rewind then
 		director.arms[2] = { 1.55, 0.05 }
-		say.Director = if s < cut then "ACTION!" else "CUT! Print it!"
+		say.Director = if rewind then "Rewind! From the top!" elseif s < cut then "ACTION!" else "CUT! Print it!"
 	else
 		director.arms[2] = { 0.5, 0.15 }
 	end
 
-	local operator = pose(OPERATOR_MARK, SHOT_SIDE)
+	local operator = pose(marks.operator, SHOT_SIDE)
 	operator.arms = { { 1.2, -0.25 }, { 1.2, -0.25 } } -- hands on the camera
 	operator.head = math.sin(s * 0.4) * 0.1
 
@@ -234,7 +253,7 @@ local function crew(scene: number, take: number, s: number, frame: Frame)
 			clap(p, s)
 		end
 	end
-	if s >= cut + 1.6 and s < cut + 3 then
+	if s >= cut + 1.6 and s < cut + 3 and not rewind then
 		director.hold = nil
 		clap(director, s)
 	end
@@ -411,21 +430,376 @@ local function stuntScene(s: number, frame: Frame)
 	poses.Sheriff, poses.Outlaw, poses.Stunt = sheriff, outlaw, stunt
 end
 
--- The frame ------------------------------------------------------------------------------------
-
-function FilmScenes.frame(t: number): Frame
+-- Dusty Gulch's frame.
+local function gulch(t: number): Frame
 	local n = math.floor(t / FilmScenes.TakeLength)
 	local s = t - n * FilmScenes.TakeLength
 	local scene = n % 2 + 1
 	local take = (n // 2) % FilmScenes.Takes + 1
-	local frame: Frame = { scene = scene, take = take, time = s, poses = {}, stick = 0, say = {} }
-	crew(scene, take, s, frame)
+	local frame: Frame = { scene = scene, take = take, time = s, poses = {}, stick = 0, say = {}, things = {} }
+	crew(GULCH_CREW, CUT[scene], s, frame)
 	if scene == 1 then
 		showdown(s, frame)
 	else
 		stuntScene(s, frame)
 	end
 	return frame
+end
+
+-- Moon Base: The first step --------------------------------------------------------------------
+-- The camera stands near the gate and films toward the painted space backdrop at the far end
+-- (+Z), so players walking in see the crew from behind and the scene beyond them.
+
+local MOON_GEAR: { Gear } = {
+	{ kit = "SpaceBackdrop", at = v(0, 0.2, 104), yaw = 0 },
+	{ kit = "MoonRocket", at = v(38, 0, 86), yaw = 0 },
+	{ kit = "MoonLander", at = v(-8, 0.2, 76), yaw = 0 },
+	{ kit = "MoonDome", at = v(-34, 0, 88), yaw = 0 },
+	{ kit = "MoonBuggy", at = v(26, 0.2, 68), yaw = -30 },
+	{ kit = "MoonCrater", at = v(12, 0.2, 52), yaw = 0 },
+	{ kit = "MoonCrater", at = v(-24, 0.2, 58), yaw = 40 },
+	{ kit = "MoonRock", at = v(16, 0.2, 80), yaw = 20 },
+	{ kit = "MoonRock", at = v(-44, 0.2, 66), yaw = 140 },
+	{ kit = "MoonRock", at = v(36, 0.2, 50), yaw = 260 },
+	{ kit = "CameraCrane", at = v(0, 0.2, 40), yaw = 180 },
+	{ kit = "DirectorChair", at = v(-9, 0.2, 37), yaw = 180, label = "DIRECTOR" },
+	{ kit = "LightStand", at = v(-13, 0.2, 47), yaw = 200 },
+	{ kit = "LightStand", at = v(13, 0.2, 47), yaw = 160 },
+}
+
+local MOON_CREW: CrewMarks = {
+	director = v(-6.5, GROUND, 40),
+	clapperHome = v(7.5, GROUND, 40),
+	slate = v(0, GROUND, 53),
+	operator = v(2.6, GROUND, 37),
+	shotSide = 180,
+	cameraSide = 0,
+	rewind = true,
+}
+
+local MOON_CUT = 18.6
+local PORCH = v(-8, 6.25, 72.6) -- the lander's porch, where the astronaut waits
+local LADDER_TOP = v(-8, 6.25, 71.4)
+local LADDER_FOOT = v(-8, GROUND, 71.4)
+local FLAG_SPOT = v(-0.5, GROUND, 62)
+local FLAG_PLANTED = CFrame.new(0.9, GROUND, 61) * CFrame.Angles(math.pi, 0, 0)
+local ALIEN_HIDE = v(16, GROUND, 83.5)
+local ALIEN_BEHIND = v(0.2, GROUND, 64.4)
+
+-- The action's own clock: plays forward until the cut, holds, then runs backwards to the start
+-- in the last seconds of the take (the rewind), so the next take starts from the first marks.
+local function rewound(s: number, cut: number, from: number): number
+	local back = cut + 3.2
+	if s < back then
+		return math.min(s, cut)
+	end
+	return cut - (s - back) / (FilmScenes.TakeLength - back) * (cut - from)
+end
+
+local function moonActors(a: number, s: number, frame: Frame)
+	local poses, say = frame.poses, frame.say
+
+	-- The astronaut.
+	local astro: Pose
+	if a < 5 then
+		astro = pose(PORCH, turn(0, 180, smooth(span(a, 4.6, 5))))
+		breathe(astro, s, 6)
+	elseif a < 7.4 then
+		-- Down the ladder, facing it, hand over hand.
+		local u = span(a, 5, 7.4)
+		local from = if u < 0.1 then PORCH:Lerp(LADDER_TOP, u / 0.1) else LADDER_TOP:Lerp(LADDER_FOOT, (u - 0.1) / 0.9)
+		astro = pose(from, 180)
+		local rung = math.sin(u * math.pi * 6)
+		astro.arms = { { 2.5 + rung * 0.3, 0 }, { 2.5 - rung * 0.3, 0 } }
+		astro.legs = { 0.6 * math.max(rung, 0), 0.6 * math.max(-rung, 0) }
+	elseif a < 7.9 then
+		astro = pose(LADDER_FOOT, turn(180, 0, smooth(span(a, 7.4, 7.9))))
+	elseif a < 11 then
+		-- Three slow, floaty moon hops.
+		local u = span(a, 7.9, 11)
+		local hop = math.abs(math.sin(u * math.pi * 3))
+		astro = pose(LADDER_FOOT:Lerp(FLAG_SPOT, u) + v(0, 1.8 * hop, 0), facing(LADDER_FOOT, FLAG_SPOT))
+		astro.arms = { { 0.5, 0.7 }, { 0.5, 0.7 } }
+		astro.legs = { 0.5 * hop, 0.3 * hop }
+	else
+		astro = pose(FLAG_SPOT, if a < 16.2 then 0 else turn(0, 180, smooth(span(a, 16.2, 16.6))))
+		if a < 11.6 then
+			astro.hold = "PropFlag"
+			astro.arms[2] = { 3.0 * smooth(span(a, 11, 11.3)), 0.1 }
+		elseif a < 12 then
+			astro.hold = if a < 11.8 then "PropFlag" else nil
+			astro.arms[2] = { 3.0 - 1.8 * smooth(span(a, 11.6, 11.8)), 0.1 }
+		elseif a < 13.4 then
+			astro.arms[2] = { 2.6, -0.5 } -- a salute
+		elseif a < 16.6 then
+			breathe(astro, s, 6)
+			astro.head = -0.4 -- admiring the flag
+		elseif a < 17.6 then
+			local u = span(a, 16.6, 17.6)
+			astro.at += v(0, 3 * math.sin(u * math.pi), 0)
+			astro.arms = { { 3.0, 0.5 }, { 3.0, 0.5 } }
+			astro.legs = { 0.4, 0.2 }
+		else
+			astro.arms[2] = { 2.9, 0.4 + math.sin(a * 9) * 0.3 }
+		end
+	end
+	if a >= 7.6 and a < 9.4 then
+		say.Astronaut = "One small step..."
+	elseif a >= 16.6 and a < 17.8 then
+		say.Astronaut = "AAH!"
+	end
+	if a >= 11.8 then
+		frame.things.PropFlag = FLAG_PLANTED
+	end
+
+	-- The alien: hiding behind a moon rock, peeking, then sneaking up for a hello.
+	local alien = follow({
+		{ t = 0, at = ALIEN_HIDE, yaw = 0 },
+		{ t = 12.4, at = ALIEN_HIDE, yaw = 0 },
+		{ t = 15.4, at = ALIEN_BEHIND, yaw = 0 },
+	}, a)
+	if a < 12.4 then
+		alien.head = if a > 9 then math.sin(a * 2) * 0.6 else 0
+		breathe(alien, s, 7)
+	elseif a < 15.4 then
+		alien.arms = { { 1.0, 0.5 }, { 1.0, 0.5 } } -- tiptoe
+	elseif a < 16.6 then
+		alien.arms[2] = { 1.5, 0.1 } -- tap, tap
+		say.Alien = "Hello!"
+	elseif a < 17.6 then
+		local u = span(a, 16.6, 17.6)
+		alien.at += v(0, 2.5 * math.sin(u * math.pi), 0)
+		alien.arms = { { 2.9, 0.6 }, { 2.9, 0.6 } }
+	else
+		local wave = math.sin(a * 9) * 0.3
+		alien.arms = { { 2.9, 0.4 - wave }, { 2.9, 0.4 + wave } }
+	end
+
+	if s >= MOON_CUT + 1 and s < MOON_CUT + 3 then
+		clap(astro, s)
+		clap(alien, s)
+		astro.hold = nil
+	end
+	poses.Astronaut, poses.Alien = astro, alien
+end
+
+local function moon(t: number): Frame
+	local n = math.floor(t / FilmScenes.TakeLength)
+	local s = t - n * FilmScenes.TakeLength
+	local frame: Frame = { scene = 1, take = n % FilmScenes.Takes + 1, time = s, poses = {}, stick = 0, say = {}, things = {} }
+	crew(MOON_CREW, MOON_CUT, s, frame)
+	moonActors(rewound(s, MOON_CUT, 4.6), s, frame)
+	return frame
+end
+
+-- Jungle Temple: The idol --------------------------------------------------------------------------
+-- The camera stands in the clearing and films the temple steps (+Z). The temple's steps run from
+-- z = 79 on the ground up to z = 89.5 at the top platform, 16 up (art/blender/jungle_kit.py).
+
+local JUNGLE_GEAR: { Gear } = {
+	{ kit = "JungleTemple", at = v(24, 0.2, 96), yaw = 0 },
+	{ kit = "IdolPedestal", at = v(24, 16.2, 92.5), yaw = 0 },
+	{ kit = "JungleTorch", at = v(18.5, 0.2, 77.5), yaw = 0, light = true },
+	{ kit = "JungleTorch", at = v(29.5, 0.2, 77.5), yaw = 0, light = true },
+	{ kit = "JungleTree", at = v(-14, 0.2, 92), yaw = 0 },
+	{ kit = "JungleTree", at = v(62, 0.2, 96), yaw = 120 },
+	{ kit = "JungleTree", at = v(-24, 0.2, 38), yaw = 60 },
+	{ kit = "JungleTree", at = v(72, 0.2, 40), yaw = 200 },
+	{ kit = "JunglePalm", at = v(0, 0.2, 72), yaw = 40 },
+	{ kit = "JunglePalm", at = v(48, 0.2, 72), yaw = 200 },
+	{ kit = "JunglePalm", at = v(-28, 0.2, 66), yaw = 100 },
+	{ kit = "JunglePalm", at = v(74, 0.2, 66), yaw = 300 },
+	{ kit = "JungleFern", at = v(8, 0.2, 82), yaw = 0 },
+	{ kit = "JungleFern", at = v(40, 0.2, 84), yaw = 70 },
+	{ kit = "JungleFern", at = v(-6, 0.2, 58), yaw = 30 },
+	{ kit = "JungleFern", at = v(54, 0.2, 56), yaw = 150 },
+	{ kit = "JungleFern", at = v(10, 0.2, 30), yaw = 90 },
+	{ kit = "JungleFern", at = v(38, 0.2, 28), yaw = 10 },
+	{ kit = "JungleRuin", at = v(-4, 0.2, 80), yaw = 15 },
+	{ kit = "JungleRuin", at = v(52, 0.2, 86), yaw = -20 },
+	{ kit = "CameraCrane", at = v(24, 0.2, 50), yaw = 180 },
+	{ kit = "DirectorChair", at = v(14, 0.2, 47), yaw = 180, label = "DIRECTOR" },
+	{ kit = "LightStand", at = v(11, 0.2, 57), yaw = 200 },
+	{ kit = "LightStand", at = v(37, 0.2, 57), yaw = 160 },
+}
+
+local JUNGLE_CREW: CrewMarks = {
+	director = v(16.5, GROUND, 50),
+	clapperHome = v(31, GROUND, 50),
+	slate = v(24, GROUND, 62),
+	operator = v(26.6, GROUND, 47),
+	shotSide = 180,
+	cameraSide = 0,
+	rewind = true,
+}
+
+local JUNGLE_CUT = 17
+local STEPS_FOOT, STEPS_TOP, TOP_Y = 79, 89.5, 16.2
+local IDOL_ON_PEDESTAL = CFrame.new(24, TOP_Y + 1.6, 92.5) * CFrame.Angles(math.pi, 0, 0)
+local BOULDER_R = 3.2
+local DOOR_Z = 97.5 -- the boulder's middle when it shows in the doorway
+local BOULDER_STOP = 66
+
+-- The ground height on the temple steps at `z` (the ramp under them).
+local function stepY(z: number): number
+	return GROUND + (TOP_Y - GROUND) * math.clamp((z - STEPS_FOOT) / (STEPS_TOP - STEPS_FOOT), 0, 1)
+end
+
+local function onSteps(p: Pose)
+	p.at = v(p.at.X, stepY(p.at.Z), p.at.Z)
+end
+
+-- The boulder's middle along its path: out of the doorway, over the edge, down the steps and
+-- across the clearing, slowing to a stop just short of the camera.
+local function boulderZ(a: number): number
+	if a < 12.2 then
+		return DOOR_Z + (STEPS_TOP - DOOR_Z) * span(a, 11, 12.2)
+	elseif a < 13.2 then
+		return STEPS_TOP + (STEPS_FOOT - STEPS_TOP) * span(a, 12.2, 13.2)
+	end
+	local u = span(a, 13.2, 14.8)
+	return STEPS_FOOT + (BOULDER_STOP - STEPS_FOOT) * (1 - (1 - u) * (1 - u))
+end
+
+local function jungleActors(a: number, s: number, frame: Frame)
+	local poses, say = frame.poses, frame.say
+
+	-- The explorer.
+	local explorer: Pose
+	if a < 11.4 then
+		explorer = follow({
+			{ t = 0, at = v(22, GROUND, 75), yaw = 180 },
+			{ t = 4.6, at = v(22, GROUND, 75), yaw = 180 },
+			{ t = 5.4, at = v(24, GROUND, 77.5), yaw = 180 },
+			{ t = 8.6, at = v(24, GROUND, 90.6), yaw = 180 },
+		}, a)
+		onSteps(explorer)
+		if a < 4.6 then
+			breathe(explorer, s, 8)
+		elseif a >= 9.4 and a < 10 then
+			explorer.arms[2] = { 1.3, 0 } -- reaching for the idol
+		elseif a >= 10 then
+			explorer.hold = "PropIdol"
+			explorer.arms[2] = { 2.9, 0.2 }
+		end
+	elseif a < 13 then
+		-- Turn and run down the steps, the boulder right behind.
+		local u = span(a, 11.6, 13)
+		explorer = pose(v(24, GROUND, 90.6):Lerp(v(24, GROUND, 78.2), u), turn(180, 0, smooth(span(a, 11.4, 11.7))))
+		onSteps(explorer)
+		local pump = math.sin(u * math.pi * 7) * 0.8
+		explorer.legs = { pump, -pump }
+		explorer.arms = { { -pump, 0.1 }, { 2.4, 0.2 } }
+		explorer.hold = "PropIdol"
+	else
+		-- A dive to the side, face down, then up again with the idol held high.
+		local u = span(a, 13, 13.6)
+		explorer = pose(v(24, GROUND, 78.2):Lerp(v(31, GROUND, 74.5), u), -20)
+		local down = if a < 15 then smooth(u) else 1 - smooth(span(a, 15, 15.8))
+		explorer.tilt = -down * math.pi / 2
+		explorer.at += v(0, 0.5 * math.sin(down * math.pi / 2) + (if a < 13.6 then 1.2 * math.sin(u * math.pi) else 0), 0)
+		explorer.arms = { { 2.6 * down, 0.3 }, { 2.6 * down + (1 - down) * 2.9, 0.3 } }
+		explorer.hold = "PropIdol"
+		if a >= 15.8 then
+			explorer.arms[2] = { 2.9, 0.2 }
+		end
+	end
+	if a >= 10.2 and a < 11.4 then
+		say.Explorer = "Got it!"
+	elseif a >= 15.8 and a < 17 then
+		say.Explorer = "Ta-da!"
+	end
+	if a < 10 then
+		frame.things.PropIdol = IDOL_ON_PEDESTAL
+	end
+
+	-- The boulder.
+	if a >= 11 then
+		local z = boulderZ(a)
+		local rolled = (DOOR_Z - z) / BOULDER_R
+		frame.things.PropBoulder = CFrame.new(24, stepY(z) + BOULDER_R, z) * CFrame.Angles(-rolled, 0, 0)
+	end
+
+	-- The guide: holds the torch, worries, shouts and runs for cover.
+	local guide = follow({
+		{ t = 0, at = v(27.5, GROUND, 74), yaw = 180 },
+		{ t = 11.4, at = v(27.5, GROUND, 74), yaw = 180 },
+		{ t = 13.2, at = v(8, GROUND, 66), yaw = facing(v(27.5, 0, 74), v(8, 0, 66)) },
+		{ t = 13.6, at = v(8, GROUND, 66), yaw = 160 },
+	}, a)
+	if a < 11.4 then
+		guide.hold = "PropTorch"
+		guide.arms[2] = { 1.9, 0 }
+		guide.head = if a > 6 then math.sin(a * 3) * 0.4 else 0
+	elseif a < 13.2 then
+		guide.hold = "PropTorch"
+		guide.arms[2] = { 2.4, 0.3 }
+	elseif a < 16 then
+		guide.arms = { { 2.9, -0.3 }, { 2.9, -0.3 } } -- cowering
+		guide.tilt = -0.25
+	else
+		guide.arms = { { 2.8, 0.5 }, { 2.8, 0.5 } } -- cheering
+	end
+	if a >= 6 and a < 8 then
+		say.Guide = "Careful, boss..."
+	elseif a >= 11.2 and a < 12.6 then
+		say.Guide = "RUN!!!"
+	end
+
+	if s >= JUNGLE_CUT + 1 and s < JUNGLE_CUT + 3 then
+		clap(guide, s)
+		guide.hold = nil
+	end
+	poses.Explorer, poses.Guide = explorer, guide
+end
+
+local function jungle(t: number): Frame
+	local n = math.floor(t / FilmScenes.TakeLength)
+	local s = t - n * FilmScenes.TakeLength
+	local frame: Frame = { scene = 1, take = n % FilmScenes.Takes + 1, time = s, poses = {}, stick = 0, say = {}, things = {} }
+	crew(JUNGLE_CREW, JUNGLE_CUT, s, frame)
+	jungleActors(rewound(s, JUNGLE_CUT, 4.6), s, frame)
+	return frame
+end
+
+-- The sets -------------------------------------------------------------------------------------
+
+FilmScenes.Sets = table.freeze({
+	Gulch = {
+		cast = { "Director", "Clapper", "Operator", "Sheriff", "Outlaw", "Stunt" },
+		things = {},
+		gear = {
+			{ kit = "CameraCrane", at = v(10, 0.2, 114), yaw = 90 },
+			{ kit = "DirectorChair", at = v(13, 0.2, 106), yaw = 90, label = "DIRECTOR" },
+			{ kit = "LightStand", at = v(9, 0.2, 122.5), yaw = 70 },
+			-- The stunt double's landing, under the hotel balcony.
+			{ kit = "HayBale", at = v(-7.7, 0.2, 114), yaw = 90 },
+			{ kit = "HayBale", at = v(-10.3, 0.2, 114), yaw = 90 },
+		},
+		centre = v(0, 0, 114),
+		frame = gulch,
+	},
+	MoonBase = {
+		cast = { "Director", "Clapper", "Operator", "Astronaut", "Alien" },
+		things = { "PropFlag" },
+		gear = MOON_GEAR,
+		centre = v(0, 0, 66),
+		frame = moon,
+	},
+	Jungle = {
+		cast = { "Director", "Clapper", "Operator", "Explorer", "Guide" },
+		things = { "PropIdol", "PropBoulder" },
+		gear = JUNGLE_GEAR,
+		centre = v(24, 0, 76),
+		frame = jungle,
+	},
+}) :: { [string]: SetScenes }
+
+-- Where everyone is on set `id` at time `t`.
+function FilmScenes.frame(id: string, t: number): Frame
+	local set = FilmScenes.Sets[id]
+	assert(set ~= nil, `no film set scenes called {id}`)
+	return set.frame(t)
 end
 
 return FilmScenes

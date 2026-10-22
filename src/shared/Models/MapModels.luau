@@ -75,18 +75,28 @@ MapModels.GulchFrame = CFrame.new(0, 0, -(Lay.fenceZ + 1)) * CFrame.Angles(0, ma
 -- in at the gate; FilmSetWorld opens it for owners on their own screen.
 export type FilmSetInfo = {
 	id: string,
+	frame: CFrame, -- the set's own space (FilmScenes): the gate at the origin, the set along +Z
 	gate: CFrame, -- the gate's feet; its -Z faces the town, like a kit model's front
-	wallWidth: number, -- the wall across the way in, centred on the gate
+	wallWidth: number, -- the wall across the way in
+	wallX: number, -- the wall's middle, along the gate (in the gate's space)
 	area: Walkways.Rect, -- inside the set, past the gate
 }
 
+-- Moon Base: out in the desert east of Dusty Gulch, its gate on the Gulch's east edge (so players
+-- reach it through the Gulch), the set running toward world +X.
+MapModels.MoonFrame = CFrame.new(88, 0, -209) * CFrame.Angles(0, math.pi / 2, 0)
+-- The Jungle Temple: in the woods west of Starlight Park, its gate in the park's west fence, the
+-- set running toward world -X.
+MapModels.JungleFrame = CFrame.new(-108, 0, 168) * CFrame.Angles(0, -math.pi / 2, 0)
+
+local function filmSet(id: string, frame: CFrame, wallWidth: number, wallX: number, area: Walkways.Rect): FilmSetInfo
+	return { id = id, frame = frame, gate = frame * CFrame.new(0, 0.2, 1.5), wallWidth = wallWidth, wallX = wallX, area = area }
+end
+
 MapModels.FilmSets = table.freeze({
-	{
-		id = "Gulch",
-		gate = CFrame.new(0, 0.2, -(Lay.fenceZ + 2.5)) * CFrame.Angles(0, math.pi, 0),
-		wallWidth = 172,
-		area = Walkways.rect(-86, -(Lay.fenceZ + 1) - 158, 86, -(Lay.fenceZ + 4)),
-	},
+	filmSet("Gulch", MapModels.GulchFrame, 172, 0, Walkways.rect(-86, -(Lay.fenceZ + 1) - 158, 86, -(Lay.fenceZ + 4))),
+	filmSet("MoonBase", MapModels.MoonFrame, 124, 3, Walkways.rect(90.5, -272, 200, -152)),
+	filmSet("Jungle", MapModels.JungleFrame, 124, 24, Walkways.rect(-232, 132, -110.5, 252)),
 } :: { FilmSetInfo })
 
 -- The lawns along each lot's front, either side of its gate (x from, x to).
@@ -777,6 +787,8 @@ local function playAreas(): { Walkways.Rect }
 		R(fx, -30, Lay.backlotEnd + 1, 30), -- the Studio Gate road up to the sound stage door
 		R(-108, fz, 108, fz + 128), -- Starlight Park, to its ranch fences and the movie screen
 		R(-86, -fz - 158, 86, -fz), -- Dusty Gulch and its desert edges
+		R(86, -272, 200, -152), -- Moon Base, past the Gulch's east edge
+		R(-232, 132, -108, 252), -- the Jungle Temple, past the park's west fence
 	}
 end
 
@@ -810,7 +822,7 @@ local function filmSetGates(b: Builder): { { id: string, anchor: BasePart } }
 		local arm = MapKit.place(g, "SetGateArm", MapModels.GateArmHinge)
 		arm.Name = "FilmSetGateArm"
 		arm:SetAttribute("FilmSet", info.id)
-		local wall = g:block("FilmSetWall", v(info.wallWidth, WALL_HEIGHT, 2), v(0, WALL_HEIGHT / 2 - 1, 0), P.Grey)
+		local wall = g:block("FilmSetWall", v(info.wallWidth, WALL_HEIGHT, 2), v(info.wallX, WALL_HEIGHT / 2 - 1, 0), P.Grey)
 		wall:SetAttribute("FilmSet", info.id)
 		local anchor = g:block("FilmSetPrompt", v(1, 1, 1), v(0, 3, -1.5), P.Grey)
 		anchor:SetAttribute("FilmSet", info.id)
@@ -959,6 +971,8 @@ function MapModels.build(parent: Instance): Built
 	backlot(b)
 	hills(b)
 	landmarks(b)
+	TownSets.moonBase(b:sub(MapModels.MoonFrame))
+	TownSets.jungleTemple(b:sub(MapModels.JungleFrame))
 	buildings(b)
 	walls(b)
 	local filmSets = filmSetGates(b)

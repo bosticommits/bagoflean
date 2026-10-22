@@ -401,12 +401,11 @@ def kit_object(p, collection, parent=None):
         blender = os.path.join(REPO, "art", "blender")
         if blender not in sys.path:
             sys.path.insert(0, blender)
-        import crew_kit
         import map_kit
 
         builders = dict(map_kit.full_kit())
         # Rig pieces and props keep their joint at the origin, as in the game.
-        obj, _ = map_kit.build(name, builders[name], lift_to_ground=name not in crew_kit.NO_LIFT)
+        obj, _ = map_kit.build(name, builders[name], lift_to_ground=not map_kit.keeps_origin(name))
         for c in list(obj.users_collection):
             c.objects.unlink(obj)
         _kit_meshes[name] = obj.data
