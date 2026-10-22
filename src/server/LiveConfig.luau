@@ -6,6 +6,7 @@
 --   game:GetService("DataStoreService"):GetDataStore("GameConfig"):SetAsync("DisabledEvents", { "CashRain" })
 -- and every live server stops accepting that code, or running that event, within a minute.
 -- { "ALL" } switches every special event off; an empty list {} turns them all back on.
+-- "FilmFestival" in DisabledEvents switches the weekly Film Festival off (its goals and laurels).
 -- A failed read keeps the last list.
 local DataStoreService = game:GetService("DataStoreService")
 

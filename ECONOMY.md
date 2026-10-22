@@ -243,6 +243,15 @@ milestones a few minutes sooner (first Star 17 to 14 minutes, Sound stage 3 49 t
 (the first draft gave 14, 47, 52 and 70): most of the early effect is the Luck boost and Skips, not
 Cash. Real players will finish fewer, so these are the upper end. They cannot change the odds of rare actors.
 
+**The Film Festival is a second weekly top-up of the same size.** Each week's festival
+(`Rewards.Festival`) has three goals: 5 premieres of its genre (x2 Luck 15 min, $200 or 30 minutes
+of income), 2 Blockbusters or better in it (a Skip, $250 or 40 minutes) and 4 Studio Requests (x2
+Luck 20 min, a Skip). Its prize, the Festival Laurel, is only for show. The sim finishes all three
+together with the weekly quests (`--no-festival` leaves them out). With 120 runs of a typical
+player, the first week ends with about 4% more Cash per minute (119k against 115k), and no milestone
+before the Superstar row moves (the row comes about 6 minutes of play sooner). Finished on day one
+(`--weekly-day 1`), the change is within the sim's noise: no day-one milestone moves.
+
 **The "Discovered!" hot start (2026-10-15).** Before it, a new player's best pull in the first 10
 minutes was a Pro and the first Star came around minute 17 (slow 10%: minute 30). Now a brand-new
 account's casts carry guarantees (`Actors.HotStart`): at least a Rising on cast 3, a Pro on cast 10

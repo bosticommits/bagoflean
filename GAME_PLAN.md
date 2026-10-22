@@ -99,6 +99,11 @@ and players expect it.
   over the town (a giant Lucky Star, Cash Rain, a Mystery Crate, a Spotlight on someone's studio,
   Golden Hour). Like the reference games' server events, but free for everyone. See section 12.
 - **Live events** (weekly): a limited "Film Festival" actor pool, like the hits' admin events.
+  Built so far: every week is a Film Festival for one genre (Shared/SpecialEvents), with three goals
+  (premieres and hits in that genre, and Studio Requests) on the Goals screen and a Festival Laurel
+  for the lot when all three are done. Seasonal festivals take set weeks (Fright Night in late
+  October, Holiday, Love Story, Summer Blockbuster). Next: limited seasonal actors, kept in their own
+  Index group so a missed season never blocks a tier row or genre set.
 - **Server announcement** when anyone pulls Legend or Icon, or gets a Masterpiece.
 - Daily login rewards, 3 daily **Studio Requests** and 3 **weekly quests** (small quests), codes for socials.
 

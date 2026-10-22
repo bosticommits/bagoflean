@@ -11,7 +11,10 @@
 --   Golden Hour    every film shoots twice as fast (MovieService.fastForward)
 -- Each pickup is saved in the player's profile (eventKey, eventClaims), so rejoining or changing
 -- servers during the same event cannot pick it up twice. LiveConfig can switch events off.
--- In Studio, the client shows test buttons that start any event at once (TestEvent).
+-- It also tells clients this week's Film Festival (the "Festival" attribute), and celebrates a
+-- festival win: QuestTracker saves the Festival Laurel, this puts it on the lot and tells everyone.
+-- In Studio, the client shows test buttons that start any event at once (TestEvent), and one that
+-- finishes this week's festival goals.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +31,7 @@ local EconomyService = require(script.Parent.EconomyService)
 local LiveConfig = require(script.Parent.LiveConfig)
 local LotService = require(script.Parent.LotService)
 local MovieService = require(script.Parent.MovieService)
+local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
 local RewardService = require(script.Parent.RewardService)
 
@@ -55,6 +59,7 @@ local forced: Planned? = nil -- a Studio test event
 local random = Random.new()
 local lastClaim: { [Player]: number } = {}
 local lastSpeedUp = 0
+local publishedFestival: string? = nil
 
 local claimRemote = Remotes.get("EventClaim")
 local resultRemote = Remotes.get("EventResult")
@@ -90,6 +95,28 @@ local function publish()
 			ownerId = if owner ~= nil then owner.UserId else nil,
 		})
 	)
+end
+
+-- This week's Film Festival for clients (the banner and the Goals screen), when it changes.
+local function publishFestival(now: number)
+	local festival = QuestTracker.festival(now)
+	local raw = if festival ~= nil
+		then HttpService:JSONEncode({ week = festival.week, genre = festival.genre, season = festival.season, starts = festival.starts, ends = festival.ends })
+		else nil
+	if raw ~= publishedFestival then
+		publishedFestival = raw
+		ReplicatedStorage:SetAttribute("Festival", raw)
+	end
+end
+
+-- A player finished all three festival goals: their laurel goes up on the lot, with fireworks.
+local function onFestivalWon(player: Player, festival: SpecialEvents.Festival)
+	local data = DataService.getData(player)
+	Analytics.event(player, "FestivalWon", if data ~= nil then #data.laurels else 1, festival.genre, festival.season)
+	LotService.refresh(player)
+	LotService.celebrate(player, "masterpiece")
+	resultRemote:FireClient(player, "festival", 1, true, `You won the {festival.name}!`)
+	Remotes.announce(`{player.DisplayName} won the {festival.name}!`)
 end
 
 -- Luck readouts change as a Lucky Star starts and ends (Main also refreshes them every second).
@@ -201,6 +228,7 @@ end
 
 local function tick()
 	local now = os.time()
+	publishFestival(now)
 	local off = disabled()
 	local event: SpecialEvents.Event?, starts: number, ends: number
 	local test = forced
@@ -283,13 +311,17 @@ local function onClaim(player: Player, kind: any, index: any)
 	end
 end
 
--- Studio only: start event `id` now ("Stop" ends a test event).
-local function onTest(_player: Player, id: any)
+-- Studio only: start event `id` now ("Stop" ends a test event, "FestivalGoals" finishes this
+-- week's festival goals for the tester).
+local function onTest(player: Player, id: any)
 	if not RunService:IsStudio() or type(id) ~= "string" then
 		return
 	end
 	if id == "Stop" then
 		forced = nil
+		return
+	elseif id == "FestivalGoals" then
+		QuestTracker.finishFestival(player)
 		return
 	end
 	local event = SpecialEvents.get(id)
@@ -300,6 +332,7 @@ local function onTest(_player: Player, id: any)
 end
 
 function SpecialEventService.start()
+	QuestTracker.festivalWon = onFestivalWon
 	claimRemote.OnServerEvent:Connect(onClaim)
 	if testRemote ~= nil then
 		testRemote.OnServerEvent:Connect(onTest)
