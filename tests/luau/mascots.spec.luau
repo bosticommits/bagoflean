@@ -213,3 +213,19 @@ test("the Croc's clapper opens and shuts and the Camera Bot's flame stays under 
 		end
 	end
 end)
+
+test("every paid mascot can also be sold for Robux, with the same buff", function()
+	for _, mascot in Mascots.List do
+		if mascot.price > 0 then
+			expect(mascot.product ~= nil, `{mascot.id} needs a product field (0 until it is set up)`)
+			if mascot.product ~= 0 then
+				equal(Mascots.byProduct(mascot.product :: number), mascot, `{mascot.id}'s product finds it`)
+			end
+		else
+			expect(mascot.product == nil or mascot.product == 0, `{mascot.id} is free, so it is never sold`)
+		end
+		-- Robux on Luck counts as paid random items, so those are hidden where that is restricted.
+		equal(Mascots.randomItems(mascot), mascot.buff.kind == "luck", `{mascot.id} random-items flag`)
+	end
+	equal(Mascots.byProduct(0), nil, "an unset product id buys nothing")
+end)

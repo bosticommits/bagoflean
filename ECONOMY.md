@@ -294,8 +294,8 @@ the pace.
 ## Mascot buffs
 
 Each studio mascot gives one small buff, and only the one a player has out counts
-(`src/shared/Mascots.luau`). The Popcorn Pup is free; the rest are bought once with Cash and kept
-through rebirths (never sold for Robux):
+(`src/shared/Mascots.luau`). The Popcorn Pup is free; the rest are bought once, with Cash or with
+Robux (a developer product each), and kept through rebirths:
 
 | Mascot | Price | Buff | Typical player buys it (sim median) |
 |---|---|---|---|
@@ -320,6 +320,12 @@ $127,583 (+8%); speed $122,253 (+4%). Casual player: $33,305 against $40,680 wit
 at 68 to 76% (typical) and 9 to 11% (casual), within run-to-run noise. For scale, the 2x Luck
 pass adds about 80%. If every cap applied at once (what stacking would do) a typical player would
 earn about 64% more, which is why only one mascot counts.
+
+**Robux too.** Each paid mascot can also be bought with Robux (suggested: Croc 25, Kitty 49, Bot 99,
+Owl 249, Dragon 449). It is the same mascot with the same capped buff, so Robux only skips the
+saving: a player who buys the Dragon on day 1 instead of day 4 gets its +20% movie Cash about three
+days early, still well under the 2x Luck pass. Robux on the Luck mascots counts as paid random
+items, so it is not offered where those are restricted (Cash still is).
 
 ## What to watch in playtests
 
