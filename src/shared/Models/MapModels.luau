@@ -27,39 +27,52 @@ local METAL = Enum.Material.Metal
 
 local MapModels = {}
 
-local LOT_SPACING = 80
+-- The lots stand well apart, so the boulevard is long and roomy: between neighbouring lots a
+-- path runs back between two tall boulevard buildings, and a big building closes each end.
+local LOT_SPACING = 116
 local COLUMNS = 3
-local ROW_Z = 70
+local ROW_Z = 78
 local LOT_HALF = LotModels.Layout.size / 2
 
 MapModels.Layout = table.freeze({
 	roadHalf = 9, -- boulevard asphalt: z = -9..9
-	sidewalkTo = ROW_Z - LOT_HALF, -- sidewalks reach the lot fronts (z = 42)
-	townX = 124, -- outer edge of the path that runs round the town
-	townZ = 114,
+	sidewalkTo = ROW_Z - LOT_HALF, -- sidewalks reach the lot fronts (z = 50)
+	townX = 186, -- outer edge of the path that runs round the town
+	townZ = 122,
 	ringWidth = 8,
-	alleyX = 40, -- the paths between neighbouring lots
+	lotSpacing = LOT_SPACING,
+	alleyX = LOT_SPACING / 2, -- the paths between neighbouring lots
 	alleyWidth = 20,
 	plazaRadius = 24,
-	fenceX = 129,
-	fenceZ = 119,
+	fenceX = 191,
+	fenceZ = 127,
 	-- Players appear on the plaza looking past the fountain at the Shop and Rewards stands.
 	spawn = CFrame.new(0, 0.65, -15) * CFrame.Angles(0, math.pi, 0),
 	-- Gold star sign on the big hill behind lots 4-6.
-	hillStar = Vector3.new(0, 44, 298),
+	hillStar = Vector3.new(0, 44, 306),
 	-- The boulevard runs out through the hedge at both ends: west to the Grand Premiere Theatre
 	-- (its bottom step), east through the Studio Gate.
 	endGap = 14,
-	theatreX = -147,
-	gateX = 146,
+	theatreX = -209,
+	gateX = 208,
+	backlotEnd = 237, -- where the road through the Studio Gate meets the sound stage door
 	-- Pass 3: a gap in the middle of the front and back hedges leads out to Dusty Gulch, the
 	-- western film town (front, -Z), and Starlight Park (back, +Z). The blimp circles the town.
 	sideGap = 8,
 	blimpHeight = 120,
-	blimpRadius = 240,
+	blimpRadius = 300,
 })
 
 local Lay = MapModels.Layout
+
+-- The lawns along each lot's front, either side of its gate (x from, x to).
+local LAWN_SPANS: { { number } } = {}
+for col = -1, 1 do
+	local c = col * LOT_SPACING
+	table.insert(LAWN_SPANS, { c - 30, c - 6 })
+	table.insert(LAWN_SPANS, { c + 6, c + 30 })
+end
+local LAWN_FROM = Lay.sidewalkTo - 16 -- the lawns' boulevard edge
 
 -- Where lot `index` (1-6) sits, as the lot-space CFrame LotModels expects: origin at the lot's
 -- ground centre, lot-space -Z toward the boulevard.
@@ -305,17 +318,21 @@ local function streets(b: Builder)
 			local curbLength = x0 - plazaGap
 			b:block("Curb", v(curbLength, 0.35, 0.8), v(dir * (plazaGap + curbLength / 2), 0.175, side * (road + 0.4)), P.Cream)
 		end
-		for _, x in { 32, 48, 72, 88, 108 } do
-			for _, dir in { -1, 1 } do
-				lamp(b, v(dir * x, 0.2, side * (road + 1.8)))
+		-- Along the curb, lamps and palms by turns, leaving the crossings clear.
+		local n = 0
+		for x = 32, x0 - 10, 12 do
+			if math.abs(x - LOT_SPACING) > 7 then
+				n += 1
+				for _, dir in { -1, 1 } do
+					if n % 2 == 1 then
+						lamp(b, v(dir * x, 0.2, side * (road + 1.8)))
+					else
+						LotModels.palm(b:sub(v(dir * x, 0.2, side * (road + 2))), 15, 6)
+					end
+				end
 			end
 		end
-		for _, x in { 60, 100 } do
-			for _, dir in { -1, 1 } do
-				LotModels.palm(b:sub(v(dir * x, 0.2, side * (road + 2))), 15, 6)
-			end
-		end
-		for x = 32, 116, 12 do
+		for x = 32, x0 - 8, 12 do
 			for _, dir in { -1, 1 } do
 				walkOfFameStar(b, dir * x, side * 15)
 			end
@@ -324,9 +341,9 @@ local function streets(b: Builder)
 
 	-- Lawns with bushes and flowers along the lot fronts, leaving the gates, the paths between the
 	-- lots and the corners clear.
-	local lawnFrom, lawnTo = 34, front - 0.5
+	local lawnFrom, lawnTo = LAWN_FROM, front - 0.5
 	for _, side in { -1, 1 } do
-		for _, span in { { -110, -86 }, { -74, -50 }, { -30, -6 }, { 6, 30 }, { 50, 74 }, { 86, 110 } } do
+		for _, span in LAWN_SPANS do
 			local left, right = span[1], span[2]
 			local zMid = side * (lawnFrom + lawnTo) / 2
 			b:block("Lawn", v(right - left, 0.34, lawnTo - lawnFrom), v((left + right) / 2, 0.17, zMid), P.Green, GRASS)
@@ -359,12 +376,12 @@ local function streets(b: Builder)
 			b:block("SidePath", v(ring, 0.2, z0 - front), v(sx * (x0 - ring / 2), 0.1, sz * (front + z0) / 2), P.Paving)
 		end
 		b:block("BackPath", v(length - ring * 2, 0.2, ring), v(0, 0.1, sx * (z0 - ring / 2)), P.Paving)
-		for x = -100, 100, 40 do
+		for x = -140, 140, 40 do
 			lamp(b, v(x, 0.2, sx * (z0 - 1.5)))
 		end
 		-- Bushes on the grass behind the lots and beside the outer ones.
 		local behind = z0 - ring - 4
-		for x = -104, 104, 8 do
+		for x = -(x0 - 20), x0 - 20, 8 do
 			if math.abs(math.abs(x) - Lay.alleyX) > Lay.alleyWidth / 2 + 1 then
 				MapKit.place(b, "Bush", CFrame.new(x, 0, sx * behind) * CFrame.Angles(0, x, 0), { scale = 0.75 })
 			end
@@ -455,13 +472,13 @@ end
 -- sunk into the ground. The ones behind Dusty Gulch are sand-colored, in the desert. (The far ring
 -- of mountains is terrain, see MapScenery.)
 MapModels.Hills = table.freeze({
-	{ at = v(0, -70, 360), size = 260, kit = "Green" },
-	{ at = v(-200, -80, 335), size = 190, kit = "Dark" },
-	{ at = v(205, -78, 330), size = 180, kit = "Dark" },
-	{ at = v(70, -80, -365), size = 210, kit = "Sand" },
-	{ at = v(-130, -85, -350), size = 190, kit = "Dust" },
-	{ at = v(270, -85, 20), size = 200, kit = "Green" },
-	{ at = v(-275, -85, -20), size = 200, kit = "Green" },
+	{ at = v(0, -70, 368), size = 260, kit = "Green" },
+	{ at = v(-220, -80, 343), size = 190, kit = "Dark" },
+	{ at = v(225, -78, 338), size = 180, kit = "Dark" },
+	{ at = v(70, -80, -373), size = 210, kit = "Sand" },
+	{ at = v(-140, -85, -358), size = 190, kit = "Dust" },
+	{ at = v(340, -85, 20), size = 200, kit = "Green" },
+	{ at = v(-345, -85, -20), size = 200, kit = "Green" },
 } :: { MapScenery.Hill })
 
 local function hills(b: Builder)
@@ -480,7 +497,7 @@ local function backlot(b: Builder)
 	local west = CFrame.new(-Lay.fenceX - 30, 0, -48) * CFrame.Angles(0, math.rad(-90), 0)
 	LotModels.soundStage(Build.new(b.parent, b:at(west), 2.4), 7, look)
 	-- East, the road through the Studio Gate ends at this stage's door.
-	local east = CFrame.new(192, 0, 0) * CFrame.Angles(0, math.rad(90), 0)
+	local east = CFrame.new(Lay.backlotEnd + 17, 0, 0) * CFrame.Angles(0, math.rad(90), 0)
 	LotModels.soundStage(Build.new(b.parent, b:at(east), 2.4), 8, { owned = true, accent = P.Blue, filming = true })
 	waterTower(b:sub(v(-Lay.fenceX - 24, 0, 44)))
 	waterTower(b:sub(v(Lay.fenceX + 26, 0, -40)))
@@ -515,7 +532,7 @@ local function landmarks(b: Builder)
 
 	-- East: the road carries on through the Studio Gate to the backlot.
 	local east = Lay.gateX
-	local road = 175 - x0
+	local road = Lay.backlotEnd - x0
 	b:block("BacklotRoad", v(road, 0.15, Lay.roadHalf * 2), v(x0 + road / 2, 0.075, 0), P.Asphalt)
 	for _, z in { -1, 1 } do
 		b:block("BacklotVerge", v(road, 0.2, gap - Lay.roadHalf), v(x0 + road / 2, 0.1, z * (gap + Lay.roadHalf) / 2), P.Paving)
@@ -535,10 +552,14 @@ local function landmarks(b: Builder)
 
 	-- Poster columns on the sidewalks.
 	local posters = {
-		{ x = -62, z = 26, title = "MONSTER\nISLAND", kit = "Green" },
-		{ x = 62, z = 26, title = "SPACE\nCOWBOYS", kit = "Blue" },
-		{ x = -62, z = -26, title = "LOVE IN\nPARIS", kit = "Pink" },
-		{ x = 62, z = -26, title = "THE LAST\nHEIST", kit = "Red" },
+		{ x = -64, z = 26, title = "MONSTER\nISLAND", kit = "Green" },
+		{ x = 64, z = 26, title = "SPACE\nCOWBOYS", kit = "Blue" },
+		{ x = -64, z = -26, title = "LOVE IN\nPARIS", kit = "Pink" },
+		{ x = 64, z = -26, title = "THE LAST\nHEIST", kit = "Red" },
+		{ x = -150, z = 26, title = "ROBOT\nCHEF", kit = "Blue" },
+		{ x = 150, z = 26, title = "DRAGON\nKING", kit = "Red" },
+		{ x = -150, z = -26, title = "PIRATE\nPUPS", kit = "Green" },
+		{ x = 150, z = -26, title = "GHOST\nMALL", kit = "Pink" },
 	}
 	for _, poster in posters do
 		local face = if poster.z > 0 then CFrame.identity else CFrame.Angles(0, math.pi, 0)
@@ -549,10 +570,12 @@ local function landmarks(b: Builder)
 	-- Mystery Crate and Cash Rain coins) and on the backlot road, a bus stop, a news stand,
 	-- hydrants and bins.
 	local cars = {
-		{ x = 117.5, z = 1, kit = "Teal" },
-		{ x = -117.5, z = -1, kit = "Pink" },
-		{ x = 158, z = 1, kit = "Gold" },
-		{ x = 164, z = -1, kit = "Red" },
+		{ x = x0 - 6.5, z = 1, kit = "Teal" },
+		{ x = -(x0 - 6.5), z = -1, kit = "Pink" },
+		{ x = 140, z = -1, kit = "Red" },
+		{ x = -140, z = 1, kit = "Gold" },
+		{ x = x0 + 34, z = 1, kit = "Gold" },
+		{ x = x0 + 40, z = -1, kit = "Red" },
 	}
 	for _, car in cars do
 		-- Driving on the right: +Z side heads toward -X, -Z side toward +X.
@@ -560,11 +583,13 @@ local function landmarks(b: Builder)
 		TownSets.car(b:sub(CFrame.new(car.x, 0.15, car.z * 6.6) * CFrame.Angles(0, yaw, 0)), car.kit)
 	end
 	TownSets.busStop(b:sub(CFrame.new(96, 0.2, -22) * CFrame.Angles(0, math.pi, 0)))
+	TownSets.busStop(b:sub(CFrame.new(-128, 0.2, 22)))
 	TownSets.newsStand(b:sub(v(-96, 0.2, 24)))
-	for _, spot in { v(54, 0.2, 11.5), v(-54, 0.2, -11.5), v(104, 0.2, 11.5), v(-104, 0.2, -11.5) } do
+	TownSets.newsStand(b:sub(CFrame.new(128, 0.2, -24) * CFrame.Angles(0, math.pi, 0)))
+	for _, spot in { v(54, 0.2, 11.5), v(-54, 0.2, -11.5), v(102, 0.2, 11.5), v(-102, 0.2, -11.5), v(158, 0.2, -11.5), v(-158, 0.2, 11.5) } do
 		TownSets.hydrant(b:sub(spot))
 	end
-	for _, spot in { v(68, 0.2, -24), v(-68, 0.2, 24), v(30, 0.2, -24), v(-30, 0.2, 24) } do
+	for _, spot in { v(76, 0.2, -24), v(-76, 0.2, 24), v(30, 0.2, -24), v(-30, 0.2, 24), v(170, 0.2, 24), v(-170, 0.2, -24) } do
 		TownSets.trashBin(b:sub(spot))
 	end
 	-- A pale strip along each curb, so the wide sidewalks read as paved walks.
@@ -586,7 +611,69 @@ local function landmarks(b: Builder)
 	TownSets.blimp(b:sub(CFrame.new(0, Lay.blimpHeight, -Lay.blimpRadius) * CFrame.Angles(0, math.rad(-90), 0)))
 
 	-- A hazy city skyline past the theatre (the front is desert and mesas now, behind Dusty Gulch).
-	TownSets.skyline(b:sub(CFrame.new(-470, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
+	TownSets.skyline(b:sub(CFrame.new(-540, -8, 40) * CFrame.Angles(0, math.rad(90), 0)), 8, 320, 11)
+end
+
+-- Boulevard buildings ------------------------------------------------------------------------------
+-- Tall Blender buildings (art/blender/boulevard_kit.py) line the boulevard: a narrow pair at the
+-- front of each path between the lots, with the path running back between them, and a wide one
+-- closing each end of town. Their fronts stand just past the sidewalk, facing the boulevard.
+
+export type BuildingInfo = {
+	kit: string, -- map kit model
+	x: number, -- middle of its front
+	z: number, -- 1 for the back row (+Z), -1 for the front row
+	labels: { [string]: string }, -- sign text by kit spot
+}
+
+local NEAR, FAR = Lay.alleyX - 19.2, Lay.alleyX + 19.2 -- narrow buildings either side of a path
+local END_X = (LOT_SPACING + LOT_HALF + Lay.townX - Lay.ringWidth) / 2 -- wide buildings at the ends
+
+MapModels.Buildings = table.freeze({
+	{ kit = "HotelStardust", x = -END_X, z = 1, labels = { Canopy = "HOTEL STARDUST", Roof = "STARDUST" } },
+	{ kit = "ApartmentsPink", x = -FAR, z = 1, labels = { Shop = "FLOWERS", Billboard = "DRAGON KING" } },
+	{ kit = "CostumeShopPurple", x = -NEAR, z = 1, labels = { Shop = "COSTUMES", Blade = "W\nI\nG\nS", BladeBack = "W\nI\nG\nS" } },
+	{ kit = "StarCafe", x = NEAR, z = 1, labels = { Shop = "STAR CAFE", Pylon = "CAFE" } },
+	{ kit = "ApartmentsTeal", x = FAR, z = 1, labels = { Shop = "BOOKS", Billboard = "SPACE COWBOYS" } },
+	{ kit = "SunsetTower", x = END_X, z = 1, labels = { Sign = "SUNSET TOWER" } },
+	{ kit = "SunsetTower", x = -END_X, z = -1, labels = { Sign = "SUNSET TOWER" } },
+	{ kit = "ApartmentsButter", x = -FAR, z = -1, labels = { Shop = "BAKERY", Billboard = "LOVE IN PARIS" } },
+	{ kit = "RadioStation", x = -NEAR, z = -1, labels = { Sign = "KRNG RADIO" } },
+	{ kit = "CostumeShopMint", x = NEAR, z = -1, labels = { Shop = "HATS & WIGS", Blade = "H\nA\nT\nS", BladeBack = "H\nA\nT\nS" } },
+	{ kit = "ApartmentsLilac", x = FAR, z = -1, labels = { Shop = "VIDEO", Billboard = "NOW CASTING" } },
+	{ kit = "HotelStardust", x = END_X, z = -1, labels = { Canopy = "HOTEL STARDUST", Roof = "STARDUST" } },
+} :: { BuildingInfo })
+
+-- Neon and bulb signs read gold; shop boards read white.
+local SIGN_COLORS: { [string]: Color3 } = {
+	Shop = P.OffWhite,
+	Billboard = P.OffWhite,
+	Blade = P.Gold,
+	BladeBack = P.Gold,
+	Sign = P.OffWhite,
+	Pylon = P.Carpet,
+	Canopy = P.Gold,
+	Roof = P.Gold,
+}
+
+local WIDE = { HotelStardust = true, SunsetTower = true }
+
+-- Where building `info` stands: its feet in the middle of the model, the front wall 1 stud past
+-- the end of the sidewalk, facing the boulevard.
+function MapModels.buildingBase(info: BuildingInfo): CFrame
+	local depth = if WIDE[info.kit] then 24 else 20 -- the main block, without awnings and canopies
+	local cf = CFrame.new(info.x, 0, info.z * (Lay.sidewalkTo + 1 + depth / 2))
+	return if info.z < 0 then cf * CFrame.Angles(0, math.pi, 0) else cf
+end
+
+local function buildings(b: Builder)
+	for _, info in MapModels.Buildings do
+		local labels: { [string]: MapKit.Label } = {}
+		for spot, text in info.labels do
+			labels[spot] = { text = text, color = SIGN_COLORS[spot] or P.OffWhite, stroke = 3 }
+		end
+		MapKit.place(b, info.kit, MapModels.buildingBase(info), { labels = labels })
+	end
 end
 
 -- Walkable ground ---------------------------------------------------------------------------------
@@ -600,16 +687,22 @@ local function walkAreas(): { Walkways.Rect }
 	local x0, z0, ring = Lay.townX, Lay.townZ, Lay.ringWidth
 	local front, gap = Lay.sidewalkTo, Lay.endGap
 	local areas: { Walkways.Rect } = {
-		R(-x0, -34, x0, 34), -- the boulevard, the plaza and the sidewalks up to the lawns
+		R(-x0, -LAWN_FROM, x0, LAWN_FROM), -- the boulevard, the plaza and the sidewalks up to the lawns
 		R(Lay.theatreX, -gap, -x0, gap), -- forecourt to the theatre steps
 		R(Lay.theatreX - 8.5, -13, Lay.theatreX, 13), -- the steps and the porch under the marquee
-		R(x0, -gap, 175, gap), -- the road through the Studio Gate
+		R(x0, -gap, Lay.backlotEnd, gap), -- the road through the Studio Gate
 	}
 	-- Between the lawns, the sidewalks reach the lot gates, the paths between the lots and the
 	-- path round the outside.
 	for _, side in { -1, 1 } do
-		for _, span in { { -x0, -110 }, { -86, -74 }, { -50, -30 }, { -6, 6 }, { 30, 50 }, { 74, 86 }, { 110, x0 } } do
-			table.insert(areas, R(span[1], side * 34, span[2], side * front))
+		local edges = { -x0 }
+		for _, span in LAWN_SPANS do
+			table.insert(edges, span[1])
+			table.insert(edges, span[2])
+		end
+		table.insert(edges, x0)
+		for i = 1, #edges, 2 do
+			table.insert(areas, R(edges[i], side * LAWN_FROM, edges[i + 1], side * front))
 		end
 		for _, sx in { -1, 1 } do
 			table.insert(areas, R(sx * (Lay.alleyX - Lay.alleyWidth / 2), side * front, sx * (Lay.alleyX + Lay.alleyWidth / 2), side * (z0 - ring)))
@@ -657,7 +750,7 @@ local function playAreas(): { Walkways.Rect }
 	return {
 		R(-fx, -fz, fx, fz), -- the town, inside the hedge
 		R(Lay.theatreX - 8.5, -30, -fx, 30), -- the theatre forecourt, its palms and flower beds
-		R(fx, -30, 176, 30), -- the Studio Gate road up to the sound stage door
+		R(fx, -30, Lay.backlotEnd + 1, 30), -- the Studio Gate road up to the sound stage door
 		R(-108, fz, 108, fz + 128), -- Starlight Park, to its ranch fences and the movie screen
 		R(-86, -fz - 158, 86, -fz), -- Dusty Gulch and its desert edges
 	}
@@ -802,6 +895,7 @@ function MapModels.build(parent: Instance): Built
 	backlot(b)
 	hills(b)
 	landmarks(b)
+	buildings(b)
 	walls(b)
 	MapScenery.build(b, MapModels.WalkAreas, MapModels.PlayAreas, MapModels.Hills)
 

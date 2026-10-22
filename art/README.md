@@ -15,7 +15,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
 | `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |
 | `src/shared/Models/Walkways.luau` | Where players may walk, and the invisible walls along the path borders |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, both written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -27,7 +27,8 @@ How the lot grows:
 
 The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
 
-- **Boulevard** between the two rows of lots: a red carpet, Walk of Fame stars, lamps, palms, crossings to the gates, and a HOLLYWOOD BLVD arch at each end.
+- **Boulevard** between the two rows of lots, which stand well apart (116 studs): a red carpet, Walk of Fame stars, lamps and palms by turns, crossings to the gates, and a HOLLYWOOD BLVD arch at each end.
+- **Boulevard buildings** (`MapModels.Buildings`): tall Blender buildings, 3 to 5 floors, line the boulevard. A narrow pair stands at the front of each path between the lots, and Hotel Stardust and Sunset Tower close each end.
 - **Spawn plaza** in the middle, with a fountain and a giant gold trophy (the Blender `TrophyGold` once imported). Players appear on the gold star.
 - **Store stands**: eight stalls on the sidewalks. Walking up to one shows a prompt that opens its screen: Shop, Rewards, Requests, Codes, Movies, Upgrades, Casting Odds and Talent Index.
 - **Paths** between the lots and round the outside, inside a hedge, so every lot is joined to the others. Lawns, bushes and flowers break up the paving.
@@ -45,7 +46,7 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   up a new area). One tall invisible wall (`MapWall`, 400 studs) runs round the outside of all of
   it, so nobody can jump out over a hedge or a gate; there are no walls inside. Trees, rocks and
   buildings stay solid.
-- **Map kit** (`art/blender/map_kit.py` and `town_kit.py`): every prop and building on the map is
+- **Map kit** (`art/blender/map_kit.py`, `town_kit.py` and `boulevard_kit.py`): every prop and building on the map is
   a low-poly Blender model, placed by `MapKit` (only the flat ground, paths and lawns are parts).
   Walk-on models (stands, the theatre steps, arches, the bridge) get invisible box colliders;
   sign text is lettered on named spots, so it stays sharp.
@@ -59,7 +60,7 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   sun, warm haze, sun rays and bloom (`MapService`), a warm light in every lamp and lantern, and a
   mood shift per area (`src/client/AreaMood.luau`: warmer in the Gulch, greener in the park).
 
-Previews: `art/previews/map_kit_*.png` and `art/previews/town_kit_*.png` show every kit model. For
+Previews: `art/previews/map_kit_*.png`, `art/previews/town_kit_*.png` and `art/previews/boulevard_kit.png` show every kit model. For
 lit Blender renders of the town from fixed spots (aerial, theatre, gate, each back street), run
 `art/preview/map_shots.py` the same way as the store art (see below); it draws the kit models with
 their real Blender meshes, as players see them once `map_kit.fbx` is imported.

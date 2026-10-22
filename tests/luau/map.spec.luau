@@ -42,12 +42,12 @@ end
 -- Scenery that is meant to reach under or into other things.
 local SKIP = { Ground = true, Hill = true, GateRamp = true }
 
-test("lots sit where they always did and face the boulevard", function()
+test("lots stand in two rows of three, well apart, facing the boulevard", function()
 	for index = 1, 6 do
 		local base = MapModels.lotBase(index)
 		local col, row = (index - 1) % 3, (index - 1) // 3
-		equal(base.Position.X, (col - 1) * 80, `lot {index} x`)
-		equal(base.Position.Z, if row == 0 then -70 else 70, `lot {index} z`)
+		equal(base.Position.X, (col - 1) * 116, `lot {index} x`)
+		equal(base.Position.Z, if row == 0 then -78 else 78, `lot {index} z`)
 		-- Lot-space -Z (the gate side, a CFrame's LookVector) points at z = 0.
 		expect(base.LookVector.Z * base.Position.Z < 0, `lot {index} faces the boulevard`)
 	end
@@ -189,12 +189,12 @@ test("every part of the map can be walked to from spawn", function()
 	local e = Lay.fenceZ + 1
 	for _, place in {
 		{ "theatre steps", Lay.theatreX - 2, 0 },
-		{ "studio gate road", 170, 0 },
+		{ "studio gate road", Lay.backlotEnd - 5, 0 },
 		{ "park movie screen", 0, e + 100 },
 		{ "park bandstand", 60, e + 86 },
 		{ "park island", -60, e + 84 },
 		{ "Dusty Gulch's far end", 0, -e - 145 },
-		{ "back path corner", 120, 110 },
+		{ "back path corner", Lay.townX - 4, Lay.townZ - 4 },
 	} do
 		expect(reached(place[2] :: number, place[3] :: number), place[1] :: string)
 	end
@@ -245,7 +245,7 @@ test("the only invisible walls run round the outside of the map", function()
 	end
 	-- Lawns, grass between the paths, the park's lawns and the Gulch's desert: no wall anywhere near.
 	local e = Lay.fenceZ + 1
-	for _, probe in { { -20, 37 }, { 18, -38 }, { 0, 102 }, { 126, 60 }, { 9, e + 20 }, { -24, -e - 60 }, { -60, e + 40 }, { 60, -e - 100 } } do
+	for _, probe in { { -20, 37 }, { 18, -38 }, { 0, 110 }, { Lay.townX + 2, 60 }, { 9, e + 20 }, { -24, -e - 60 }, { -60, e + 40 }, { 60, -e - 100 } } do
 		local x, z = probe[1], probe[2]
 		expect(inPlay(x, z), `{x}, {z} is part of the map`)
 		expect(not wallNear(x, z, 3), `a wall stands inside the map near {x}, {z}`)
