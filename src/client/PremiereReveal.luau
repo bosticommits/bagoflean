@@ -23,7 +23,7 @@ local WHITE = UiKit.WHITE
 local POSTER_ASPECT = 0.7 -- width / height, a one-sheet movie poster
 local BEAM_WARM = Color3.fromRGB(255, 244, 214)
 local BEAM_LAYERS = 7 -- nested strips per spotlight; more layers, softer edges
-local BEAM_LAYER_TRANSPARENCY = 0.9
+local BEAM_LAYER_TRANSPARENCY = 0.84
 local BEAM_SWING = 23 -- degrees either side of straight up
 local RESULT_SPIN_RPM = 12
 
@@ -103,8 +103,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			fade.Rotation = 90
 			fade.Transparency = NumberSequence.new({
 				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.25, 0.85),
-				NumberSequenceKeypoint.new(0.499, 0.2),
+				NumberSequenceKeypoint.new(0.25, 0.75),
+				NumberSequenceKeypoint.new(0.499, 0.1),
 				NumberSequenceKeypoint.new(0.5, 1),
 				NumberSequenceKeypoint.new(1, 1),
 			})
@@ -261,7 +261,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	stampRainbow.Enabled = false
 	stampRainbow.Parent = stampEdge
 	UiKit.outline(stamp, 3)
-	UiKit.textConstraint(stamp, 64)
+	UiKit.textConstraint(stamp, 48)
 	local stampPad = Instance.new("UIPadding")
 	stampPad.PaddingTop = UDim.new(0.12, 0)
 	stampPad.PaddingBottom = UDim.new(0.12, 0)
@@ -344,7 +344,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			card.Size = UDim2.fromOffset(size.X - posterW - gap, size.Y)
 		end
 		poster.Size = UDim2.fromOffset(posterW, posterH)
-		stamp.Size = UDim2.fromOffset(posterW * 1.04, posterH * 0.17)
+		stamp.Size = UDim2.fromOffset(posterW * 0.88, posterH * 0.12)
 		stamp.Position = UDim2.fromOffset(poster.Position.X.Offset + posterW / 2, poster.Position.Y.Offset + posterH * 0.47)
 	end
 	stage:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
@@ -557,6 +557,10 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 				end
 			end
 		end
+		-- No bonus line on most premieres: pull Fame and the unlock up so no gap sits under the payout.
+		local hasBonus = bonusLabel.Text ~= ""
+		fameLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.615 else 0.55)
+		unlockLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.7 else 0.64)
 		unlockLabel.Text = if #unlocked > 0 then `NEW: {table.concat(unlocked, ", ")} unlocked!` else ""
 		if #unlocked > 0 then
 			task.delay(0.6, function()
