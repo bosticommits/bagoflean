@@ -11,12 +11,12 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
 | `src/shared/Models/TownSets.luau` | The town's landmarks and film sets: the Grand Premiere Theatre, the Studio Gate, the four back street sets, poster columns, the far skyline |
-| `src/shared/Models/ActorModels.luau` | The 21 actors (Blender meshes once imported, parts until then) in rig pieces, plus Shiny and Award-Winning effects, and Director Lucien Vale |
+| `src/shared/Models/ActorModels.luau` | The 21 actors (Blender meshes once imported, parts until then) in rig pieces, plus Shiny and Award-Winning effects, and Director Lucien Vale. The four limited seasonal actors come from `art/blender/seasonal_actors.py` |
 | `src/client/ActorLife.luau` | Makes the actors round town idle, bob, look round and wave (each player's own view) |
 | `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
 | `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |
 | `src/shared/Models/Walkways.luau` | Where players may walk, and the invisible walls along the path borders |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), `actors` (the 21 castable actors, each split into rig pieces Body, Head, ArmL, ArmR and a rarity-colored Base; it also writes `src/shared/Models/ActorShapes.luau`, the part version the game shows until the meshes are imported, and `art/previews/actors_blender.png`), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `festival_laurel` (the Film Festival prize that stands on a player's lot), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), `seasonal_actors` (the four limited seasonal actors, built with the mascots' shapes; it writes `src/shared/Models/SeasonalShapes.luau` the same way), `actors` (the 21 castable actors, each split into rig pieces Body, Head, ArmL, ArmR and a rarity-colored Base; it also writes `src/shared/Models/ActorShapes.luau`, the part version the game shows until the meshes are imported, and `art/previews/actors_blender.png`), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), `crew_kit.py` the film set crew and actors (six people in rig pieces: head, torso, arm, leg), their props and the film set gate, all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -25,6 +25,7 @@ How the lot grows:
 - **Cinema**: Cinema Size levels 0-1 small, 2-3 adds a CINEMA blade sign, 4-5 adds columns and side wings, 6 adds a gold dome and searchlights.
 - **Office**: Offline Earnings level 0 is a star trailer, 1-2 a two-floor office, 3-4 a glass tower, 5 adds the gold film reel logo on the roof.
 - **Top star**: the owner's rarest actor stands on a pedestal by the red carpet (glowing for Star and up) and appears as a portrait on the billboard.
+- **Festival Laurels**: each Film Festival the owner wins puts a gold laurel (the Blender `FestivalLaurel` once imported) on a stand between the trophy case and the top star, on a plinth lit in that festival's color. The newest three show.
 
 The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
 
@@ -47,12 +48,18 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   up a new area). One tall invisible wall (`MapWall`, 400 studs) runs round the outside of all of
   it, so nobody can jump out over a hedge or a gate; there are no walls inside. Trees, rocks and
   buildings stay solid.
-- **Map kit** (`art/blender/map_kit.py`, `town_kit.py` and `boulevard_kit.py`): every prop and building on the map is
+- **Map kit** (`art/blender/map_kit.py`, `town_kit.py`, `boulevard_kit.py` and `crew_kit.py`): every prop and building on the map is
   a low-poly Blender model, placed by `MapKit` (only the flat ground, paths and lawns are parts).
   Walk-on models (stands, the theatre steps, arches, the bridge) get invisible box colliders;
   sign text is lettered on named spots, so it stays sharp.
 - **Life** (`src/client/MapLife.luau`, each player's own copy): gulls gliding in flocks, clouds
   drifting overhead, butterflies over the park and ducks paddling on the pond.
+- **Film sets** (`src/client/FilmSetWorld.luau`, each player's own copy): on the Dusty Gulch set a
+  film crew (`CrewRig`, Blender pieces from `crew_kit.py`) shoots two scenes from
+  `src/shared/FilmScenes.luau`, a showdown and a balcony stunt, timed by the server clock so
+  everyone sees the same take. The gate on the way in is bought with Cash; it opens on the
+  owner's screen only. Preview a moment with `MAP_SCENE=filmset MAP_ARG=<seconds>` and the
+  `filmset`, `filmbalcony`, `filmsetwide` or `filmgate` shots.
 - **Scenery**: woods of trees, pines and bushes round the town and behind the park, a desert of
   cacti, boulders and mesas behind Dusty Gulch, trees up the hills, and a ring of terrain
   mountains (snowy peaks, sandstone mesas behind the Gulch) on the horizon.
@@ -61,7 +68,7 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   sun, warm haze, sun rays and bloom (`MapService`), a warm light in every lamp and lantern, and a
   mood shift per area (`src/client/AreaMood.luau`: warmer in the Gulch, greener in the park).
 
-Previews: `art/previews/map_kit_*.png`, `art/previews/town_kit_*.png` and `art/previews/boulevard_kit.png` show every kit model. For
+Previews: `art/previews/map_kit_*.png` (including `map_kit_crew.png` and `map_kit_set_gate.png`), `art/previews/town_kit_*.png` and `art/previews/boulevard_kit.png` show every kit model. For
 lit Blender renders of the town from fixed spots (aerial, theatre, gate, each back street), run
 `art/preview/map_shots.py` the same way as the store art (see below); it draws the kit models with
 their real Blender meshes, as players see them once `map_kit.fbx` is imported.
@@ -71,9 +78,9 @@ their real Blender meshes, as players see them once `map_kit.fbx` is imported.
 Do this once. Until you do, the game shows the part-built versions, so nothing breaks.
 
 1. Build the FBX files on your Mac, from the repo folder:
-   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate mascots map_kit actors; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
-   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` six,
-   `map_kit` one file holding all the map models).
+   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate festival_laurel mascots seasonal_actors map_kit actors; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
+   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` one file
+   holding every piece of all six mascots, `seasonal_actors` four, `map_kit` one file holding all the map models).
 2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
 3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
 4. In the Explorer, open that Model, find its MeshPart, and:
@@ -91,21 +98,23 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `mystery_crate.fbx` | `MysteryCrate` |
 | `mystery_crate_lid.fbx` | `MysteryCrateLid` |
 | `crate_parachute.fbx` | `CrateParachute` |
-| `popcorn_pup.fbx` | `PopcornPup` |
-| `clapper_croc.fbx` | `ClapperCroc` |
-| `reel_kitty.fbx` | `ReelKitty` |
-| `camera_bot.fbx` | `CameraBot` |
-| `spotlight_owl.fbx` | `SpotlightOwl` |
-| `premiere_dragon.fbx` | `PremiereDragon` |
+| `festival_laurel.fbx` | `FestivalLaurel` |
+| `pumpkin_phantom.fbx` | `PumpkinPhantom` |
+| `jingle_jester.fbx` | `JingleJester` |
+| `cupid_crooner.fbx` | `CupidCrooner` |
+| `heatwave_hero.fbx` | `HeatwaveHero` |
+
+**The map kit and the mascots are quicker**: import `map_kit.fbx` and `mascots.fbx` once each
+(Home → Import 3D, with "Merge meshes" off), then drag each whole imported model into
+`ReplicatedStorage > LotMeshes` as it is. The game finds each piece inside by name and sets the
+colors itself, so there is nothing to rename. The mascots come in moving pieces
+(`PopcornPup_Body`, `PopcornPup_Tail`, ...) that the game animates; if you imported the older
+one-piece mascots (`PopcornPup` and so on), delete those, since the game no longer uses them.
 
 **The actors work the same way**: import `actors.fbx` once (Home → Import 3D, with "Merge
 meshes" off), then drag the whole imported model into `ReplicatedStorage > LotMeshes` as it is.
 It holds 101 meshes named `<ActorId>_<Piece>` (for example `NervousIntern_Head`); the game finds
 each by name and sets the colors itself. Don't rename or merge them: each piece moves on its own.
-
-**The map kit is quicker**: import `map_kit.fbx` once (Home → Import 3D, with "Merge meshes"
-off), then drag the whole imported model into `ReplicatedStorage > LotMeshes` as it is. The game
-finds each model inside it by name and sets the colors itself, so there is nothing to rename.
 
 5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
 
@@ -137,7 +146,7 @@ finished images are in `art/store/`.
 
 | Script | What it makes |
 |---|---|
-| `logo.py` | The 3D "HOLLYWOOD RNG" logo with a clapperboard and a die, on a transparent background |
+| `logo.py` | The 3D "HOLLYWOOD RNG" logo (gold and rainbow with a white outline), a clapperboard, a die and the bacon-hair player in a beret, on a transparent background |
 | `thumbnail.py` | Main thumbnail: a shocked player pulls the Icon actor (The Mogul's Muse, 1 in 1,000,000) on a max-level lot |
 | `thumbnail_lots.py` | Second thumbnail: the same lot on day one and fully upgraded ("noob" to "mogul") |
 | `icon.py` | The icon: a close-up of the main thumbnail's scene |
@@ -155,6 +164,27 @@ for s in words logo icon thumbnail thumbnail_lots; do
   python -c "import bpy, runpy, sys; runpy.run_path(sys.argv[1], run_name='__main__')" art/blender/store/$s.py
 done
 python art/blender/store/compose.py    # writes $STORE_OUT/final/*.png
+```
+
+### Roblox front-page style (October 2026)
+
+The newer set copies what front-page Roblox thumbnails do: a plain blocky player with bacon hair,
+bright sky and grass, sunbursts, and fat outlined words with rainbow numbers.
+
+| Script | What it makes |
+|---|---|
+| `bacon.py` | The player: R6 blocky body, round head with a painted face (smug, shocked, star-struck, grin), bacon hair melted from metaballs, optional director's beret |
+| `thumbnail_tower.py` | Thumbnail A: a smug player shows off a four-floor studio tower full of the game's actors ("99 SUPERSTARS", "$1,000,000/s") |
+| `thumbnail_reveal.py` | Thumbnail B: a mystery casting ticket, a red arrow, and a rainbow superstar ("1 IN 1,000,000") |
+| `icon_bacon.py` | The icon: the star-struck player in a beret holding up a rainbow star |
+| `compose_roblox.py` | Draws the skies, sunbursts and checks, adds the words and arrow, and writes the finished PNGs |
+
+```
+python -c "import bpy, runpy, sys; runpy.run_path(sys.argv[1], run_name='__main__')" art/blender/store/words.py -- superstars per_second one_in_million
+for s in icon_bacon thumbnail_reveal thumbnail_tower logo; do
+  python -c "import bpy, runpy, sys; runpy.run_path(sys.argv[1], run_name='__main__')" art/blender/store/$s.py
+done
+python art/blender/store/compose_roblox.py    # writes $STORE_OUT/final/*.png
 ```
 
 For quick test renders set `STORE_SCALE=50 STORE_SAMPLES=24`. Everything renders with Cycles on

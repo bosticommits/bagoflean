@@ -99,6 +99,14 @@ and players expect it.
   over the town (a giant Lucky Star, Cash Rain, a Mystery Crate, a Spotlight on someone's studio,
   Golden Hour). Like the reference games' server events, but free for everyone. See section 12.
 - **Live events** (weekly): a limited "Film Festival" actor pool, like the hits' admin events.
+  Built so far: every week is a Film Festival for one genre (Shared/SpecialEvents), with three goals
+  (premieres and hits in that genre, and Studio Requests) on the Goals screen and a Festival Laurel
+  for the lot when all three are done. Seasonal festivals take set weeks (Fright Night in late
+  October, Holiday, Love Story, Summer Blockbuster). Each seasonal festival has a limited actor
+  (`Actors.Limited`, Star tier, Blender designs): while its season runs it joins the Star casting
+  pool as a fourth actor, and winning that festival gives a copy. They sit in their own Limited
+  group in the Collection, outside the tier rows, genre sets and the Index count, so a missed
+  season never blocks anything; owned copies work all year.
 - **Server announcement** when anyone pulls Legend or Icon, or gets a Masterpiece.
 - Daily login rewards, 3 daily **Studio Requests** and 3 **weekly quests** (small quests), codes for socials.
 
@@ -344,8 +352,9 @@ exciting by M3, fix the core before adding anything else.
   screen. Your mascot follows you round town, trotting a step behind your right shoulder and
   hopping as it walks, and jumps a moment after you jump; every player on the server sees
   everyone's mascot.
-- **Bought with Cash, small capped buffs.** The Popcorn Pup is free; the others are bought once
-  with in-game Cash and kept through rebirths (never sold for Robux). Each gives one capped buff
+- **Bought with Cash or Robux, small capped buffs.** The Popcorn Pup is free; the others are
+  bought once, with in-game Cash or with Robux (a developer product each, same mascot and buff),
+  and kept through rebirths. Each gives one capped buff
   while it is out (only one mascot counts, and a buff starts 30 seconds after equipping). Prices,
   caps and what they cost the curve are in ECONOMY.md ("Mascot buffs"):
 
@@ -359,8 +368,9 @@ exciting by M3, fix the core before adding anything else.
   | Premiere Dragon (red-carpet colors) | Legend | $5,000,000 | +20% movie Cash |
 
 - **Screen**: your mascot turns on a spotlight in its rarity color, with HIDE to put it away. Under
-  it, a picture card for each mascot with its buff: EQUIP or EQUIPPED for owned ones, BUY with the
-  price for the rest (green once you can afford it). Buying one puts it straight out and says
+  it, a picture card for each mascot with its buff: EQUIP or EQUIPPED for owned ones, and for the rest a
+  Cash button (green once you can afford it) beside a Robux button ("R$ soon" until its product
+  id is set in `src/shared/Mascots.luau`). Buying one puts it straight out and says
   "New mascot: Reel Kitty!" with a jingle. Under your mascot, its buff and "starts in 25s" or
   "active".
 - **Models**: every mascot is a Blender design (`art/blender/mascots.py`: chunky toy shapes with

@@ -5,13 +5,17 @@
 -- and a countdown. Ten seconds before one starts it counts down "SPECIAL EVENT IN 10".
 -- The server says what is live (ReplicatedStorage attributes "SpecialEvent" and
 -- "SpecialEventNext", set by SpecialEventService); EventWorld shows it in the world.
+-- Once per visit it also slams in this week's Film Festival ("Festival" attribute) in the
+-- festival's colors, then gets out of the way: its goals live on the Goals screen.
 -- In Studio, an "Events" button on the right starts any event at once, for testing.
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local TweenService = game:GetService("TweenService")
 
+local Actors = require(ReplicatedStorage.Shared.Actors)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
+local ClientState = require(script.Parent.ClientState)
 local EventWorld = require(script.Parent.EventWorld)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
@@ -56,6 +60,21 @@ local function readLive(): EventWorld.Live?
 		owner = if type(data.owner) == "string" then data.owner else nil,
 		ownerId = if type(data.ownerId) == "number" then data.ownerId else nil,
 	}
+end
+
+-- This week's Film Festival, as the server published it (nil while festivals are off).
+local function readFestival(): SpecialEvents.Festival?
+	local raw = ReplicatedStorage:GetAttribute("Festival")
+	if type(raw) ~= "string" then
+		return nil
+	end
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	if not ok or type(data) ~= "table" or type(data.week) ~= "number" then
+		return nil
+	end
+	return SpecialEvents.festival(data.week)
 end
 
 local function escape(text: string): string
@@ -220,6 +239,8 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 	local token = 0
 	local dockedAt = 0
 	local grow: Tween? = nil -- the slam's growth, stopped if it docks early
+	local passing = false -- the slam is the festival's: it leaves after the intro instead of docking
+	local festivalShown = false -- once per visit
 
 	local function dock(animated: boolean)
 		mode = "docked"
@@ -255,11 +276,12 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		end)
 	end
 
-	-- The slam: big in the middle of the screen, then up to the top.
-	local function slam(event: SpecialEvents.Event)
+	-- The slam: big in the middle of the screen, then up to the top (or away, for the festival).
+	local function slam(event: { colors: { Color3 } }, leave: boolean?)
 		token += 1
 		local mine = token
 		mode = "intro"
+		passing = leave == true
 		banner.Visible = true
 		banner.ZIndex = 15 -- above the HUD and the tutorial, for a moment
 		banner.Position = UDim2.new(0.5, 0, 0.3, -HEIGHT / 2)
@@ -275,9 +297,28 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		Fx.confetti(45, { event.colors[1], event.colors[#event.colors], UiKit.WHITE })
 		task.delay(INTRO_SECONDS, function()
 			if token == mine and mode == "intro" then
-				dock(true)
+				if passing then
+					hide()
+				else
+					dock(true)
+				end
 			end
 		end)
+	end
+
+	-- This week's Film Festival, once per visit, when nothing else is on screen.
+	local function showFestival(festival: SpecialEvents.Festival)
+		festivalShown = true
+		title.Text = festival.name
+		gradient.Color = gradientOf(festival.colors)
+		info.Text = `{escape(festival.tagline)}  <font color="#FFD23F">Goals</font>`
+		setIcons(festival.icon)
+		chat(`<font color="#FFD23F">{festival.name}</font> all week: premiere {festival.genre} movies to win a Festival Laurel! (Goals, Quests tab)`)
+		local limited = Actors.limitedFor(festival.season)
+		if limited ~= nil then
+			chat(`<font color="#FFD23F">LIMITED:</font> {limited.name} can be cast this season only, and winning the festival gives one!`)
+		end
+		slam(festival, true)
 	end
 
 	local function showEvent(state: EventWorld.Live, late: boolean)
@@ -382,6 +423,11 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		elseif kind == "spotlight" then
 			Sfx.play("reward")
 			float(text, UiKit.GOLD)
+		elseif kind == "festival" then
+			-- Won this week's festival: a big moment, wherever the banner is.
+			Sfx.play("goal")
+			Fx.confetti(60, { UiKit.GOLD, UiKit.WHITE })
+			UiKit.toast(gui, `{text} Your Festival Laurel is on your lot.`)
 		else
 			float(text, UiKit.GOLD)
 		end
@@ -416,7 +462,19 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 					end
 				end
 			elseif mode == "intro" and panelOpen() then
-				dock(false) -- a menu opened mid-slam: get out of its way
+				if passing then
+					hide()
+				else
+					dock(false) -- a menu opened mid-slam: get out of its way
+				end
+			end
+			-- The festival waits for a quiet moment: no event, no menu, and the tutorial done.
+			if not festivalShown and mode == "hidden" and live == nil and not panelOpen() then
+				local studio = ClientState.studio
+				local festival = readFestival()
+				if festival ~= nil and studio ~= nil and studio.tutorialDone then
+					showFestival(festival)
+				end
 			end
 			if mode == "docked" or mode == "teaser" then
 				local covered = panelOpen()
@@ -457,6 +515,8 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		for _, event in SpecialEvents.List do
 			table.insert(names, event.id)
 		end
+		table.insert(names, "Festival") -- shows the festival banner again
+		table.insert(names, "FestivalGoals") -- finishes this week's festival goals
 		table.insert(names, "Stop")
 		for index, id in names do
 			local button = UiKit.makeButton(column, id, if id == "Stop" then UiKit.CLOSE_RED else UiKit.TAB_OFF, UDim2.fromOffset(150, 30), UDim2.fromOffset(0, 34 + index * 34))
@@ -464,6 +524,13 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			button.Visible = false
 			UiKit.textConstraint(button, 16)
 			button.Activated:Connect(function()
+				if id == "Festival" then
+					local festival = readFestival()
+					if festival ~= nil and live == nil then
+						showFestival(festival)
+					end
+					return
+				end
 				testRemote:FireServer(id)
 			end)
 			table.insert(list, button)

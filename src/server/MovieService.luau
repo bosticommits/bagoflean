@@ -416,6 +416,7 @@ local function onPremiere(player: Player, stage: any)
 	QuestTracker.track(player, "premiere:" .. film.genre) -- weekly genre quests
 	if result.multiplier >= 3 then
 		QuestTracker.track(player, "hit")
+		QuestTracker.track(player, "hit:" .. film.genre) -- Film Festival goals
 	end
 	VisitService.premiered(player, film.title, result.id) -- visitors on the lot watch it too
 	if result.id == "Masterpiece" then

@@ -342,3 +342,31 @@ test("every map kit model has a part version, a size and builds", function()
 	local lamp = MapKit.place(Build.new(folder, CFrame.identity), "TownLamp", CFrame.identity, { light = { range = 10, brightness = 1, color = Color3.new(1, 1, 1) } })
 	expect(lamp:FindFirstChild("LightSpot") ~= nil, "lamp light")
 end)
+
+test("the park's ducks paddle on open water", function()
+	local TownSets = H.require("Models/TownSets")
+	local r = TownSets.PondRadius
+	local island = Vector3.new(-6, 0, 2) -- in the pond's own space, as TownSets builds it
+	local ducks = 0
+	for _, model in town:GetDescendants() do
+		if model.Name == "Duck" and model:IsA("Model") then
+			ducks += 1
+			local loop = TownSets.DuckLoops[model:GetAttribute("DuckLoop")]
+			expect(loop ~= nil, "duck knows its loop")
+			local centre = model:GetAttribute("PondCentre")
+			local home = model:GetAttribute("Home")
+			expect(typeof(centre) == "Vector3" and typeof(home) == "CFrame", "duck knows the pond and its home")
+			local water = Vector3.new(TownSets.Pond.X, 0, TownSets.Pond.Z + Lay.fenceZ + 1)
+			expect((Vector3.new(centre.X, 0, centre.Z) - water).Magnitude < 0.01, `duck's pond {centre} is the park's pond {water}`)
+			for step = 0, 35 do
+				local a = step / 36 * math.pi * 2
+				local p = loop.centre + Vector3.new(math.sin(a) * loop.radius, 0, math.cos(a) * loop.radius)
+				local flat = Vector3.new(p.X, 0, p.Z)
+				expect(flat.Magnitude < r - 2, `duck loop point {p} leaves the pond`)
+				expect((flat - island).Magnitude > 10, `duck loop point {p} runs onto the island`)
+				expect(not (p.X > 0 and math.abs(p.Z - island.Z) < 4), `duck loop point {p} runs under the bridge`)
+			end
+		end
+	end
+	equal(ducks, #TownSets.DuckLoops, "a loop for every duck")
+end)

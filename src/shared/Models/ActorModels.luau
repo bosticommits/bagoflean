@@ -10,9 +10,13 @@
 --
 -- A figure is about 5.4 studs tall at scale 1, standing on its origin, facing -Z. Used for the
 -- star on each lot's pedestal, the store keepers and the Top Studios wall; the same model can go
--- in a ViewportFrame. The director is still built from parts, below.
+-- in a ViewportFrame. The director is still built from parts, below. The limited seasonal actors
+-- (Actors.Limited) are one-piece Blender designs (art/blender/seasonal_actors.py), shown as their
+-- meshes once imported and as SeasonalShapes parts until then.
 local ActorShapes = require(script.Parent.ActorShapes)
 local Build = require(script.Parent.Build)
+local MascotModels = require(script.Parent.MascotModels)
+local SeasonalShapes = require(script.Parent.SeasonalShapes)
 
 type Builder = Build.Builder
 
@@ -443,8 +447,9 @@ end
 -- it hovers ("Float"). The model's pivot is its feet.
 function ActorModels.build(parent: Instance, base: CFrame, actorId: string, variantId: string?, scale: number?, options: Options?): Model
 	local rig = ActorShapes.Actors[actorId] or ActorShapes.Actors.NervousIntern
+	local seasonal = SeasonalShapes.Shapes[actorId]
 	local k = scale or 1
-	local withBase = options ~= nil and options.base == true
+	local withBase = options ~= nil and options.base == true and seasonal == nil
 	local lift = if withBase then ActorShapes.BaseHeight else 0
 	local model = Instance.new("Model")
 	model.Name = "Actor_" .. actorId
@@ -453,31 +458,42 @@ function ActorModels.build(parent: Instance, base: CFrame, actorId: string, vari
 	local feet = base * CFrame.new(0, lift * k, 0)
 	local b = Build.new(model, feet, k)
 	local meshed = false
-	for _, name in ActorShapes.Pieces do
-		local piece = rig.pieces[name]
-		if piece == nil or (name == "Base" and not withBase) then
-			continue
-		end
-		local parts: { BasePart } = {}
-		local mesh = Build.mesh(b, `{actorId}_{name}`, CFrame.new(piece.center.X, piece.center.Y - piece.size.Y / 2, piece.center.Z), piece.size.Y)
-		if mesh ~= nil then
-			mesh.Name = name
-			-- The baked vertex colors show on white.
-			mesh.Color = Color3.new(1, 1, 1)
-			mesh.Material = Enum.Material.SmoothPlastic
-			meshed = true
-			table.insert(parts, mesh)
-		else
-			for _, shape in piece.shapes do
-				for _, p in shapeParts(b, shape) do
-					table.insert(parts, p)
-				end
+	if seasonal ~= nil then
+		-- A limited seasonal actor: one piece (its Blender mesh once imported, its shapes until then)
+		-- that ActorLife only bobs.
+		MascotModels.fill(b, actorId, seasonal, SeasonalShapes.Bounds[actorId])
+		for _, p in model:GetChildren() do
+			if p:IsA("BasePart") then
+				p:SetAttribute("Piece", "Body")
 			end
 		end
-		for _, p in parts do
-			p:SetAttribute("Piece", name)
+	else
+		for _, name in ActorShapes.Pieces do
+			local piece = rig.pieces[name]
+			if piece == nil or (name == "Base" and not withBase) then
+				continue
+			end
+			local parts: { BasePart } = {}
+			local mesh = Build.mesh(b, `{actorId}_{name}`, CFrame.new(piece.center.X, piece.center.Y - piece.size.Y / 2, piece.center.Z), piece.size.Y)
+			if mesh ~= nil then
+				mesh.Name = name
+				-- The baked vertex colors show on white.
+				mesh.Color = Color3.new(1, 1, 1)
+				mesh.Material = Enum.Material.SmoothPlastic
+				meshed = true
+				table.insert(parts, mesh)
+			else
+				for _, shape in piece.shapes do
+					for _, p in shapeParts(b, shape) do
+						table.insert(parts, p)
+					end
+				end
+			end
+			for _, p in parts do
+				p:SetAttribute("Piece", name)
+			end
+			model:SetAttribute("Pivot" .. name, piece.pivot * k)
 		end
-		model:SetAttribute("Pivot" .. name, piece.pivot * k)
 	end
 	if variantId == "Award" then
 		b:block("MedalRibbon", v(0.32, 0.45, 0.08), v(0.45, 2.3, -0.78), P.Carpet):SetAttribute("Piece", "Body")
@@ -495,10 +511,10 @@ function ActorModels.build(parent: Instance, base: CFrame, actorId: string, vari
 	if meshed then
 		model:SetAttribute("Meshed", true)
 	end
-	if rig.wave ~= nil then
+	if rig.wave ~= nil and seasonal == nil then
 		model:SetAttribute("Wave", rig.wave)
 	end
-	if rig.float then
+	if rig.float and seasonal == nil then
 		model:SetAttribute("Float", true)
 	end
 	model:SetAttribute("RigScale", k)
