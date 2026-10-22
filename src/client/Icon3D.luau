@@ -138,7 +138,7 @@ end
 function Icon3D.actor(parent: GuiObject, actorId: string, variantId: string?, silhouette: boolean?): ViewportFrame
 	local variant = variantId or "Normal"
 	local made = entry(`actor:{actorId}:{variant}`, function()
-		return ActorModels.build(holder, CFrame.identity, actorId, variant)
+		return ActorModels.build(holder, CFrame.identity, actorId, variant, nil, { base = true })
 	end)
 	local viewport = show(parent, made, ACTOR_FILL, false)
 	if silhouette then

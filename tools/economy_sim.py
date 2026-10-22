@@ -14,6 +14,8 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
+    python3 tools/economy_sim.py --no-festival       # the same week without the Film Festival's goals
+    python3 tools/economy_sim.py --season FrightNight  # every week a seasonal festival with its limited actor
     python3 tools/economy_sim.py --no-takes          # the player ignores the TAKE! cards (to compare)
     python3 tools/economy_sim.py --mascots cash      # the player keeps its best Cash mascot out
 
@@ -148,6 +150,12 @@ def load_tuning() -> dict:
             (re.search(r'slot = "(\w+)"', line).group(1), _reward(line.split("reward =")[1]))
             for line in _block(rewards_text, "Rewards.Weekly").splitlines() if "reward =" in line
         ],
+        # Film Festival goals: the three kinds (Studio Requests, premieres, hits), one reward each.
+        "festival": [
+            _reward(line.split("reward =")[1])
+            for line in rewards_text[rewards_text.index("Rewards.Festival = {") : rewards_text.index("function Rewards.festivalFor")].splitlines()
+            if "reward =" in line
+        ],
         "requests_per_day": int(_num(re.search(r"Rewards.RequestsPerDay = (\d+)", rewards_text).group(1))),
         "codes": [_reward(line.split("reward =")[1]) for line in codes_text.splitlines() if "reward =" in line],
         "achievements": [
@@ -166,6 +174,7 @@ def load_tuning() -> dict:
         "results": _rows(_block(movies_text, "Movies.Results")),
         "tiers": _rows(_block(actors_text, "Actors.Tiers")),
         "actors": _rows(_block(actors_text, "Actors.List")),
+        "limited": _rows(_block(actors_text, "Actors.Limited")),
         "variants": _rows(_block(actors_text, "Actors.Variants")),
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
         "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
@@ -202,7 +211,7 @@ class Game:
         self.c = tuning["config"]
         self.tier_index = {tier["id"]: i for i, tier in enumerate(tuning["tiers"])}
         self.tier = {tier["id"]: tier for tier in tuning["tiers"]}
-        self.actor = {actor["id"]: actor for actor in tuning["actors"]}
+        self.actor = {actor["id"]: actor for actor in tuning["actors"] + tuning["limited"]}
         self.variant = {v["id"]: v for v in tuning["variants"]}
         self.by_tier: dict[str, list] = {}
         for actor in tuning["actors"]:
@@ -293,7 +302,8 @@ class Game:
         shiny = (1 - award) * min(1.0, luck / shiny_one_in)
         return {"Normal": 1 - award - shiny, "Shiny": shiny, "Award": award}
 
-    def roll_actor(self, rng: random.Random, luck: float, min_tier: int, floor_tier: str | None = None) -> tuple[str, str]:
+    def roll_actor(self, rng: random.Random, luck: float, min_tier: int, floor_tier: str | None = None,
+                   limited: dict | None = None) -> tuple[str, str]:
         pick, running, chosen = rng.random(), 0.0, None
         for tier_id, chance in self.tier_chances(luck, min_tier):
             running += chance
@@ -303,6 +313,15 @@ class Game:
         if floor_tier is not None and self.tier_index[chosen] < self.tier_index[floor_tier]:
             chosen = floor_tier  # a "Discovered!" hot start guarantee (Actors.HotStart)
         actor = rng.choice(self.by_tier[chosen])
+        if limited is not None:
+            # Actors.limitedChance: as likely as one actor of its tier, the bottom slice of the roll
+            # (inside the commonest tier's share), so no other actor's odds move.
+            chances = self.tier_chances(luck, min_tier)
+            share = dict(chances)[limited["tier"]] / len(self.by_tier[limited["tier"]])
+            floor_share = next(c for _, c in chances if c > 0)
+            hot_ok = floor_tier is None or self.tier_index[floor_tier] <= self.tier_index[limited["tier"]]
+            if pick < min(share, floor_share) and hot_ok:
+                actor = limited
         v = self.variant_chances(luck)
         vp = rng.random()
         variant = "Award" if vp < v["Award"] else "Shiny" if vp < v["Award"] + v["Shiny"] else "Normal"
@@ -364,6 +383,10 @@ UPGRADE_ORDER = ["Stages", "Cinema", "Luck", "Offline", "Clap"]
 # saving for a rebirth), and keeps the strongest one it owns out (the free Popcorn Pup until then).
 # Set by --mascots. Players here never swap, so the warm-up after equipping does not come up.
 MASCOTS = "none"
+FESTIVAL = True  # the Film Festival's goals, finished with the weekly quests (--no-festival)
+# A season id (SpecialEvents.Seasons) to make every week that seasonal festival (--season): its
+# limited actor (Actors.Limited) joins its tier's casting pool, and winning the festival gives one.
+SEASON: str | None = None
 
 
 class Player:
@@ -400,6 +423,8 @@ class Player:
         self.luck_pass = False
         self.achievements = True
         self.weekly_on = True
+        self.festival_on = FESTIVAL
+        self.limited = next((a for a in game.t["limited"] if a["season"] == SEASON), None) if SEASON else None
         self.weekly_day = 4
         self.counts = {"cast": 0, "premiere": 0, "hit": 0, "clap": 0, "script": 0, "collect": 0}
         self.trophies = 0
@@ -576,15 +601,19 @@ class Player:
             if self.streak in (7, 14, 21):
                 self.mark(f"Day {self.streak} streak reward")
 
+    def everyday_index(self) -> set:
+        """Index keys without limited actors (they are counted on their own, like the game does)."""
+        return {k for k in self.index if not self.g.actor[k.split(":")[0]].get("season")}
+
     def achievement_value(self, stat: str) -> float:
         if stat == "masterpiece":
             return self.trophies
         if stat == "fame":
             return self.fame
         if stat == "index":
-            return len(self.index)
+            return len(self.everyday_index())
         if stat == "actors":
-            return len({k.split(":")[0] for k in self.index})
+            return len({k.split(":")[0] for k in self.everyday_index()})
         if stat.startswith("tier:"):
             return sum(1 for k in self.index if self.g.actor[k.split(":")[0]]["tier"] == stat[5:])
         if stat.startswith("variant:"):
@@ -637,6 +666,17 @@ class Player:
         """Weekly quests: one per slot, all finished on `weekly_day` (default 4) of each week."""
         for slot in ("volume", "genre", "skill"):
             self.grant(self.rng.choice([reward for name, reward in self.g.t["weekly"] if name == slot]))
+
+    def finish_festival(self):
+        """Film Festival: its three goals, finished with the weekly quests (the laurel is cosmetic).
+        A seasonal festival also gives a Normal copy of its limited actor."""
+        for reward in self.g.t["festival"]:
+            self.grant(reward)
+        if self.limited is not None:
+            key = f"{self.limited['id']}:Normal"
+            self.roster[key] = self.roster.get(key, 0) + 1
+            self.index.add(key)
+            self.mark("Limited actor")
 
     def use_skips(self):
         while self.skips > 0:
@@ -854,15 +894,17 @@ class Player:
         if hot and self.hot_start < max(hot):
             self.hot_start += 1
             floor_tier = hot.get(self.hot_start)
-        actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]), floor_tier)
+        actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]), floor_tier, self.limited)
         key = f"{actor_id}:{variant}"
         self.roster[key] = self.roster.get(key, 0) + 1
         self.index.add(key)
         self.mark(f"First {self.g.actor[actor_id]['tier']} actor")
         if variant != "Normal":
             self.mark(f"First {variant} variant")
+        if self.g.actor[actor_id].get("season"):
+            self.mark("Limited actor")
         for n in (21, 32, 42, 63):
-            if len(self.index) >= n:
+            if len(self.everyday_index()) >= n:
                 self.mark(f"Index {n}/63")
         if agency["minTier"] > 1:
             self.mark(f"First roll at {agency['name']}")
@@ -934,6 +976,8 @@ class Player:
                 requests_at = None
             if weekly_at is not None and self.now >= weekly_at:
                 self.finish_weekly()
+                if self.festival_on:
+                    self.finish_festival()
                 weekly_at = None
             self.claim_rewards()
             self.claim_achievements()
@@ -952,7 +996,7 @@ class Player:
 
     def snapshot(self) -> dict:
         return {"cash/min": self.income_per_second() * 60, "cinema/min": self.rate() * 60, "fame": self.fame, "luck": self.luck(),
-                "index": len(self.index),
+                "index": len(self.everyday_index()),
                 "reward %": 100 * self.reward_earned / max(1, self.earned_total),
                 "offline %": 100 * self.offline_earned / max(1, self.earned_total), "stages": self.stage_count, "premieres": self.premieres,
                 "rebirths": self.rebirths}
@@ -1123,6 +1167,8 @@ if __name__ == "__main__":
     parser.add_argument("--weekly-day", type=int, default=4,
                         help="day of each week the player finishes the weekly quests (1 = the very first day)")
     parser.add_argument("--no-events", action="store_true", help="switch the special events off (to compare)")
+    parser.add_argument("--no-festival", action="store_true", help="leave the Film Festival's goal rewards out (to compare)")
+    parser.add_argument("--season", default=None, help="make every week this seasonal festival (e.g. FrightNight): its limited actor can be cast and is won")
     parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
                         help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
     parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
@@ -1132,5 +1178,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     CAST_RATE = args.cast_rate
     MASCOTS = args.mascots
+    FESTIVAL = not args.no_festival
+    SEASON = args.season
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
            not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start, not args.no_takes)

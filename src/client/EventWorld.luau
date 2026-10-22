@@ -44,6 +44,7 @@ type Run = {
 	onEnd: () -> (), -- the event just ended: start the exit
 	onResult: (kind: string, index: number, ok: boolean, reason: string) -> (),
 	status: () -> string?, -- a live line for the banner (coins grabbed, crate landing...)
+	finished: boolean, -- nothing left to do this event (the crate was opened and has gone): the banner can leave
 	cleanup: { () -> () },
 	followers: { Follower },
 }
@@ -261,6 +262,7 @@ local function newRun(live: Live): Run
 		step = function() end,
 		onEnd = function() end,
 		onResult = function() end,
+		finished = false,
 		status = function(): string?
 			return nil
 		end,
@@ -579,6 +581,7 @@ local function mysteryCrate(run: Run, late: boolean)
 				rise = 7 * k * k
 				if k >= 1 then
 					gone = true
+					run.finished = true
 					folder:ClearAllChildren()
 					return
 				end
@@ -796,6 +799,12 @@ function EventWorld.result(kind: string, index: number, ok: boolean, reason: str
 	if run ~= nil then
 		run.onResult(kind, index, ok, reason)
 	end
+end
+
+-- True once the running event has nothing left for this player (the opened crate has gone).
+function EventWorld.finished(): boolean
+	local run = current
+	return run ~= nil and run.finished
 end
 
 -- A live line for the banner, or nil to show the event's own tagline.

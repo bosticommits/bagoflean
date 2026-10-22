@@ -1,9 +1,22 @@
 --!strict
--- The 21 actors as chunky toy figures built from parts (ART_STYLE.md section 9): big blocky
--- heads, outfits and props that say the role at a glance, and more flair the rarer they are.
--- All original characters. A figure is about 5.4 studs tall at scale 1, standing on its origin,
--- facing -Z. Used for the star on each lot's pedestal; the same model can go in a ViewportFrame.
+-- The 21 castable actors and Director Lucien Vale. All original characters.
+--
+-- The actors are low-poly Blender models (art/blender/actors.py): a big-headed toy body shared by
+-- the whole cast, props that say the role at a glance, and more flair the rarer they are. Each is
+-- split into rig pieces (Body, Head, ArmL, ArmR and a Base in the rarity color) that ActorLife
+-- moves on the client: an idle bob, a look round and now and then a wave. Once the owner imports
+-- actors.fbx into ReplicatedStorage.LotMeshes (art/README.md) each piece is its mesh; until then
+-- the same Blender shapes are built from parts (ActorShapes, written by the Blender script).
+--
+-- A figure is about 5.4 studs tall at scale 1, standing on its origin, facing -Z. Used for the
+-- star on each lot's pedestal, the store keepers and the Top Studios wall; the same model can go
+-- in a ViewportFrame. The director is still built from parts, below. The limited seasonal actors
+-- (Actors.Limited) are one-piece Blender designs (art/blender/seasonal_actors.py), shown as their
+-- meshes once imported and as SeasonalShapes parts until then.
+local ActorShapes = require(script.Parent.ActorShapes)
 local Build = require(script.Parent.Build)
+local MascotModels = require(script.Parent.MascotModels)
+local SeasonalShapes = require(script.Parent.SeasonalShapes)
 
 type Builder = Build.Builder
 
@@ -379,377 +392,6 @@ function Acc.aura(b: Builder, color: Color3)
 	light.Parent = glow
 end
 
--- The 21 actors ---------------------------------------------------------------------------------
-
-local LOOKS: { [string]: Look } = {
-	-- Newcomer
-	NervousIntern = {
-		skin = SKIN.fair,
-		shirt = rgb(150, 200, 235),
-		pants = rgb(200, 175, 125),
-		shoes = P.Bark,
-		hair = "spiky",
-		hairColor = rgb(150, 95, 50),
-		mouth = "flat",
-		extra = function(b)
-			Acc.glasses(b, P.Charcoal)
-			Acc.tie(b, P.Carpet)
-			Acc.clipboard(b)
-			Acc.coffee(b)
-			b:block("Lanyard", v(0.5, 0.6, 0.08), v(-0.5, SHOULDER - 1.1, CHEST_Z - 0.05), P.OffWhite)
-		end,
-	},
-	StuntDouble = {
-		skin = SKIN.tan,
-		shirt = rgb(70, 74, 86),
-		pants = rgb(70, 74, 86),
-		shoes = P.Charcoal,
-		hair = "short",
-		hairColor = rgb(40, 34, 30),
-		mouth = "grin",
-		extra = function(b)
-			for _, side in { -1, 1 } do
-				b:block("Stripe", v(0.2, SHOULDER - 0.3, 1.02), v(side * 0.7, SHOULDER / 2 + 0.1, 0), rgb(255, 140, 40))
-				b:block("KneePad", v(0.9, 0.5, 0.2), v(side * 0.5, 1.0, -0.55), P.Carpet)
-			end
-			Acc.helmet(b, P.OffWhite, P.Carpet)
-			b:block("Bandage", v(0.5, 0.15, 0.1), CFrame.new(0.45, HEAD_Y - 0.15, FACE_Z - 0.05) * CFrame.Angles(0, 0, math.rad(25)), P.OffWhite)
-		end,
-	},
-	BackgroundExtra = {
-		skin = SKIN.brown,
-		shirt = rgb(190, 185, 180),
-		pants = rgb(80, 105, 150),
-		shoes = P.OffWhite,
-		hair = "bob",
-		hairColor = rgb(40, 30, 28),
-		mouth = "smile",
-		extra = function(b)
-			Acc.scarf(b, rgb(240, 150, 170))
-			Acc.beret(b, P.Charcoal)
-			Acc.newspaper(b)
-			local tag = b:block("ExtraTag", v(0.8, 0.6, 0.08), v(0.45, SHOULDER - 0.8, CHEST_Z - 0.05), P.OffWhite)
-			Build.sign(tag, Enum.NormalId.Front, "#42", P.Charcoal)
-		end,
-	},
-
-	-- Rising
-	SoapRegular = {
-		skin = SKIN.light,
-		shirt = rgb(150, 70, 170),
-		pants = rgb(150, 70, 170),
-		shoes = P.Burgundy,
-		gown = rgb(150, 70, 170),
-		hair = "curly",
-		hairColor = rgb(200, 80, 50),
-		mouth = "open",
-		extra = function(b)
-			Acc.necklace(b, P.OffWhite)
-			Acc.rose(b)
-			b:block("Teardrop", v(0.12, 0.2, 0.06), v(-0.36, HEAD_Y - 0.15, FACE_Z - 0.06), P.Glass, NEON)
-		end,
-	},
-	AdModel = {
-		skin = SKIN.tan,
-		shirt = rgb(40, 190, 185),
-		pants = rgb(40, 190, 185),
-		shoes = P.OffWhite,
-		hair = "slick",
-		hairColor = rgb(30, 26, 24),
-		mouth = "grin",
-		extra = function(b)
-			Acc.jacket(b, rgb(30, 150, 145))
-			Acc.tie(b, P.Gold)
-			Acc.productBox(b, P.Carpet)
-			b:block("ToothShine", v(0.15, 0.15, 0.05), CFrame.new(0.42, HEAD_Y - 0.25, FACE_Z - 0.1) * CFrame.Angles(0, 0, math.rad(45)), P.OffWhite, NEON)
-		end,
-	},
-	IndieSidekick = {
-		skin = SKIN.deep,
-		shirt = rgb(95, 180, 80),
-		pants = rgb(70, 70, 90),
-		shoes = P.Carpet,
-		hair = "curly",
-		hairColor = rgb(30, 24, 22),
-		mouth = "smile",
-		extra = function(b)
-			b:block("Hood", v(1.9, 0.6, 0.6), v(0, SHOULDER + 0.1, 0.55), rgb(80, 160, 70))
-			b:block("Backpack", v(1.5, 1.6, 0.6), v(0, 3.0, 0.8), P.Gold)
-			b:block("Goggles", v(1.7, 0.35, 0.2), v(0, HEAD_TOP + 0.1, FACE_Z + 0.1), P.Charcoal)
-			for _, x in { -0.4, 0.4 } do
-				b:block("GoggleLens", v(0.45, 0.3, 0.1), v(x, HEAD_TOP + 0.1, FACE_Z - 0.02), P.Blue, GLASS)
-			end
-			Acc.rayGun(b, P.Blue)
-		end,
-	},
-
-	-- Pro
-	ActionVeteran = {
-		skin = SKIN.fair,
-		shirt = rgb(110, 125, 70),
-		sleeves = SKIN.fair,
-		pants = rgb(90, 95, 60),
-		shoes = P.Charcoal,
-		hair = "short",
-		hairColor = rgb(170, 170, 170),
-		mouth = "flat",
-		wide = true,
-		extra = function(b)
-			Acc.headband(b, P.Carpet)
-			Acc.sunglasses(b)
-			b:block("Beard", v(1.4, 0.5, 0.2), v(0, HEAD_Y - 0.5, FACE_Z - 0.02), rgb(170, 170, 170))
-			b:block("DogTag", v(0.25, 0.35, 0.06), v(0, SHOULDER - 0.5, CHEST_Z - 0.06), P.Steel, METAL)
-			Acc.belt(b, P.Charcoal)
-		end,
-	},
-	ComedyDuo = {
-		-- Built specially below (two figures side by side); these are the tall one's colors.
-		skin = SKIN.light,
-		shirt = P.Navy,
-		pants = P.Navy,
-		shoes = P.Charcoal,
-	},
-	NightShiftVillain = {
-		skin = SKIN.pale,
-		shirt = rgb(50, 40, 70),
-		pants = rgb(40, 34, 52),
-		shoes = P.Charcoal,
-		hair = "slick",
-		hairColor = rgb(25, 22, 30),
-		mouth = "smirk",
-		eyes = P.Carpet,
-		extra = function(b)
-			Acc.cape(b, rgb(40, 30, 55), P.Carpet)
-			b:block("HighCollar", v(2.2, 0.9, 0.2), CFrame.new(0, SHOULDER + 0.35, 0.55) * CFrame.Angles(math.rad(15), 0, 0), P.Carpet)
-			Acc.lantern(b)
-		end,
-	},
-
-	-- Star
-	TeenHeartthrob = {
-		skin = SKIN.light,
-		shirt = P.OffWhite,
-		sleeves = P.Carpet,
-		pants = rgb(70, 95, 150),
-		shoes = P.OffWhite,
-		hair = "swoop",
-		hairColor = rgb(240, 200, 90),
-		mouth = "smirk",
-		extra = function(b)
-			Acc.jacket(b, P.Carpet)
-			Acc.guitar(b, rgb(240, 130, 60))
-			b:block("Heart", v(0.4, 0.4, 0.1), CFrame.new(-0.55, SHOULDER - 0.5, CHEST_Z - 0.08) * CFrame.Angles(0, 0, math.rad(45)), rgb(255, 110, 160), NEON)
-		end,
-	},
-	MethodActor = {
-		skin = SKIN.monster,
-		shirt = rgb(120, 110, 100),
-		pants = rgb(60, 60, 75),
-		shoes = P.Charcoal,
-		hair = "spiky",
-		hairColor = rgb(30, 30, 34),
-		mouth = "flat",
-		extra = function(b)
-			for _, x in { -1, 1 } do
-				b:block("NeckBolt", v(0.4, 0.25, 0.25), v(x * 0.95, SHOULDER + 0.2, 0), P.Steel, METAL)
-			end
-			b:block("Stitches", v(0.7, 0.08, 0.05), v(-0.2, HEAD_Y + 0.5, FACE_Z - 0.03), P.Charcoal)
-			for _, x in { -0.45, -0.2, 0.05 } do
-				b:block("Stitch", v(0.06, 0.25, 0.05), v(x, HEAD_Y + 0.5, FACE_Z - 0.04), P.Charcoal)
-			end
-			b:block("TornHem", v(2.05, 0.3, 1.05), v(0, HIP + 0.1, 0), rgb(95, 88, 80))
-			Acc.script(b)
-		end,
-	},
-	SpaceCaptain = {
-		skin = SKIN.brown,
-		shirt = P.OffWhite,
-		sleeves = P.Blue,
-		pants = P.Navy,
-		shoes = P.OffWhite,
-		hair = "short",
-		hairColor = rgb(220, 220, 230),
-		mouth = "smile",
-		extra = function(b)
-			Acc.cape(b, P.Navy, P.Gold)
-			for _, x in { -1, 1 } do
-				b:block("ShoulderPad", v(1.0, 0.3, 1.1), v(x * 1.45, SHOULDER + 0.05, 0), P.Gold, METAL)
-			end
-			b:block("Insignia", v(0.45, 0.45, 0.08), CFrame.new(-0.5, SHOULDER - 0.5, CHEST_Z - 0.05) * CFrame.Angles(0, 0, math.rad(45)), P.Gold, NEON)
-			Acc.belt(b, P.Navy, P.Blue)
-			Acc.rayGun(b, P.OffWhite)
-		end,
-	},
-
-	-- Superstar
-	BoxOfficeKing = {
-		skin = SKIN.deep,
-		shirt = P.Charcoal,
-		pants = P.Charcoal,
-		shoes = P.Charcoal,
-		hair = "short",
-		hairColor = rgb(25, 20, 18),
-		mouth = "grin",
-		wide = true,
-		extra = function(b)
-			Acc.cape(b, P.Carpet, P.Gold)
-			Acc.crown(b, P.Gold, P.Carpet)
-			Acc.sunglasses(b, P.Gold)
-			Acc.jacket(b, P.Gold, 2.4)
-			b:block("Chain", v(1.2, 0.2, 0.08), v(0, SHOULDER - 0.6, CHEST_Z - 0.06), P.Gold, METAL)
-		end,
-	},
-	ScreamQueen = {
-		skin = SKIN.light,
-		shirt = P.OffWhite,
-		pants = P.OffWhite,
-		shoes = P.OffWhite,
-		gown = P.OffWhite,
-		hair = "long",
-		hairColor = rgb(200, 40, 40),
-		mouth = "open",
-		extra = function(b)
-			b:block("Sash", v(2.05, 0.35, 1.05), v(0, HIP + 0.4, 0), rgb(160, 80, 220))
-			Acc.necklace(b, rgb(160, 80, 220))
-		end,
-	},
-	RomComSweetheart = {
-		skin = SKIN.fair,
-		shirt = rgb(255, 150, 190),
-		pants = rgb(255, 150, 190),
-		shoes = P.Carpet,
-		gown = rgb(255, 150, 190),
-		hair = "ponytail",
-		hairColor = rgb(245, 205, 110),
-		mouth = "smile",
-		extra = function(b)
-			Acc.balloon(b, P.Carpet)
-			b:block("Bow", v(0.7, 0.35, 0.2), v(0, HEAD_TOP - 0.05, HEAD_D / 2 + 0.2), P.Carpet)
-			b:block("Belt", v(2.05, 0.25, 1.05), v(0, HIP + 0.1, 0), P.OffWhite)
-		end,
-	},
-
-	-- Legend
-	GoldenAgeDiva = {
-		skin = SKIN.tan,
-		shirt = P.Gold,
-		pants = P.Gold,
-		shoes = P.Gold,
-		gown = P.Gold,
-		hair = "bob",
-		hairColor = rgb(30, 24, 24),
-		mouth = "smirk",
-		extra = function(b)
-			Acc.cape(b, P.Burgundy, P.OffWhite)
-			Acc.scarf(b, P.OffWhite)
-			Acc.sunglasses(b, P.Charcoal)
-			Acc.mirror(b)
-			for _, x in { -0.9, 0.9 } do
-				b:ball("Earring", 0.25, v(x, HEAD_Y - 0.35, -0.2), P.OffWhite)
-			end
-		end,
-	},
-	SilentEraClown = {
-		-- Black and white, like an old film.
-		skin = P.OffWhite,
-		shirt = rgb(90, 90, 95),
-		pants = rgb(60, 60, 66),
-		shoes = P.Charcoal,
-		hair = "short",
-		hairColor = P.Charcoal,
-		mouth = "smile",
-		extra = function(b)
-			Acc.cape(b, P.Charcoal, P.OffWhite)
-			Acc.bowler(b, P.Charcoal)
-			Acc.cane(b, P.Charcoal)
-			b:block("Moustache", v(0.6, 0.18, 0.08), v(0, HEAD_Y - 0.22, FACE_Z - 0.05), P.Charcoal)
-			b:block("BowTie", v(0.7, 0.3, 0.1), v(0, SHOULDER - 0.2, CHEST_Z - 0.06), P.Charcoal)
-			for _, x in { -0.5, 0.5 } do
-				b:block("BaggyLeg", v(1.1, 1.0, 1.15), v(x, 1.2, 0), rgb(60, 60, 66))
-			end
-		end,
-	},
-	SciFiVisionary = {
-		skin = SKIN.deep,
-		shirt = P.Navy,
-		pants = P.Navy,
-		shoes = P.OffWhite,
-		hair = "none",
-		mouth = "smile",
-		extra = function(b)
-			Acc.cape(b, P.Navy, rgb(80, 230, 255))
-			Acc.visor(b, rgb(80, 230, 255))
-			for _, side in { -1, 1 } do
-				b:block("CoatTrim", v(0.15, SHOULDER - 0.4, 0.1), v(side * 0.5, SHOULDER / 2 + 0.2, CHEST_Z - 0.05), rgb(80, 230, 255), NEON)
-			end
-			Acc.holoCube(b, rgb(80, 230, 255))
-			b:block("Earpiece", v(0.2, 0.5, 0.4), v(0.85, HEAD_Y, 0), P.Steel, METAL)
-		end,
-	},
-
-	-- Icon
-	MogulsMuse = {
-		skin = SKIN.brown,
-		shirt = rgb(255, 120, 200),
-		pants = rgb(160, 90, 255),
-		shoes = P.Gold,
-		gown = rgb(160, 90, 255),
-		hair = "long",
-		hairColor = rgb(255, 230, 250),
-		mouth = "smile",
-		extra = function(b)
-			Acc.cape(b, rgb(80, 200, 255), rgb(255, 120, 200))
-			Acc.tiara(b, P.Gold, rgb(80, 200, 255))
-			Acc.halo(b, P.Gold)
-			Acc.wand(b, rgb(255, 230, 120))
-			-- Rainbow hem.
-			local rainbow = { rgb(255, 80, 80), rgb(255, 170, 40), rgb(255, 230, 60), rgb(80, 210, 100), rgb(70, 160, 255), rgb(170, 90, 255) }
-			for i, color in rainbow do
-				b:block("RainbowHem", v(2.65, 0.12, 1.65), v(0, 0.06 + (i - 1) * 0.12, 0), color, NEON)
-			end
-		end,
-	},
-	LastActionHero = {
-		skin = SKIN.tan,
-		shirt = rgb(60, 60, 64),
-		sleeves = SKIN.tan,
-		pants = rgb(50, 60, 90),
-		shoes = P.Charcoal,
-		hair = "spiky",
-		hairColor = rgb(30, 24, 20),
-		mouth = "grin",
-		wide = true,
-		extra = function(b)
-			Acc.cape(b, P.Carpet, P.Gold)
-			Acc.headband(b, P.Gold)
-			Acc.sunglasses(b)
-			Acc.jacket(b, rgb(120, 70, 40), 2.4)
-			Acc.belt(b, P.Charcoal, P.Gold)
-			for _, x in { -1.65, 1.65 } do
-				b:block("PowerFist", v(0.9, 0.75, 0.95), v(x, SHOULDER - 1.65, 0), rgb(255, 170, 40), NEON)
-			end
-		end,
-	},
-	PhantomAuteur = {
-		skin = SKIN.pale,
-		shirt = P.Charcoal,
-		pants = P.Charcoal,
-		shoes = P.Charcoal,
-		hair = "slick",
-		hairColor = rgb(25, 22, 30),
-		mouth = "smirk",
-		eyes = rgb(190, 120, 255),
-		extra = function(b)
-			Acc.cape(b, P.Charcoal, rgb(160, 80, 255))
-			Acc.topHat(b, P.Charcoal, rgb(160, 80, 255))
-			b:block("HalfMask", v(0.85, 1.1, 0.12), v(0.4, HEAD_Y + 0.1, FACE_Z - 0.06), P.OffWhite)
-			Acc.megaphone(b, P.Burgundy)
-			Acc.filmReels(b, P.Gold)
-			b:block("Scarf", v(1.8, 0.4, 1.2), v(0, SHOULDER + 0.05, 0), rgb(160, 80, 255), FABRIC)
-		end,
-	},
-}
-
 local function figure(b: Builder, look: Look)
 	body(b, look)
 	if look.extra ~= nil then
@@ -757,77 +399,133 @@ local function figure(b: Builder, look: Look)
 	end
 end
 
-local function comedyDuo(b: Builder)
-	-- Tall thin one with a bowler hat, short round one with a striped shirt.
-	local tall = b:sub(v(-1.4, 0, 0))
-	figure(tall, {
-		skin = SKIN.light,
-		shirt = P.Navy,
-		pants = P.Navy,
-		shoes = P.Charcoal,
-		hair = "short",
-		hairColor = rgb(60, 40, 30),
-		mouth = "flat",
-		extra = function(sb)
-			Acc.bowler(sb, P.Charcoal)
-			Acc.tie(sb, P.Gold)
-		end,
-	})
-	local short = Build.new(b.parent, b:at(v(1.5, 0, 0)), b.scale * 0.82)
-	figure(short, {
-		skin = SKIN.tan,
-		shirt = P.OffWhite,
-		pants = rgb(120, 80, 50),
-		shoes = P.Bark,
-		hair = "curly",
-		hairColor = rgb(150, 70, 40),
-		mouth = "grin",
-		wide = true,
-		extra = function(sb)
-			for i = 0, 3 do
-				sb:block("ShirtStripe", v(2.42, 0.18, 1.02), v(0, HIP + 0.2 + i * 0.45, 0), P.Carpet)
-			end
-			Acc.cap(sb, P.Carpet)
-			sb:ball("RedNose", 0.35, v(0, HEAD_Y - 0.05, FACE_Z - 0.12), P.Carpet)
-		end,
-	})
-end
-
 local ActorModels = {}
 
-ActorModels.Looks = LOOKS
+export type Options = {
+	-- Stand on a hex base in the rarity color (the menus' cards). Off where the figure already
+	-- has something to stand on: a lot's pedestal, a store counter, the Top Studios plinths.
+	base: boolean?,
+}
 
--- Build an actor figure into a new Model under `parent`, standing at `base` (feet at the
--- origin, facing base.LookVector). Variants add effects: Shiny sparkles, Award-Winning a gold
--- medal and gold sparkles. Unknown ids build a plain grey figure so nothing breaks.
-function ActorModels.build(parent: Instance, base: CFrame, actorId: string, variantId: string?, scale: number?): Model
+-- Parts for one Blender shape. Roblox has no cone or oval cylinder: a cone is a few stacked
+-- cylinders, each narrower than the last, and a flattened cylinder (a torso) is a block.
+local function shapeParts(b: Builder, shape: ActorShapes.Shape): { BasePart }
+	local material = if shape.neon then NEON else Enum.Material.SmoothPlastic
+	local size = shape.size
+	if shape.kind == "ball" then
+		local p = b:block("Shape", size, shape.cf, shape.color, material)
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere
+		mesh.Parent = p
+		return { p }
+	elseif shape.kind == "cyl" and math.abs(size.X - size.Z) <= 0.15 * size.X then
+		local top = shape.top or 1
+		local tiers = if top < 0.95 then (if size.Y > 0.6 then 3 else 2) else 1
+		local parts: { BasePart } = {}
+		for i = 0, tiers - 1 do
+			local t = (i + 0.5) / tiers
+			local width = size.X * (1 + (top - 1) * t)
+			local at = shape.cf * CFrame.new(0, -size.Y / 2 + size.Y * t, 0)
+			table.insert(parts, b:cylinder("Shape", size.Y / tiers, math.max(width, 0.05), at, shape.color, material))
+		end
+		return parts
+	elseif shape.kind == "cyl" then
+		local top = shape.top or 1
+		local k = (1 + top) / 2
+		return { b:block("Shape", Vector3.new(size.X * k, size.Y, size.Z * k), shape.cf, shape.color, material) }
+	end
+	return { b:block("Shape", size, shape.cf, shape.color, material) }
+end
+
+-- Build an actor figure into a new Model under `parent`, standing at `base` (feet, or the
+-- bottom of its base, at the origin, facing base.LookVector). Variants add effects: Shiny
+-- sparkles, Award-Winning a gold medal and gold sparkles. Unknown ids build the Nervous Intern
+-- so nothing breaks.
+--
+-- Every part carries a "Piece" attribute and the model the pivots ActorLife turns them round
+-- ("Pivot<Piece>", in the model's own space, scaled), the arm that waves ("Wave") and whether
+-- it hovers ("Float"). The model's pivot is its feet.
+function ActorModels.build(parent: Instance, base: CFrame, actorId: string, variantId: string?, scale: number?, options: Options?): Model
+	local rig = ActorShapes.Actors[actorId] or ActorShapes.Actors.NervousIntern
+	local seasonal = SeasonalShapes.Shapes[actorId]
+	local k = scale or 1
+	local withBase = options ~= nil and options.base == true and seasonal == nil
+	local lift = if withBase then ActorShapes.BaseHeight else 0
 	local model = Instance.new("Model")
 	model.Name = "Actor_" .. actorId
 	model:SetAttribute("ActorId", actorId)
 	model:SetAttribute("VariantId", variantId or "Normal")
-	local b = Build.new(model, base, scale)
-	if actorId == "ComedyDuo" then
-		comedyDuo(b)
+	local feet = base * CFrame.new(0, lift * k, 0)
+	local b = Build.new(model, feet, k)
+	local meshed = false
+	if seasonal ~= nil then
+		-- A limited seasonal actor: one piece (its Blender mesh once imported, its shapes until then)
+		-- that ActorLife only bobs.
+		MascotModels.fill(b, actorId, seasonal, SeasonalShapes.Bounds[actorId])
+		for _, p in model:GetChildren() do
+			if p:IsA("BasePart") then
+				p:SetAttribute("Piece", "Body")
+			end
+		end
 	else
-		figure(b, LOOKS[actorId] or {
-			skin = SKIN.fair,
-			shirt = P.Grey,
-			pants = P.Steel,
-			shoes = P.Charcoal,
-		})
+		for _, name in ActorShapes.Pieces do
+			local piece = rig.pieces[name]
+			if piece == nil or (name == "Base" and not withBase) then
+				continue
+			end
+			local parts: { BasePart } = {}
+			local mesh = Build.mesh(b, `{actorId}_{name}`, CFrame.new(piece.center.X, piece.center.Y - piece.size.Y / 2, piece.center.Z), piece.size.Y)
+			if mesh ~= nil then
+				mesh.Name = name
+				-- The baked vertex colors show on white.
+				mesh.Color = Color3.new(1, 1, 1)
+				mesh.Material = Enum.Material.SmoothPlastic
+				meshed = true
+				table.insert(parts, mesh)
+			else
+				for _, shape in piece.shapes do
+					for _, p in shapeParts(b, shape) do
+						table.insert(parts, p)
+					end
+				end
+			end
+			for _, p in parts do
+				p:SetAttribute("Piece", name)
+			end
+			model:SetAttribute("Pivot" .. name, piece.pivot * k)
+		end
 	end
 	if variantId == "Award" then
-		b:block("MedalRibbon", v(0.35, 0.5, 0.08), v(0.5, SHOULDER - 0.45, CHEST_Z - 0.12), P.Carpet)
-		b:cylinder("Medal", 0.12, 0.55, CFrame.new(0.5, SHOULDER - 0.85, CHEST_Z - 0.15) * CFrame.Angles(math.rad(90), 0, 0), P.Gold, NEON)
+		b:block("MedalRibbon", v(0.32, 0.45, 0.08), v(0.45, 2.3, -0.78), P.Carpet):SetAttribute("Piece", "Body")
+		local medal = b:cylinder("Medal", 0.12, 0.5, CFrame.new(0.45, 1.95, -0.8) * CFrame.Angles(math.rad(90), 0, 0), P.Gold, NEON)
+		medal:SetAttribute("Piece", "Body")
 	end
 	if variantId == "Shiny" or variantId == "Award" then
 		local anchor = b:block("SparkleAnchor", v(1, 1, 1), v(0, 3, 0), P.OffWhite)
 		anchor.Transparency = 1
+		anchor:SetAttribute("Piece", "Body")
 		local sparkles = Instance.new("Sparkles")
 		sparkles.SparkleColor = if variantId == "Award" then P.Gold else Color3.fromRGB(150, 235, 255)
 		sparkles.Parent = anchor
 	end
+	if meshed then
+		model:SetAttribute("Meshed", true)
+	end
+	if rig.wave ~= nil and seasonal == nil then
+		model:SetAttribute("Wave", rig.wave)
+	end
+	if rig.float and seasonal == nil then
+		model:SetAttribute("Float", true)
+	end
+	model:SetAttribute("RigScale", k)
 	Build.decorative(model)
+	model.WorldPivot = feet
+	-- ActorLife finds the figures by this tag, and streams them in whole (not in the art
+	-- previews, which run outside Roblox).
+	pcall(function()
+		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		model:AddTag("ActorRig")
+	end)
 	model.Parent = parent
 	return model
 end

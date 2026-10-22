@@ -41,6 +41,13 @@ local function fetchPrice(kind: string, id: number, key: string, onPrice: () -> 
 	end)
 end
 
+-- The Robux price of developer product `id`, or nil while it loads (or when the id is 0). Fetched
+-- once; `onPrice` runs when it arrives. Used by screens that sell their own products (mascots).
+function ShopUi.productPrice(id: number, onPrice: () -> ()): number?
+	fetchPrice("product", id, "#" .. id, onPrice)
+	return prices["product:#" .. id]
+end
+
 -- False for items that lead to random actors when this player's region restricts paid random
 -- items (the attribute is nil until the server has checked, which also counts as restricted).
 function ShopUi.offered(item: { randomItems: boolean? }): boolean

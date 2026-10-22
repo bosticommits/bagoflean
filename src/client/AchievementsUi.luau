@@ -4,6 +4,8 @@
 -- weekly quests, with a countdown to each reset (the same lists the Rewards screen's Requests tab
 -- shows; the server's QuestTracker keeps them), and above them any quest finished before its day or
 -- week ended and not claimed yet ("Finished earlier"): a reset never takes a reward that was earned.
+-- This week's Film Festival (SpecialEvents.festival) comes first on the Quests tab: its three goals
+-- and the prize row, the Festival Laurel that finishing all three puts on the lot.
 -- The side menu's Goals button carries a red badge with the number ready to claim across both tabs, and reaching a goal or finishing a quest says so
 -- at the bottom of the screen. Achievement claims go to AchievementService, quest claims to
 -- RewardService; both check them, and answer on RewardResult (shown by RewardsUi).
@@ -12,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Achievements = require(ReplicatedStorage.Shared.Achievements)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
 local Screens = require(script.Parent.Screens)
@@ -50,6 +53,10 @@ local QUEST_ICONS: { [string]: string } = {
 local function questIcon(kind: string): string
 	if string.sub(kind, 1, 9) == "premiere:" then
 		return "movieCamera"
+	elseif string.sub(kind, 1, 4) == "hit:" then
+		return "trophy"
+	elseif kind == "request" then
+		return "script"
 	end
 	return QUEST_ICONS[kind] or "clapper"
 end
@@ -78,7 +85,7 @@ type Row = {
 	onClaim: (() -> ())?,
 }
 
--- One quest on the Quests tab: which list it is in ("carried", "daily" or "weekly") and where. A
+-- One quest on the Quests tab: which list it is in ("carried", "festival", "daily" or "weekly") and where. A
 -- carried quest (finished before its day or week ended, still unclaimed) is named by its `key`.
 type QuestRow = { row: Row, scope: string, index: number, key: string? }
 
@@ -278,15 +285,25 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 	local questKey = ""
 	local dailyCountdown: TextLabel? = nil
 	local weeklyCountdown: TextLabel? = nil
+	local festivalCountdown: TextLabel? = nil
+	local prizeRow: Row? = nil -- the festival's prize: the Festival Laurel
 	local questsReceivedAt = os.clock()
 	local questsReady: { [string]: boolean } = {} -- "daily:Cast10" / "weekly:WHit3" ready to claim
 	local questsSynced = false
 
-	local function heading(order: number, text: string): TextLabel
+	local function heading(order: number, text: string, colors: { Color3 }?): TextLabel
 		local row = UiKit.addRow(list, order, 44)
 		UiKit.plainRow(row)
 		local title = UiKit.makeTitle(row, text, UiKit.GOLD, UDim2.new(0.5, -12, 0, 30), UDim2.fromOffset(12, 7))
 		title.TextXAlignment = Enum.TextXAlignment.Left
+		if colors ~= nil and #colors >= 2 then
+			-- The festival's own colors, like its banner.
+			title.TextColor3 = UiKit.WHITE
+			local gradient = Instance.new("UIGradient")
+			gradient.Rotation = 90
+			gradient.Color = ColorSequence.new(colors[1], colors[#colors])
+			gradient.Parent = title
+		end
 		local countdown = makeLabel(row, "", UiKit.MUTED, UDim2.new(0.5, -12, 0, 24), UDim2.new(0.5, 0, 0, 10))
 		countdown.TextXAlignment = Enum.TextXAlignment.Right
 		table.insert(questFrames, row)
@@ -294,11 +311,25 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 	end
 
 	local function questList(state: any, scope: string): { any }
-		local entries = if scope == "weekly" then state.weekly elseif scope == "carried" then state.carried else state.requests
+		local entries = if scope == "weekly"
+			then state.weekly
+			elseif scope == "carried" then state.carried
+			elseif scope == "festival" then state.festival
+			else state.requests
 		return if type(entries) == "table" then entries else {}
 	end
 
-	local questScopes: { string } = { "carried", "daily", "weekly" }
+	-- This week's festival, when the server says one is on.
+	local function festivalOf(state: any): SpecialEvents.Festival?
+		return if type(state.festivalWeek) == "number" then SpecialEvents.festival(state.festivalWeek) else nil
+	end
+
+	local questScopes: { string } = { "carried", "festival", "daily", "weekly" }
+
+	-- Where each list sits on the tab: its heading at the section's number, its rows just after.
+	local function sectionOf(scope: string): number
+		return 1000 + (if scope == "carried" then 0 elseif scope == "festival" then 50 elseif scope == "daily" then 100 else 200)
+	end
 
 	local function buildQuests(state: any)
 		local key = ""
@@ -316,16 +347,27 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		end
 		table.clear(questFrames)
 		table.clear(questRows)
-		dailyCountdown, weeklyCountdown = nil, nil
+		dailyCountdown, weeklyCountdown, festivalCountdown, prizeRow = nil, nil, nil, nil
+		local festival = festivalOf(state)
 		local order = 1000
 		for _, scope in questScopes do
-			if scope == "carried" and #questList(state, scope) == 0 then
+			if (scope == "carried" or scope == "festival") and #questList(state, scope) == 0 then
+				continue
+			end
+			if scope == "festival" and festival == nil then
 				continue
 			end
 			order += 1
-			local countdown = heading(order, if scope == "weekly" then "Weekly quests" elseif scope == "carried" then "Finished earlier" else "Daily quests")
+			local title = if scope == "weekly"
+				then "Weekly quests"
+				elseif scope == "carried" then "Finished earlier"
+				elseif scope == "festival" and festival ~= nil then festival.name
+				else "Daily quests"
+			local countdown = heading(sectionOf(scope), title, if scope == "festival" and festival ~= nil then festival.colors else nil)
 			if scope == "weekly" then
 				weeklyCountdown = countdown
+			elseif scope == "festival" then
+				festivalCountdown = countdown
 			elseif scope == "daily" then
 				dailyCountdown = countdown
 			else
@@ -346,6 +388,15 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 				table.insert(questRows, { row = row, scope = scopeName, index = index, key = waiting })
 				table.insert(questFrames, row.frame)
 			end
+			if scope == "festival" then
+				-- The prize: nothing to claim, it goes up on the lot by itself.
+				order += 1
+				local prize = newRow(order, "trophy")
+				prize.claim.Visible = false
+				prize.title.Text = "Prize: a Festival Laurel"
+				table.insert(questFrames, prize.frame)
+				prizeRow = prize
+			end
 		end
 	end
 
@@ -361,6 +412,9 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		end
 		if weeklyCountdown ~= nil and state.weekEnds ~= nil then
 			weeklyCountdown.Text = "New in " .. timeLeft(state.weekEnds - now)
+		end
+		if festivalCountdown ~= nil and state.weekEnds ~= nil then
+			festivalCountdown.Text = "Ends in " .. timeLeft(state.weekEnds - now)
 		end
 	end
 
@@ -388,18 +442,38 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			row.claim.Visible = ready
 			row.waiting.Visible = not finished
 			row.done.Visible = entry.claimed == true
-			-- Weekly quests keep a gold outline: they are the bigger, slower ones.
-			row.outline.Color = if ready then UiKit.GREEN elseif info.scope == "weekly" then UiKit.AWARD_GOLD else UiKit.INK
+			-- Weekly quests and festival goals keep a gold outline: they are the bigger, slower ones.
+			row.outline.Color = if ready then UiKit.GREEN elseif info.scope == "weekly" or info.scope == "festival" then UiKit.AWARD_GOLD else UiKit.INK
 			row.outline.Thickness = if ready then 3 else 2
-			local section = if info.scope == "carried" then 0 elseif info.scope == "daily" then 100 else 200
-			row.frame.LayoutOrder = 1000 + section + info.index + 10
+			row.frame.LayoutOrder = sectionOf(info.scope) + info.index + 10
+		end
+		local prize = prizeRow
+		if prize ~= nil then
+			local goals = questList(state, "festival")
+			local done = 0
+			for _, entry in goals do
+				local goal = Rewards.getRequest(entry.id)
+				if goal ~= nil and entry.progress >= goal.target then
+					done += 1
+				end
+			end
+			local won = state.festivalWon == true
+			prize.reward.Text = if won then "Won! It stands on your lot" else `Finish all {#goals} goals to put it on your lot`
+			prize.fill.Size = UDim2.fromScale(if #goals > 0 then done / #goals else 0, 1)
+			prize.count.Text = `{done}/{#goals}`
+			prize.waiting.Visible = not won
+			prize.waiting.Text = "Keep going!"
+			prize.done.Visible = won
+			prize.outline.Color = UiKit.AWARD_GOLD
+			prize.outline.Thickness = if won then 3 else 2
+			prize.frame.LayoutOrder = sectionOf("festival") + #goals + 11
 		end
 		tickQuestClocks()
 	end
 
 	local function readyQuests(state: any): { [string]: boolean }
 		local ready: { [string]: boolean } = {}
-		for _, scope in { "daily", "weekly" } do
+		for _, scope in { "daily", "weekly", "festival" } do
 			for _, entry in questList(state, scope) do
 				local quest = Rewards.getRequest(entry.id)
 				if quest ~= nil and not entry.claimed and entry.progress >= quest.target then
