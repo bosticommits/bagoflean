@@ -1,5 +1,6 @@
 """Map kit: the Blender models for the town's map overhaul (lamps, trees, Dusty Gulch's
-buildings, Starlight Park's features and the far scenery).
+buildings, Starlight Park's features and the far scenery). It also builds town_kit.py's set pieces
+and boulevard_kit.py's tall boulevard buildings into the same files.
 
   TownLamp          Hollywood double-globe street lamp (boulevard and back paths)
   ParkLamp          green Victorian lantern post (Starlight Park)
@@ -43,7 +44,8 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mmkit  # noqa: E402
-from mascots import P, bounds, flatten, num, rotation, stage  # noqa: E402,F401
+from mascots import flatten, num, rotation, stage  # noqa: E402,F401
+from mascots import bounds as bounds_of  # noqa: E402
 
 STUD = mmkit.STUD
 LUAU_OUT = os.path.join(mmkit.REPO, "src", "shared", "Models", "MapKitShapes.luau")
@@ -53,6 +55,15 @@ MAX_TRIS = 10000
 # The shape helpers (B box, C cylinder, K cone, E ellipsoid, L blob, W wedge, S star, H hill,
 # G group, T spot) and the colors live in kitdsl.py, shared with town_kit.py.
 from kitdsl import COL, B, C, E, G, K, L, T, W, c, ring, shade  # noqa: E402,F401
+
+# Blender (x, y, z) to Roblox (-x, z, y).
+P = Matrix(((-1, 0, 0), (0, 0, 1), (0, 1, 0)))
+
+
+def bounds(obj):
+    """One object's bounding box in studs (mascots.bounds takes a list)."""
+    return bounds_of([obj])
+
 
 # --- Lamps -----------------------------------------------------------------------------------
 
@@ -646,7 +657,7 @@ def lowest(s, m):
 
 def build(name, builder, lift_to_ground=True):
     """The model's mesh object and its flattened shapes (spots included, not drawn)."""
-    flat = flatten(builder())
+    flat = [(s, m) for s, m, _ in flatten(builder(), [])]
     solid = [(s, m) for s, m in flat if s["kind"] != "spot"]
     if lift_to_ground:
         lift = Matrix.Translation((0, 0, -min(0.0, min(lowest(s, m) for s, m in solid))))
@@ -767,9 +778,11 @@ def export_all(objs):
 
 def full_kit():
     """Every model: this file's, then the town's set pieces (town_kit.py)."""
-    import town_kit  # here, not at the top: town_kit uses this file's helpers
+    import boulevard_kit  # here, not at the top: the kits use this file's helpers
+    import crew_kit
+    import town_kit
 
-    return KIT + town_kit.KIT
+    return KIT + town_kit.KIT + boulevard_kit.KIT + crew_kit.KIT
 
 
 def main():
@@ -778,8 +791,10 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     results, objs = [], []
     total = 0
+    import crew_kit
+
     for name, builder in full_kit():
-        obj, flat = build(name, builder)
+        obj, flat = build(name, builder, lift_to_ground=name not in crew_kit.NO_LIFT)
         tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
         total += tris
         lo, hi = bounds(obj)
@@ -794,13 +809,14 @@ def main():
     export_all(objs)
 
     if not os.environ.get("KIT_NO_RENDER"):
+        import boulevard_kit
         import town_kit
 
         for file_name, (front, back) in [
             ("map_kit_props.png", (["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
                                    ["WaterTower", "WaterTank", "Bandstand", "Mesa"])),
             ("map_kit_buildings.png", (["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]])),
-        ] + list(town_kit.LINEUPS.items()):
+        ] + list(town_kit.LINEUPS.items()) + list(boulevard_kit.LINEUPS.items()) + list(crew_kit.LINEUPS.items()):
             if os.environ.get("KIT_ONLY") and os.environ["KIT_ONLY"] not in file_name:
                 continue
             lineup(front, back, file_name)
@@ -811,7 +827,9 @@ def lineup(front, back, file_name):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     names = front + back
     kit = dict(full_kit())
-    objs = {n: build(n, kit[n])[0] for n in names}
+    import crew_kit
+
+    objs = {n: build(n, kit[n], lift_to_ground=n not in crew_kit.NO_LIFT)[0] for n in names}
     shown = []
     y = 0.0
     for row in (front, back):
@@ -824,7 +842,7 @@ def lineup(front, back, file_name):
         for n, wd in zip(row, widths):
             o = objs[n]
             lo, hi = bounds(o)
-            o.location = (STUD * (x + wd / 2 - (lo.x + hi.x) / 2), STUD * (y - (lo.y + hi.y) / 2), 0)
+            o.location = (STUD * (x + wd / 2 - (lo.x + hi.x) / 2), STUD * (y - (lo.y + hi.y) / 2), STUD * -min(0.0, lo.z))
             o.rotation_euler = (0, 0, math.radians(-14))
             shown.append(o)
             x += wd + gap

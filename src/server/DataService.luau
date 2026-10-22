@@ -72,12 +72,17 @@ export type PlayerData = {
 	visits: { day: number, toured: { [string]: boolean }, applauded: { [string]: boolean } },
 	-- "Discovered!" hot start (Actors.HotStart): casts counted so far, up to Actors.HotStartLength.
 	hotStart: number,
+	-- Film Festival (SpecialEvents.festival): this week's three festival goals, and every festival
+	-- won (each one puts a Festival Laurel on the lot, kept through Sequel).
+	festival: { week: number, list: { Request } },
+	laurels: { Laurel },
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
 export type Carried = { key: string, id: string, scope: string }
+export type Laurel = { week: number, genre: string, season: string? }
 
-local CURRENT_VERSION = 9 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start
+local CURRENT_VERSION = 10 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -115,6 +120,8 @@ local TEMPLATE: PlayerData = {
 	likes = 0,
 	visits = { day = 0, toured = {}, applauded = {} },
 	hotStart = Actors.HotStartLength, -- profiles from before v9 have played already; load() sets 0 for new ones
+	festival = { week = 0, list = {} },
+	laurels = {},
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -208,6 +215,21 @@ local function migrate(data: any)
 		end
 	end
 	data.carried = carried
+	if type(data.festival) ~= "table" or type(data.festival.week) ~= "number" or type(data.festival.list) ~= "table" then
+		data.festival = { week = 0, list = {} }
+	end
+	-- Festival Laurels won: keep only well-formed ones, one per week.
+	local laurels = {}
+	local weeks: { [number]: boolean } = {}
+	if type(data.laurels) == "table" then
+		for _, laurel in data.laurels do
+			if type(laurel) == "table" and type(laurel.week) == "number" and type(laurel.genre) == "string" and not weeks[laurel.week] then
+				weeks[laurel.week] = true
+				table.insert(laurels, { week = laurel.week, genre = laurel.genre, season = if type(laurel.season) == "string" then laurel.season else nil })
+			end
+		end
+	end
+	data.laurels = laurels
 	data.version = CURRENT_VERSION
 end
 

@@ -84,12 +84,49 @@ Rewards.Weekly = {
 	{ id = "WScripts8", slot = "skill", kind = "script", target = 8, text = "Buy 8 scripts", reward = { script = { genre = "Comedy", length = "Indie", count = 2 }, cash = 100, cashMinutes = 20 } },
 } :: { Request }
 
+-- Film Festival goals (SpecialEvents.festival): each week's festival has three, for its genre,
+-- tied to the movie loop and to Studio Requests. Finishing all three wins the festival and puts a
+-- Festival Laurel on the player's lot. Rewards are the size of a weekly quest's. Sci-Fi is left out
+-- for the same reason as in the weekly quests: it opens at 2,000 Fame. "hit:<genre>" is counted on
+-- top of "hit", and "request" each time a daily Studio Request is claimed.
+Rewards.FestivalGenres = table.freeze({ "Action", "Comedy", "Horror", "Romance" })
+Rewards.FestivalPremieres = 5
+Rewards.FestivalHits = 2
+Rewards.FestivalRequests = 4
+Rewards.Festival = {
+	{ id = `FRequests{Rewards.FestivalRequests}`, kind = "request", target = Rewards.FestivalRequests, text = `Finish {Rewards.FestivalRequests} Studio Requests`, reward = { luckMinutes = 20, skips = 1 } },
+} :: { Request }
+for _, genre in Rewards.FestivalGenres do
+	table.insert(Rewards.Festival, {
+		id = `F{genre}Premiere{Rewards.FestivalPremieres}`,
+		kind = "premiere:" .. genre,
+		target = Rewards.FestivalPremieres,
+		text = `Premiere {Rewards.FestivalPremieres} {genre} movies`,
+		reward = { luckMinutes = 15, cash = 200, cashMinutes = 30 },
+	})
+	table.insert(Rewards.Festival, {
+		id = `F{genre}Hit{Rewards.FestivalHits}`,
+		kind = "hit:" .. genre,
+		target = Rewards.FestivalHits,
+		text = `Get {Rewards.FestivalHits} {genre} Blockbusters or better`,
+		reward = { skips = 1, cash = 250, cashMinutes = 40 },
+	})
+end
+
+-- The three goal ids for a festival of `genre`, in the order the Goals screen shows them.
+function Rewards.festivalFor(genre: string): { string }
+	return { `F{genre}Premiere{Rewards.FestivalPremieres}`, `F{genre}Hit{Rewards.FestivalHits}`, `FRequests{Rewards.FestivalRequests}` }
+end
+
 local requestById: { [string]: Request } = {}
 for _, request in Rewards.Requests do
 	requestById[request.id] = request
 end
 for _, quest in Rewards.Weekly do
 	requestById[quest.id] = quest
+end
+for _, goal in Rewards.Festival do
+	requestById[goal.id] = goal
 end
 
 function Rewards.getRequest(id: string): Request?

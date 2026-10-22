@@ -314,15 +314,23 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	-- Collect feedback: pending royalties only ever drop when they are collected, so a drop means
 	-- Cash just received that amount. Float "+$X" under the HUD and play a sweep.
 	local lastPending = player:GetAttribute("Pending") or 0
+	local lastAutoTick = player:GetAttribute("AutoCollectTick") or 0
 	local function onPending()
 		local pending = player:GetAttribute("Pending") or 0
 		local collected = lastPending - pending
 		lastPending = pending
+		-- The Auto-Collect pass bumps this tick right before it banks, every 10 s: keep the "+$"
+		-- float but stay quiet so the sound only plays for real pad collections.
+		local autoTick = player:GetAttribute("AutoCollectTick") or 0
+		local auto = autoTick ~= lastAutoTick
+		lastAutoTick = autoTick
 		if collected < 1 then
 			return
 		end
-		Sfx.play("cashCollect")
-		Sfx.play("coin")
+		if not auto then
+			Sfx.play("cashCollect")
+			Sfx.play("coin")
+		end
 		-- Rises from the Cash number.
 		local float = UiKit.makeTitle(wallet, "+$" .. comma(collected), UiKit.CASH_GREEN, UDim2.fromOffset(220, 32), UDim2.fromOffset(54, -6), 3)
 		float.TextXAlignment = Enum.TextXAlignment.Left

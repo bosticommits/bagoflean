@@ -16,6 +16,7 @@ export type Actor = {
 	name: string,
 	tier: string,
 	genre: Genre,
+	season: string?, -- a limited actor's season (SpecialEvents.Seasons id); nil for everyone else
 }
 
 export type Variant = {
@@ -43,30 +44,30 @@ Actors.Tiers = {
 Actors.List = {
 	{ id = "NervousIntern", name = "Nervous Intern", tier = "Newcomer", genre = "Comedy" },
 	{ id = "StuntDouble", name = "Stunt Double", tier = "Newcomer", genre = "Action" },
-	{ id = "BackgroundExtra", name = "Background Extra", tier = "Newcomer", genre = "Romance" },
+	{ id = "BackgroundExtra", name = "Zombie Extra", tier = "Newcomer", genre = "Romance" },
 
-	{ id = "SoapRegular", name = "Soap Opera Regular", tier = "Rising", genre = "Romance" },
-	{ id = "AdModel", name = "Ad Model", tier = "Rising", genre = "Comedy" },
-	{ id = "IndieSidekick", name = "Indie Sidekick", tier = "Rising", genre = "Sci-Fi" },
+	{ id = "SoapRegular", name = "Soap Opera Star", tier = "Rising", genre = "Romance" },
+	{ id = "AdModel", name = "Hot Dog Mascot", tier = "Rising", genre = "Comedy" },
+	{ id = "IndieSidekick", name = "Robot Sidekick", tier = "Rising", genre = "Sci-Fi" },
 
-	{ id = "ActionVeteran", name = "Action Veteran", tier = "Pro", genre = "Action" },
-	{ id = "ComedyDuo", name = "Comedy Duo", tier = "Pro", genre = "Comedy" },
+	{ id = "ActionVeteran", name = "Commando", tier = "Pro", genre = "Action" },
+	{ id = "ComedyDuo", name = "Ventriloquist", tier = "Pro", genre = "Comedy" },
 	{ id = "NightShiftVillain", name = "Night Shift Villain", tier = "Pro", genre = "Horror" },
 
 	{ id = "TeenHeartthrob", name = "Teen Heartthrob", tier = "Star", genre = "Romance" },
-	{ id = "MethodActor", name = "Method Actor", tier = "Star", genre = "Horror" },
-	{ id = "SpaceCaptain", name = "Space Opera Captain", tier = "Star", genre = "Sci-Fi" },
+	{ id = "MethodActor", name = "Method Knight", tier = "Star", genre = "Horror" },
+	{ id = "SpaceCaptain", name = "Alien Captain", tier = "Star", genre = "Sci-Fi" },
 
 	{ id = "BoxOfficeKing", name = "Box Office King", tier = "Superstar", genre = "Action" },
 	{ id = "ScreamQueen", name = "Scream Queen", tier = "Superstar", genre = "Horror" },
-	{ id = "RomComSweetheart", name = "Rom-Com Sweetheart", tier = "Superstar", genre = "Romance" },
+	{ id = "RomComSweetheart", name = "Cupid", tier = "Superstar", genre = "Romance" },
 
-	{ id = "GoldenAgeDiva", name = "Golden Age Diva", tier = "Legend", genre = "Romance" },
-	{ id = "SilentEraClown", name = "Silent Era Clown", tier = "Legend", genre = "Comedy" },
-	{ id = "SciFiVisionary", name = "Sci-Fi Visionary", tier = "Legend", genre = "Sci-Fi" },
+	{ id = "GoldenAgeDiva", name = "Showgirl Diva", tier = "Legend", genre = "Romance" },
+	{ id = "SilentEraClown", name = "Silent Film Clown", tier = "Legend", genre = "Comedy" },
+	{ id = "SciFiVisionary", name = "Brain in a Jar", tier = "Legend", genre = "Sci-Fi" },
 
-	{ id = "MogulsMuse", name = "The Mogul's Muse", tier = "Icon", genre = "Romance" },
-	{ id = "LastActionHero", name = "The Last Action Hero", tier = "Icon", genre = "Action" },
+	{ id = "MogulsMuse", name = "Golden Muse", tier = "Icon", genre = "Romance" },
+	{ id = "LastActionHero", name = "Mech Hero", tier = "Icon", genre = "Action" },
 	{ id = "PhantomAuteur", name = "The Phantom Auteur", tier = "Icon", genre = "Horror" },
 } :: { Actor }
 
@@ -78,6 +79,23 @@ Actors.Variants = {
 } :: { Variant }
 
 Actors.IndexSlots = #Actors.List * #Actors.Variants
+
+-- Limited seasonal actors: one per seasonal Film Festival (SpecialEvents.Seasons). While its season
+-- runs, a limited actor can be cast exactly as often as any one everyday actor of its tier (a Star
+-- is 1 in 700 at Open Casting, so each Star actor is 1 in 2,100), and winning that festival gives
+-- a copy. Its chance comes out of the agency's commonest tier, so every other actor keeps its odds
+-- and the Star row is no slower to finish in season. Out of season nobody can cast it; copies
+-- already owned stay and work like any actor of their tier. They are kept out of Actors.List on
+-- purpose: the Index tier rows, the
+-- genre sets, Actors.IndexSlots and the "all 21 actors" goal only count actors anyone can find on
+-- any day, so a player who missed a season can still finish every one of them. The Collection
+-- shows them in their own Limited group. Designs: art/blender/seasonal_actors.py.
+Actors.Limited = {
+	{ id = "PumpkinPhantom", name = "The Pumpkin Phantom", tier = "Star", genre = "Horror", season = "FrightNight" },
+	{ id = "JingleJester", name = "Jingle Jester", tier = "Star", genre = "Comedy", season = "HolidayLights" },
+	{ id = "CupidCrooner", name = "Cupid Crooner", tier = "Star", genre = "Romance", season = "LoveStory" },
+	{ id = "HeatwaveHero", name = "Heatwave Hero", tier = "Star", genre = "Action", season = "SummerBlockbuster" },
+} :: { Actor }
 
 export type Agency = {
 	id: string,
@@ -149,6 +167,12 @@ for _, actor in Actors.List do
 	actorsByTier[actor.tier] = actorsByTier[actor.tier] or {}
 	table.insert(actorsByTier[actor.tier], actor)
 end
+-- Limited actors can be looked up (rosters, movies, lots) but are in no tier's everyday pool.
+local limitedBySeason: { [string]: Actor } = {}
+for _, actor in Actors.Limited do
+	actorById[actor.id] = actor
+	limitedBySeason[actor.season :: string] = actor
+end
 local variantById: { [string]: Variant } = {}
 for _, variant in Actors.Variants do
 	variantById[variant.id] = variant
@@ -166,8 +190,35 @@ function Actors.getVariant(id: string): Variant?
 	return variantById[id]
 end
 
+-- The everyday actors of a tier (no limited ones).
 function Actors.actorsInTier(tierId: string): { Actor }
 	return actorsByTier[tierId] or {}
+end
+
+function Actors.isLimited(actorId: string): boolean
+	local actor = actorById[actorId]
+	return actor ~= nil and actor.season ~= nil
+end
+
+-- The limited actor of season `seasonId` (SpecialEvents.Seasons), if it has one.
+function Actors.limitedFor(seasonId: string?): Actor?
+	return if seasonId ~= nil then limitedBySeason[seasonId] else nil
+end
+
+-- The chance a cast is `limited` (the limited actor in season), given the cast's tier chances
+-- (Actors.tierChances): the same as one everyday actor of its tier, never more than the commonest
+-- tier in the pool holds (that is where it comes from).
+function Actors.limitedChance(chances: { [string]: number }, limited: Actor?): number
+	if limited == nil then
+		return 0
+	end
+	local share = (chances[limited.tier] or 0) / math.max(#Actors.actorsInTier(limited.tier), 1)
+	for _, tier in Actors.Tiers do
+		if (chances[tier.id] or 0) > 0 then
+			return math.min(share, chances[tier.id])
+		end
+	end
+	return 0
 end
 
 function Actors.key(actorId: string, variantId: string): string
@@ -228,8 +279,10 @@ function Actors.variantChances(luck: number): { [string]: number }
 end
 
 -- `random` is a Random object so the server owns the seed. `floorTier` (a hot start guarantee)
--- raises a lower roll to that tier; the variant is rolled as usual.
-function Actors.roll(random: Random, luck: number, minTier: number?, floorTier: string?): (Actor, Variant)
+-- raises a lower roll to that tier; the variant is rolled as usual. `limited` is the limited actor
+-- in season (Actors.limitedChance): the bottom of the roll is its, and the tiers are laid out above
+-- it as usual, so only the commonest tier's share shrinks.
+function Actors.roll(random: Random, luck: number, minTier: number?, floorTier: string?, limited: Actor?): (Actor, Variant)
 	local chances = Actors.tierChances(luck, minTier)
 	local pick = random:NextNumber()
 	local chosenTier = Actors.Tiers[1]
@@ -248,6 +301,14 @@ function Actors.roll(random: Random, luck: number, minTier: number?, floorTier: 
 
 	local pool = Actors.actorsInTier(chosenTier.id)
 	local actor = pool[random:NextInteger(1, #pool)]
+	-- The limited actor's slice sits at the bottom of the roll, inside the commonest tier's share
+	-- (a hot start guarantee above its tier keeps the guarantee instead).
+	local limitedTier = if limited ~= nil then tierById[limited.tier] else nil
+	if limited ~= nil and limitedTier ~= nil and pick < Actors.limitedChance(chances, limited) then
+		if floor == nil or (table.find(Actors.Tiers, floor) :: number) <= (table.find(Actors.Tiers, limitedTier) :: number) then
+			actor = limited
+		end
+	end
 
 	local variantPick = random:NextNumber()
 	local variantChance = Actors.variantChances(luck)

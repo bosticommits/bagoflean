@@ -24,6 +24,9 @@ local listOrder: { [string]: number } = {}
 for i, actor in Actors.List do
 	listOrder[actor.id] = i
 end
+for i, actor in Actors.Limited do
+	listOrder[actor.id] = #Actors.List + i
+end
 
 -- The `count` rarest copies in a roster ("actorId:variantId" -> copies): highest tier first, then
 -- the best variant, then the rarer actor in the list. Each actor-and-variant shows once.

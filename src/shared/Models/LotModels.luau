@@ -25,6 +25,7 @@ LotModels.Layout = table.freeze({
 	kiosk = Vector3.new(-8.5, 0, 2.4),
 	pedestal = Vector3.new(8.5, 0, -3),
 	trophyCase = Vector3.new(9, 0, -12),
+	laurels = Vector3.new(7.9, 0, -8.4), -- Film Festival wins, between the trophy case and the star
 	office = Vector3.new(-19, 0, -19),
 	billboard = Vector3.new(20, 0, 24.4),
 	billboardLift = 8, -- tall posts so the board shows over the back stage
@@ -513,6 +514,44 @@ function LotModels.trophyCase(b: Builder, shown: number)
 	b:block("CaseTrim", v(w + 0.2, 0.3, 2.6), v(0, 1.65, 0), P.Burgundy)
 	for i = 1, shown do
 		LotModels.trophy(b:sub(v(-w / 2 + 1 + (i - 1) * 1.5 + 0.75, 1.8, 0)))
+	end
+end
+
+-- A Festival Laurel (the Film Festival prize) on a plinth whose plaque is `plaque`, the festival's
+-- color. About 3.6 studs tall. The laurel is the Blender "FestivalLaurel" mesh once imported.
+function LotModels.festivalLaurel(b: Builder, plaque: Color3)
+	b:block("LaurelPlinth", v(1.7, 1.1, 1.7), v(0, 0.55, 0), P.Navy)
+	b:block("LaurelPlinthTop", v(1.9, 0.2, 1.9), v(0, 1.2, 0), P.Gold, METAL)
+	b:block("LaurelPlaque", v(1.2, 0.5, 0.1), v(0, 0.6, -0.86), plaque, NEON)
+	if Build.mesh(b, "FestivalLaurel", v(0, 1.3, 0), 2.3) then
+		return
+	end
+	b:cylinder("LaurelFoot", 0.3, 1.5, v(0, 1.45, 0), P.Gold, METAL)
+	b:cylinder("LaurelStem", 0.5, 0.3, v(0, 1.85, 0), P.Gold, METAL)
+	local reel = CFrame.new(0, 2.85, 0) * CFrame.Angles(math.rad(90), 0, 0)
+	b:cylinder("LaurelReel", 0.25, 1.4, reel, P.Gold, METAL)
+	b:cylinder("LaurelFilm", 0.28, 1.1, reel, P.Charcoal)
+	b:cylinder("LaurelHub", 0.3, 0.5, reel, P.Gold, METAL)
+	-- The wreath: leaves round the reel, open at the top.
+	for i = 0, 8 do
+		local a = math.rad(-150 + i * 37.5)
+		if math.abs(math.deg(a) + 90) > 160 then
+			continue
+		end
+		local at = CFrame.new(math.cos(a) * 1.0, 2.85 + math.sin(a) * 1.0, 0) * CFrame.Angles(0, 0, a)
+		b:block("LaurelLeaf", v(0.25, 0.55, 0.12), at, P.Gold, METAL)
+	end
+	b:ball("LaurelStar", 0.45, v(0, 4.05, 0), P.Light, NEON)
+end
+
+-- A low stand for the latest Festival Laurels, one per color in `plaques` (newest first).
+function LotModels.laurelStand(b: Builder, plaques: { Color3 })
+	local spacing = 2.3
+	local w = #plaques * spacing + 0.6
+	b:block("LaurelStand", v(w, 0.5, 2.6), v(0, 0.25, 0), P.Burgundy)
+	b:block("LaurelStandTrim", v(w + 0.2, 0.15, 2.8), v(0, 0.55, 0), P.Gold, METAL)
+	for i, plaque in plaques do
+		LotModels.festivalLaurel(b:sub(v(-w / 2 + 0.3 + (i - 0.5) * spacing, 0.6, 0)), plaque)
 	end
 end
 

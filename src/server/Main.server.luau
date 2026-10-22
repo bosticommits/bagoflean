@@ -27,12 +27,14 @@ local AwardNightService = require(script.Parent.AwardNightService)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local FilmSetService = require(script.Parent.FilmSetService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local LiveConfig = require(script.Parent.LiveConfig)
 local LotService = require(script.Parent.LotService)
 local MapService = require(script.Parent.MapService)
 local MascotService = require(script.Parent.MascotService)
 local MovieService = require(script.Parent.MovieService)
+local QuestTracker = require(script.Parent.QuestTracker)
 local RebirthService = require(script.Parent.RebirthService)
 local Remotes = require(script.Parent.Remotes)
 local RewardService = require(script.Parent.RewardService)
@@ -59,6 +61,7 @@ LiveConfig.start()
 SpecialEventService.start()
 VisitService.start()
 MascotService.start()
+FilmSetService.start()
 Remotes.publish()
 
 local function onPlayerAdded(player: Player)
@@ -74,6 +77,7 @@ local function onPlayerAdded(player: Player)
 	CastingService.refresh(player)
 	RebirthService.refresh(player)
 	MascotService.refresh(player)
+	FilmSetService.refresh(player)
 	-- A player can step on a claim pad before their data arrives (a quick rejoin waits for the old
 	-- session to save). Redraw their lot now so it shows their stages and star, not an empty lot.
 	LotService.refresh(player)
@@ -92,11 +96,17 @@ local function onPlayerAdded(player: Player)
 		end
 		if live.passes.AutoCollect and os.clock() - lastAutoCollect >= Config.AutoCollectSeconds then
 			lastAutoCollect = os.clock()
-			EconomyService.collect(player)
+			-- Tell the client this pending drop is the pass banking, not a pad tap, so it skips the sound.
+			player:SetAttribute("AutoCollectTick", ((player:GetAttribute("AutoCollectTick") :: number?) or 0) + 1)
+			if EconomyService.collect(player) > 0 then
+				QuestTracker.track(player, "collect")
+			end
 		end
 		EconomyService.refresh(player)
 		CastingService.refresh(player)
 		MascotService.refresh(player)
+		FilmSetService.refresh(player)
+		FilmSetService.tick(player)
 		task.wait(1)
 	end
 end
@@ -113,6 +123,7 @@ local function onPlayerRemoving(player: Player)
 	SpecialEventService.forget(player)
 	VisitService.forget(player)
 	MascotService.forget(player)
+	FilmSetService.forget(player)
 	Analytics.forget(player)
 	DataService.release(player)
 end

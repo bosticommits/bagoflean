@@ -243,6 +243,26 @@ milestones a few minutes sooner (first Star 17 to 14 minutes, Sound stage 3 49 t
 (the first draft gave 14, 47, 52 and 70): most of the early effect is the Luck boost and Skips, not
 Cash. Real players will finish fewer, so these are the upper end. They cannot change the odds of rare actors.
 
+**The Film Festival is a second weekly top-up of the same size.** Each week's festival
+(`Rewards.Festival`) has three goals: 5 premieres of its genre (x2 Luck 15 min, $200 or 30 minutes
+of income), 2 Blockbusters or better in it (a Skip, $250 or 40 minutes) and 4 Studio Requests (x2
+Luck 20 min, a Skip). Its prize, the Festival Laurel, is only for show. The sim finishes all three
+together with the weekly quests (`--no-festival` leaves them out). With 120 runs of a typical
+player, the first week ends with about 4% more Cash per minute (119k against 115k), and no milestone
+before the Superstar row moves (the row comes about 6 minutes of play sooner). Finished on day one
+(`--weekly-day 1`), the change is within the sim's noise: no day-one milestone moves.
+
+**Limited seasonal actors (2026-10-22).** Each seasonal festival has a limited actor
+(`Actors.Limited`, all Star tier). While its season runs it can be cast exactly as often as any one
+Star actor (1 in 2,100 at Open Casting), its slice taken from the agency's commonest tier, so no
+other actor's odds move and the Star row is no slower to finish; winning the festival gives a
+Normal copy. Limited actors stay out of the Index rows, genre sets and the Index count, so their
+only economic effect is one more Star for the cast. The sim's `--season FrightNight` makes every
+week a seasonal one (120 runs, typical player): the first week ends with about 4% more Cash per
+minute (124k against 119k), the first rebirth comes about 6 minutes of play sooner, and the Star
+row and every other milestone stay put. Won on day one (`--weekly-day 1`) it is about 7% (125k
+against 117k). Seasonal weeks are only about 8 weeks a year, so over a year this is smaller still.
+
 **The "Discovered!" hot start (2026-10-15).** Before it, a new player's best pull in the first 10
 minutes was a Pro and the first Star came around minute 17 (slow 10%: minute 30). Now a brand-new
 account's casts carry guarantees (`Actors.HotStart`): at least a Rising on cast 3, a Pro on cast 10
@@ -294,22 +314,53 @@ the pace.
 ## Mascot buffs
 
 Each studio mascot gives one small buff, and only the one a player has out counts
-(`src/shared/Mascots.luau`): Popcorn Pup +5% movie Cash, Clapper Croc films 10% faster, Reel Kitty
-x1.1 casting Luck, Camera Bot +15% box office, Spotlight Owl x1.2 casting Luck and Premiere Dragon
-+20% movie Cash. Every kind has a hard cap (`Mascots.Caps`: Cash +20%, Luck x1.2, filming 10%,
-box office +15%) that tests keep under the Robux pass doing the same job (x2 Luck, 25% faster
-filming). Cash is added after Fame is worked out, like the rebirth bonus, so Fame unlocks do not
-move. Rewards paid as "minutes of box office" follow the boosted rate, as the screens show it. A
-buff only works 30 seconds after equipping, so swapping mascots
-between casting and premiering cannot collect two buffs; mascots are earned, never sold.
+(`src/shared/Mascots.luau`). The Popcorn Pup is free; the rest are bought once, with Cash or with
+Robux (a developer product each), and kept through rebirths:
 
-The sim's `--mascots` option keeps the strongest earned mascot of one kind out (the pup until
-then). Typical player, 150 runs, end of week one: no buffs $117,966/min, Cash mascots $157,321
-(+33%), Luck mascots $145,791 (+24%), box office $135,157 (+15%), speed $125,329 (+6%). Cash
-compounds: buying upgrades sooner brings the first rebirth from 71 to 63 minutes played. Legend in
-week one stays at 69 to 74% and Icon at 3 to 7% in every setup (run-to-run noise). For scale, the
-2x Luck pass adds about 80%. If every cap applied at once (what stacking would do) a typical player
-would earn about 64% more on top of the base, which is why only one mascot counts.
+| Mascot | Price | Buff | Typical player buys it (sim median) |
+|---|---|---|---|
+| Popcorn Pup | free | +5% movie Cash | from the start |
+| Clapper Croc | $5,000 | films 10% faster | day 1, 15 min played |
+| Reel Kitty | $25,000 | x1.1 casting Luck | day 1, 20 min |
+| Camera Bot | $75,000 | +15% box office | day 2, 60 min |
+| Spotlight Owl | $1,000,000 | x1.2 casting Luck | day 3, 120 min |
+| Premiere Dragon | $5,000,000 | +20% movie Cash | day 4, 150 min (casual: day 6) |
+
+Every kind has a hard cap (`Mascots.Caps`: Cash +20%, Luck x1.2, filming 10%, box office +15%)
+that tests keep under the Robux pass doing the same job (x2 Luck, 25% faster filming). Cash is
+added after Fame is worked out, like the rebirth bonus, so Fame unlocks do not move. Rewards paid
+as "minutes of box office" follow the boosted rate, as the screens show it. A buff only works 30
+seconds after equipping, so swapping mascots between casting and premiering cannot collect two.
+
+The sim's `--mascots` player buys the mascots of one kind as it buys upgrades (never while saving
+for a rebirth) and keeps the best one out. Typical player, 150 runs, end of week one: no mascot
+buffs $117,966/min; Cash (Pup, then Dragon) $153,235 (+30%); box office $132,347 (+12%); Luck
+$127,583 (+8%); speed $122,253 (+4%). Casual player: $33,305 against $40,680 with the Dragon
+(+22%). Rebirth 1 stays within a few minutes of 70 minutes played, and Legend in week one stays
+at 68 to 76% (typical) and 9 to 11% (casual), within run-to-run noise. For scale, the 2x Luck
+pass adds about 80%. If every cap applied at once (what stacking would do) a typical player would
+earn about 64% more, which is why only one mascot counts.
+
+**Robux too.** Each paid mascot can also be bought with Robux (suggested: Croc 25, Kitty 49, Bot 99,
+Owl 249, Dragon 449). It is the same mascot with the same capped buff, so Robux only skips the
+saving: a player who buys the Dragon on day 1 instead of day 4 gets its +20% movie Cash about three
+days early, still well under the 2x Luck pass. Robux on the Luck mascots counts as paid random
+items, so it is not offered where those are restricted (Cash still is).
+
+## Film sets
+
+Film sets past the town hedge are bought once with Cash at their gate and kept through rebirths
+(never sold for Robux; `src/shared/FilmSets.luau`). Owning one gives casting Luck all the time
+(only the best set counts, capped at x1.15) and, while the owner stands inside it, pays their box
+office again on top, every 5 seconds straight into Cash (capped at double):
+
+| Film set | Price | Luck | Inside |
+|---|---|---|---|
+| Dusty Gulch | $25,000 | x1.05 | double box office |
+
+The Gulch costs the same as the Reel Kitty, a day-one buy. Standing inside is the point (watching
+the crew shoot), so the bonus follows the box office rate and stops as soon as the player leaves.
+Planned next: a space station ($250,000, x1.1) and a jungle temple ($2,500,000, x1.15).
 
 ## What to watch in playtests
 

@@ -13,6 +13,7 @@ local P = Build.Palette
 local LotLook = {}
 
 LotLook.MaxTrophiesShown = 5
+LotLook.MaxLaurelsShown = 3
 LotLook.cinemaTier = LotModels.cinemaTier
 
 -- What a lot shows. nil progress means an unclaimed lot.
@@ -21,6 +22,7 @@ export type Progress = {
 	cinema: number, -- Cinema Size upgrade level
 	office: number, -- Offline Earnings upgrade level
 	trophies: number,
+	laurels: { Color3 }?, -- Film Festival wins, newest first, as their plaque colors
 	filming: { [number]: boolean }, -- stage number -> a movie is filming there
 	star: string?, -- the owner's rarest actor id
 	variant: string?,
@@ -112,6 +114,16 @@ function LotLook.trophies(parent: Instance, base: CFrame, count: number): BasePa
 	return parent:FindFirstChild("CaseBase") :: BasePart?
 end
 
+-- Festival Laurels (the newest few); returns the stand (nil when there are none).
+function LotLook.laurels(parent: Instance, base: CFrame, plaques: { Color3 }): BasePart?
+	if #plaques == 0 then
+		return nil
+	end
+	local b = Build.new(parent, at(base, L.laurels + Vector3.new(0, 1, 0)))
+	LotModels.laurelStand(b, { table.unpack(plaques, 1, math.min(#plaques, LotLook.MaxLaurelsShown)) })
+	return parent:FindFirstChild("LaurelStand") :: BasePart?
+end
+
 -- The owner's top star on a pedestal by the red carpet (an empty, grey pedestal when none).
 function LotLook.star(parent: Instance, base: CFrame, actorId: string?, variantId: string?): BasePart
 	local b = Build.new(parent, at(base, L.pedestal + Vector3.new(0, 1, 0)))
@@ -150,6 +162,7 @@ function LotLook.build(folder: Instance, base: CFrame, lotNumber: number, progre
 	LotLook.office(model, base, if progress ~= nil then progress.office else 0, accent)
 	if progress ~= nil then
 		LotLook.trophies(model, base, progress.trophies)
+		LotLook.laurels(model, base, progress.laurels or {})
 	end
 	LotLook.star(model, base, if progress ~= nil then progress.star else nil, if progress ~= nil then progress.variant else nil)
 end

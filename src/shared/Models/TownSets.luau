@@ -12,6 +12,7 @@
 -- a focal point (lamps, lanterns, the theatre marquee), and small parts cast no shadow
 -- (MapModels.build).
 local Build = require(script.Parent.Build)
+local FilmScenes = require(script.Parent.Parent.FilmScenes)
 local LotModels = require(script.Parent.LotModels)
 local MapKit = require(script.Parent.MapKit)
 
@@ -29,6 +30,17 @@ local TownSets = {}
 
 -- Starlight Park's pond, in the park's own space (MapLife paddles the ducks round it).
 TownSets.Pond = Vector3.new(-55, 0, 82)
+TownSets.PondRadius = 26
+
+-- The loops the park's ducks paddle (src/client/MapLife.luau), in the pond's own space: the big
+-- one with its duckling behind, and one on its own, clear of the island and the bridge.
+-- tests/luau/map.spec.luau checks every loop stays on open water.
+export type DuckLoop = { centre: Vector3, radius: number, lap: number, lag: number }
+TownSets.DuckLoops = table.freeze({
+	{ centre = Vector3.new(11, 0.5, -9), radius = 5, lap = 40, lag = 0 },
+	{ centre = Vector3.new(11, 0.5, -9), radius = 5, lap = 40, lag = 0.55 },
+	{ centre = Vector3.new(-14, 0.5, -12), radius = 4, lap = 32, lag = 2 },
+} :: { DuckLoop })
 
 local function v(x: number, y: number, z: number): Vector3
 	return Vector3.new(x, y, z)
@@ -273,7 +285,7 @@ end
 -- Dusty Gulch: a western film town, about 160 wide and 150 long. A welcome arch over the road in,
 -- a dusty main street with eight false-front buildings on boardwalks (saloon, bank, sheriff, hotel
 -- and more), hitching rails, barrels and crates, a corral, a covered wagon, a water tank, blocky
--- mesas and cacti, and a film crew shooting at the far end.
+-- mesas and cacti, and a film crew shooting scenes by the hotel (Dusty Gulch is the first film set).
 function TownSets.westernTown(b: Builder)
 	local length = 150
 	b:block("DesertGround", v(170, 0.1, length + 6), v(0, 0.05, length / 2 + 3), SAND)
@@ -373,12 +385,17 @@ function TownSets.westernTown(b: Builder)
 		MapKit.place(b, "Mesa", CFrame.new(info.at) * yaw(i * 33), { scale = info.size })
 	end
 
-	-- At the far end, a film crew shoots a showdown: a camera on a crane, a light and chairs.
-	local crew = b:sub(CFrame.new(0, 0.2, 140) * yaw(180))
-	MapKit.place(crew, "CameraCrane", CFrame.identity, { scale = 1.3 })
-	directorChair(crew, CFrame.new(-7, 0, 4) * yaw(180), "DIRECTOR")
-	directorChair(crew, CFrame.new(7, 0, 4) * yaw(180), nil)
-	MapKit.place(crew, "LightStand", CFrame.new(-10, 0, -2) * yaw(20))
+	-- The film set's gear in the street by the hotel: a camera on a crane filming across at the
+	-- balcony, the director's chair, a light, and hay bales for the stunt double to land on. The
+	-- crew and the actors themselves are puppets each player's game moves (FilmScenes, FilmSetWorld).
+	for _, gear in FilmScenes.Gear do
+		local at = CFrame.new(gear.at) * yaw(gear.yaw)
+		if gear.kit == "DirectorChair" then
+			directorChair(b, at, gear.label)
+		else
+			MapKit.place(b, gear.kit, at)
+		end
+	end
 end
 
 -- Starlight Park ---------------------------------------------------------------------------------
@@ -441,7 +458,7 @@ function TownSets.park(b: Builder)
 	-- The pond, west of the main path: a stone rim, bright water, an island with a blossom tree,
 	-- a bridge out to it, lily pads and ducks.
 	local pond = TownSets.Pond
-	local radius = 26
+	local radius = TownSets.PondRadius
 	b:cylinder("PondWater", 0.5, radius * 2, pond + v(0, 0.25, 0), WATER)
 	b:cylinder("PondShine", 0.52, radius * 1.3, pond + v(0, 0.27, 0), WATER_LIGHT)
 	local stones = 22
@@ -461,9 +478,13 @@ function TownSets.park(b: Builder)
 		MapKit.place(b, "LilyPad", CFrame.new(pond + at + v(0, 0.5, 0)) * yaw(at.X * 31), { solid = false })
 	end
 	MapKit.place(b, "LilyFlower", pond + v(12, 0.5, 12), { solid = false })
-	-- Ducks (src/client/MapLife.luau paddles them round the pond).
-	for _, duck in { { at = v(10, 0.5, -4), turn = 30, size = 0.9 }, { at = v(13, 0.5, -1), turn = 40, size = 0.55 }, { at = v(-16, 0.5, -10), turn = 200, size = 0.8 } } do
-		MapKit.place(b, "Duck", CFrame.new(pond + duck.at) * yaw(duck.turn), { scale = duck.size, solid = false })
+	-- Ducks (src/client/MapLife.luau paddles them round the pond). Each knows its loop, where the
+	-- pond's middle is in the world and where it was put, so MapLife never has to guess.
+	for i, duck in { { at = v(10, 0.5, -4), turn = 30, size = 0.9 }, { at = v(13, 0.5, -1), turn = 40, size = 0.55 }, { at = v(-16, 0.5, -10), turn = 200, size = 0.8 } } do
+		local model = MapKit.place(b, "Duck", CFrame.new(pond + duck.at) * yaw(duck.turn), { scale = duck.size, solid = false })
+		model:SetAttribute("DuckLoop", i)
+		model:SetAttribute("PondCentre", b:at(pond).Position)
+		model:SetAttribute("Home", model.WorldPivot)
 	end
 
 	-- The bandstand, east of the main path (octagonal, with a striped roof). People walk in.
