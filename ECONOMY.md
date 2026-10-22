@@ -327,6 +327,21 @@ saving: a player who buys the Dragon on day 1 instead of day 4 gets its +20% mov
 days early, still well under the 2x Luck pass. Robux on the Luck mascots counts as paid random
 items, so it is not offered where those are restricted (Cash still is).
 
+## Film sets
+
+Film sets past the town hedge are bought once with Cash at their gate and kept through rebirths
+(never sold for Robux; `src/shared/FilmSets.luau`). Owning one gives casting Luck all the time
+(only the best set counts, capped at x1.15) and, while the owner stands inside it, pays their box
+office again on top, every 5 seconds straight into Cash (capped at double):
+
+| Film set | Price | Luck | Inside |
+|---|---|---|---|
+| Dusty Gulch | $25,000 | x1.05 | double box office |
+
+The Gulch costs the same as the Reel Kitty, a day-one buy. Standing inside is the point (watching
+the crew shoot), so the bonus follows the box office rate and stops as soon as the player leaves.
+Planned next: a space station ($250,000, x1.1) and a jungle temple ($2,500,000, x1.15).
+
 ## What to watch in playtests
 
 - Casting speed (checked 2026-10-10, typical player, 30 runs each). Faster casting moves the whole

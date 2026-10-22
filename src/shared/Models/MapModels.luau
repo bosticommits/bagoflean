@@ -13,6 +13,7 @@ local ActorModels = require(script.Parent.ActorModels)
 local Build = require(script.Parent.Build)
 local IconModels = require(script.Parent.IconModels)
 local LotModels = require(script.Parent.LotModels)
+local FilmSets = require(script.Parent.Parent.FilmSets)
 local MapKit = require(script.Parent.MapKit)
 local MapScenery = require(script.Parent.MapScenery)
 local TownSets = require(script.Parent.TownSets)
@@ -64,6 +65,29 @@ MapModels.Layout = table.freeze({
 })
 
 local Lay = MapModels.Layout
+
+-- Dusty Gulch's own space (TownSets.westernTown builds in it): its street starts at the front
+-- hedge and runs away from town, toward world -Z.
+MapModels.GulchFrame = CFrame.new(0, 0, -(Lay.fenceZ + 1)) * CFrame.Angles(0, math.pi, 0)
+
+-- The film sets (rules in Shared/FilmSets): the gate on the path in, facing the town, and the area
+-- behind it, where owners earn the box office bonus. An invisible wall runs across the whole way
+-- in at the gate; FilmSetWorld opens it for owners on their own screen.
+export type FilmSetInfo = {
+	id: string,
+	gate: CFrame, -- the gate's feet; its -Z faces the town, like a kit model's front
+	wallWidth: number, -- the wall across the way in, centred on the gate
+	area: Walkways.Rect, -- inside the set, past the gate
+}
+
+MapModels.FilmSets = table.freeze({
+	{
+		id = "Gulch",
+		gate = CFrame.new(0, 0.2, -(Lay.fenceZ + 2.5)) * CFrame.Angles(0, math.pi, 0),
+		wallWidth = 172,
+		area = Walkways.rect(-86, -(Lay.fenceZ + 1) - 158, 86, -(Lay.fenceZ + 4)),
+	},
+} :: { FilmSetInfo })
 
 -- The lawns along each lot's front, either side of its gate (x from, x to).
 local LAWN_SPANS: { { number } } = {}
@@ -607,7 +631,7 @@ local function landmarks(b: Builder)
 		b:block("SidePath", v(Lay.sideGap * 2, 0.2, edge - out + 1), v(0, 0.1, s * (out + edge + 1) / 2), P.Paving)
 	end
 	TownSets.park(b:sub(v(0, 0, edge)))
-	TownSets.westernTown(b:sub(CFrame.new(0, 0, -edge) * CFrame.Angles(0, math.pi, 0)))
+	TownSets.westernTown(b:sub(MapModels.GulchFrame))
 	TownSets.blimp(b:sub(CFrame.new(0, Lay.blimpHeight, -Lay.blimpRadius) * CFrame.Angles(0, math.rad(-90), 0)))
 
 	-- A hazy city skyline past the theatre (the front is desert and mesas now, behind Dusty Gulch).
@@ -763,6 +787,45 @@ local WALL_THICK = 4
 
 -- The invisible walls: one along each straight stretch of the play areas' outline, standing just
 -- outside it, and a square post filling each outside corner where two walls meet.
+-- Film set gates ---------------------------------------------------------------------------------
+
+-- Where the gate's boom is hinged, in the gate's space: just inside the left post, resting across
+-- the path on the right post (FilmSetWorld lifts it for owners).
+MapModels.GateArmHinge = CFrame.new(-8, 3.25, 0)
+
+-- Each film set's gate (kit SetGate and SetGateArm), the invisible wall across the way in, and an
+-- anchor for the buy prompt. Returns the anchors.
+local function filmSetGates(b: Builder): { { id: string, anchor: BasePart } }
+	local anchors: { { id: string, anchor: BasePart } } = {}
+	for _, info in MapModels.FilmSets do
+		local g = b:sub(info.gate)
+		local set = FilmSets.get(info.id)
+		assert(set ~= nil, `no film set called {info.id}`)
+		local sign: MapKit.Label = { text = string.upper(set.name) .. " FILM SET", color = P.Gold, stroke = 4 }
+		local gate = MapKit.place(g, "SetGate", CFrame.identity, {
+			labels = { Sign = sign, SignBack = sign, Price = { text = FilmSets.priceText(set), color = P.Gold, stroke = 0 } },
+		})
+		gate.Name = "FilmSetGate"
+		gate:SetAttribute("FilmSet", info.id)
+		local arm = MapKit.place(g, "SetGateArm", MapModels.GateArmHinge)
+		arm.Name = "FilmSetGateArm"
+		arm:SetAttribute("FilmSet", info.id)
+		local wall = g:block("FilmSetWall", v(info.wallWidth, WALL_HEIGHT, 2), v(0, WALL_HEIGHT / 2 - 1, 0), P.Grey)
+		wall:SetAttribute("FilmSet", info.id)
+		local anchor = g:block("FilmSetPrompt", v(1, 1, 1), v(0, 3, -1.5), P.Grey)
+		anchor:SetAttribute("FilmSet", info.id)
+		for _, part in { wall, anchor } do
+			part.Transparency = 1
+			part.CastShadow = false
+			part.CanTouch = false
+			part.CanQuery = false
+		end
+		anchor.CanCollide = false
+		table.insert(anchors, { id = info.id, anchor = anchor :: BasePart })
+	end
+	return anchors
+end
+
 local function walls(b: Builder)
 	local y = WALL_HEIGHT / 2 - 1
 	local half = WALL_THICK / 2
@@ -880,6 +943,7 @@ local NO_SHADOW = {
 
 export type Built = {
 	stands: { { info: StandInfo, anchor: BasePart } }, -- anchor: where the stand's prompt goes
+	filmSets: { { id: string, anchor: BasePart } }, -- anchor: where the gate's buy prompt goes
 }
 
 -- Build the whole town into `parent`. The lots themselves are built by LotService (LotLook).
@@ -897,6 +961,7 @@ function MapModels.build(parent: Instance): Built
 	landmarks(b)
 	buildings(b)
 	walls(b)
+	local filmSets = filmSetGates(b)
 	MapScenery.build(b, MapModels.WalkAreas, MapModels.PlayAreas, MapModels.Hills)
 
 	local stands = {}
@@ -919,7 +984,7 @@ function MapModels.build(parent: Instance): Built
 			end
 		end
 	end
-	return { stands = stands }
+	return { stands = stands, filmSets = filmSets }
 end
 
 return MapModels
