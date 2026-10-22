@@ -65,12 +65,12 @@ Luck divides the "1 in N" chance at every agency (Luck ×2 turns 1/8,000 into 1/
 | Tier | Example actors | Base chance | Star Power |
 |---|---|---|---|
 | Newcomer | Nervous Intern, Stunt Double | 1 in 2 | 1 |
-| Rising | Soap Opera Regular, Ad Model | 1 in 6 | 3 |
-| Pro | Action Veteran, Comedy Duo | 1 in 40 | 8 |
-| Star | Teen Heartthrob, Method Actor | 1 in 700 | 20 |
+| Rising | Soap Opera Star, Hot Dog Mascot | 1 in 6 | 3 |
+| Pro | Commando, Ventriloquist | 1 in 40 | 8 |
+| Star | Teen Heartthrob, Method Knight | 1 in 700 | 20 |
 | Superstar | Box Office King, Scream Queen | 1 in 8,000 | 50 |
-| Legend | Golden Age Diva | 1 in 220,000 | 120 |
-| Icon | The Mogul's Muse | 1 in 5,000,000 | 300 |
+| Legend | Showgirl Diva | 1 in 220,000 | 120 |
+| Icon | Golden Muse | 1 in 5,000,000 | 300 |
 
 **Variants**, rolled on top of any actor: *Shiny* (1 in 40, ×2) and *Award-Winning*
 (1 in 800, ×5). Each variant has its own Index slot. Version 1 ships 21 actors (3 per tier),

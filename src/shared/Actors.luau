@@ -44,30 +44,30 @@ Actors.Tiers = {
 Actors.List = {
 	{ id = "NervousIntern", name = "Nervous Intern", tier = "Newcomer", genre = "Comedy" },
 	{ id = "StuntDouble", name = "Stunt Double", tier = "Newcomer", genre = "Action" },
-	{ id = "BackgroundExtra", name = "Background Extra", tier = "Newcomer", genre = "Romance" },
+	{ id = "BackgroundExtra", name = "Zombie Extra", tier = "Newcomer", genre = "Romance" },
 
-	{ id = "SoapRegular", name = "Soap Opera Regular", tier = "Rising", genre = "Romance" },
-	{ id = "AdModel", name = "Ad Model", tier = "Rising", genre = "Comedy" },
-	{ id = "IndieSidekick", name = "Indie Sidekick", tier = "Rising", genre = "Sci-Fi" },
+	{ id = "SoapRegular", name = "Soap Opera Star", tier = "Rising", genre = "Romance" },
+	{ id = "AdModel", name = "Hot Dog Mascot", tier = "Rising", genre = "Comedy" },
+	{ id = "IndieSidekick", name = "Robot Sidekick", tier = "Rising", genre = "Sci-Fi" },
 
-	{ id = "ActionVeteran", name = "Action Veteran", tier = "Pro", genre = "Action" },
-	{ id = "ComedyDuo", name = "Comedy Duo", tier = "Pro", genre = "Comedy" },
+	{ id = "ActionVeteran", name = "Commando", tier = "Pro", genre = "Action" },
+	{ id = "ComedyDuo", name = "Ventriloquist", tier = "Pro", genre = "Comedy" },
 	{ id = "NightShiftVillain", name = "Night Shift Villain", tier = "Pro", genre = "Horror" },
 
 	{ id = "TeenHeartthrob", name = "Teen Heartthrob", tier = "Star", genre = "Romance" },
-	{ id = "MethodActor", name = "Method Actor", tier = "Star", genre = "Horror" },
-	{ id = "SpaceCaptain", name = "Space Opera Captain", tier = "Star", genre = "Sci-Fi" },
+	{ id = "MethodActor", name = "Method Knight", tier = "Star", genre = "Horror" },
+	{ id = "SpaceCaptain", name = "Alien Captain", tier = "Star", genre = "Sci-Fi" },
 
 	{ id = "BoxOfficeKing", name = "Box Office King", tier = "Superstar", genre = "Action" },
 	{ id = "ScreamQueen", name = "Scream Queen", tier = "Superstar", genre = "Horror" },
-	{ id = "RomComSweetheart", name = "Rom-Com Sweetheart", tier = "Superstar", genre = "Romance" },
+	{ id = "RomComSweetheart", name = "Cupid", tier = "Superstar", genre = "Romance" },
 
-	{ id = "GoldenAgeDiva", name = "Golden Age Diva", tier = "Legend", genre = "Romance" },
-	{ id = "SilentEraClown", name = "Silent Era Clown", tier = "Legend", genre = "Comedy" },
-	{ id = "SciFiVisionary", name = "Sci-Fi Visionary", tier = "Legend", genre = "Sci-Fi" },
+	{ id = "GoldenAgeDiva", name = "Showgirl Diva", tier = "Legend", genre = "Romance" },
+	{ id = "SilentEraClown", name = "Silent Film Clown", tier = "Legend", genre = "Comedy" },
+	{ id = "SciFiVisionary", name = "Brain in a Jar", tier = "Legend", genre = "Sci-Fi" },
 
-	{ id = "MogulsMuse", name = "The Mogul's Muse", tier = "Icon", genre = "Romance" },
-	{ id = "LastActionHero", name = "The Last Action Hero", tier = "Icon", genre = "Action" },
+	{ id = "MogulsMuse", name = "Golden Muse", tier = "Icon", genre = "Romance" },
+	{ id = "LastActionHero", name = "Mech Hero", tier = "Icon", genre = "Action" },
 	{ id = "PhantomAuteur", name = "The Phantom Auteur", tier = "Icon", genre = "Horror" },
 } :: { Actor }
 
