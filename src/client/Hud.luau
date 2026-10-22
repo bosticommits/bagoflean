@@ -2,17 +2,19 @@
 -- HUD: the wallet (3D coin + big outlined Cash with a green "+" to the shop, and Fame), and at the
 -- top centre chunky event badges (Award Night, Lucky Casting) over the box office bar, which fills
 -- up as the cinema earns and flashes FULL at the cap. Reads server-owned attributes; it never sends
--- amounts to the server.
+-- amounts to the server. Tapping a card opens the Quests board; the X tucks the whole stack (with
+-- the Next Up strip, which AchievementsUi puts in it) into a pull tab on the right edge, saved with
+-- the player's data (HudSettingsService) and shown again from the tab.
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Icon3D = require(script.Parent.Icon3D)
+local Screens = require(script.Parent.Screens)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -24,6 +26,14 @@ local HUD_SIDE_MARGIN = 12 -- gap kept to each screen edge
 local HUD_MIN_SCALE = 0.5 -- smallest the event lines shrink to on a narrow screen
 local BADGE_WIDTH = 196
 local BOX_WIDTH = 310
+local TAB_WIDTH = 64
+local TAB_HEIGHT = 64
+local TAB_OVERHANG = 14 -- past the right edge, so only its left corners show
+-- Above the middle: clear of the Studio-only "Events" test button at the right middle, the speaker
+-- button over it on phones, and the jump button under it.
+local TAB_Y = -56
+local SLIDE = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut)
+local SAVE_DELAY = 0.6 -- batch quick taps into one save
 
 -- Light top, darker bottom band and a glossy strip: the chunky Roblox button look.
 local function chunky(frame: GuiObject)
@@ -66,6 +76,17 @@ local function clock(seconds: number): string
 end
 Hud.clock = clock
 
+-- The cinema's pile and the most it holds (the offline cap, see EconomyService): (pending, cap,
+-- share of the cap, full). The box office bar and the Quests board both show it.
+function Hud.boxOffice(): (number, number, number, boolean)
+	local player = Players.LocalPlayer
+	local pending = player:GetAttribute("Pending") or 0
+	local rate = player:GetAttribute("Rate") or Config.CinemaIncomePerSecond
+	local cap = math.floor(Upgrades.offlineCap(ClientState.stats()) * rate)
+	local share = if cap > 0 then math.clamp(pending / cap, 0, 1) else 0
+	return pending, cap, share, cap > 0 and pending >= cap - 1
+end
+
 -- `wallet` is the empty frame the side menu reserves for Cash and Fame. Returns the green "+"
 -- button next to Cash (the shop opens on it).
 function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
@@ -84,19 +105,26 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	frameScale.Parent = frame
 	local labels: { TextLabel } = {}
 	local alignTop = function(_right: boolean) end -- set once the badges and bar exist
-	local function placeFrame()
-		local top = gui:GetAttribute("HudTop")
-		local right = gui:GetAttribute("HudRight") == true
-		if right then
-			frame.AnchorPoint = Vector2.new(1, 0)
-			frame.Position = UDim2.new(1, -12, 0, 8)
-		else
-			-- Under the tutorial's dialogue while it is up ("TutorialBottom", set by Tutorial).
-			local below = gui:GetAttribute("TutorialBottom")
-			local y = if typeof(top) == "number" then top else 8
-			frame.AnchorPoint = Vector2.new(0.5, 0)
-			frame.Position = UDim2.new(0.5, 0, 0, if typeof(below) == "number" then math.max(y, below) else y)
+	local tucked = false
+	-- Where the stack sits when shown; tucked, it waits just past the right edge at the same height.
+	local function home(): (Vector2, UDim2)
+		if gui:GetAttribute("HudRight") == true then
+			return Vector2.new(1, 0), UDim2.new(1, -12, 0, 8)
 		end
+		-- Under the tutorial's dialogue while it is up ("TutorialBottom", set by Tutorial).
+		local top = gui:GetAttribute("HudTop")
+		local below = gui:GetAttribute("TutorialBottom")
+		local y = if typeof(top) == "number" then top else 8
+		return Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, if typeof(below) == "number" then math.max(y, below) else y)
+	end
+	local function away(position: UDim2): UDim2
+		return UDim2.new(1, 24, 0, position.Y.Offset)
+	end
+	local function placeFrame()
+		local right = gui:GetAttribute("HudRight") == true
+		local anchor, position = home()
+		frame.AnchorPoint = if tucked then Vector2.new(0, 0) else anchor
+		frame.Position = if tucked then away(position) else position
 		-- Narrow screens (portrait phones) shrink the 420 px event lines to fit between the edges.
 		local widthFit = math.clamp((UiKit.viewport().X - HUD_SIDE_MARGIN * 2) / HUD_WIDTH, HUD_MIN_SCALE, 1)
 		frameScale.Scale = math.min(if right and UiKit.isCompact() then 0.72 else 1, widthFit)
@@ -131,8 +159,19 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	badgeLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	badgeLayout.Parent = badgeRow
 
-	local function makeBadge(order: number, color: Color3, iconId: string): (Frame, TextLabel, TextLabel)
-		local badge = Instance.new("Frame")
+	-- Every card opens the Quests board (AchievementsUi registers it).
+	local function opensBoard(card: TextButton)
+		card.Text = ""
+		card.AutoButtonColor = false
+		card.Activated:Connect(function()
+			Sfx.play("click")
+			Screens.open("Quests")
+		end)
+	end
+
+	local function makeBadge(order: number, color: Color3, iconId: string): (TextButton, TextLabel, TextLabel)
+		local badge = Instance.new("TextButton")
+		opensBoard(badge)
 		badge.Name = "Badge" .. iconId
 		badge.LayoutOrder = order
 		badge.BackgroundColor3 = color
@@ -168,7 +207,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	-- Box office bar: the cinema's pile, filling towards the offline cap (the most it holds, see
 	-- EconomyService), with the amount in big green numbers. At the cap it turns red and flashes
 	-- FULL, so players know they're losing earnings until they collect.
-	local box = Instance.new("Frame")
+	local box = Instance.new("TextButton")
+	opensBoard(box)
 	box.Name = "BoxOffice"
 	box.BackgroundColor3 = UiKit.NAVY
 	box.AnchorPoint = Vector2.new(0.5, 0)
@@ -219,10 +259,19 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	UiKit.textConstraint(barText, 15)
 	local boxFull = false
 
+	-- X beside the box office card: tucks the stack away. On the outer side of the card, so on
+	-- touch screens (stack at the top right) it sits on the card's left.
+	local tuck = UiKit.makeButton(box, "X", UiKit.CLOSE_RED, UDim2.fromOffset(34, 34))
+	tuck.Name = "Tuck"
+	tuck.ZIndex = 6
+	UiKit.textConstraint(tuck, 22)
+
 	alignTop = function(right: boolean)
 		badgeLayout.HorizontalAlignment = if right then Enum.HorizontalAlignment.Right else Enum.HorizontalAlignment.Center
 		box.AnchorPoint = Vector2.new(if right then 1 else 0.5, 0)
 		box.Position = if right then UDim2.new(1, -4, 0, 56) else UDim2.new(0.5, 0, 0, 56)
+		tuck.AnchorPoint = Vector2.new(if right then 1 else 0, 0.5)
+		tuck.Position = if right then UDim2.new(0, -26, 0.5, 0) else UDim2.new(1, 8, 0.5, 0)
 	end
 
 	local function refreshBox()
@@ -237,11 +286,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			return
 		end
 		boxTitle.Text = "BOX OFFICE"
-		local pending = player:GetAttribute("Pending") or 0
-		local rate = player:GetAttribute("Rate") or Config.CinemaIncomePerSecond
-		local cap = math.floor(Upgrades.offlineCap(ClientState.stats()) * rate)
-		local share = if cap > 0 then math.clamp(pending / cap, 0, 1) else 0
-		boxFull = cap > 0 and pending >= cap - 1
+		local pending, _, share, full = Hud.boxOffice()
+		boxFull = full
 		boxAmount.Text = "$" .. comma(pending)
 		fill.Size = UDim2.fromScale(if boxFull then 1 else share, 1)
 		fill.BackgroundColor3 = if boxFull then UiKit.CLOSE_RED elseif share >= 0.8 then UiKit.AWARD_GOLD else UiKit.GREEN
@@ -342,6 +388,98 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		end)
 	end
 
+	-- Pull tab: a trophy on the right edge while the stack is tucked, with a red "!" when a goal or
+	-- quest is ready to claim ("ClaimReady", counted by AchievementsUi). Tapping it brings the
+	-- stack back.
+	local tab = UiKit.makeButton(gui, "", UiKit.PURPLE, UDim2.fromOffset(TAB_WIDTH, TAB_HEIGHT))
+	tab.Name = "HudTab"
+	tab.AnchorPoint = Vector2.new(1, 0.5)
+	tab.Visible = false
+	local tabShown = UDim2.new(1, TAB_OVERHANG, 0.5, TAB_Y)
+	local tabHidden = UDim2.new(1, TAB_WIDTH + 24, 0.5, TAB_Y)
+	tab.Position = tabHidden
+	local tabScale = Instance.new("UIScale")
+	tabScale.Parent = tab
+	local tabArt = Instance.new("Frame")
+	tabArt.Name = "Icon"
+	tabArt.BackgroundTransparency = 1
+	tabArt.Position = UDim2.fromOffset(2, 4)
+	tabArt.Size = UDim2.fromOffset(TAB_WIDTH - TAB_OVERHANG - 4, TAB_HEIGHT - 8)
+	tabArt.ZIndex = 3
+	tabArt.Parent = tab
+	Icon3D.outlined(tabArt, "trophy", 0.95)
+	UiKit.onViewportChanged(function()
+		tabScale.Scale = if UiKit.isCompact() then 0.8 else 1
+	end)
+	local function showReady()
+		local count = gui:GetAttribute("ClaimReady")
+		UiKit.badge(tab, if typeof(count) == "number" and count > 0 then "!" else nil)
+		local dot = tab:FindFirstChild("Badge")
+		if dot ~= nil and dot:IsA("GuiObject") then
+			dot.Position = UDim2.fromOffset(-8, -8) -- the left corner: the right one is off screen
+		end
+	end
+	gui:GetAttributeChangedSignal("ClaimReady"):Connect(showReady)
+	showReady()
+
+	-- Slides the stack off to the right and the tab in (or back). Hidden once off screen, so the
+	-- banners and the tutorial that dock under the stack move up into its place.
+	local slideToken = 0
+	local function setTucked(value: boolean, animated: boolean)
+		tucked = value
+		slideToken += 1
+		local mine = slideToken
+		local info = if animated then SLIDE else TweenInfo.new(0)
+		local anchor, position = home()
+		frame.Visible = true
+		tab.Visible = true
+		local slide = TweenService:Create(frame, info, if value then { AnchorPoint = Vector2.new(0, 0), Position = away(position) } else { AnchorPoint = anchor, Position = position })
+		TweenService:Create(tab, info, { Position = if value then tabShown else tabHidden }):Play()
+		slide.Completed:Connect(function()
+			if mine == slideToken then
+				frame.Visible = not value
+				tab.Visible = value
+			end
+		end)
+		slide:Play()
+	end
+
+	-- The server keeps the choice (HudTucked attribute); a tap still waiting to save wins.
+	local saveToken = 0
+	local pendingSave = false
+	local function save()
+		saveToken += 1
+		local mine = saveToken
+		pendingSave = true
+		task.delay(SAVE_DELAY, function()
+			if mine ~= saveToken then
+				return
+			end
+			pendingSave = false
+			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+			local remote = if remotes ~= nil then remotes:FindFirstChild("HudTucked") else nil
+			if remote ~= nil and remote:IsA("RemoteEvent") then
+				remote:FireServer(tucked)
+			end
+		end)
+	end
+	tuck.Activated:Connect(function()
+		setTucked(true, true)
+		save()
+	end)
+	tab.Activated:Connect(function()
+		setTucked(false, true)
+		save()
+	end)
+	local function loadTucked()
+		local saved = player:GetAttribute("HudTucked")
+		if not pendingSave and typeof(saved) == "boolean" and saved ~= tucked then
+			setTucked(saved, false)
+		end
+	end
+	player:GetAttributeChangedSignal("HudTucked"):Connect(loadTucked)
+	loadTucked()
+
 	-- Event badges: the Award Night countdown (purple), gold and pulsing while it's live, and a
 	-- green Lucky Casting badge while that boost runs. Award Night follows the shared schedule on
 	-- the server's clock. The same loop flashes the box office bar while it's FULL.
@@ -370,6 +508,14 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			luckyBadge.Visible = boostLeft > 0
 			if boostLeft > 0 then
 				luckyTimer.Text = clock(boostLeft)
+			end
+
+			-- Studio tours put their card at the right middle (VisitUi): the tab waits for it.
+			local tour = gui:FindFirstChild("TourCard")
+			if tour ~= nil and tour:IsA("GuiObject") and tour.Visible then
+				tab.Visible = false
+			elseif tucked then
+				tab.Visible = true
 			end
 
 			flash = not flash
