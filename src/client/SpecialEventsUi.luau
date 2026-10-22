@@ -441,6 +441,9 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			if state ~= nil then
 				local status = EventWorld.status() or state.event.tagline
 				info.Text = `{escape(status)}  <font color="#FFD23F">{Hud.clock(state.ends - now)}</font>`
+				if mode == "docked" and EventWorld.finished() then
+					hide() -- the crate is open and gone: the banner has nothing more to say
+				end
 			else
 				local upcoming = ReplicatedStorage:GetAttribute("SpecialEventNext")
 				local left = if typeof(upcoming) == "number" then upcoming - now else math.huge
