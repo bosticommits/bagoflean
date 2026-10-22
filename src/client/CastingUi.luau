@@ -2,6 +2,7 @@
 -- Bottom button bar, Casting Call (agencies, odds, reveal), and the Collection screen (roster and
 -- Index with reward claims). Styled after the design kit (see UiKit).
 -- The client only asks; the server charges Cash, checks Fame, and decides every result.
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -11,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
@@ -34,6 +36,34 @@ local function fmtOdds(chance: number): string
 		return string.format("%.0f%%", chance * 100)
 	end
 	return "1 in " .. Hud.comma(math.floor(oneIn + 0.5))
+end
+
+-- The limited actor in season right now: the one of this week's seasonal Film Festival, as the
+-- server published it (SpecialEventService's "Festival" attribute), or nil.
+local function limitedInSeason(): Actors.Actor?
+	local raw = ReplicatedStorage:GetAttribute("Festival")
+	if type(raw) ~= "string" then
+		return nil
+	end
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	if not ok or type(data) ~= "table" or type(data.season) ~= "string" then
+		return nil
+	end
+	return Actors.limitedFor(data.season)
+end
+
+-- Index slots found: every actor-and-variant in the everyday Index (limited actors are counted on
+-- their own, in the Collection's Limited group).
+local function indexFound(): number
+	local found = 0
+	for key, hasIt in ClientState.index do
+		if hasIt == true and not Actors.isLimited(string.split(key, ":")[1] or "") then
+			found += 1
+		end
+	end
+	return found
 end
 
 -- `actorsButton` (in the side menu) opens the Collection.
@@ -227,6 +257,20 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 				makeLabel(row, "Power " .. Hud.comma(tier.starPower), UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
 			end
 		end
+		-- A limited actor in season: as likely as any one actor of its tier.
+		local limited = limitedInSeason()
+		local limitedTier = if limited ~= nil then Actors.getTier(limited.tier) else nil
+		if limited ~= nil and limitedTier ~= nil and chances[limitedTier.id] > 0 then
+			order += 1
+			local row = UiKit.addRow(oddsList, order, 40)
+			local name = UiKit.makeTitle(row, `LIMITED: {limited.name}`, UiKit.GOLD, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
+			name.TextXAlignment = Enum.TextXAlignment.Left
+			textConstraint(name, 18)
+			local outline = row:FindFirstChild("Outline") :: UIStroke
+			outline.Color = UiKit.GOLD
+			makeLabel(row, fmtOdds(Actors.limitedChance(chances, limited)), WHITE, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.4, 0))
+			makeLabel(row, `{limitedTier.name}, this season only`, UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
+		end
 		local vChances = Actors.variantChances(luck)
 		for _, variant in Actors.Variants do
 			if variant.oneIn ~= nil then
@@ -288,10 +332,21 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end
 
+	-- Under an undiscovered limited actor: "In season now!", or when its season comes back.
+	local function seasonNote(actor: Actors.Actor): (string, Color3)
+		local live = limitedInSeason()
+		if live ~= nil and live.id == actor.id then
+			return "In season now!", UiKit.GOLD
+		end
+		local season = SpecialEvents.getSeason(actor.season or "")
+		return if season ~= nil then SpecialEvents.seasonDates(season) else "Limited", UiKit.FAINT
+	end
+
 	-- `chipText(variant, found)` labels each variant chip (owned count, or found / not found).
-	local function tierCards(order: number, tier: Actors.Tier, chipText: (key: string, found: boolean) -> string)
+	-- `actors` defaults to the tier's everyday actors (the Limited group passes its own).
+	local function tierCards(order: number, tier: Actors.Tier, chipText: (key: string, found: boolean) -> string, actors: { Actors.Actor }?, gridName: string?)
 		local grid = Instance.new("Frame")
-		grid.Name = "Cards_" .. tier.id
+		grid.Name = "Cards_" .. (gridName or tier.id)
 		grid.LayoutOrder = order
 		grid.BackgroundTransparency = 1
 		grid.Size = UDim2.new(1, -8, 0, 0)
@@ -306,7 +361,8 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		pad.PaddingLeft = UDim.new(0, 3)
 		pad.PaddingTop = UDim.new(0, 3)
 		pad.Parent = grid
-		for slot, actor in Actors.actorsInTier(tier.id) do
+		for slot, actor in actors or Actors.actorsInTier(tier.id) do
+			local actorTier = Actors.getTier(actor.tier) or tier
 			local seen = Upgrades.actorDiscovered(ClientState.index, actor.id)
 			local card = Instance.new("Frame")
 			card.Name = actor.id
@@ -314,7 +370,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			card.Parent = grid
 			corner(card, 12)
 			UiKit.border(card, 2)
-			rarityFrame(card, tier, seen)
+			rarityFrame(card, actorTier, seen)
 
 			local art = Instance.new("Frame")
 			art.Name = "Art"
@@ -322,14 +378,30 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			art.Position = UDim2.fromScale(0.05, 0.03)
 			art.Size = UDim2.fromScale(0.9, 0.54)
 			art.Parent = card
-			Icon3D.glow(Icon3D.actor(art, actor.id, "Normal", not seen), tier.color, if seen then 1 else 0.5)
+			Icon3D.glow(Icon3D.actor(art, actor.id, "Normal", not seen), actorTier.color, if seen then 1 else 0.5)
 
 			local name = UiKit.makeTitle(card, if seen then actor.name else "???", if seen then WHITE else UiKit.FAINT, UDim2.fromScale(0.94, 0.13), UDim2.fromScale(0.03, 0.57), 2)
 			name.ZIndex = 3
 			textConstraint(name, 18)
-			local genre = makeLabel(card, if seen then actor.genre else tier.name, if seen then UiKit.GENRE_COLORS[actor.genre] or UiKit.MUTED else UiKit.FAINT, UDim2.fromScale(0.94, 0.1), UDim2.fromScale(0.03, 0.71))
+			local note, noteColor = actorTier.name, UiKit.FAINT
+			if seen then
+				note, noteColor = actor.genre, UiKit.GENRE_COLORS[actor.genre] or UiKit.MUTED
+			elseif actor.season ~= nil then
+				note, noteColor = seasonNote(actor)
+			end
+			local genre = makeLabel(card, note, noteColor, UDim2.fromScale(0.94, 0.1), UDim2.fromScale(0.03, 0.71))
 			genre.ZIndex = 3
 			textConstraint(genre, 14)
+			if actor.season ~= nil then
+				-- A gold LIMITED ribbon across the top corner.
+				local ribbon = UiKit.makeTitle(card, "LIMITED", UiKit.INK, UDim2.fromScale(0.5, 0.11), UDim2.fromScale(0.04, 0.03), 0)
+				ribbon.BackgroundTransparency = 0
+				ribbon.BackgroundColor3 = UiKit.GOLD
+				ribbon.ZIndex = 4
+				corner(ribbon, 6)
+				UiKit.border(ribbon, 2, UiKit.INK)
+				textConstraint(ribbon, 13)
+			end
 			for chipSlot, variant in Actors.Variants do
 				local key = Actors.key(actor.id, variant.id)
 				local found = ClientState.index[key] == true
@@ -349,17 +421,36 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		return head
 	end
 
+	-- The Limited group's header: seasonal actors, counted on their own and with no reward, so a
+	-- player who missed a season can still finish every Index row.
+	local LIMITED_COLOR = Color3.fromRGB(255, 140, 60)
+	local LIMITED_TIER: Actors.Tier = { id = "Limited", name = "Limited", oneIn = 0, starPower = 0, color = LIMITED_COLOR }
+	local function limitedFound(): number
+		local found = 0
+		for _, actor in Actors.Limited do
+			if Upgrades.actorDiscovered(ClientState.index, actor.id) then
+				found += 1
+			end
+		end
+		return found
+	end
+
 	local function renderRoster()
 		local order = 0
 		-- Common first, so a new player sees what they own without scrolling past a wall of "???".
+		local function chips(key: string, found: boolean): string
+			return if found then "x" .. (ClientState.roster[key] or 0) else "-"
+		end
 		for _, tier in Actors.Tiers do
 			order += 1
 			tierHeader(order, tier, 32, tier.name)
 			order += 1
-			tierCards(order, tier, function(key, found)
-				return if found then "x" .. (ClientState.roster[key] or 0) else "-"
-			end)
+			tierCards(order, tier, chips)
 		end
+		order += 1
+		tierHeader(order, LIMITED_TIER, 32, "Limited  -  seasonal")
+		order += 1
+		tierCards(order, LIMITED_TIER, chips, Actors.Limited, "Limited")
 	end
 
 	-- A reward line: claim button when earned, otherwise a status label.
@@ -393,6 +484,16 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 				return if hasIt then "+" else "-"
 			end)
 		end
+
+		-- Limited seasonal actors: their own group, outside the tier rows and genre sets.
+		order += 1
+		local limitedHead = tierHeader(order, LIMITED_TIER, 44, `Limited  {limitedFound()}/{#Actors.Limited}`)
+		local limitedNote = makeLabel(limitedHead, "Seasonal festivals only", WHITE, UDim2.new(0.5, -10, 1, 0), UDim2.new(0.5, 0, 0, 0))
+		limitedNote.TextXAlignment = Enum.TextXAlignment.Right
+		order += 1
+		tierCards(order, LIMITED_TIER, function(_key, hasIt)
+			return if hasIt then "+" else "-"
+		end, Actors.Limited, "Limited")
 
 		order += 1
 		local setsHead = UiKit.addRow(collectionList, order, 32)
@@ -431,11 +532,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		for name, button in collectionTabs do
 			UiKit.styleTab(button, name == collectionTab)
 		end
-		local discovered = 0
-		for _ in ClientState.index do
-			discovered += 1
-		end
-		collectionHeader.Text = `Collection  -  Index {discovered}/{Actors.IndexSlots}`
+		collectionHeader.Text = `Collection  -  Index {indexFound()}/{Actors.IndexSlots}`
 		if collectionTab == "Roster" then
 			renderRoster()
 		else
@@ -739,15 +836,17 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			local luck = player:GetAttribute("Luck") or Config.BaseLuck
 			local agency = castAgency or currentAgency()
 			local tierChance = Actors.tierChances(luck, agency.minTier)[tier.id] or 0
-			local pool = #Actors.actorsInTier(tier.id)
+			local pool = #Actors.actorsInTier(tier.id) -- a limited actor is as likely as one of these
 			local chance = tierChance / math.max(pool, 1) * (Actors.variantChances(luck)[variant.id] or 0)
 			chanceLabel.Text = fmtOdds(chance)
 			powerLabel.Text = Hud.comma(tier.starPower * variant.multiplier)
 			genreLabel.Text = actor.genre
 			genreLabel.TextColor3 = UiKit.GENRE_COLORS[actor.genre] or WHITE
 			-- A hot start guarantee (Actors.HotStart) gets a gold DISCOVERED! badge instead.
-			tagLabel.Text = if result.discovered then "DISCOVERED!" elseif result.isNew then "NEW!" else "x" .. result.count
-			tagLabel.BackgroundColor3 = if result.discovered
+			-- A limited seasonal actor's first copy says LIMITED! in gold.
+			local limitedNew = result.isNew and actor.season ~= nil
+			tagLabel.Text = if result.discovered then "DISCOVERED!" elseif limitedNew then "LIMITED!" elseif result.isNew then "NEW!" else "x" .. result.count
+			tagLabel.BackgroundColor3 = if result.discovered or limitedNew
 				then UiKit.GOLD
 				elseif result.isNew then UiKit.CLOSE_RED
 				else UiKit.TAB_OFF
@@ -818,11 +917,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 
 	-- Green chip on the Actors icon: how much of the Index is found.
 	local function refreshChip()
-		local discovered = 0
-		for _ in ClientState.index do
-			discovered += 1
-		end
-		UiKit.chip(actorsButton, `{discovered}/{Actors.IndexSlots}`)
+		UiKit.chip(actorsButton, `{indexFound()}/{Actors.IndexSlots}`)
 	end
 	refreshChip()
 	ClientState.changed:Connect(function()

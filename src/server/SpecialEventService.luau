@@ -110,12 +110,16 @@ local function publishFestival(now: number)
 end
 
 -- A player finished all three festival goals: their laurel goes up on the lot, with fireworks.
+-- A seasonal festival also gives its limited actor (Actors.Limited), so everyone who plays the
+-- season can get one without luck.
 local function onFestivalWon(player: Player, festival: SpecialEvents.Festival)
 	local data = DataService.getData(player)
 	Analytics.event(player, "FestivalWon", if data ~= nil then #data.laurels else 1, festival.genre, festival.season)
+	local limited = CastingService.giveLimited(player, festival.season)
 	LotService.refresh(player)
 	LotService.celebrate(player, "masterpiece")
-	resultRemote:FireClient(player, "festival", 1, true, `You won the {festival.name}!`)
+	local prize = if limited ~= nil then ` {limited.name} joined your cast!` else ""
+	resultRemote:FireClient(player, "festival", 1, true, `You won the {festival.name}!{prize}`)
 	Remotes.announce(`{player.DisplayName} won the {festival.name}!`)
 end
 

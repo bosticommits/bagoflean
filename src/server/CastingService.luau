@@ -117,10 +117,18 @@ local function hotStartFloor(player: Player): string?
 	return Actors.hotStartTier(data.hotStart)
 end
 
+-- The limited actor that can be cast right now: the one of this week's seasonal Film Festival
+-- (Actors.Limited), or nil in an ordinary week or while LiveConfig has festivals switched off.
+function CastingService.limitedInSeason(): Actors.Actor?
+	local festival = QuestTracker.festival(os.time())
+	return if festival ~= nil then Actors.limitedFor(festival.season) else nil
+end
+
 -- Rolls an actor from `agency` at `luck`, grants it and shows the reveal. Never yields.
 local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 	local floorTier = hotStartFloor(player)
-	local actor, variant = Actors.roll(random, luck, agency.minTier, floorTier)
+	local limited = CastingService.limitedInSeason()
+	local actor, variant = Actors.roll(random, luck, agency.minTier, floorTier, limited)
 	local isNew, count = CastingService.grant(player, actor.id, variant.id)
 	castResult:FireClient(player, {
 		ok = true,
@@ -141,7 +149,25 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 	if actor.tier == "Legend" or actor.tier == "Icon" then
 		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
 		LotService.celebrate(player, "pull")
+	elseif actor.season ~= nil then
+		Analytics.event(player, "LimitedPull", 1, actor.id, variant.id)
+		if isNew then
+			Remotes.announce(`{player.DisplayName} cast the limited {actor.name}!`)
+		end
 	end
+end
+
+-- A season's limited actor for winning its Film Festival (SpecialEventService): one Normal copy,
+-- with the roster and lot updated. Returns the actor given, or nil.
+function CastingService.giveLimited(player: Player, seasonId: string?): Actors.Actor?
+	local actor = Actors.limitedFor(seasonId)
+	if actor == nil or DataService.getData(player) == nil then
+		return nil
+	end
+	CastingService.grant(player, actor.id, "Normal")
+	sendRoster(player)
+	LotService.refresh(player)
+	return actor
 end
 
 local function onCast(player: Player, agencyId: any)

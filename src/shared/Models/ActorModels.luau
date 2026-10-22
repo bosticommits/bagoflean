@@ -1,9 +1,13 @@
 --!strict
 -- The 21 actors as chunky toy figures built from parts (ART_STYLE.md section 9): big blocky
 -- heads, outfits and props that say the role at a glance, and more flair the rarer they are.
+-- The limited seasonal actors (Actors.Limited) are Blender designs (art/blender/seasonal_actors.py),
+-- shown as their meshes once imported and as SeasonalShapes parts until then.
 -- All original characters. A figure is about 5.4 studs tall at scale 1, standing on its origin,
 -- facing -Z. Used for the star on each lot's pedestal; the same model can go in a ViewportFrame.
 local Build = require(script.Parent.Build)
+local MascotModels = require(script.Parent.MascotModels)
+local SeasonalShapes = require(script.Parent.SeasonalShapes)
 
 type Builder = Build.Builder
 
@@ -806,7 +810,11 @@ function ActorModels.build(parent: Instance, base: CFrame, actorId: string, vari
 	model:SetAttribute("ActorId", actorId)
 	model:SetAttribute("VariantId", variantId or "Normal")
 	local b = Build.new(model, base, scale)
-	if actorId == "ComedyDuo" then
+	local seasonal = SeasonalShapes.Shapes[actorId]
+	if seasonal ~= nil then
+		-- A limited seasonal actor: its Blender mesh once imported, its Blender shapes until then.
+		MascotModels.fill(b, actorId, seasonal, SeasonalShapes.Bounds[actorId])
+	elseif actorId == "ComedyDuo" then
 		comedyDuo(b)
 	else
 		figure(b, LOOKS[actorId] or {
