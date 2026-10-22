@@ -33,6 +33,7 @@ local LotService = require(script.Parent.LotService)
 local MapService = require(script.Parent.MapService)
 local MascotService = require(script.Parent.MascotService)
 local MovieService = require(script.Parent.MovieService)
+local QuestTracker = require(script.Parent.QuestTracker)
 local RebirthService = require(script.Parent.RebirthService)
 local Remotes = require(script.Parent.Remotes)
 local RewardService = require(script.Parent.RewardService)
@@ -92,7 +93,11 @@ local function onPlayerAdded(player: Player)
 		end
 		if live.passes.AutoCollect and os.clock() - lastAutoCollect >= Config.AutoCollectSeconds then
 			lastAutoCollect = os.clock()
-			EconomyService.collect(player)
+			-- Tell the client this pending drop is the pass banking, not a pad tap, so it skips the sound.
+			player:SetAttribute("AutoCollectTick", ((player:GetAttribute("AutoCollectTick") :: number?) or 0) + 1)
+			if EconomyService.collect(player) > 0 then
+				QuestTracker.track(player, "collect")
+			end
 		end
 		EconomyService.refresh(player)
 		CastingService.refresh(player)
