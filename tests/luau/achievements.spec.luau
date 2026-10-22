@@ -2,6 +2,7 @@ local H = require("./harness")
 local Achievements = H.require("Achievements")
 local Actors = H.require("Actors")
 local Movies = H.require("Movies")
+local Upgrades = H.require("Upgrades")
 local test, expect, equal = H.test, H.expect, H.equal
 
 local function view(stats: any?, index: any?, trophies: number?, fame: number?): any
@@ -16,9 +17,11 @@ test("every achievement has a unique id, a known stat and a valid reward", funct
 		expect(a.target > 0 and a.target == math.floor(a.target), `{a.id} target`)
 		expect(#a.text > 0, `{a.id} text`)
 		local stat = a.stat
-		local known = table.find(Achievements.Counted, stat) ~= nil or stat == "masterpiece" or stat == "fame" or stat == "index" or stat == "actors"
+		local known = table.find(Achievements.Counted, stat) ~= nil or stat == "masterpiece" or stat == "fame" or stat == "index" or stat == "actors" or stat == "stages"
 		local tier = string.match(stat, "^tier:(.+)$")
 		local variant = string.match(stat, "^variant:(.+)$")
+		local upgrade = string.match(stat, "^upgrade:(.+)$")
+		known = known or (upgrade ~= nil and Upgrades.get(upgrade) ~= nil)
 		known = known or (tier ~= nil and Actors.getTier(tier) ~= nil) or (variant ~= nil and Actors.getVariant(variant) ~= nil)
 		expect(known, `{a.id} unknown stat {stat}`)
 		local r = a.reward
@@ -98,4 +101,34 @@ test("claimable lists finished goals that are not claimed", function()
 	ready = Achievements.claimable(v, { Cast1 = true })
 	expect(table.find(ready, "Cast1") == nil, "claimed goals are not claimable")
 	equal(#Achievements.claimable(view(), {}), 0, "a new player has nothing to claim")
+end)
+
+test("the Next up chain is small, early and its rewards are tiny", function()
+	local chain = {}
+	for _, group in Achievements.groups() do
+		if group.id == "start" then
+			chain = group.list
+		end
+	end
+	equal(#chain, 6, "six first-ten-minutes goals")
+	equal(Achievements.groups()[1].id, "start", "the chain is the first group")
+	local cash, luck = 0, 0
+	for _, a in chain do
+		expect(a.reward.skips == nil and a.reward.script == nil, `{a.id} gives only Cash or a short Luck boost`)
+		expect(a.reward.cashMinutes == nil, `{a.id} must not scale with income`)
+		cash += a.reward.cash or 0
+		luck += a.reward.luckMinutes or 0
+	end
+	-- Under half of the first Sound Stage, and well under the sum of the cheap first upgrades.
+	expect(cash * 2 <= Upgrades.get("Stages").costs[1], `chain Cash ${cash} is over half the first Sound Stage`)
+	expect(luck <= 5, "chain Luck boosts stay short")
+end)
+
+test("the chain reads upgrades and stages from the save", function()
+	local luck, stages = Achievements.get("Start3"), Achievements.get("Start5")
+	local v: any = view()
+	expect(not Achievements.isDone(v, luck) and not Achievements.isDone(v, stages), "nothing bought yet")
+	v.upgrades, v.stageCount = { Luck = 1 }, 2
+	expect(Achievements.isDone(v, luck) and Achievements.isDone(v, stages), "Luck I and stage 2 done")
+	equal(Achievements.value(view(), "stages"), 1, "one starting stage when the view has no count")
 end)

@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local AchievementTracker = require(script.Parent.AchievementTracker)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -85,6 +86,7 @@ local function onBuyUpgrade(player: Player, id: any)
 	end
 	DataService.markDirty(player)
 	refreshStats(player)
+	AchievementTracker.changed(player) -- the "Next up" chain has goals for Luck and the second stage
 	LotService.refresh(player) -- stages, cinema and office all show on the lot
 end
 

@@ -27,6 +27,7 @@ local makeLabel, makeButton = UiKit.makeLabel, UiKit.makeButton
 local AchievementsUi = {}
 
 local GROUP_ICONS: { [string]: string } = {
+	start = "star",
 	cast = "dice",
 	premiere = "popcorn",
 	hit = "movieCamera",
@@ -562,6 +563,110 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		end
 	end)
 
+	-- "Next up" strip on the HUD: the first unclaimed goal of the "start" group (the first-ten-minutes
+	-- chain). It sits under the box office bar, hides while the tutorial is up, and disappears once
+	-- the whole chain is claimed. Tapping it opens Goals; CLAIM claims right there.
+	local stripGoals: { Achievements.Achievement } = {}
+	for _, group in Achievements.groups() do
+		if group.id == "start" then
+			stripGoals = group.list
+		end
+	end
+	local strip = Instance.new("TextButton")
+	strip.Name = "NextUp"
+	strip.Text = ""
+	strip.AutoButtonColor = false
+	strip.BackgroundColor3 = UiKit.NAVY
+	strip.Size = UDim2.fromOffset(300, 50)
+	strip.Visible = false
+	strip.Parent = gui
+	local stripScale = Instance.new("UIScale")
+	stripScale.Parent = strip
+	UiKit.corner(strip, 14)
+	local stripOutline = UiKit.border(strip, 3)
+	local stripTag = UiKit.makeTitle(strip, "NEXT UP", UiKit.GOLD, UDim2.fromOffset(70, 16), UDim2.fromOffset(10, 4), 1.5)
+	stripTag.TextXAlignment = Enum.TextXAlignment.Left
+	local stripTitle = UiKit.makeTitle(strip, "", UiKit.WHITE, UDim2.new(1, -118, 0, 22), UDim2.fromOffset(10, 20), 2)
+	stripTitle.TextXAlignment = Enum.TextXAlignment.Left
+	UiKit.textConstraint(stripTitle, 18)
+	local stripTrack = Instance.new("Frame")
+	stripTrack.BackgroundColor3 = UiKit.DARK
+	stripTrack.Position = UDim2.fromOffset(86, 4)
+	stripTrack.Size = UDim2.new(1, -184, 0, 12)
+	stripTrack.Parent = strip
+	UiKit.corner(stripTrack, 6)
+	UiKit.border(stripTrack, 2)
+	local stripFill = Instance.new("Frame")
+	stripFill.BackgroundColor3 = UiKit.GREEN
+	stripFill.Size = UDim2.fromScale(0, 1)
+	stripFill.Parent = stripTrack
+	UiKit.corner(stripFill, 6)
+	local stripCount = UiKit.makeTitle(strip, "", UiKit.WHITE, UDim2.fromOffset(86, 16), UDim2.new(1, -96, 0, 2), 1.5)
+	stripCount.TextXAlignment = Enum.TextXAlignment.Right
+	UiKit.textConstraint(stripCount, 14)
+	local stripClaim = makeButton(strip, "CLAIM", UiKit.GREEN, UDim2.fromOffset(92, 36), UDim2.new(1, -100, 0.5, -18))
+	UiKit.pulse(stripClaim)
+	local stripClaimId: string? = nil
+
+	local function placeStrip()
+		local top = gui:GetAttribute("HudTop")
+		local y = (if typeof(top) == "number" then top else 8) + 112
+		if gui:GetAttribute("HudRight") == true then
+			strip.AnchorPoint = Vector2.new(1, 0)
+			strip.Position = UDim2.new(1, -12, 0, 8 + 112)
+		else
+			strip.AnchorPoint = Vector2.new(0.5, 0)
+			strip.Position = UDim2.new(0.5, 0, 0, y)
+		end
+		-- Narrow screens shrink it to fit between the edges.
+		stripScale.Scale = math.clamp((UiKit.viewport().X - 24) / 300, 0.6, 1)
+	end
+
+	local function updateStrip()
+		local current: Achievements.Achievement? = nil
+		for _, achievement in stripGoals do
+			if not claimed[achievement.id] then
+				current = achievement
+				break
+			end
+		end
+		-- Hidden until the first sync, while the Director tutorial runs (it sets "PanelTop"), and
+		-- once every goal in the chain is claimed.
+		if current == nil or not synced or gui:GetAttribute("PanelTop") ~= nil then
+			strip.Visible = false
+			stripClaimId = nil
+			return
+		end
+		local value = progress[current.id] or 0
+		local ready = isReady(current)
+		stripClaimId = if ready then current.id else nil
+		stripTitle.Text = current.text
+		stripFill.Size = UDim2.fromScale(math.clamp(value / current.target, 0, 1), 1)
+		stripCount.Text = `{Hud.comma(value)}/{Hud.comma(current.target)}`
+		stripClaim.Visible = ready
+		stripCount.Visible = not ready
+		stripOutline.Color = if ready then UiKit.GREEN else UiKit.INK
+		strip.Visible = true
+	end
+
+	stripClaim.Activated:Connect(function()
+		if stripClaimId ~= nil then
+			claimAchievement:FireServer(stripClaimId)
+		end
+	end)
+	strip.Activated:Connect(function()
+		if stripClaimId == nil then
+			open()
+		end
+	end)
+	for _, attribute in { "HudTop", "HudRight", "PanelTop" } do
+		gui:GetAttributeChangedSignal(attribute):Connect(function()
+			placeStrip()
+			updateStrip()
+		end)
+	end
+	UiKit.onViewportChanged(placeStrip)
+
 	achievementsSync.OnClientEvent:Connect(function(payload)
 		if type(payload) ~= "table" or type(payload.progress) ~= "table" or type(payload.claimed) ~= "table" then
 			return
@@ -578,6 +683,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			end
 		end
 		updateBadge()
+		updateStrip()
 		if panel.Visible then
 			render()
 		end

@@ -20,7 +20,14 @@ local lastReady: { [Player]: number } = {}
 local AchievementTracker = {}
 
 function AchievementTracker.view(data: DataService.PlayerData): Achievements.View
-	return { stats = data.stats, index = data.index, trophies = data.trophies, fame = data.fame }
+	return {
+		stats = data.stats,
+		index = data.index,
+		trophies = data.trophies,
+		fame = data.fame,
+		upgrades = data.upgrades,
+		stageCount = data.stageCount,
+	}
 end
 
 function AchievementTracker.sync(player: Player)
