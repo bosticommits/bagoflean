@@ -29,6 +29,17 @@ local TownSets = {}
 
 -- Starlight Park's pond, in the park's own space (MapLife paddles the ducks round it).
 TownSets.Pond = Vector3.new(-55, 0, 82)
+TownSets.PondRadius = 26
+
+-- The loops the park's ducks paddle (src/client/MapLife.luau), in the pond's own space: the big
+-- one with its duckling behind, and one on its own, clear of the island and the bridge.
+-- tests/luau/map.spec.luau checks every loop stays on open water.
+export type DuckLoop = { centre: Vector3, radius: number, lap: number, lag: number }
+TownSets.DuckLoops = table.freeze({
+	{ centre = Vector3.new(11, 0.5, -9), radius = 5, lap = 40, lag = 0 },
+	{ centre = Vector3.new(11, 0.5, -9), radius = 5, lap = 40, lag = 0.55 },
+	{ centre = Vector3.new(-14, 0.5, -12), radius = 4, lap = 32, lag = 2 },
+} :: { DuckLoop })
 
 local function v(x: number, y: number, z: number): Vector3
 	return Vector3.new(x, y, z)
@@ -441,7 +452,7 @@ function TownSets.park(b: Builder)
 	-- The pond, west of the main path: a stone rim, bright water, an island with a blossom tree,
 	-- a bridge out to it, lily pads and ducks.
 	local pond = TownSets.Pond
-	local radius = 26
+	local radius = TownSets.PondRadius
 	b:cylinder("PondWater", 0.5, radius * 2, pond + v(0, 0.25, 0), WATER)
 	b:cylinder("PondShine", 0.52, radius * 1.3, pond + v(0, 0.27, 0), WATER_LIGHT)
 	local stones = 22
@@ -461,9 +472,13 @@ function TownSets.park(b: Builder)
 		MapKit.place(b, "LilyPad", CFrame.new(pond + at + v(0, 0.5, 0)) * yaw(at.X * 31), { solid = false })
 	end
 	MapKit.place(b, "LilyFlower", pond + v(12, 0.5, 12), { solid = false })
-	-- Ducks (src/client/MapLife.luau paddles them round the pond).
-	for _, duck in { { at = v(10, 0.5, -4), turn = 30, size = 0.9 }, { at = v(13, 0.5, -1), turn = 40, size = 0.55 }, { at = v(-16, 0.5, -10), turn = 200, size = 0.8 } } do
-		MapKit.place(b, "Duck", CFrame.new(pond + duck.at) * yaw(duck.turn), { scale = duck.size, solid = false })
+	-- Ducks (src/client/MapLife.luau paddles them round the pond). Each knows its loop, where the
+	-- pond's middle is in the world and where it was put, so MapLife never has to guess.
+	for i, duck in { { at = v(10, 0.5, -4), turn = 30, size = 0.9 }, { at = v(13, 0.5, -1), turn = 40, size = 0.55 }, { at = v(-16, 0.5, -10), turn = 200, size = 0.8 } } do
+		local model = MapKit.place(b, "Duck", CFrame.new(pond + duck.at) * yaw(duck.turn), { scale = duck.size, solid = false })
+		model:SetAttribute("DuckLoop", i)
+		model:SetAttribute("PondCentre", b:at(pond).Position)
+		model:SetAttribute("Home", model.WorldPivot)
 	end
 
 	-- The bandstand, east of the main path (octagonal, with a striped roof). People walk in.
