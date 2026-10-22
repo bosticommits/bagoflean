@@ -123,6 +123,51 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	end
 	refreshCastButton()
 
+	-- "Discovered!" hot start: a bar over the Cast button counts down to a new player's next
+	-- guaranteed pull (Actors.HotStart). Shown from their first cast until the last guarantee.
+	local hotBar = Instance.new("Frame")
+	hotBar.Name = "HotStart"
+	hotBar.BackgroundColor3 = UiKit.DARK
+	hotBar.Position = UDim2.fromOffset(0, -34)
+	hotBar.Size = UDim2.fromOffset(240, 28)
+	hotBar.Visible = false
+	hotBar.Parent = bar
+	corner(hotBar, 14)
+	UiKit.border(hotBar, 3)
+	local hotFill = Instance.new("Frame")
+	hotFill.Name = "Fill"
+	hotFill.BorderSizePixel = 0
+	hotFill.Size = UDim2.fromScale(0, 1)
+	hotFill.Parent = hotBar
+	corner(hotFill, 14)
+	local hotLabel = UiKit.makeTitle(hotBar, "", WHITE, UDim2.new(1, -16, 1, -6), UDim2.fromOffset(8, 3), 2)
+	hotLabel.ZIndex = hotFill.ZIndex + 1
+	textConstraint(hotLabel, 18)
+	local function refreshHotStart()
+		local done = player:GetAttribute("HotStart")
+		local step = if type(done) == "number" then Actors.nextHotStart(done) else nil
+		hotBar.Visible = step ~= nil and (done :: number) > 0
+		if step == nil then
+			return
+		end
+		local castsDone = done :: number
+		local tier = Actors.getTier(step.tier) :: Actors.Tier
+		local previous = 0
+		for _, other in Actors.HotStart do
+			if other.cast < step.cast then
+				previous = other.cast
+			end
+		end
+		local left = step.cast - castsDone
+		hotLabel.Text = if left == 1
+			then `{string.upper(tier.name)} GUARANTEED NEXT CAST!`
+			else `{string.upper(tier.name)} GUARANTEED IN {left} CASTS`
+		hotFill.BackgroundColor3 = tier.color
+		local fraction = math.clamp((castsDone - previous) / (step.cast - previous), 0, 1)
+		TweenService:Create(hotFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(fraction, 1) }):Play()
+	end
+	refreshHotStart()
+
 	-- Odds panel (with agency selector) --------------------------------------------------------
 	local oddsPanel, oddsList, oddsHeader = UiKit.makePanel(gui, "OddsPanel", "Casting odds", 108)
 	UiKit.panelIcon(oddsPanel, oddsHeader, "dice")
@@ -442,11 +487,91 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		textConstraint(label, size)
 		return label
 	end
-	local tagLabel = cardLabel(0.03, 0.08, 22) -- NEW! / variant
-	local nameLabel = cardLabel(0.5, 0.11, 38)
-	local tierLabel = cardLabel(0.61, 0.07, 26)
-	local detailLabel = cardLabel(0.68, 0.06, 20)
-	local powerLabel = cardLabel(0.74, 0.06, 20)
+	-- Rarity card, like the reference games' pull cards: tilted corner badges (NEW! or the copy
+	-- count, and the variant), the actor, their name, a ribbon across the card in the rarity
+	-- color, and stat chips for the odds of this exact pull, Star Power and genre.
+	local function cornerBadge(position: UDim2, rotation: number): TextLabel
+		local badge = UiKit.makeTitle(card, "", WHITE, UDim2.fromScale(0.3, 0.075), position, 2.5)
+		badge.BackgroundTransparency = 0
+		badge.BackgroundColor3 = UiKit.CLOSE_RED
+		badge.Rotation = rotation
+		badge.ZIndex = 14
+		corner(badge, 10)
+		UiKit.border(badge, 4)
+		textConstraint(badge, 24)
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0, 4)
+		pad.PaddingBottom = UDim.new(0, 4)
+		pad.Parent = badge
+		return badge
+	end
+	local tagLabel = cornerBadge(UDim2.fromScale(-0.03, -0.02), -8) -- NEW! / xN
+	local variantLabel = cornerBadge(UDim2.fromScale(0.73, -0.02), 8) -- Shiny / Award-Winning
+	local nameLabel = cardLabel(0.46, 0.09, 38)
+	UiKit.outline(nameLabel, 3.5)
+
+	local ribbon = Instance.new("Frame")
+	ribbon.Name = "Ribbon"
+	ribbon.AnchorPoint = Vector2.new(0.5, 0)
+	ribbon.Position = UDim2.fromScale(0.5, 0.555)
+	ribbon.Size = UDim2.fromScale(1.1, 0.09)
+	ribbon.Rotation = -3
+	ribbon.ZIndex = 13
+	ribbon.Parent = card
+	corner(ribbon, 8)
+	local ribbonStroke = UiKit.border(ribbon, 4)
+	local ribbonShade = Instance.new("UIGradient")
+	ribbonShade.Rotation = 90
+	ribbonShade.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0.62, Color3.fromRGB(235, 235, 235)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(165, 165, 165)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(140, 140, 140)),
+	})
+	ribbonShade.Parent = ribbon
+	local ribbonRainbow = Instance.new("UIGradient")
+	ribbonRainbow.Color = UiKit.RAINBOW
+	ribbonRainbow.Enabled = false
+	ribbonRainbow.Parent = ribbonStroke
+	local tierLabel = UiKit.makeTitle(ribbon, "", WHITE, UDim2.fromScale(0.86, 0.86), UDim2.fromScale(0.07, 0.07), 3.5)
+	tierLabel.ZIndex = 14
+	textConstraint(tierLabel, 40)
+
+	-- Stat chips: small title on top, big value under it.
+	local chipRow = Instance.new("Frame")
+	chipRow.Name = "Stats"
+	chipRow.BackgroundTransparency = 1
+	chipRow.Position = UDim2.fromScale(0.04, 0.675)
+	chipRow.Size = UDim2.fromScale(0.92, 0.125)
+	chipRow.ZIndex = 12
+	chipRow.Parent = card
+	local chipLayout = Instance.new("UIListLayout")
+	chipLayout.FillDirection = Enum.FillDirection.Horizontal
+	chipLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	chipLayout.Padding = UDim.new(0.025, 0)
+	chipLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	chipLayout.Parent = chipRow
+	local function statChip(order: number, title: string, color: Color3): TextLabel
+		local chip = Instance.new("Frame")
+		chip.LayoutOrder = order
+		chip.BackgroundColor3 = UiKit.INK
+		chip.BackgroundTransparency = 0.25
+		chip.Size = UDim2.fromScale(0.315, 1)
+		chip.ZIndex = 12
+		chip.Parent = chipRow
+		corner(chip, 10)
+		UiKit.border(chip, 3)
+		local heading = UiKit.makeTitle(chip, title, UiKit.MUTED, UDim2.fromScale(0.9, 0.34), UDim2.fromScale(0.05, 0.06), 2)
+		heading.ZIndex = 13
+		textConstraint(heading, 14)
+		local value = UiKit.makeTitle(chip, "", color, UDim2.fromScale(0.92, 0.5), UDim2.fromScale(0.04, 0.42), 2.5)
+		value.ZIndex = 13
+		textConstraint(value, 24)
+		return value
+	end
+	local chanceLabel = statChip(1, "CHANCE", WHITE)
+	local powerLabel = statChip(2, "STAR POWER", UiKit.GOLD)
+	local genreLabel = statChip(3, "GENRE", WHITE)
 
 	-- The actor (or a spinning clapperboard while casting) turns on a turntable in the card.
 	local art = Instance.new("Frame")
@@ -529,6 +654,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	doneButton.ZIndex = 12
 
 	local revealToken = 0
+	local castAgency: Actors.Agency? = nil -- the agency of the cast being revealed
 	local function setCardVisible(visible: boolean)
 		for _, child in card:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -537,12 +663,21 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end
 
+	local SUSPENSE_TIMEOUT_SECONDS = 4 -- a "Casting..." screen with no answer closes itself
+
 	local function showSuspense()
 		revealToken += 1
+		local mine = revealToken
+		task.delay(SUSPENSE_TIMEOUT_SECONDS, function()
+			if revealToken == mine then
+				overlay.Visible = false
+			end
+		end)
 		overlay.Visible = true
 		setCardVisible(false)
 		stroke.Color = UiKit.FAINT
 		rainbow.Enabled = false
+		card.BackgroundColor3 = PANEL
 		nameLabel.Visible = true
 		nameLabel.Text = "Casting..."
 		nameLabel.TextColor3 = WHITE
@@ -569,6 +704,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		nameLabel.Visible = true
 		nameLabel.Text = "..."
 		nameLabel.TextColor3 = WHITE
+		card.BackgroundColor3 = PANEL
 		stroke.Color = UiKit.FAINT
 		rainbow.Enabled = false
 		-- Build-up: the new actor's silhouette spins fast, then stops spinning to show who it is.
@@ -590,21 +726,35 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			setRays(if variant.id == "Normal" then tier.color else variant.color, math.clamp(0.25 + rank * 0.1, 0, 0.9))
 			stroke.Color = if tier.id == "Icon" then WHITE else tier.color
 			rainbow.Enabled = tier.id == "Icon"
+			-- The card takes on the rarity: a deep shade of its color, the ribbon in full color.
+			card.BackgroundColor3 = tier.color:Lerp(UiKit.INK, 0.62)
 			nameLabel.Text = actor.name
-			nameLabel.TextColor3 = tier.color
-			tierLabel.Text = tier.name
-			tierLabel.TextColor3 = tier.color
-			detailLabel.Text = actor.genre .. " specialist"
-			powerLabel.Text = "Star Power " .. Hud.comma(tier.starPower * variant.multiplier)
-			powerLabel.TextColor3 = UiKit.GOLD
-			local tag = if result.isNew then "NEW!" else "x" .. result.count
-			if variant.id ~= "Normal" then
-				tag = variant.name .. "  " .. tag
-				tagLabel.TextColor3 = variant.color
-			else
-				tagLabel.TextColor3 = if result.isNew then UiKit.GOLD else UiKit.MUTED
-			end
-			tagLabel.Text = tag
+			nameLabel.TextColor3 = WHITE
+			ribbon.BackgroundColor3 = tier.color
+			ribbonStroke.Color = if tier.id == "Icon" then WHITE else UiKit.INK
+			ribbonRainbow.Enabled = tier.id == "Icon"
+			tierLabel.Text = string.upper(tier.name)
+			-- Odds of this exact pull (tier, then one of its actors, then the variant) at the Luck
+			-- and agency it was cast with, as the Odds screen works them out.
+			local luck = player:GetAttribute("Luck") or Config.BaseLuck
+			local agency = castAgency or currentAgency()
+			local tierChance = Actors.tierChances(luck, agency.minTier)[tier.id] or 0
+			local pool = #Actors.actorsInTier(tier.id)
+			local chance = tierChance / math.max(pool, 1) * (Actors.variantChances(luck)[variant.id] or 0)
+			chanceLabel.Text = fmtOdds(chance)
+			powerLabel.Text = Hud.comma(tier.starPower * variant.multiplier)
+			genreLabel.Text = actor.genre
+			genreLabel.TextColor3 = UiKit.GENRE_COLORS[actor.genre] or WHITE
+			-- A hot start guarantee (Actors.HotStart) gets a gold DISCOVERED! badge instead.
+			tagLabel.Text = if result.discovered then "DISCOVERED!" elseif result.isNew then "NEW!" else "x" .. result.count
+			tagLabel.BackgroundColor3 = if result.discovered
+				then UiKit.GOLD
+				elseif result.isNew then UiKit.CLOSE_RED
+				else UiKit.TAB_OFF
+			variantLabel.Visible = variant.id ~= "Normal"
+			variantLabel.Text = string.upper(if variant.id == "Award" then "Award" else variant.name)
+			variantLabel.BackgroundColor3 = variant.color
+			variantLabel.TextColor3 = WHITE
 			Fx.castReveal(tier.id, variant.id)
 			card.Size = UDim2.fromScale(0.7, 0.6)
 			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, 0.72) }):Play()
@@ -622,6 +772,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			UiKit.toast(gui, "Not enough Cash")
 			return false
 		end
+		castAgency = agency
 		castRemote:FireServer(agency.id)
 		return true
 	end
@@ -683,6 +834,8 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	player.AttributeChanged:Connect(function(name)
 		if (name == "Luck" or name == "Fame") and oddsPanel.Visible then
 			buildOdds()
+		elseif name == "HotStart" then
+			refreshHotStart()
 		end
 	end)
 

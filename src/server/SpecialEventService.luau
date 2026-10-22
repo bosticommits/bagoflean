@@ -35,6 +35,7 @@ local TICK = 0.5
 local CLAIM_SLACK = 6 -- extra studs for lag between where the client and the server see a player
 local CLAIM_COOLDOWN = 0.05
 local LOT_REACH = LotModels.Layout.size / 2 + 2 -- Spotlight: standing anywhere on the lot
+local MAX_SPEEDUP_STEP_SECONDS = 3 -- Golden Hour: most real seconds one tick may fast-forward
 local TEST_LEAD = 3 -- a Studio test event starts this many seconds after its button
 
 type Live = {
@@ -181,6 +182,8 @@ local function update(state: Live)
 		local elapsed = clock - lastSpeedUp
 		if elapsed >= 1 then
 			lastSpeedUp = clock
+			-- A server stall must not turn into a big free fast-forward.
+			elapsed = math.min(elapsed, MAX_SPEEDUP_STEP_SECONDS)
 			for _, player in Players:GetPlayers() do
 				MovieService.fastForward(player, elapsed * (SpecialEvents.FilmSpeed - 1))
 			end

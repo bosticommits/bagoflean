@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local ProfileStore = require(script.Parent.ProfileStore)
 
@@ -17,6 +18,7 @@ export type Film = {
 	cast: { string }, -- "actorId:variantId" keys; these copies are busy until the premiere
 	startTime: number,
 	endTime: number,
+	takes: { string }?, -- "Direct the scene" verdicts so far (Takes.luau); nil before the first
 }
 
 -- A premiered movie sitting in the cinema earning royalties.
@@ -50,6 +52,8 @@ export type PlayerData = {
 	skips: number, -- unused Skip Filming tokens
 	daily: { day: number, streak: number }, -- last UTC day a daily reward was claimed
 	requests: { day: number, list: { Request } }, -- today's Studio Requests
+	weekly: { week: number, list: { Request } }, -- this week's quests (Rewards.week)
+	carried: { Carried }, -- finished quests from earlier days or weeks, still to claim
 	codes: { [string]: boolean }, -- redeemed codes
 	purchaseIds: { string }, -- recent developer product receipts (grant-once log)
 	stayGiftDay: number, -- last UTC day the "don't leave yet" gift was claimed
@@ -62,11 +66,18 @@ export type PlayerData = {
 	-- rejoining or changing servers during it cannot pick the same thing up twice.
 	eventKey: string, -- "<event id>:<start time>"; claims from older events are dropped
 	eventClaims: { [string]: boolean },
+	-- Studio visits (Visits.luau): applause other players gave this studio (cosmetic, never spent),
+	-- and which studios this player toured and applauded today.
+	likes: number,
+	visits: { day: number, toured: { [string]: boolean }, applauded: { [string]: boolean } },
+	-- "Discovered!" hot start (Actors.HotStart): casts counted so far, up to Actors.HotStartLength.
+	hotStart: number,
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
+export type Carried = { key: string, id: string, scope: string }
 
-local CURRENT_VERSION = 6 -- 6: rebirths
+local CURRENT_VERSION = 9 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -90,6 +101,8 @@ local TEMPLATE: PlayerData = {
 	skips = 0,
 	daily = { day = 0, streak = 0 },
 	requests = { day = 0, list = {} },
+	weekly = { week = 0, list = {} },
+	carried = {},
 	codes = {},
 	purchaseIds = {},
 	stayGiftDay = 0,
@@ -99,6 +112,9 @@ local TEMPLATE: PlayerData = {
 	rebirths = 0,
 	eventKey = "",
 	eventClaims = {},
+	likes = 0,
+	visits = { day = 0, toured = {}, applauded = {} },
+	hotStart = Actors.HotStartLength, -- profiles from before v9 have played already; load() sets 0 for new ones
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -112,7 +128,11 @@ local releasing: { [number]: boolean } = {}
 
 local DataService = {}
 
--- Repairs malformed fields. Add `if version < N` steps here when the schema changes.
+-- Repairs malformed fields. New fields need nothing here (Reconcile fills them from TEMPLATE).
+-- When a change alters the MEANING of existing data (a rescaled price, a renamed key, a changed
+-- multiplier), add a step before the final `data.version = CURRENT_VERSION` line, for example:
+--   if data.version < 9 then ... convert the old data ... end
+-- and raise CURRENT_VERSION. Run steps in order; never skip one for old profiles.
 local function migrate(data: any)
 	if type(data.cash) ~= "number" or data.cash ~= data.cash or data.cash < 0 then
 		data.cash = 0
@@ -129,12 +149,20 @@ local function migrate(data: any)
 	if type(data.tutorialDone) ~= "boolean" then
 		data.tutorialDone = false
 	end
-	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths" } do
+	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths", "likes" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
 		end
 	end
 	data.rebirths = math.floor(data.rebirths)
+	data.likes = math.floor(data.likes)
+	if type(data.visits) ~= "table" or type(data.visits.day) ~= "number" or type(data.visits.toured) ~= "table" or type(data.visits.applauded) ~= "table" then
+		data.visits = { day = 0, toured = {}, applauded = {} }
+	end
+	if type(data.hotStart) ~= "number" or data.hotStart ~= data.hotStart or data.hotStart < 0 then
+		data.hotStart = Actors.HotStartLength
+	end
+	data.hotStart = math.min(math.floor(data.hotStart), Actors.HotStartLength)
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end
@@ -167,6 +195,19 @@ local function migrate(data: any)
 	if type(data.requests) ~= "table" or type(data.requests.day) ~= "number" or type(data.requests.list) ~= "table" then
 		data.requests = { day = 0, list = {} }
 	end
+	if type(data.weekly) ~= "table" or type(data.weekly.week) ~= "number" or type(data.weekly.list) ~= "table" then
+		data.weekly = { week = 0, list = {} }
+	end
+	-- Finished quests waiting to be claimed: keep only well-formed entries (see Rewards.carryOver).
+	local carried = {}
+	if type(data.carried) == "table" then
+		for _, waiting in data.carried do
+			if type(waiting) == "table" and type(waiting.key) == "string" and type(waiting.id) == "string" and type(waiting.scope) == "string" then
+				table.insert(carried, { key = waiting.key, id = waiting.id, scope = waiting.scope })
+			end
+		end
+	end
+	data.carried = carried
 	data.version = CURRENT_VERSION
 end
 
@@ -206,6 +247,7 @@ function DataService.load(player: Player): PlayerData?
 		profile.Data.lastCollect = os.time()
 		profile.Data.cash = Config.StartingCash
 		profile.Data.funnel = 0 -- a new player: log their onboarding funnel
+		profile.Data.hotStart = 0 -- and give them the "Discovered!" hot start
 	end
 	migrate(profile.Data)
 
@@ -242,11 +284,23 @@ function DataService.grantPurchaseOnce(player: Player, purchaseId: string, grant
 	end
 	local data = profile.Data :: PlayerData
 	if table.find(data.purchaseIds, purchaseId) == nil then
+		-- Remember what a reward can touch, so a grant that errors halfway is undone completely and
+		-- the retried receipt cannot apply the first half of it twice.
+		local before = {
+			cash = data.cash,
+			luckBoostUntil = data.luckBoostUntil,
+			skips = data.skips,
+			scripts = table.clone(data.scripts),
+		}
 		local ok, err = pcall(function()
 			grant(data)
 		end)
 		if not ok then
-			warn(`[DataService] purchase {purchaseId} grant failed: {err}`)
+			data.cash = before.cash
+			data.luckBoostUntil = before.luckBoostUntil
+			data.skips = before.skips
+			data.scripts = before.scripts
+			warn(`[DataService] purchase {purchaseId} grant failed and was undone: {err}`)
 			return false
 		end
 		table.insert(data.purchaseIds, purchaseId)

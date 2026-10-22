@@ -388,12 +388,52 @@ def dump(scene, arg=None):
         return json.load(f)
 
 
+_kit_meshes = {}
+
+
+def kit_object(p, collection, parent=None):
+    """A map kit model (dumped as shape "Kit": its name, pivot and scale), drawn with the same
+    Blender mesh the game imports (art/blender/map_kit.py builds it once per run)."""
+    name = p["name"]
+    if name not in _kit_meshes:
+        import sys
+
+        blender = os.path.join(REPO, "art", "blender")
+        if blender not in sys.path:
+            sys.path.insert(0, blender)
+        import crew_kit
+        import map_kit
+
+        builders = dict(map_kit.full_kit())
+        # Rig pieces and props keep their joint at the origin, as in the game.
+        obj, _ = map_kit.build(name, builders[name], lift_to_ground=name not in crew_kit.NO_LIFT)
+        for c in list(obj.users_collection):
+            c.objects.unlink(obj)
+        _kit_meshes[name] = obj.data
+    obj = bpy.data.objects.new(name, _kit_meshes[name])
+    collection.objects.link(obj)
+    c = p["cframe"]
+    m = Matrix(((c[3], c[4], c[5], c[0]), (c[6], c[7], c[8], c[1]), (c[9], c[10], c[11], c[2]), (0, 0, 0, 1)))
+    # The mesh is in Blender model space (Z up, facing -Y) and in metres: back to studs, into the
+    # Roblox frame, placed, and back to Blender (ROBLOX_TO_BLENDER is its own inverse).
+    from map_kit import STUD
+
+    obj.matrix_world = ROBLOX_TO_BLENDER @ m @ ROBLOX_TO_BLENDER @ Matrix.Scale(p["size"][0] / STUD, 4)
+    if parent is not None:
+        obj.parent = parent
+        obj.matrix_parent_inverse = Matrix.Identity(4)
+    return obj
+
+
 def import_parts(parts, name, location=(0, 0, 0), yaw=0.0, scale=1.0, bevel=0.07):
     """Make the parts under one empty. `yaw` turns the model in degrees (0 faces -Y)."""
     coll = bpy.context.scene.collection
     root = bpy.data.objects.new(name, None)
     coll.objects.link(root)
     for p in parts:
+        if p.get("shape") == "Kit":
+            kit_object(p, coll, parent=root)
+            continue
         part_object(p, coll, parent=root, bevel=bevel)
     root.location = Vector(location)
     root.rotation_euler = (0, 0, math.radians(yaw))

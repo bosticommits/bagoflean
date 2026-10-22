@@ -134,3 +134,47 @@ test("rolls follow the odds and respect the agency floor", function()
 		expect(tierIndex ~= nil and tierIndex >= floor, `rolled {actor.tier} below the agency floor`)
 	end
 end)
+
+test("Luck divides N at every agency, not only at Open Casting", function()
+	for _, agency in Actors.Agencies do
+		local base = Actors.tierChances(1, agency.minTier)
+		local doubled = Actors.tierChances(2, agency.minTier)
+		for index = agency.minTier + 2, #Actors.Tiers do
+			local id = Actors.Tiers[index].id
+			-- Rare tiers double (within a hair, from the tiers above taking their share first).
+			near(doubled[id] / base[id], 2, 0.01, `{agency.id} {id} at Luck 2`)
+		end
+	end
+end)
+
+test("the hot start guarantees climb, end with a Star, and only ever raise a roll", function()
+	expect(#Actors.HotStart > 0, "the hot start has steps")
+	local lastCast, lastTier = 0, 0
+	for _, step in Actors.HotStart do
+		local tier = Actors.getTier(step.tier)
+		expect(tier ~= nil, `hot start tier {step.tier} is not a tier`)
+		local tierIndex = table.find(Actors.Tiers, tier) :: number
+		expect(step.cast > lastCast, "hot start casts go up")
+		expect(tierIndex > lastTier, "hot start tiers go up")
+		lastCast, lastTier = step.cast, tierIndex
+		equal(Actors.hotStartTier(step.cast), step.tier, `cast {step.cast}`)
+	end
+	equal(Actors.HotStart[#Actors.HotStart].tier, "Star", "the last guarantee is a Star")
+	equal(Actors.HotStartLength, lastCast, "length is the last guaranteed cast")
+	equal(Actors.hotStartTier(1), nil, "the first cast is a normal roll")
+	equal(Actors.nextHotStart(0), Actors.HotStart[1], "next guarantee for a new player")
+	equal(Actors.nextHotStart(Actors.HotStartLength), nil, "nothing after the last guarantee")
+
+	local random = H.Random.new(777)
+	local starIndex = table.find(Actors.Tiers, Actors.getTier("Star")) :: number
+	local better = 0
+	for _ = 1, 20000 do
+		local actor = Actors.roll(random, 200, 1, "Star")
+		local tierIndex = table.find(Actors.Tiers, Actors.getTier(actor.tier)) :: number
+		expect(tierIndex >= starIndex, `guaranteed Star rolled {actor.tier}`)
+		if tierIndex > starIndex then
+			better += 1
+		end
+	end
+	expect(better > 0, "a luckier roll keeps its better tier")
+end)

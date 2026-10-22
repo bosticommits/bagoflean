@@ -16,7 +16,7 @@ sections 9, 11 and 12.
 ### Setup
 
 1. Install the pinned Rojo with [Aftman](https://github.com/LPGhatguy/aftman) (`aftman.toml`
-   pins Rojo 7.7.0):
+   pins Rojo 7.7.1):
    ```
    aftman install
    ```

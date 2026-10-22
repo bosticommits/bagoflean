@@ -7,8 +7,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
+local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
+local Takes = require(ReplicatedStorage.Shared.Takes)
+local Unlocks = require(ReplicatedStorage.Shared.Unlocks)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
@@ -16,6 +19,7 @@ local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local LotService = require(script.Parent.LotService)
 local QuestTracker = require(script.Parent.QuestTracker)
+local VisitService = require(script.Parent.VisitService)
 local Remotes = require(script.Parent.Remotes)
 
 local random = Random.new()
@@ -30,10 +34,16 @@ local premiereResult = Remotes.get("PremiereResult")
 local studioError = Remotes.get("StudioError")
 local tutorialDone = Remotes.get("TutorialDone")
 local useSkip = Remotes.get("UseSkip")
+local takeStart = Remotes.get("TakeStart")
+local takeTap = Remotes.get("TakeTap")
+local takeResult = Remotes.get("TakeResult")
 
 local lastAction: { [Player]: { [string]: number } } = {}
 local lastCooldownReply: { [Player]: number } = {}
 local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "slow down" per second
+-- The take each player is playing right now (Takes.luau). Memory only: a rejoin starts a new sweep.
+type OpenTake = { stage: number, index: number, startTime: number, startedAt: number }
+local openTakes: { [Player]: OpenTake } = {}
 
 local MovieService = {}
 
@@ -107,6 +117,18 @@ local function findFilm(data: DataService.PlayerData, stage: number): (DataServi
 		end
 	end
 	return nil, nil
+end
+
+-- A film can never be more than its script length from done. A saved endTime that is NaN, not a
+-- number, or absurdly far ahead (corrupt data, a bad clock write) is pulled back to that bound so
+-- the film cannot be stuck forever, and NaN cannot make `endTime > now` false (instant premiere).
+local function repairEndTime(film: DataService.Film, now: number)
+	local length = Movies.getLength(film.length)
+	local latestEnd = now + (if length ~= nil then length.seconds else 0)
+	local endTime: any = film.endTime
+	if type(endTime) ~= "number" or endTime ~= endTime or endTime > latestEnd then
+		film.endTime = latestEnd
+	end
 end
 
 local function copiesInUse(data: DataService.PlayerData): { [string]: number }
@@ -245,6 +267,10 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 	if data.passes.FastFilming then
 		seconds = math.max(1, math.floor(seconds * Config.FastFilmingMultiplier))
 	end
+	local mascotSpeed = Mascots.boost(data, "speed", os.time())
+	if mascotSpeed > 0 then
+		seconds = math.max(1, math.floor(seconds * (1 - mascotSpeed)))
+	end
 	local now = os.time()
 	table.insert(data.films, {
 		stage = stage,
@@ -275,6 +301,9 @@ local function onClap(player: Player, stage: any)
 	end
 	local film = findFilm(data, stage)
 	local now = os.time()
+	if film ~= nil then
+		repairEndTime(film, now)
+	end
 	if film == nil or film.endTime <= now then
 		MovieService.sync(player) -- nothing to speed up; resync so the client catches up
 		return
@@ -303,6 +332,7 @@ local function onPremiere(player: Player, stage: any)
 		studioError:FireClient(player, "none")
 		return
 	end
+	repairEndTime(film, os.time())
 	if film.endTime > os.time() then
 		studioError:FireClient(player, "notready")
 		return
@@ -315,7 +345,9 @@ local function onPremiere(player: Player, stage: any)
 
 	-- Roll and settle with no yield, so the film cannot be premiered twice.
 	local power = Movies.castPower(film.cast, film.genre)
-	local result = Movies.rollResult(random, CastingService.getLuck(player))
+	-- Good takes while filming add a little Luck to this premiere only (capped in Takes.luck).
+	local directed = Takes.luck(film.takes)
+	local result = Movies.rollResult(random, CastingService.getLuck(player) + directed)
 	local genreBonus = Upgrades.genreBonus(data, film.genre)
 	local payout = Movies.payout(length, power, result, genreBonus)
 	-- Award Night doubles premiere payouts (plan section 5).
@@ -324,10 +356,11 @@ local function onPremiere(player: Player, stage: any)
 		payout *= Config.AwardNightPayoutMultiplier
 	end
 	local fame = Movies.fame(payout)
-	-- Rebirths multiply the Cash, not the Fame, so Fame unlocks stay where ECONOMY.md puts them.
-	-- The cinema keeps the boosted payout, so the box office grows with it.
+	-- Rebirths and a Cash mascot multiply the Cash, not the Fame, so Fame unlocks stay where
+	-- ECONOMY.md puts them. The cinema keeps the boosted payout, so the box office grows with it.
 	local rebirthBonus = Rebirth.cashMultiplier(data.rebirths)
-	payout = math.floor(payout * rebirthBonus)
+	local mascotBonus = 1 + Mascots.boost(data, "cash", os.time())
+	payout = math.min(math.floor(payout * rebirthBonus * mascotBonus), Movies.MaxPayout)
 
 	table.remove(data.films, filmIndex) -- frees the stage and the cast copies
 	EconomyService.accrue(data) -- bank royalties at the old rate before the rate changes
@@ -348,7 +381,12 @@ local function onPremiere(player: Player, stage: any)
 		end
 		table.remove(data.cinema, weakest)
 	end
+	local unlocked = Unlocks.crossed(data.fame, data.fame + fame)
 	data.fame += fame
+	for _, name in unlocked do
+		-- This premiere's lifetime number as the value, so real unlock timing can be checked against ECONOMY.md.
+		Analytics.event(player, "Unlock", (data.stats.premiere or 0) + 1, name)
+	end
 	EconomyService.addCash(player, payout, "Gameplay", "Premiere")
 
 	premiereResult:FireClient(player, {
@@ -363,6 +401,9 @@ local function onPremiere(player: Player, stage: any)
 		genreBonus = genreBonus,
 		awardNight = awardNight,
 		rebirthBonus = rebirthBonus,
+		directed = directed, -- premiere Luck the takes added
+		takes = Takes.count(film.takes),
+		unlocked = unlocked, -- what this premiere's Fame just opened (see Unlocks)
 	})
 	if result.id == "Masterpiece" then
 		data.trophies += 1
@@ -372,9 +413,11 @@ local function onPremiere(player: Player, stage: any)
 	Analytics.onboarding(player, Analytics.Steps.FirstPremiere)
 	Analytics.event(player, "Premiere", 1, result.id, film.length)
 	QuestTracker.track(player, "premiere")
+	QuestTracker.track(player, "premiere:" .. film.genre) -- weekly genre quests
 	if result.multiplier >= 3 then
 		QuestTracker.track(player, "hit")
 	end
+	VisitService.premiered(player, film.title, result.id) -- visitors on the lot watch it too
 	if result.id == "Masterpiece" then
 		Remotes.announce(`{player.DisplayName}'s "{film.title}" is a MASTERPIECE!`)
 		LotService.celebrate(player, "masterpiece")
@@ -413,6 +456,9 @@ local function onUseSkip(player: Player, stage: any)
 	end
 	local film = findFilm(data, stage)
 	local now = os.time()
+	if film ~= nil then
+		repairEndTime(film, now)
+	end
 	if film == nil or film.endTime <= now then
 		MovieService.sync(player)
 		return
@@ -426,6 +472,67 @@ local function onUseSkip(player: Player, stage: any)
 	DataService.markDirty(player)
 	MovieService.sync(player)
 	Analytics.event(player, "SkipUsed", 1, film.length)
+end
+
+-- The TAKE! card appeared and its marker started sweeping. Remembers when, so the tap can be
+-- judged against the server's own clock. Silent on rejection: the card asks again shortly.
+local function onTakeStart(player: Player, stage: any)
+	if not allow(player, "takeStart", 0.3, true) then
+		return
+	end
+	local data = DataService.getData(player)
+	if data == nil or not data.tutorialDone or not isInt(stage, 1, Config.StageLimit) then
+		return
+	end
+	local film = findFilm(data, stage)
+	if film == nil or Takes.waiting(film.takes, film.startTime, film.endTime, os.time()) < 1 then
+		return
+	end
+	openTakes[player] = {
+		stage = stage,
+		index = Takes.count(film.takes) + 1,
+		startTime = film.startTime,
+		startedAt = os.clock(),
+	}
+end
+
+-- CUT! The client sends how long after the sweep began it tapped; that is used only when it agrees
+-- with the server's own measurement (Takes.ClockTolerance), so lag cannot be bent into a better take.
+local function onTakeTap(player: Player, stage: any, clientElapsed: any)
+	if not allow(player, "takeTap", 0.2, true) then
+		return
+	end
+	local open = openTakes[player]
+	if open == nil or open.stage ~= stage then
+		takeResult:FireClient(player, stage, "none")
+		return
+	end
+	openTakes[player] = nil
+	local data = DataService.getData(player)
+	if data == nil then
+		return
+	end
+	-- The same film, the take it opened for, and not already premiered (findFilm fails after that).
+	local film = findFilm(data, open.stage)
+	local serverElapsed = os.clock() - open.startedAt
+	if film == nil or film.startTime ~= open.startTime or Takes.count(film.takes) + 1 ~= open.index
+		or open.index > Takes.PerFilm or serverElapsed > Takes.MaxOpenSeconds then
+		takeResult:FireClient(player, open.stage, "none")
+		return
+	end
+	local elapsed = serverElapsed
+	if type(clientElapsed) == "number" and clientElapsed == clientElapsed and clientElapsed >= 0
+		and math.abs(clientElapsed - serverElapsed) <= Takes.ClockTolerance then
+		elapsed = clientElapsed
+	end
+	local verdict = Takes.judge(elapsed, Takes.target(film.startTime, open.stage, open.index), open.index)
+	local takes = film.takes or {}
+	table.insert(takes, verdict)
+	film.takes = takes
+	DataService.markDirty(player)
+	takeResult:FireClient(player, open.stage, verdict)
+	MovieService.sync(player)
+	Analytics.event(player, "Take", 1, verdict, film.length)
 end
 
 -- Takes `seconds` off every film still shooting (Golden Hour runs this every second), never
@@ -461,11 +568,14 @@ function MovieService.start()
 	premiereRemote.OnServerEvent:Connect(onPremiere)
 	tutorialDone.OnServerEvent:Connect(onTutorialDone)
 	useSkip.OnServerEvent:Connect(onUseSkip)
+	takeStart.OnServerEvent:Connect(onTakeStart)
+	takeTap.OnServerEvent:Connect(onTakeTap)
 end
 
 function MovieService.forget(player: Player)
 	lastAction[player] = nil
 	lastCooldownReply[player] = nil
+	openTakes[player] = nil
 end
 
 return MovieService

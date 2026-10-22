@@ -48,7 +48,30 @@ end
 
 local function dumpParts(root): { any }
 	local out = {}
-	for _, d in root:GetDescendants() do
+	local visit
+	local function walk(parent)
+		for _, d in parent:GetChildren() do
+			local kitName = if d:IsA("Model") then d:GetAttribute("Kit") else nil
+			if kitName ~= nil then
+				-- A map kit model: the renders draw its Blender mesh (shape "Kit"), not the parts
+				-- the game falls back to before the meshes are imported.
+				local s = d:GetAttribute("KitScale") or 1
+				table.insert(out, {
+					name = kitName,
+					shape = "Kit",
+					size = { s, s, s },
+					cframe = { d.WorldPivot:GetComponents() },
+					color = { 1, 1, 1 },
+					material = "SmoothPlastic",
+					transparency = 0,
+				})
+			else
+				visit(d)
+				walk(d)
+			end
+		end
+	end
+	function visit(d)
 		if d:IsA("BasePart") and d.Transparency < 1 then
 			local cf = d.CFrame
 			local shape = "Block"
@@ -58,6 +81,10 @@ local function dumpParts(root): { any }
 				shape = "CornerWedge"
 			elseif d.ClassName == "Part" then
 				shape = d.Shape.Name
+				local mesh = d:FindFirstChildWhichIsA("SpecialMesh")
+				if mesh ~= nil and mesh.MeshType == roblox.Enum.MeshType.Sphere then
+					shape = "Ellipsoid" -- a block wearing a sphere mesh (the mascots)
+				end
 			end
 			table.insert(out, {
 				name = d.Name,
@@ -70,6 +97,7 @@ local function dumpParts(root): { any }
 			})
 		end
 	end
+	walk(root)
 	return out
 end
 

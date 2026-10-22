@@ -56,13 +56,19 @@ local cache: { [string]: any } = {}
 local loadShared: (name: string) -> any
 
 -- `script.Parent` for a module in `dir` ("" for src/shared itself, "Models" for its subfolder).
+-- A child is a module reference, and also a folder, so `script.Parent.Models.LotModels` works.
 local function folderAt(dir: string): any
 	return setmetatable({}, {
 		__index = function(_, name: string)
 			if name == "Parent" then
 				return folderAt(string.match(dir, "^(.*)/[^/]+$") or "")
 			end
-			return { __sharedModule = if dir == "" then name else `{dir}/{name}` }
+			local path = if dir == "" then name else `{dir}/{name}`
+			return setmetatable({ __sharedModule = path }, {
+				__index = function(_, child: string)
+					return folderAt(path)[child]
+				end,
+			})
 		end,
 	})
 end

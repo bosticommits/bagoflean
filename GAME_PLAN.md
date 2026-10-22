@@ -60,17 +60,17 @@ offline up to a cap (start at 4 h, raised by upgrades).
 ## 3. Casting rarity (actors)
 
 All actors are **original fictional characters**: no real celebrities, names or likenesses.
-Luck divides the "1 in N" chance (Luck ×2 turns 1/5,000 into 1/2,500).
+Luck divides the "1 in N" chance at every agency (Luck ×2 turns 1/8,000 into 1/4,000).
 
 | Tier | Example actors | Base chance | Star Power |
 |---|---|---|---|
 | Newcomer | Nervous Intern, Stunt Double | 1 in 2 | 1 |
 | Rising | Soap Opera Regular, Ad Model | 1 in 6 | 3 |
 | Pro | Action Veteran, Comedy Duo | 1 in 40 | 8 |
-| Star | Teen Heartthrob, Method Actor | 1 in 500 | 20 |
-| Superstar | Box Office King, Scream Queen | 1 in 5,000 | 50 |
-| Legend | Golden Age Diva | 1 in 60,000 | 120 |
-| Icon | The Mogul's Muse | 1 in 1,000,000 | 300 |
+| Star | Teen Heartthrob, Method Actor | 1 in 700 | 20 |
+| Superstar | Box Office King, Scream Queen | 1 in 8,000 | 50 |
+| Legend | Golden Age Diva | 1 in 220,000 | 120 |
+| Icon | The Mogul's Muse | 1 in 5,000,000 | 300 |
 
 **Variants**, rolled on top of any actor: *Shiny* (1 in 40, ×2) and *Award-Winning*
 (1 in 800, ×5). Each variant has its own Index slot. Version 1 ships 21 actors (3 per tier),
@@ -100,7 +100,7 @@ and players expect it.
   Golden Hour). Like the reference games' server events, but free for everyone. See section 12.
 - **Live events** (weekly): a limited "Film Festival" actor pool, like the hits' admin events.
 - **Server announcement** when anyone pulls Legend or Icon, or gets a Masterpiece.
-- Daily login rewards, 3 daily **Studio Requests** (small quests), codes for socials.
+- Daily login rewards, 3 daily **Studio Requests** and 3 **weekly quests** (small quests), codes for socials.
 
 ## 6. Progression
 
@@ -146,19 +146,20 @@ exciting by M3, fix the core before adding anything else.
 ## 10. Open questions
 
 - ~~Final game name~~ Decided 7 Oct 2026: **Hollywood RNG**.
-- Whether to add light player interaction later (visiting lots, co-starring in premieres)
+- ~~Whether to add light player interaction later (visiting lots)~~ Studio visits and applause
+  built 8 Oct 2026 (section 16). Co-starring in premieres is still open.
 
 ## 11. As built (decisions made during M0 to M5)
 
 - **Tier odds** are rolled rarest first, so every tier from Rising up hits its "1 in N" exactly.
   Newcomer gets the rest (about 80%, not "1 in 2"): both cannot be true at once.
-- **Agencies**: Open Casting $10 (Fame 0), Talent Agency $1,000 (Fame 3,500), Hollywood
+- **Agencies**: Open Casting $10 (Fame 0), Talent Agency $1,000 (Fame 1,400), Hollywood
   Casting $100,000 (Fame 50,000). Removing bottom tiers rescales the rest of the pool, so better
-  agencies make rare tiers more likely (Icon: 1 in 1,000,000, 189,301 and 27,162).
+  agencies make rare tiers more likely (Icon: 1 in 5,000,000, 943,830 and 132,596 at Luck 1). Luck divides those numbers at every agency.
 - **Actors are not used up.** A copy is busy while it is filming and returns after the
   premiere, so duplicates and extra stages matter.
 - **Fame** is a threshold, never spent: about the square root of each payout. It gates
-  agencies, Feature (1,800) and Epic (16,000) scripts, Horror and Romance (100), Sci-Fi (2,000),
+  agencies, Feature (1,800) and Epic (10,000) scripts, Horror and Romance (100), Sci-Fi (2,000),
   and stages 2 to 4 (50, 2,800, 16,000).
 - **Index rewards**: a complete tier row gives +0.05 Luck; a complete genre set gives x1.15
   payout for that genre. Both are claimed in the Collection screen.
@@ -168,6 +169,10 @@ exciting by M3, fix the core before adding anything else.
 - **Cinema** keeps 10 movies; when full, the lowest-earning one is dropped.
 - **Tutorial**: about a minute. New players start with $100, and their first Short Film takes
   15 seconds. Steps complete from real game state, so returning players skip what they have done.
+  It is hosted by Director Lucien Vale, an original character: new players meet him on a curtain
+  intro screen, his lines stay at the top of the screen (panels open below them), a yellow line
+  under them says what to do, and yellow arrows point at the real button and at the plaza stand
+  (MOVIES for the Studio steps). Skip stays available throughout.
 - **Sounds** come from Roblox's own UI sound library (creator: Roblox). Effects use built-in
   textures only. Lots are plain parts: there is no mesh or uploaded art yet.
 - **Saving** uses ProfileStore (vendored), as planned.
@@ -266,3 +271,112 @@ exciting by M3, fix the core before adding anything else.
   Counters never go down, and claimed goals stay claimed (`achievements` in the save).
 - Claims are checked on the server (AchievementService) from the shared list; the client only
   names the goal. The rewards and their effect on the curve are in ECONOMY.md.
+
+## 15. As built (daily and weekly quests)
+
+- The **Goals** screen now has two tabs, **Achievements** and **Quests**. The Quests tab lists today's
+  three Studio Requests ("Daily quests", with a countdown to the UTC midnight reset) and this week's
+  three weekly quests ("Weekly quests", gold outline, with a countdown to Monday 00:00 UTC). The
+  Goals button's badge counts everything ready to claim across both tabs, and finishing a quest shows
+  "Quest done" at the bottom of the screen. The Rewards screen's Requests tab still shows the daily
+  three and claims them the same way.
+- **No second quest system.** Weekly quests are more entries in `src/shared/Rewards.luau`
+  (`Rewards.Weekly`), counted by the same `QuestTracker.track` calls as the daily requests,
+  saved next to them (`weekly` in the profile, schema version 7), and claimed through the same
+  `ClaimRequest` remote (RewardService checks everything; the client only sends which one).
+- **Rotation.** A week is Monday to Sunday in UTC, the same on every server. Each week gets one quest
+  from each of three slots: *volume* (premiere 12 movies, hold 60 Casting Calls, or collect the box
+  office 25 times), *genre* (premiere 3 movies of one genre) and *skill* (3 Blockbusters or better,
+  300 clapperboard taps, or buy 8 scripts). Each slot steps through its quests one per week, so
+  the genre slot cycles Action, Comedy, Horror, Romance and nudges players to try each one. Sci-Fi is
+  left out because it opens at 2,000 Fame and a weekly quest must be possible for everyone.
+- **Rewards** are small and bigger than a daily request: 20 to 60 minutes of income, a short x2 Luck
+  boost, a Skip or two, a couple of scripts. Their Cash floors are $100 to $300, well under the $600
+  second sound stage, because a new player can finish a weekly quest on day one. The economy sim
+  plays them (`--no-weekly` to compare, `--weekly-day 1` for the day-one case); see ECONOMY.md.
+- **A reset never takes an earned reward.** When a day or week ends, any finished quest that was not
+  claimed moves to a saved `carried` list and shows under "Finished earlier" at the top of the
+  Quests tab, to claim whenever the player likes. This covers the daily requests too. Each carried
+  quest has its own key ("weekly:2961:WHit3"); the server finds it by key, removes it, then pays,
+  so it can be claimed once. At most 12 wait (the oldest give way after a very long absence).
+- **Studio visits** are not a quest yet. Tours are counted (`QuestTracker.track(player, "visit")`,
+  once per studio per day, section 16), but a weekly quest must be possible for every player, and a
+  player alone on a server has no studio to tour. Add a "tour 3 studios" quest only if playtests
+  show servers are busy enough.
+
+## 16. As built (studio visits and applause)
+
+- **Visit** button (map pin over a little studio, side menu, first column under Goals; the green
+  chip counts the other studios on the server) opens **Visit a Studio**: your own studio first with
+  GO HOME, then every other studio with its owner's face, name ("AVA PICTURES 2"), applause,
+  Masterpieces, top star (in its rarity color) and what it is doing ("Premiere ready!", "Filming
+  2:05", "Between films"). The Spotlight studio comes first, then studios with a premiere ready,
+  then the most applauded. VISIT jumps you to the studio's gate, on the red carpet, facing the
+  cinema. Walking there works the same.
+- **Tour card**: standing on someone else's studio shows a card on the right ("NOW TOURING", the
+  studio, its applause and Masterpieces, what it is filming) with a big gold **APPLAUD** button and
+  HOME. After 5 seconds on the lot the tour counts: the owner sees "Ava is touring your studio!"
+  and the button wakes up.
+- **Applause is cosmetic.** It adds one to the studio's count and pays nobody: no Cash, no Luck, no
+  tip jar, so there is nothing to farm. Each visitor's applause counts once per studio per UTC day
+  (saved on the visitor's profile, so rejoining or changing servers does not reset it), only after
+  the 5-second tour, never on your own studio, and claps are at least 1.5 seconds apart. After it
+  counts, the button says CLAP AGAIN and still claps for the show without counting.
+- **Show-off**: clapping hands rise over whoever applauds and a clap is heard nearby; a counted
+  applause also floats a gold "+1" off the studio's gate, where the total ("👏 24") hangs between
+  the gate posts from the first applause on, readable from the boulevard. The owner hears a
+  fanfare and sees "Ava applauded your studio! 👏 25" wherever they are.
+- **Watch a premiere**: when an owner premieres a film, people on or just in front of their lot
+  see it on the tour card (`"Final Showdown": BLOCKBUSTER!` in the result's color) with confetti
+  and sparkles over the cinema for big results, and the APPLAUD button pulses. The owner gets "2
+  visitors watched your premiere!" after their own premiere night.
+- **Server**: `src/server/VisitService.luau` decides everything from where it sees each player
+  (rules in `src/shared/Visits.luau`): who is touring which lot, whether applause counts, and the
+  jumps (any claimed studio or your own, 3 seconds apart). The remotes carry no values except the
+  lot to jump to. Lots publish what the Visit screen lists as attributes (LotService, VisitService).
+- **Saving**: `likes` (applause received, never spent) and `visits` (today's tours and applause) in
+  the profile, schema version 8. Older profiles start at 0.
+- **Studio checks pending**: none of this has been playtested in Studio or on a phone yet.
+
+## 17. As built (studio mascots)
+
+- **Mascots** button (the Popcorn Pup, side menu, second column under Rebirth) opens the Mascots
+  screen. Your mascot follows you round town, trotting a step behind your right shoulder and
+  hopping as it walks, and jumps a moment after you jump; every player on the server sees
+  everyone's mascot.
+- **Bought with Cash or Robux, small capped buffs.** The Popcorn Pup is free; the others are
+  bought once, with in-game Cash or with Robux (a developer product each, same mascot and buff),
+  and kept through rebirths. Each gives one capped buff
+  while it is out (only one mascot counts, and a buff starts 30 seconds after equipping). Prices,
+  caps and what they cost the curve are in ECONOMY.md ("Mascot buffs"):
+
+  | Mascot | Rarity color | Price | Buff |
+  |---|---|---|---|
+  | Popcorn Pup (a puppy in a popcorn bucket) | Newcomer | free | +5% movie Cash |
+  | Clapper Croc (its top jaw is a clapperboard) | Rising | $5,000 | Films 10% faster |
+  | Reel Kitty (film reels for ears) | Pro | $25,000 | x1.1 casting Luck |
+  | Camera Bot (a hovering film camera) | Star | $75,000 | +15% box office |
+  | Spotlight Owl (spotlights for eyes) | Superstar | $1,000,000 | x1.2 casting Luck |
+  | Premiere Dragon (red-carpet colors) | Legend | $5,000,000 | +20% movie Cash |
+
+- **Screen**: your mascot turns on a spotlight in its rarity color, with HIDE to put it away. Under
+  it, a picture card for each mascot with its buff: EQUIP or EQUIPPED for owned ones, and for the rest a
+  Cash button (green once you can afford it) beside a Robux button ("R$ soon" until its product
+  id is set in `src/shared/Mascots.luau`). Buying one puts it straight out and says
+  "New mascot: Reel Kitty!" with a jingle. Under your mascot, its buff and "starts in 25s" or
+  "active".
+- **Models**: every mascot is a Blender design (`art/blender/mascots.py`: chunky toy shapes with
+  glossy eyes and a thick dark outline). Until the six meshes are imported into
+  `ReplicatedStorage.LotMeshes` (art/README.md), the game builds the same Blender shapes from
+  parts, outlined with a Highlight.
+- **Server**: `src/server/MascotService.luau` publishes what each player owns and shows as player
+  attributes, and checks every purchase and equip (rules in `src/shared/Mascots.luau`). Casting,
+  filming, premiere pay and the box office read the buff through `Mascots.boost`. Each client
+  draws and moves all mascots itself (`src/client/MascotWorld.luau`), so they never lag over the
+  network or collide with anything.
+- **Saving**: the chosen mascot as `mascot` in the profile ("" when hidden), when it changed as
+  `mascotSince` and the bought ones as `mascotsOwned`; a missing choice shows the Popcorn Pup, a
+  missing time counts as long ago and a missing set means only the Pup, so older profiles need no
+  migration.
+- **Studio checks pending**: not yet seen in Studio or on a phone, and the imported meshes'
+  orientation still needs checking.

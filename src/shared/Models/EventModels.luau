@@ -63,51 +63,94 @@ local function rod(b: Builder, name: string, from: Vector3, to: Vector3, thickne
 	b:block(name, v(thickness, thickness, length), CFrame.fromMatrix((from + to) / 2, right, back:Cross(right), back), color)
 end
 
--- The Mystery Crate: a wooden crate with gold corners and a big "?" on every side, `CRATE` studs
--- across, its bottom centre (and pivot) at `base`. Returns the crate and its lid, a model of its
--- own hinged at the back edge so it can flip open.
+-- The Mystery Crate: a purple loot crate with a gold frame, chunky gold corners and a big gold "?"
+-- on every side, `CRATE` studs across, its bottom centre (and pivot) at `base`. Returns the crate
+-- and its lid, a model of its own hinged at the back edge so it can flip open. Uses the Blender
+-- meshes MysteryCrate and MysteryCrateLid once imported (art/blender/mystery_crate.py), and
+-- builds the same look from parts until then.
 local CRATE = 5
+local CRATE_HEIGHT = CRATE - 0.6
+local LID_HEIGHT = 1.6 -- the Blender lid, gold star included
+local VIOLET = Color3.fromRGB(160, 77, 255) -- the event purple
+local VIOLET_LIGHT = Color3.fromRGB(180, 107, 255)
+local VIOLET_DEEP = Color3.fromRGB(58, 29, 120)
+local GOLD_LIGHT = Color3.fromRGB(255, 212, 71)
+local INK = Color3.fromRGB(27, 18, 64)
+
+local function crateBox(b: Builder)
+	local h = CRATE_HEIGHT
+	local half = CRATE / 2
+	b:block("CrateSkid", v(CRATE + 0.1, 0.35, CRATE + 0.1), v(0, 0.175, 0), VIOLET_DEEP)
+	b:block("CrateCore", v(CRATE - 0.5, h - 0.42, CRATE - 0.5), v(0, 0.3 + (h - 0.42) / 2, 0), VIOLET_DEEP)
+	b:block("CrateBand", v(CRATE, 0.4, CRATE), v(0, 0.55, 0), P.Gold, METAL)
+	local rows, from, to, gap = 3, 0.8, h - 0.42, 0.14
+	local plank = (to - from - gap * (rows - 1)) / rows
+	for side = 0, 3 do
+		local turn = CFrame.Angles(0, math.rad(side * 90), 0)
+		b:block("CrateRim", v(CRATE - 0.9, 0.4, 0.45), turn * CFrame.new(0, h - 0.2, -(half - 0.225)), P.Gold, METAL)
+		for i = 0, rows - 1 do
+			local shade = if (i + side) % 2 == 0 then VIOLET else VIOLET_LIGHT
+			b:block("CratePlank", v(CRATE - 1.3, plank, 0.3), turn * CFrame.new(0, from + plank / 2 + i * (plank + gap), -(half - 0.25)), shade)
+		end
+		-- The "?" sits on a see-through panel just off the planks.
+		local panel = b:block("CrateMark", v(CRATE - 1.6, to - from, 0.05), turn * CFrame.new(0, (from + to) / 2, -(half - 0.08)), VIOLET)
+		panel.Transparency = 1
+		local mark = Build.sign(panel, Enum.NormalId.Front, "?", GOLD_LIGHT)
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = INK
+		stroke.Thickness = 6
+		stroke.Parent = mark
+	end
+	for _, x in { -1, 1 } do
+		for _, z in { -1, 1 } do
+			b:block("CrateCorner", v(0.85, h - 0.1, 0.85), v(x * (half - 0.32), h / 2, z * (half - 0.32)), P.Gold, METAL)
+		end
+	end
+end
+
+local function crateLid(l: Builder)
+	local w = CRATE + 0.4
+	l:block("CrateLidTrim", v(w + 0.1, 0.28, w + 0.1), v(0, 0.14, 0), P.Gold, METAL)
+	l:block("CrateLid", v(w, 0.7, w), v(0, 0.58, 0), VIOLET)
+	l:block("CrateLidPanel", v(w - 1.4, 0.24, w - 1.4), v(0, 0.98, 0), Color3.fromRGB(91, 43, 181))
+	for _, x in { -1, 1 } do
+		for _, z in { -1, 1 } do
+			l:block("CrateLidCorner", v(1, 1.05, 1), v(x * (w / 2 - 0.45), 0.545, z * (w / 2 - 0.45)), P.Gold, METAL)
+		end
+	end
+	-- A glowing gold star on the lid, lying flat on a dark outline.
+	for _, yaw in { 0, 36 } do
+		l:block("CrateStarEdge", v(2.3, 0.2, 2.3), CFrame.new(0, 1.18, 0) * CFrame.Angles(0, math.rad(yaw + 45), 0), INK)
+		l:block("CrateStar", v(1.9, 0.24, 1.9), CFrame.new(0, 1.3, 0) * CFrame.Angles(0, math.rad(yaw + 45), 0), GOLD_LIGHT, NEON)
+	end
+end
+
 function EventModels.crate(parent: Instance, base: CFrame): (Model, Model)
 	local model = Instance.new("Model")
 	model.Name = "MysteryCrate"
 	model.Parent = parent
 	local b = Build.new(model, base)
-	local h = CRATE - 0.6
-	local box = b:block("CrateBox", v(CRATE, h, CRATE), v(0, h / 2, 0), P.Wood)
-	for _, y in { 0.9, 2.5 } do
-		b:block("CratePlank", v(CRATE + 0.12, 0.4, CRATE + 0.12), v(0, y, 0), P.Bark)
-	end
-	for _, x in { -1, 1 } do
-		for _, z in { -1, 1 } do
-			b:block("CrateCorner", v(0.7, h + 0.1, 0.7), v(x * (CRATE / 2 - 0.25), h / 2, z * (CRATE / 2 - 0.25)), P.Gold, METAL)
-		end
-	end
-	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right } do
-		local mark = Build.sign(box, face, "?", P.Gold)
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = P.Charcoal
-		stroke.Thickness = 6
-		stroke.Parent = mark
+	local h = CRATE_HEIGHT
+	if Build.mesh(b, "MysteryCrate", v(0, 0, 0), h) == nil then
+		crateBox(b)
 	end
 
 	local lid = Instance.new("Model")
 	lid.Name = "Lid"
 	lid.Parent = model
-	local l = Build.new(lid, base)
-	l:block("CrateLid", v(CRATE + 0.4, 0.6, CRATE + 0.4), v(0, h + 0.3, 0), P.Wood)
-	l:block("CrateLidTrim", v(CRATE + 0.5, 0.2, CRATE + 0.5), v(0, h + 0.1, 0), P.Gold, METAL)
-	-- A glowing gold star on the lid, lying flat.
-	for _, yaw in { 0, 36 } do
-		l:block("CrateStar", v(1.6, 0.2, 1.6), CFrame.new(0, h + 0.7, 0) * CFrame.Angles(0, math.rad(yaw + 45), 0), P.Gold, NEON)
+	local l = Build.new(lid, base * CFrame.new(0, h, 0))
+	if Build.mesh(l, "MysteryCrateLid", v(0, 0, 0), LID_HEIGHT) == nil then
+		crateLid(l)
 	end
 
 	ghost(model)
 	model.WorldPivot = base
-	lid.WorldPivot = base * CFrame.new(0, h + 0.3, CRATE / 2 + 0.2)
+	-- The lid hinges on its bottom back edge.
+	lid.WorldPivot = base * CFrame.new(0, h, CRATE / 2 + 0.45)
 	return model, lid
 end
 
--- A red and white parachute: a stepped dome with four cords down to the crate's top corners.
+-- A red and white parachute: a dome with four cords down to the crate's top corners.
 -- `base` is the crate's bottom centre, and the pivot, so the two can move together.
 function EventModels.parachute(parent: Instance, base: CFrame): Model
 	local model = Instance.new("Model")
@@ -121,10 +164,13 @@ function EventModels.parachute(parent: Instance, base: CFrame): Model
 		{ diameter = 8, height = 1.2 },
 		{ diameter = 3.5, height = 0.9 },
 	}
-	local y = top + 9
-	for i, ring in rings do
-		b:cylinder("Canopy", ring.height, ring.diameter, v(0, y + ring.height / 2, 0), if i % 2 == 1 then P.Carpet else P.OffWhite)
-		y += ring.height
+	-- The Blender canopy (CrateParachute) once imported, or stepped rings of parts.
+	if Build.mesh(b, "CrateParachute", v(0, top + 9, 0), 5.2) == nil then
+		local y = top + 9
+		for i, ring in rings do
+			b:cylinder("Canopy", ring.height, ring.diameter, v(0, y + ring.height / 2, 0), if i % 2 == 1 then P.Carpet else P.OffWhite)
+			y += ring.height
+		end
 	end
 	for _, x in { -1, 1 } do
 		for _, z in { -1, 1 } do

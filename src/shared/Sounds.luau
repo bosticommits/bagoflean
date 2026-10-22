@@ -61,6 +61,13 @@ Sounds.Slots = {
 	premiereHit = slot("pop"),
 	premiereBig = slot("stinger"), -- Blockbuster and Cult Classic
 	premiereMasterpiece = slot("jingle"), -- the music dips under it
+	premiereFlash = slot("clap", 1.6), -- camera flashes on premiere night
+	premiereStamp = slot("clap", 0.6), -- the result stamp lands on the poster
+	-- Direct the scene (TakeUi): the TAKE! card pops up, then the verdict on CUT!
+	takePop = slot("pop", 1.1),
+	takePerfect = slot("stinger", 1.15),
+	takeGood = slot("clap", 1.05),
+	takeMiss = slot("low", 0.9),
 
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed
@@ -77,6 +84,11 @@ Sounds.Slots = {
 	eventSweep = slot("sweep"), -- the Spotlight switching on, the Golden Hour sunset
 	eventPickup = slot("pop", 1.3), -- picking up a Cash Rain coin or crate
 	eventEnd = slot("sweep", 0.8), -- a special event ends
+
+	-- Studio visits
+	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio
+	applause = slot("clap", 1.1), -- someone applauds a studio near you (each clap)
+	applauseGot = slot("stinger", 1.2), -- your studio's applause counted
 
 	-- Rebirth
 	rebirthSting = slot("stinger", 0.8), -- the rebirth reveal opens

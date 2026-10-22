@@ -6,18 +6,21 @@
 -- the server-side PromptGamePassPurchaseFinished when bought in game. Confirmed ownership is saved
 -- in data.passes, so a Roblox API outage later never takes a pass away.
 -- Products: the single ProcessReceipt callback grants each purchase exactly once, through
--- DataService.grantPurchaseOnce, and acknowledges it only after the grant is saved.
+-- DataService.grantPurchaseOnce, and acknowledges it only after the grant is saved. Mascots bought
+-- with Robux (Shared/Mascots, one product each) go through the same callback to MascotService.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Shop = require(ReplicatedStorage.Shared.Shop)
 local WorldLabel = require(ReplicatedStorage.Shared.WorldLabel)
 local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local LotService = require(script.Parent.LotService)
+local MascotService = require(script.Parent.MascotService)
 local MovieService = require(script.Parent.MovieService)
 local RewardService = require(script.Parent.RewardService)
 
@@ -109,7 +112,8 @@ end
 -- purchase, and again on a later join if we do not answer PurchaseGranted.
 local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseDecision
 	local product = Shop.productById(receipt.ProductId)
-	if product == nil then
+	local mascot = Mascots.byProduct(receipt.ProductId)
+	if product == nil and mascot == nil then
 		warn(`[ShopService] receipt for unknown product {receipt.ProductId}; add its id to Shop.luau`)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
@@ -126,6 +130,24 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
+	if mascot ~= nil then
+		local result: string? = nil
+		local saved = DataService.grantPurchaseOnce(player, tostring(receipt.PurchaseId), function(data)
+			result = MascotService.grantBought(player, data, mascot)
+		end)
+		if not saved then
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+		if result ~= nil then -- nil when this purchase was already granted earlier
+			Analytics.event(player, "ProductBought", 1, "Mascot:" .. mascot.id)
+			MascotService.afterBought(player, mascot, result)
+			local message = if result == "mascot" then `New mascot: {mascot.name}!` else `You already had {mascot.name}, so you got ${mascot.price} instead`
+			RewardService.afterGrant(player, message)
+		end
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+	assert(product ~= nil)
+
 	local granted: string? = nil
 	local saved = DataService.grantPurchaseOnce(player, tostring(receipt.PurchaseId), function(data)
 		granted = RewardService.apply(player, data, product.reward, "IAP", product.key)
@@ -140,7 +162,32 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
+-- Lists every pass or product whose Roblox id is still 0 (not created on the Creator Hub yet), so an
+-- unset id cannot reach a public launch unnoticed.
+local function warnAboutUnsetIds()
+	local unset: { string } = {}
+	for _, pass in Shop.Passes do
+		if pass.id == 0 then
+			table.insert(unset, `pass {pass.key}`)
+		end
+	end
+	for _, product in Shop.Products do
+		if product.id == 0 then
+			table.insert(unset, `product {product.key}`)
+		end
+	end
+	for _, mascot in Mascots.List do
+		if mascot.price > 0 and (mascot.product == nil or mascot.product == 0) then
+			table.insert(unset, `mascot {mascot.id}`)
+		end
+	end
+	if #unset > 0 then
+		warn(`[ShopService] {#unset} shop item(s) have no Roblox id yet and cannot be bought: {table.concat(unset, ", ")}`)
+	end
+end
+
 function ShopService.start()
+	warnAboutUnsetIds()
 	MarketplaceService.ProcessReceipt = processReceipt
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 		if not purchased then

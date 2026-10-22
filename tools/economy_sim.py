@@ -11,12 +11,18 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --days 28           # four weeks (rebirths keep going)
     python3 tools/economy_sim.py --no-rebirth        # the player never rebirths
     python3 tools/economy_sim.py --no-events         # the same week without special events
+    python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
+    python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
+    python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
+    python3 tools/economy_sim.py --no-takes          # the player ignores the TAKE! cards (to compare)
+    python3 tools/economy_sim.py --mascots cash      # the player keeps its best Cash mascot out
 
 The player model is deliberately plain: it collects, claps, premieres as soon as a film is
 ready, buys the cheapest useful upgrade it can afford, picks the best script and cast it owns,
 and spends the rest on casting. Once a rebirth costs less than about 20 minutes of income it stops
 buying upgrades and saves for it, then rebirths as soon as it can afford one. During special events
-it takes part: half the Cash Rain coins, the Mystery Crate's free cast, a Spotlight visit. Real
+it takes part: half the Cash Rain coins, the Mystery Crate's free cast, a Spotlight visit. While
+online it plays every TAKE! card on its films with a so-so aim (TAKE_SKILL). Real
 players are messier, so treat the output as a curve shape, not a promise.
 """
 from __future__ import annotations
@@ -120,9 +126,17 @@ def load_tuning() -> dict:
     codes_text = (ROOT / "src" / "server" / "Codes.luau").read_text()
     achievements_text = (SHARED / "Achievements.luau").read_text()
     specials_text = (SHARED / "SpecialEvents.luau").read_text()
+    takes_text = (SHARED / "Takes.luau").read_text()
+    take_luck = {k: _num(v) for k, v in re.findall(r"(Perfect|Good|Miss) = ([\d.]+)", re.search(r"Takes\.Luck = table\.freeze\(\{([^}]*)\}", takes_text).group(1))}
+    mascots_text = (SHARED / "Mascots.luau").read_text()
 
     return {
         "config": config,
+        "takes": {
+            "per_film": int(_num(re.search(r"Takes\.PerFilm = ([\d]+)", takes_text).group(1))),
+            "max_luck": _num(re.search(r"Takes\.MaxLuck = ([\d.]+)", takes_text).group(1)),
+            "luck": take_luck,
+        },
         "rebirth": rebirth,
         "award_period": _num(re.search(r"Events.AwardNightPeriod = ([^\n]+)", events_text).group(1)),
         "award_length": _num(re.search(r"Events.AwardNightLength = ([^\n]+)", events_text).group(1)),
@@ -130,6 +144,10 @@ def load_tuning() -> dict:
         "stay_gift": _reward(re.search(r"Rewards.StayGift = (\{[^\n]*\})", rewards_text).group(1)),
         "requests": [_reward(line.split("reward =")[1]) for line in _block(rewards_text, "Rewards.Requests").splitlines()
                      if "reward =" in line],
+        "weekly": [
+            (re.search(r'slot = "(\w+)"', line).group(1), _reward(line.split("reward =")[1]))
+            for line in _block(rewards_text, "Rewards.Weekly").splitlines() if "reward =" in line
+        ],
         "requests_per_day": int(_num(re.search(r"Rewards.RequestsPerDay = (\d+)", rewards_text).group(1))),
         "codes": [_reward(line.split("reward =")[1]) for line in codes_text.splitlines() if "reward =" in line],
         "achievements": [
@@ -138,6 +156,7 @@ def load_tuning() -> dict:
             if (m := re.search(r'id = "(\w+)".*stat = "([\w:-]+)", target = (\d+)', line))
         ],
         "specialty": _num(re.search(r"Movies.SpecialtyBonus = ([\d.]+)", movies_text).group(1)),
+        "min_flop": _num(re.search(r"Movies.MinFlop = ([\d.]+)", movies_text).group(1)),
         "fame_exponent": _num(re.search(r"Movies.FameExponent = ([\d.]+)", movies_text).group(1))
         if "Movies.FameExponent" in movies_text
         else 0.5,
@@ -149,7 +168,14 @@ def load_tuning() -> dict:
         "actors": _rows(_block(actors_text, "Actors.List")),
         "variants": _rows(_block(actors_text, "Actors.Variants")),
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
+        "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
         "upgrades": {u["id"]: u for u in upgrades},
+        # Mascots.List: (id, Cash price, buff kind, amount)
+        "mascots": [
+            (m.group(1), _num(m.group(2)), m.group(3), _num(m.group(4)))
+            for m in re.finditer(r'id = "(\w+)".*?price = (\d+).*?buff = \{ kind = "(\w+)", amount = ([\d.]+)',
+                                 _block(mascots_text, "Mascots.List"))
+        ],
         "specials": {
             "events": [(m.group(1), _num(m.group(2))) for m in re.finditer(
                 r'id = "(\w+)",.*?seconds = ([\d.]+)', _block(specials_text, "SpecialEvents.List"), re.S)],
@@ -231,19 +257,31 @@ class Game:
         return live if live is not None and live[1] <= clock < live[2] else None
 
     def tier_chances(self, luck: float, min_tier: int) -> list[tuple[str, float]]:
+        """Actors.tierChances: the agency's pool at Luck 1, then Luck divides each "1 in N" in it."""
         key = (round(luck, 4), min_tier)
         if key in self._tier_cache:
             return self._tier_cache[key]
         tiers = self.t["tiers"]
-        open_ = {}
+        luck = max(luck, 1.0)
+        base = {}
         remaining = 1.0
         for tier in reversed(tiers[1:]):
-            chance = remaining * min(1.0, max(luck, 1.0) / tier["oneIn"])
-            open_[tier["id"]] = chance
+            chance = remaining / tier["oneIn"]
+            base[tier["id"]] = chance
             remaining -= chance
-        open_[tiers[0]["id"]] = remaining
-        removed = sum(open_[tiers[i]["id"]] for i in range(min_tier - 1))
-        out = [(tier["id"], 0.0 if i < min_tier - 1 else open_[tier["id"]] / (1 - removed)) for i, tier in enumerate(tiers)]
+        base[tiers[0]["id"]] = remaining
+        removed = sum(base[tiers[i]["id"]] for i in range(min_tier - 1))
+        chances = {}
+        base_left, left = 1.0, 1.0
+        for i in range(len(tiers) - 1, min_tier - 1, -1):
+            tid = tiers[i]["id"]
+            pooled = base[tid] / (1 - removed)
+            chance = left * min(1.0, luck * pooled / base_left)
+            chances[tid] = chance
+            base_left -= pooled
+            left -= chance
+        chances[tiers[min_tier - 1]["id"]] = left
+        out = [(tier["id"], chances.get(tier["id"], 0.0)) for tier in tiers]
         self._tier_cache[key] = out
         return out
 
@@ -255,13 +293,15 @@ class Game:
         shiny = (1 - award) * min(1.0, luck / shiny_one_in)
         return {"Normal": 1 - award - shiny, "Shiny": shiny, "Award": award}
 
-    def roll_actor(self, rng: random.Random, luck: float, min_tier: int) -> tuple[str, str]:
+    def roll_actor(self, rng: random.Random, luck: float, min_tier: int, floor_tier: str | None = None) -> tuple[str, str]:
         pick, running, chosen = rng.random(), 0.0, None
         for tier_id, chance in self.tier_chances(luck, min_tier):
             running += chance
             chosen = tier_id
             if pick < running:
                 break
+        if floor_tier is not None and self.tier_index[chosen] < self.tier_index[floor_tier]:
+            chosen = floor_tier  # a "Discovered!" hot start guarantee (Actors.HotStart)
         actor = rng.choice(self.by_tier[chosen])
         v = self.variant_chances(luck)
         vp = rng.random()
@@ -279,12 +319,14 @@ class Game:
             add = chances[rid] * (luck - 1)
             chances[rid] += add
             extra += add
-        for rid in ("Flop", "Hit"):
-            take = min(chances[rid], extra)
-            chances[rid] -= take
-            extra -= take
-        total = sum(chances.values())
-        out = {k: v / total for k, v in chances.items()}
+        # Movies.premiereChances: out of Flop down to MinFlop, then out of Hit, then the rest is
+        # scaled to fit beside Flop.
+        take = min(max(chances["Flop"] - self.t["min_flop"], 0.0), extra)
+        chances["Flop"] -= take
+        extra -= take
+        chances["Hit"] -= min(chances["Hit"], extra)
+        others = sum(v for k, v in chances.items() if k != "Flop")
+        out = {k: v if k == "Flop" else v * (1 - chances["Flop"]) / others for k, v in chances.items()}
         self._premiere_cache[key] = out
         return out
 
@@ -316,6 +358,12 @@ class Game:
 # --- One player ---------------------------------------------------------------------------------
 
 UPGRADE_ORDER = ["Stages", "Cinema", "Luck", "Offline", "Clap"]
+
+# Which mascot the player keeps out (Mascots.luau buffs): "none", or the kind of buff it goes for.
+# It buys the mascots of that kind with Cash, cheapest first, the way it buys upgrades (not while
+# saving for a rebirth), and keeps the strongest one it owns out (the free Popcorn Pup until then).
+# Set by --mascots. Players here never swap, so the warm-up after equipping does not come up.
+MASCOTS = "none"
 
 
 class Player:
@@ -351,6 +399,8 @@ class Player:
         self.sessions = 0
         self.luck_pass = False
         self.achievements = True
+        self.weekly_on = True
+        self.weekly_day = 4
         self.counts = {"cast": 0, "premiere": 0, "hit": 0, "clap": 0, "script": 0, "collect": 0}
         self.trophies = 0
         self.claimed: set[str] = set()
@@ -361,6 +411,9 @@ class Player:
         self.curve: dict[int, dict] = {}
         self.rebirths = 0
         self.rebirth_enabled = True
+        self.mascots_owned: set[str] = set()
+        self.hot_start = 0  # casts counted toward the "Discovered!" hot start; a new player starts at 0
+        self.takes_on = True
 
     # stats
     def level(self, uid: str) -> int:
@@ -374,7 +427,30 @@ class Player:
 
     # rebirth (Rebirth.luau and RebirthService)
     def cash_mult(self) -> float:
-        return 1 + self.g.t["rebirth"]["CashStep"] * self.rebirths
+        return (1 + self.g.t["rebirth"]["CashStep"] * self.rebirths) * (1 + self.mascot_boost("cash"))
+
+    # mascots (Mascots.boost, MascotService)
+    def mascot_boost(self, kind: str) -> float:
+        if MASCOTS == "none":
+            return 0.0
+        out = self.g.t["mascots"][0]  # the Popcorn Pup, free for everyone
+        for mascot in self.g.t["mascots"]:
+            if mascot[0] in self.mascots_owned and mascot[3] >= out[3]:
+                out = mascot
+        return out[3] if out[2] == kind else 0.0
+
+    def buy_mascots(self):
+        if MASCOTS == "none" or self.saving_for_rebirth() is not None:
+            return
+        for mascot_id, price, kind, _ in self.g.t["mascots"]:
+            if kind != MASCOTS or price <= 0 or mascot_id in self.mascots_owned:
+                continue
+            if price > self.cash:
+                return  # saving for this one
+            self.accrue()
+            self.cash -= price
+            self.mascots_owned.add(mascot_id)
+            self.mark(f"Mascot {mascot_id}")
 
     def rebirth_cost(self) -> float | None:
         r = self.g.t["rebirth"]
@@ -424,7 +500,7 @@ class Player:
         live = self.special()
         if live is not None and live[0] == "LuckyStar":
             luck *= self.g.t["specials"]["luck"]
-        return luck
+        return luck * (1 + self.mascot_boost("luck"))
 
     def clap_seconds(self) -> float:
         return self.g.c["ClapSeconds"] + self.g.c["ClapStep"] * self.level("Clap")
@@ -435,7 +511,8 @@ class Player:
     def rate(self) -> float:
         c = self.g.c
         royalties = sum(p * c["RoyaltyRate"] for p in self.cinema)
-        return c["CinemaIncomePerSecond"] + royalties * (1 + c["CinemaStep"] * self.level("Cinema"))
+        base = c["CinemaIncomePerSecond"] + royalties * (1 + c["CinemaStep"] * self.level("Cinema"))
+        return base * (1 + self.mascot_boost("boxOffice"))
 
     def mark(self, name: str):
         self.events.setdefault(name, self.now)
@@ -506,6 +583,8 @@ class Player:
             return self.fame
         if stat == "index":
             return len(self.index)
+        if stat == "actors":
+            return len({k.split(":")[0] for k in self.index})
         if stat.startswith("tier:"):
             return sum(1 for k in self.index if self.g.actor[k.split(":")[0]]["tier"] == stat[5:])
         if stat.startswith("variant:"):
@@ -553,6 +632,11 @@ class Player:
         """Studio Requests: the player finishes the day's three during the first session."""
         for request in self.rng.sample(self.g.t["requests"], self.g.t["requests_per_day"]):
             self.grant(request)
+
+    def finish_weekly(self):
+        """Weekly quests: one per slot, all finished on `weekly_day` (default 4) of each week."""
+        for slot in ("volume", "genre", "skill"):
+            self.grant(self.rng.choice([reward for name, reward in self.g.t["weekly"] if name == slot]))
 
     def use_skips(self):
         while self.skips > 0:
@@ -636,11 +720,15 @@ class Player:
                 self.cash -= length["cost"]
                 self.counts["script"] += 1
             seconds = length["seconds"]
+            tutorial = not self.first_film_done  # no takes until the tutorial is over
             if not self.first_film_done:
                 seconds = min(seconds, self.g.c["FirstFilmSeconds"])
                 self.first_film_done = True
-            self.films.append({"stage": stage, "end": self.now + seconds, "length": length, "genre": genre,
-                               "cast": cast, "power": power})
+            if self.mascot_boost("speed") > 0:
+                seconds = max(1, math.floor(seconds * (1 - self.mascot_boost("speed"))))
+            self.films.append({"stage": stage, "start": self.now, "end": self.now + seconds, "length": length,
+                               "genre": genre, "cast": cast, "power": power, "takes": 0, "take_luck": 0.0,
+                               "takes_ok": not tutorial})
             self.mark(f"First {length['name']}")
 
     def award_night_before(self, deadline: float) -> bool:
@@ -655,7 +743,7 @@ class Player:
             ready = [f for f in ready if f["length"]["seconds"] < 45 * M]
         for film in ready:
             self.films.remove(film)
-            result = self.g.roll_result(self.rng, self.luck())
+            result = self.g.roll_result(self.rng, self.luck() + film.get("take_luck", 0.0))
             payout = self.g.payout(film["length"]["base"], film["power"], self.g.result_mult[result],
                                    self.genre_bonus(film["genre"]))
             if self.award_night():
@@ -761,7 +849,12 @@ class Player:
             self.roll(agency, self.cast_luck())
 
     def roll(self, agency: dict, luck: float):
-        actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]))
+        floor_tier = None
+        hot = self.g.t["hot_start"]
+        if hot and self.hot_start < max(hot):
+            self.hot_start += 1
+            floor_tier = hot.get(self.hot_start)
+        actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]), floor_tier)
         key = f"{actor_id}:{variant}"
         self.roster[key] = self.roster.get(key, 0) + 1
         self.index.add(key)
@@ -785,6 +878,27 @@ class Player:
             running = [f for f in self.films if f["end"] > self.now]
         self.clap_credit = min(self.clap_credit, 1)
 
+    def direct(self):
+        """Takes.opened / MovieService.onTakeTap: a take opens at each quarter of the shoot while
+        the film is still running; the player plays each one as it opens (online only)."""
+        if not self.takes_on:
+            return
+        tk = self.g.t["takes"]
+        for film in self.films:
+            if not film["takes_ok"] or film["end"] <= self.now:
+                continue
+            progress = (self.now - film["start"]) / max(1.0, film["end"] - film["start"])
+            opened = min(tk["per_film"], max(0, math.floor(progress * (tk["per_film"] + 1))))
+            while film["takes"] < opened:
+                film["takes"] += 1
+                pick, running = self.rng.random(), 0.0
+                for verdict, chance in TAKE_SKILL.items():
+                    running += chance
+                    if pick < running:
+                        film["take_luck"] = min(tk["max_luck"], film["take_luck"] + tk["luck"][verdict])
+                        break
+                self.counts["take"] = self.counts.get("take", 0) + 1
+
     # time
     def play(self, seconds: float, offline_after: float, day: int, first_today: bool, last_today: bool,
              step: float = 2.0):
@@ -797,6 +911,9 @@ class Player:
         self.login_rewards(day, first_today, self.sessions)
         self.use_skips()
         requests_at = self.now + min(seconds, 10 * M) if first_today else None
+        # Weekly quests take real play (premieres, casts, scripts), so they are finished with the
+        # day's requests, ten minutes into the session, not at its very start.
+        weekly_at = requests_at if first_today and day % 7 == self.weekly_day % 7 and self.weekly_on else None
         last_collect = self.now
         while self.now < end:
             self.now += step
@@ -805,6 +922,7 @@ class Player:
             if mark in CURVE_MINUTES and mark not in self.curve:
                 self.curve[mark] = self.snapshot()
             self.clap(step)
+            self.direct()
             self.special_events(step)
             self.premiere_ready(end)
             if self.now - last_collect >= 30:
@@ -814,9 +932,13 @@ class Player:
             if requests_at is not None and self.now >= requests_at:
                 self.finish_requests()
                 requests_at = None
+            if weekly_at is not None and self.now >= weekly_at:
+                self.finish_weekly()
+                weekly_at = None
             self.claim_rewards()
             self.claim_achievements()
             self.try_rebirth()
+            self.buy_mascots()
             self.buy_upgrades()
             remaining = end - self.now
             self.start_films(None if remaining > 180 else remaining + offline_after)
@@ -843,6 +965,9 @@ H, M = 3600, 60
 # player is also reading reveals, picking casts and walking to the collect pad).
 CAST_RATE = 0.35
 CLAP_RATE = 0.6
+# How a typical player does on a TAKE! card (Takes.luau). A guess until real analytics ("Take"
+# events) say otherwise; about 0.13 of the 0.24 maximum Luck per film.
+TAKE_SKILL = {"Perfect": 0.25, "Good": 0.45, "Miss": 0.30}
 CURVE_MINUTES = (5, 10, 20, 30, 45, 60, 90, 120, 180, 240, 300, 330, 480, 660, 990, 1320)
 # A player starts saving for a rebirth once it costs less than this many minutes of income.
 SAVE_MINUTES = 20
@@ -901,7 +1026,8 @@ def played_minutes(seconds: float, sched) -> float:
 
 
 def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7,
-        rebirth: bool = True, achievements: bool = True, specials: bool = True):
+        rebirth: bool = True, achievements: bool = True, specials: bool = True, weekly: bool = True,
+        weekly_day: int = 4, takes: bool = True):
     game = Game(tuning)
     sched = schedule(kind, days)
     events: dict[str, list[float]] = {}
@@ -919,6 +1045,9 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
         player.achievements = achievements
         player.rebirth_enabled = rebirth
         player.specials_on = specials
+        player.weekly_on = weekly
+        player.weekly_day = weekly_day
+        player.takes_on = takes
         for i, (label, on, off) in enumerate(sched):
             day = int(label.split()[1])
             first_today = i == 0 or sched[i - 1][0].split()[1] != str(day)
@@ -934,12 +1063,18 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
 
 
 def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int = 7, rebirth: bool = True,
-           achievements: bool = True, specials: bool = True):
+           achievements: bool = True, specials: bool = True, weekly: bool = True, weekly_day: int = 4,
+           hot_start: bool = True, takes: bool = True):
     tuning = load_tuning()
-    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials)
+    if not hot_start:
+        tuning["hot_start"] = {}
+    game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials, weekly,
+                                           weekly_day, takes)
     owns = " with the 2x Luck pass" if luck_pass else ""
     never = ", never rebirths" if not rebirth else ""
     without = ", no special events" if not specials else ""
+    without += ", no hot start" if not hot_start else ""
+    without += ", ignores TAKE! cards" if not takes else ""
     print(f"# Movie Mogul economy sim: {kind} player{owns}{never}{without}, {runs} runs\n")
     total_played = sum(on for _, on, _ in sched)
     print(f"Schedule: {total_played / 60:.1f} h played over {days} days.\n")
@@ -984,7 +1119,18 @@ if __name__ == "__main__":
     parser.add_argument("--days", type=int, default=7, help="days to simulate (whole weeks get a checkpoint)")
     parser.add_argument("--no-rebirth", action="store_true", help="the player never rebirths")
     parser.add_argument("--no-achievements", action="store_true", help="leave achievement rewards out (to compare)")
+    parser.add_argument("--no-weekly", action="store_true", help="leave weekly quest rewards out (to compare)")
+    parser.add_argument("--weekly-day", type=int, default=4,
+                        help="day of each week the player finishes the weekly quests (1 = the very first day)")
     parser.add_argument("--no-events", action="store_true", help="switch the special events off (to compare)")
+    parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
+                        help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
+    parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
+    parser.add_argument("--no-takes", action="store_true", help="the player ignores the TAKE! cards (to compare)")
+    parser.add_argument("--mascots", default="none", choices=["none", "cash", "luck", "speed", "boxOffice"],
+                        help="the kind of mascot buff the player keeps out (default: none)")
     args = parser.parse_args()
+    CAST_RATE = args.cast_rate
+    MASCOTS = args.mascots
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
-           not args.no_events)
+           not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start, not args.no_takes)

@@ -14,10 +14,10 @@ local UiKit = {}
 
 -- Palette from the design kit and ART_STYLE.md: navy panels, near-black outlines, bright fills.
 UiKit.INK = Color3.fromRGB(11, 15, 31) -- every outline and text stroke
-UiKit.NAVY = Color3.fromRGB(27, 35, 64)
+UiKit.NAVY = Color3.fromRGB(25, 33, 74)
 UiKit.DARK = Color3.fromRGB(20, 26, 51)
 UiKit.PANEL = UiKit.NAVY
-UiKit.ROW = Color3.fromRGB(42, 50, 85)
+UiKit.ROW = Color3.fromRGB(40, 52, 104)
 UiKit.WHITE = Color3.new(1, 1, 1)
 UiKit.MUTED = Color3.fromRGB(169, 177, 204)
 UiKit.FAINT = Color3.fromRGB(107, 115, 147) -- locked and unknown text
@@ -35,7 +35,7 @@ UiKit.BURGUNDY = Color3.fromRGB(122, 31, 43)
 UiKit.CREAM = Color3.fromRGB(244, 231, 207)
 UiKit.FRESH_GREEN = Color3.fromRGB(91, 191, 90)
 UiKit.DISABLED = Color3.fromRGB(74, 82, 114)
-UiKit.TAB_OFF = Color3.fromRGB(52, 64, 106)
+UiKit.TAB_OFF = Color3.fromRGB(48, 66, 132)
 
 UiKit.DISPLAY_FONT = Enum.Font.FredokaOne -- titles, numbers, buttons
 UiKit.BODY_FONT = Enum.Font.GothamBold -- labels and help text
@@ -94,6 +94,110 @@ function UiKit.outline(label: TextLabel | TextButton, thickness: number?): UIStr
 	return stroke
 end
 
+-- The heavy Roblox look (the upgrade board's): 5 px dark edges on windows, a deep bevel with a
+-- glossy strip on buttons, a drop shadow under windows and a gold halo on things you can tap now.
+UiKit.HEAVY = 5
+
+-- Deep bevel: full color on top, a clearly darker lower band, and a glossy strip along the top.
+function UiKit.bevel(frame: GuiObject)
+	local shade = Instance.new("UIGradient")
+	shade.Name = "Shade"
+	shade.Rotation = 90
+	shade.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(238, 238, 238)),
+		ColorSequenceKeypoint.new(0.7, Color3.fromRGB(170, 170, 170)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(140, 140, 140)),
+	})
+	shade.Parent = frame
+	local shine = Instance.new("Frame")
+	shine.Name = "Shine"
+	shine.BorderSizePixel = 0
+	shine.BackgroundColor3 = Color3.new(1, 1, 1)
+	shine.BackgroundTransparency = 0.7
+	shine.Position = UDim2.new(0.1, 0, 0.08, 0)
+	shine.Size = UDim2.new(0.8, 0, 0.13, 0)
+	shine.Parent = frame
+	UiKit.corner(shine, 4)
+end
+
+-- Gold ring just outside an object that breathes softly: "you can do this now". Made once per
+-- object (named "Halo"); show and hide it with Visible.
+function UiKit.halo(object: GuiObject, radius: number, gap: number?): Frame
+	local existing = object:FindFirstChild("Halo")
+	if existing ~= nil and existing:IsA("Frame") then
+		return existing
+	end
+	local pad = gap or 5
+	local ring = Instance.new("Frame")
+	ring.Name = "Halo"
+	ring.BackgroundTransparency = 1
+	ring.AnchorPoint = Vector2.new(0.5, 0.5)
+	ring.Position = UDim2.fromScale(0.5, 0.5)
+	ring.Size = UDim2.new(1, pad * 2, 1, pad * 2)
+	ring.Parent = object
+	UiKit.corner(ring, radius + pad)
+	local stroke = Instance.new("UIStroke")
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Color = UiKit.GOLD
+	stroke.Thickness = 3
+	stroke.Transparency = 0.1
+	stroke.LineJoinMode = Enum.LineJoinMode.Round
+	stroke.Parent = ring
+	local breathe = TweenService:Create(stroke, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+		Thickness = 5,
+		Transparency = 0.55,
+	})
+	-- Only breathes while shown, so hidden halos cost nothing.
+	local function sync()
+		if ring.Visible then
+			breathe:Play()
+		else
+			breathe:Pause()
+		end
+	end
+	sync()
+	ring:GetPropertyChangedSignal("Visible"):Connect(sync)
+	ring.Destroying:Connect(function()
+		breathe:Cancel()
+	end)
+	return ring
+end
+
+-- Dark copy of an object, a few pixels lower, behind it: the windows' drop shadow. It is a sibling
+-- (children always draw over their parent), so it follows the object's size, place and visibility.
+-- Only for objects no layout places.
+function UiKit.dropShadow(object: GuiObject, depth: number, radius: number): Frame
+	local shadow = Instance.new("Frame")
+	shadow.Name = object.Name .. "Shadow"
+	shadow.BorderSizePixel = 0
+	shadow.BackgroundColor3 = UiKit.INK
+	shadow.BackgroundTransparency = 0.4
+	shadow.Active = false
+	UiKit.corner(shadow, radius)
+	for _, child in object:GetChildren() do
+		if child:IsA("UISizeConstraint") then
+			child:Clone().Parent = shadow
+		end
+	end
+	local function sync()
+		shadow.AnchorPoint = object.AnchorPoint
+		shadow.Size = object.Size
+		shadow.Position = object.Position + UDim2.fromOffset(0, depth)
+		shadow.ZIndex = object.ZIndex - 1
+		shadow.Visible = object.Visible
+	end
+	sync()
+	for _, property in { "AnchorPoint", "Size", "Position", "ZIndex", "Visible" } do
+		object:GetPropertyChangedSignal(property):Connect(sync)
+	end
+	shadow.Parent = object.Parent
+	object.Destroying:Connect(function()
+		shadow:Destroy()
+	end)
+	return shadow
+end
+
 function UiKit.makeLabel(parent: Instance, text: string, color: Color3, size: UDim2, position: UDim2?): TextLabel
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
@@ -130,19 +234,20 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 	button.Parent = parent
 	UiKit.corner(button, 12)
 	UiKit.textConstraint(button, 26)
-	UiKit.border(button, 3)
-	UiKit.outline(button, 2)
-	-- Shading: full color on top, a slightly darker lower band (the kit's "chunky" bevel).
-	local shade = Instance.new("UIGradient")
-	shade.Name = "Shade"
-	shade.Rotation = 90
-	shade.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-		ColorSequenceKeypoint.new(0.7, Color3.new(1, 1, 1)),
-		ColorSequenceKeypoint.new(0.74, Color3.fromRGB(205, 205, 205)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(205, 205, 205)),
-	})
-	shade.Parent = button
+	UiKit.border(button, 4)
+	UiKit.outline(button, 2.5)
+	UiKit.bevel(button)
+	-- Green means go (Claim, Buy, Start): those wear the gold halo, unless "NoHalo" is set.
+	local function syncHalo()
+		local wanted = button.BackgroundColor3 == UiKit.GREEN and not button:GetAttribute("NoHalo")
+		local halo = button:FindFirstChild("Halo")
+		if wanted or halo ~= nil then
+			UiKit.halo(button, 12).Visible = wanted
+		end
+	end
+	syncHalo()
+	button:GetPropertyChangedSignal("BackgroundColor3"):Connect(syncHalo)
+	button:GetAttributeChangedSignal("NoHalo"):Connect(syncHalo)
 	-- Every button clicks, unless it plays its own sound (set the "Silent" attribute).
 	button.Activated:Connect(function()
 		if not button:GetAttribute("Silent") then
@@ -243,7 +348,7 @@ function UiKit.chip(button: GuiObject, text: string?)
 		created.BackgroundColor3 = UiKit.GREEN
 		created.ZIndex = button.ZIndex + 6
 		UiKit.corner(created, 8)
-		UiKit.border(created, 2)
+		UiKit.border(created, 3)
 		UiKit.textConstraint(created, 16)
 		local pad = Instance.new("UIPadding")
 		pad.PaddingLeft = UDim.new(0, 4)
@@ -265,6 +370,7 @@ end
 function UiKit.makePlusButton(parent: Instance, size: number, position: UDim2): TextButton
 	local plus = UiKit.makeButton(parent, "+", UiKit.GREEN, UDim2.fromOffset(size, size), position)
 	plus.Name = "Plus"
+	plus:SetAttribute("NoHalo", true)
 	local round = plus:FindFirstChildOfClass("UICorner")
 	if round ~= nil then
 		round.CornerRadius = UDim.new(0, 8)
@@ -392,11 +498,11 @@ function UiKit.setEnabled(button: TextButton, enabled: boolean, color: Color3)
 	button.TextColor3 = if enabled then UiKit.WHITE else UiKit.MUTED
 end
 
--- Tab look: the selected tab is a white chip with navy text, the others dark.
+-- Tab look: the selected tab is a gold chip with dark text, the others deep blue.
 function UiKit.styleTab(button: TextButton, selected: boolean)
-	button.BackgroundColor3 = if selected then UiKit.WHITE else UiKit.TAB_OFF
-	button.TextColor3 = if selected then UiKit.NAVY else UiKit.WHITE
-	-- Hover darkening would turn the white chip grey under the mouse.
+	button.BackgroundColor3 = if selected then UiKit.GOLD else UiKit.TAB_OFF
+	button.TextColor3 = if selected then UiKit.INK else UiKit.WHITE
+	-- Hover darkening would turn the gold chip brown under the mouse.
 	button.AutoButtonColor = not selected
 	local stroke = button:FindFirstChild("TextOutline")
 	if stroke ~= nil and stroke:IsA("UIStroke") then
@@ -451,7 +557,7 @@ function UiKit.badge(button: GuiObject, text: string?)
 		created.BackgroundColor3 = UiKit.CLOSE_RED
 		created.ZIndex = button.ZIndex + 6
 		UiKit.corner(created, 12)
-		UiKit.border(created, 2)
+		UiKit.border(created, 3)
 		local pad = Instance.new("UIPadding")
 		pad.PaddingTop = UDim.new(0, 3)
 		pad.PaddingBottom = UDim.new(0, 3)
@@ -466,22 +572,29 @@ end
 -- Bottom-of-screen message that fades after two seconds.
 local toastLabel: TextLabel? = nil
 local toastToken = 0
+local TOAST_MAX_WIDTH = 340
 function UiKit.toast(gui: ScreenGui, text: string)
 	local label = toastLabel
 	if label == nil then
-		local created = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(340, 44), UDim2.new(0.5, -170, 1, -144))
+		local created = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.new(0.9, 0, 0, 44), UDim2.new(0.5, 0, 1, -144))
+		created.AnchorPoint = Vector2.new(0.5, 0)
+		-- 340 px on normal screens; narrower phones get 90% of the width instead.
+		local toastLimit = Instance.new("UISizeConstraint")
+		toastLimit.MaxSize = Vector2.new(TOAST_MAX_WIDTH, 44)
+		toastLimit.Parent = created
 		created.Name = "Toast"
 		created.BackgroundTransparency = 0.05
 		created.BackgroundColor3 = UiKit.NAVY
 		created.ZIndex = 20
 		UiKit.corner(created, 12)
-		UiKit.border(created, 3)
+		UiKit.border(created, 4)
 		local pad = Instance.new("UIPadding")
 		pad.PaddingTop = UDim.new(0, 6)
 		pad.PaddingBottom = UDim.new(0, 6)
 		pad.PaddingLeft = UDim.new(0, 10)
 		pad.PaddingRight = UDim.new(0, 10)
 		pad.Parent = created
+		UiKit.dropShadow(created, 5, 12)
 		toastLabel = created
 		label = created
 	end
@@ -565,6 +678,12 @@ end
 -- Panels --------------------------------------------------------------------------------------
 local exclusivePanels: { Frame } = {}
 
+-- Makes a full-screen screen (not built with makePanel) exclusive like the panels: opening any
+-- panel closes it, and opening it with togglePanel closes the panels.
+function UiKit.addExclusive(frame: Frame)
+	table.insert(exclusivePanels, frame)
+end
+
 function UiKit.closePanels()
 	for _, panel in exclusivePanels do
 		panel.Visible = false
@@ -599,10 +718,17 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	panel.ZIndex = if modal then 5 else 1
 	panel.Parent = gui
 	UiKit.corner(panel, 16)
-	UiKit.border(panel, 4)
+	UiKit.border(panel, UiKit.HEAVY)
 	local limit = Instance.new("UISizeConstraint")
 	limit.MaxSize = Vector2.new(560, 640)
 	limit.Parent = panel
+	-- Darker toward the bottom, so the rows and buttons stand out against it.
+	local backdrop = Instance.new("UIGradient")
+	backdrop.Name = "Backdrop"
+	backdrop.Rotation = 90
+	backdrop.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(150, 150, 175))
+	backdrop.Parent = panel
+	UiKit.dropShadow(panel, 8, 16)
 	if not modal then
 		table.insert(exclusivePanels, panel)
 	end
@@ -626,16 +752,35 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	titleBar:GetPropertyChangedSignal("BackgroundColor3"):Connect(function()
 		squareBottom.BackgroundColor3 = titleBar.BackgroundColor3
 	end)
+	-- Bevel, like the buttons: a darker lower band and a glossy strip along the top.
+	local lower = Instance.new("Frame")
+	lower.Name = "Lower"
+	lower.BackgroundColor3 = UiKit.INK
+	lower.BackgroundTransparency = 0.72
+	lower.BorderSizePixel = 0
+	lower.AnchorPoint = Vector2.new(0, 1)
+	lower.Position = UDim2.fromScale(0, 1)
+	lower.Size = UDim2.fromScale(1, 0.32)
+	lower.Parent = titleBar
+	local shine = Instance.new("Frame")
+	shine.Name = "Shine"
+	shine.BackgroundColor3 = Color3.new(1, 1, 1)
+	shine.BackgroundTransparency = 0.7
+	shine.BorderSizePixel = 0
+	shine.Position = UDim2.new(0, 18, 0, 5)
+	shine.Size = UDim2.new(1, -36, 0, 6)
+	shine.Parent = titleBar
+	UiKit.corner(shine, 3)
 	local edge = Instance.new("Frame")
 	edge.Name = "Edge"
 	edge.BackgroundColor3 = UiKit.INK
 	edge.BorderSizePixel = 0
 	edge.AnchorPoint = Vector2.new(0, 1)
 	edge.Position = UDim2.fromScale(0, 1)
-	edge.Size = UDim2.new(1, 0, 0, 4)
+	edge.Size = UDim2.new(1, 0, 0, UiKit.HEAVY)
 	edge.Parent = titleBar
 
-	local header = UiKit.makeTitle(panel, title, UiKit.WHITE, UDim2.new(1, -70, 0, 40), UDim2.fromOffset(16, 6))
+	local header = UiKit.makeTitle(panel, title, UiKit.WHITE, UDim2.new(1, -70, 0, 40), UDim2.fromOffset(16, 6), 3.5)
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.ZIndex = 2
 	local close = UiKit.makeButton(panel, "X", UiKit.CLOSE_RED, UDim2.fromOffset(40, 40), UDim2.new(1, -50, 0, 6))
@@ -688,6 +833,18 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 				panel.Position = UDim2.new(0, left + room / 2, 0.5, 0)
 			end
 		end
+		-- While the tutorial's dialogue is at the top ("PanelTop", set by Tutorial), a panel that
+		-- would reach under it gets shorter and starts below it, so both stay readable.
+		local reserve = gui:GetAttribute("PanelTop")
+		if typeof(reserve) == "number" and screen.Y > 0 then
+			local height = math.min(panel.Size.Y.Scale * screen.Y + panel.Size.Y.Offset, limit.MaxSize.Y)
+			local room = screen.Y - reserve - 8
+			if (screen.Y - height) / 2 < reserve and room > 0 then
+				local fit = math.min(height, room)
+				panel.Size = UDim2.new(panel.Size.X.Scale, panel.Size.X.Offset, 0, fit)
+				panel.Position = UDim2.new(panel.Position.X.Scale, panel.Position.X.Offset, 0, reserve + (room - fit) / 2 + fit / 2)
+			end
+		end
 		local barHeight = if compact then 40 else 54
 		titleBar.Size = UDim2.new(1, 0, 0, barHeight)
 		-- With a corner icon (UiKit.panelIcon) the title starts after it.
@@ -719,6 +876,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	end
 	UiKit.onViewportChanged(applyLayout)
 	gui:GetAttributeChangedSignal("MenuRight"):Connect(applyLayout)
+	gui:GetAttributeChangedSignal("PanelTop"):Connect(applyLayout)
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		if panel.Visible then
 			applyLayout()
@@ -747,11 +905,29 @@ function UiKit.panelIcon(panel: Frame, header: TextLabel, iconId: string): Viewp
 	return viewport
 end
 
+-- Removes every row from a panel list. The list's own layout and padding stay (the padding gives
+-- the row outlines room; losing it clipped them after the first rebuild).
 function UiKit.clear(list: ScrollingFrame)
 	for _, child in list:GetChildren() do
-		if not child:IsA("UIListLayout") then
+		if not (child:IsA("UIListLayout") or child:IsA("UIPadding")) then
 			child:Destroy()
 		end
+	end
+end
+
+UiKit.ACTION_COOLDOWN_SECONDS = 0.4 -- default gap between two taps that each send a request
+
+-- Wraps `callback` so repeat calls within `cooldownSeconds` are ignored (double taps on buttons
+-- that send a request to the server).
+function UiKit.debounce(callback: () -> (), cooldownSeconds: number): () -> ()
+	local lastCallAt = -math.huge
+	return function()
+		local now = os.clock()
+		if now - lastCallAt < cooldownSeconds then
+			return
+		end
+		lastCallAt = now
+		callback()
 	end
 end
 
@@ -771,7 +947,7 @@ function UiKit.addRow(list: ScrollingFrame, order: number, height: number): Fram
 	row.BackgroundColor3 = UiKit.ROW
 	row.Parent = list
 	UiKit.corner(row, 10)
-	UiKit.border(row, 2)
+	UiKit.border(row, 3)
 	return row
 end
 

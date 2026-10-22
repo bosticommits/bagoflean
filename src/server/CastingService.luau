@@ -6,6 +6,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
+local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
+local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -17,6 +19,8 @@ local Remotes = require(script.Parent.Remotes)
 local random = Random.new()
 local lastCast: { [Player]: number } = {}
 local lastRosterRequest: { [Player]: number } = {}
+local lastCooldownReply: { [Player]: number } = {}
+local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "cooldown" answer per second
 -- A special event's casting Luck for everyone (the Lucky Star), until an os.time() stamp.
 local eventLuck, eventLuckUntil = 1, 0
 
@@ -36,7 +40,8 @@ function CastingService.getLuck(player: Player): number
 end
 
 -- Luck for Casting Calls: the stat Luck above times the 2x Luck pass, an active Lucky Casting
--- boost, Award Night and a Lucky Star special event. Premieres use the stat Luck only.
+-- boost, Award Night, a Lucky Star special event and a Luck mascot. Premieres use the stat Luck
+-- only.
 function CastingService.castLuck(player: Player): number
 	local data = DataService.getData(player)
 	if data == nil then
@@ -56,6 +61,8 @@ function CastingService.castLuck(player: Player): number
 	if eventLuckUntil > now then
 		luck *= eventLuck
 	end
+	luck *= 1 + Mascots.boost(data, "luck", now)
+	luck *= 1 + FilmSets.luck(data)
 	return luck
 end
 
@@ -72,6 +79,7 @@ function CastingService.refresh(player: Player)
 	local data = DataService.getData(player)
 	if data ~= nil then
 		player:SetAttribute("LuckBoostUntil", data.luckBoostUntil)
+		player:SetAttribute("HotStart", data.hotStart)
 	end
 end
 
@@ -97,9 +105,22 @@ function CastingService.grant(player: Player, actorId: string, variantId: string
 	return isNew, data.roster[key]
 end
 
+-- A new player's casts count toward the "Discovered!" hot start (Actors.HotStart). Returns the tier
+-- this cast is guaranteed, if any. Never yields.
+local function hotStartFloor(player: Player): string?
+	local data = DataService.getData(player)
+	if data == nil or data.hotStart >= Actors.HotStartLength then
+		return nil
+	end
+	data.hotStart += 1
+	player:SetAttribute("HotStart", data.hotStart)
+	return Actors.hotStartTier(data.hotStart)
+end
+
 -- Rolls an actor from `agency` at `luck`, grants it and shows the reveal. Never yields.
 local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
-	local actor, variant = Actors.roll(random, luck, agency.minTier)
+	local floorTier = hotStartFloor(player)
+	local actor, variant = Actors.roll(random, luck, agency.minTier, floorTier)
 	local isNew, count = CastingService.grant(player, actor.id, variant.id)
 	castResult:FireClient(player, {
 		ok = true,
@@ -107,6 +128,7 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 		variantId = variant.id,
 		isNew = isNew,
 		count = count,
+		discovered = floorTier ~= nil, -- a hot start guarantee: the reveal says "DISCOVERED!"
 	})
 	-- Counted first, so a slow or failing lot redraw below can never lose a cast's progress.
 	QuestTracker.track(player, "cast")
@@ -126,8 +148,13 @@ local function onCast(player: Player, agencyId: any)
 	local now = os.clock()
 	local last = lastCast[player]
 	if last ~= nil and now - last < Config.CastCooldown then
-		-- Always answer so the client never waits on a result that will not come.
-		castResult:FireClient(player, { ok = false, reason = "cooldown" })
+		-- A rejection only happens within the cooldown of a cast that was answered, so the client is
+		-- never left waiting; the extra "cooldown" answer is limited to one per second.
+		local lastReply = lastCooldownReply[player]
+		if lastReply == nil or now - lastReply >= COOLDOWN_REPLY_INTERVAL then
+			lastCooldownReply[player] = now
+			castResult:FireClient(player, { ok = false, reason = "cooldown" })
+		end
 		return
 	end
 	lastCast[player] = now
@@ -193,6 +220,7 @@ end
 function CastingService.forget(player: Player)
 	lastCast[player] = nil
 	lastRosterRequest[player] = nil
+	lastCooldownReply[player] = nil
 end
 
 return CastingService

@@ -7,27 +7,37 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
+
+-- Cash stays below 2^53 so whole-number math is exact; a safety ceiling, not a balance number.
+local MAX_CASH = 1e15
 
 local lastCollectAttempt: { [Player]: number } = {}
 
 local EconomyService = {}
 
--- Cash per second the cinema earns right now.
+-- Cash per second the cinema earns right now, with a box office mascot's buff. Rewards that pay
+-- "N minutes of box office" use the same rate, so they match what the screens show.
 function EconomyService.rate(data: DataService.PlayerData): number
 	local royalties = 0
 	for _, movie in data.cinema do
 		royalties += movie.payout * Config.RoyaltyRate
 	end
-	return Config.CinemaIncomePerSecond + royalties * Upgrades.royaltyMultiplier(data)
+	local base = Config.CinemaIncomePerSecond + royalties * Upgrades.royaltyMultiplier(data)
+	return base * (1 + Mascots.boost(data, "boxOffice", os.time()))
 end
 
 local function bankedAt(data: DataService.PlayerData, now: number): number
 	local elapsed = math.max(now - data.lastCollect, 0)
 	local rate = EconomyService.rate(data)
-	return math.min(data.accrued + elapsed * rate, Upgrades.offlineCap(data) * rate)
+	local banked = math.min(data.accrued + elapsed * rate, Upgrades.offlineCap(data) * rate)
+	if banked ~= banked or banked < 0 then
+		return 0 -- corrupt rate or bank: never let NaN or a negative reach Cash
+	end
+	return banked
 end
 
 -- Moves royalties earned so far into the bank. Call before anything that changes the rate.
@@ -58,12 +68,16 @@ end
 -- Server-only. `tx` and `sku` label the source for analytics (see Analytics.economy).
 function EconomyService.addCash(player: Player, amount: number, tx: string?, sku: string?): boolean
 	local data = DataService.getData(player)
-	if data == nil or amount ~= amount or amount <= 0 or amount == math.huge then
+	if data == nil or amount ~= amount or amount == math.huge then
 		return false
 	end
-	data.cash += math.floor(amount)
+	local whole = math.floor(amount)
+	if whole <= 0 then
+		return false
+	end
+	data.cash = math.min(data.cash + whole, MAX_CASH)
 	DataService.markDirty(player)
-	Analytics.economy(player, true, math.floor(amount), data.cash, tx or "Gameplay", sku or "Other")
+	Analytics.economy(player, true, whole, data.cash, tx or "Gameplay", sku or "Other")
 	EconomyService.refresh(player)
 	return true
 end
@@ -71,12 +85,16 @@ end
 -- Removes Cash if the player can afford it. Returns whether it was spent.
 function EconomyService.spendCash(player: Player, amount: number, sku: string?): boolean
 	local data = DataService.getData(player)
-	if data == nil or amount ~= amount or amount <= 0 or data.cash < amount then
+	if data == nil or amount ~= amount or amount <= 0 or amount == math.huge then
 		return false
 	end
-	data.cash -= math.floor(amount)
+	local whole = math.ceil(amount) -- never charge less than the price shown
+	if data.cash < whole then
+		return false
+	end
+	data.cash -= whole
 	DataService.markDirty(player)
-	Analytics.economy(player, false, math.floor(amount), data.cash, "Shop", sku or "Other")
+	Analytics.economy(player, false, whole, data.cash, "Shop", sku or "Other")
 	EconomyService.refresh(player)
 	return true
 end

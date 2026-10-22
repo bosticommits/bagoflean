@@ -16,6 +16,8 @@ local rewardResult = Remotes.get("RewardResult")
 
 local lastClaim: { [Player]: number } = {}
 local lastSync: { [Player]: number } = {}
+local lastCooldownReply: { [Player]: number } = {}
+local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "Slow down!" per second
 
 local AchievementService = {}
 
@@ -26,7 +28,12 @@ end
 local function onClaim(player: Player, id: any)
 	local now = os.clock()
 	if lastClaim[player] ~= nil and now - lastClaim[player] < Config.ActionCooldown then
-		return fail(player, "Slow down!")
+		local lastReply = lastCooldownReply[player]
+		if lastReply == nil or now - lastReply >= COOLDOWN_REPLY_INTERVAL then
+			lastCooldownReply[player] = now
+			fail(player, "Slow down!")
+		end
+		return
 	end
 	lastClaim[player] = now
 	local data = DataService.getData(player)
@@ -64,6 +71,7 @@ end
 function AchievementService.forget(player: Player)
 	lastClaim[player] = nil
 	lastSync[player] = nil
+	lastCooldownReply[player] = nil
 	AchievementTracker.forget(player)
 end
 

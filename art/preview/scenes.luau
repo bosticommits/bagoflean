@@ -61,6 +61,21 @@ function scenes.actor(folder, load, roblox, arg)
 	ActorModels.build(folder, roblox.CFrame.new(), id, if variant == "" then "Normal" else variant)
 end
 
+-- Director Lucien Vale (the tutorial host): arg "bust" for the portrait cut.
+function scenes.director(folder, load, roblox, arg)
+	local ActorModels = load("src/shared/Models/ActorModels.luau")
+	ActorModels.buildDirector(folder, roblox.CFrame.new(), arg == "bust")
+end
+
+-- The six studio mascots (part versions of the Blender designs) side by side, rarest on the right.
+function scenes.mascots(folder, load, roblox)
+	local Mascots = load("src/shared/Mascots.luau")
+	local MascotModels = load("src/shared/Models/MascotModels.luau")
+	for i, mascot in Mascots.List do
+		MascotModels.build(folder, mascot.id, roblox.CFrame.new((3.5 - i) * 3.4, 0, 0))
+	end
+end
+
 function scenes.variants(folder, load, roblox)
 	local ActorModels = load("src/shared/Models/ActorModels.luau")
 	for i, variant in { "Normal", "Shiny", "Award" } do
@@ -118,6 +133,38 @@ function scenes.map(folder, load)
 		LotLook.build(folder, MapModels.lotBase(index), index, levels[index])
 	end
 	MapModels.build(folder)
+end
+
+-- The town (no lots) with the Dusty Gulch film crew posed at `arg` seconds into the takes (the
+-- way FilmSetWorld moves them in the game).
+function scenes.filmset(folder, load, roblox, arg)
+	local MapModels = load("src/shared/Models/MapModels.luau")
+	local FilmScenes = load("src/shared/FilmScenes.luau")
+	local CrewRig = load("src/shared/Models/CrewRig.luau")
+	MapModels.build(folder)
+	local frame = FilmScenes.frame(tonumber(arg) or 0)
+	local crew = roblox.Instance.new("Folder")
+	crew.Parent = folder
+	for _, who in FilmScenes.Cast do
+		local rig = CrewRig.build(crew, who)
+		local pose = frame.poses[who]
+		if pose.hidden then
+			rig.model.Parent = nil
+		else
+			for key, cf in CrewRig.cframes(MapModels.GulchFrame, pose, frame.stick) do
+				local piece = rig.model:FindFirstChild(key, true)
+				if piece ~= nil then
+					piece.WorldPivot = cf
+					piece.Parent = rig.model -- the clapper's stick lives in the board's model
+				end
+				local prop = rig.props[key]
+				if prop ~= nil then
+					prop.Parent = rig.model
+					prop.WorldPivot = cf
+				end
+			end
+		end
+	end
 end
 
 -- The special event props (EventModels): the Lucky Star (smaller than in the game), a Cash Rain
