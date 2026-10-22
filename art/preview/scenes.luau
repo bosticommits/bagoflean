@@ -104,7 +104,11 @@ function scenes.lotMid(folder, load, roblox)
 end
 
 function scenes.lotMax(folder, load, roblox)
-	lot(folder, load, roblox, { stages = 5, cinema = 6, office = 5, trophies = 7, filming = { true, false, true, true, true }, star = "PhantomAuteur", variant = "Award" })
+	local C = roblox.Color3.fromRGB
+	lot(folder, load, roblox, {
+		stages = 5, cinema = 6, office = 5, trophies = 7, filming = { true, false, true, true, true }, star = "PhantomAuteur", variant = "Award",
+		laurels = { C(150, 60, 220), C(255, 170, 30), C(235, 70, 50) },
+	})
 end
 
 -- The menu button icons in a row (arg: one icon id to show just that one).

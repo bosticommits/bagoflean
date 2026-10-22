@@ -2,7 +2,7 @@
 -- Builds the 6 studio lots, lets players claim one, runs the cinema collect pad, and keeps each
 -- lot's show-off pieces in sync with its owner: sound stages (one per owned stage, lit ON AIR while
 -- filming), a cinema that grows with Cinema Size, an office that grows with Offline Earnings,
--- trophies (Masterpieces), the owner's top star on a pedestal, and a billboard of that star that
+-- trophies (Masterpieces), Festival Laurels (Film Festival wins), the owner's top star on a pedestal, and a billboard of that star that
 -- the whole server sees. The models live in ReplicatedStorage.Shared.Models (built from parts,
 -- swapped for Blender meshes once those are imported; see art/README.md).
 local Players = game:GetService("Players")
@@ -15,6 +15,7 @@ local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
 local LotModels = require(ReplicatedStorage.Shared.Models.LotModels)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
+local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local TopStudios = require(ReplicatedStorage.Shared.TopStudios)
 local TopStudiosModels = require(ReplicatedStorage.Shared.Models.TopStudiosModels)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
@@ -41,7 +42,7 @@ local GOLD = Color3.fromRGB(245, 184, 46)
 
 -- The pieces that change with the owner. Each is rebuilt only when its key changes, so a casting
 -- spree doesn't rebuild the whole lot.
-local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Star", "Avatar", "RareWall" }
+local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Laurels", "Star", "Avatar", "RareWall" }
 
 type Lot = {
 	index: number,
@@ -298,6 +299,27 @@ local function render(lot: Lot)
 		local case = LotLook.trophies(model, lot.base, trophies)
 		if case ~= nil then
 			floatingLabel(case, `{trophies} Masterpiece{if trophies == 1 then "" else "s"}`, GOLD, 5)
+		end
+	end)
+
+	-- Festival Laurels: the newest few Film Festival wins, each with its festival's color.
+	local laurels = if data ~= nil then data.laurels else {}
+	local shown: { DataService.Laurel } = {}
+	for index = #laurels, math.max(1, #laurels - LotLook.MaxLaurelsShown + 1), -1 do
+		table.insert(shown, laurels[index])
+	end
+	local laurelKey = tostring(#laurels)
+	local plaques: { Color3 } = {}
+	for _, laurel in shown do
+		laurelKey ..= `:{laurel.season or laurel.genre}`
+		local season = if laurel.season ~= nil then SpecialEvents.getSeason(laurel.season) else nil
+		local colors = if season ~= nil then season.colors else SpecialEvents.GenreColors[laurel.genre]
+		table.insert(plaques, if colors ~= nil then colors[#colors] else GOLD)
+	end
+	section(lot, "Laurels", laurelKey, function(model)
+		local stand = LotLook.laurels(model, lot.base, plaques)
+		if stand ~= nil then
+			floatingLabel(stand, `{#laurels} Festival win{if #laurels == 1 then "" else "s"}`, GOLD, 7)
 		end
 	end)
 

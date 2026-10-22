@@ -14,6 +14,7 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
+    python3 tools/economy_sim.py --no-festival       # the same week without the Film Festival's goals
     python3 tools/economy_sim.py --no-takes          # the player ignores the TAKE! cards (to compare)
     python3 tools/economy_sim.py --mascots cash      # the player keeps its best Cash mascot out
 
@@ -147,6 +148,12 @@ def load_tuning() -> dict:
         "weekly": [
             (re.search(r'slot = "(\w+)"', line).group(1), _reward(line.split("reward =")[1]))
             for line in _block(rewards_text, "Rewards.Weekly").splitlines() if "reward =" in line
+        ],
+        # Film Festival goals: the three kinds (Studio Requests, premieres, hits), one reward each.
+        "festival": [
+            _reward(line.split("reward =")[1])
+            for line in rewards_text[rewards_text.index("Rewards.Festival = {") : rewards_text.index("function Rewards.festivalFor")].splitlines()
+            if "reward =" in line
         ],
         "requests_per_day": int(_num(re.search(r"Rewards.RequestsPerDay = (\d+)", rewards_text).group(1))),
         "codes": [_reward(line.split("reward =")[1]) for line in codes_text.splitlines() if "reward =" in line],
@@ -364,6 +371,7 @@ UPGRADE_ORDER = ["Stages", "Cinema", "Luck", "Offline", "Clap"]
 # saving for a rebirth), and keeps the strongest one it owns out (the free Popcorn Pup until then).
 # Set by --mascots. Players here never swap, so the warm-up after equipping does not come up.
 MASCOTS = "none"
+FESTIVAL = True  # the Film Festival's goals, finished with the weekly quests (--no-festival)
 
 
 class Player:
@@ -400,6 +408,7 @@ class Player:
         self.luck_pass = False
         self.achievements = True
         self.weekly_on = True
+        self.festival_on = FESTIVAL
         self.weekly_day = 4
         self.counts = {"cast": 0, "premiere": 0, "hit": 0, "clap": 0, "script": 0, "collect": 0}
         self.trophies = 0
@@ -637,6 +646,11 @@ class Player:
         """Weekly quests: one per slot, all finished on `weekly_day` (default 4) of each week."""
         for slot in ("volume", "genre", "skill"):
             self.grant(self.rng.choice([reward for name, reward in self.g.t["weekly"] if name == slot]))
+
+    def finish_festival(self):
+        """Film Festival: its three goals, finished with the weekly quests (the laurel is cosmetic)."""
+        for reward in self.g.t["festival"]:
+            self.grant(reward)
 
     def use_skips(self):
         while self.skips > 0:
@@ -934,6 +948,8 @@ class Player:
                 requests_at = None
             if weekly_at is not None and self.now >= weekly_at:
                 self.finish_weekly()
+                if self.festival_on:
+                    self.finish_festival()
                 weekly_at = None
             self.claim_rewards()
             self.claim_achievements()
@@ -1123,6 +1139,7 @@ if __name__ == "__main__":
     parser.add_argument("--weekly-day", type=int, default=4,
                         help="day of each week the player finishes the weekly quests (1 = the very first day)")
     parser.add_argument("--no-events", action="store_true", help="switch the special events off (to compare)")
+    parser.add_argument("--no-festival", action="store_true", help="leave the Film Festival's goal rewards out (to compare)")
     parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
                         help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
     parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
@@ -1132,5 +1149,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     CAST_RATE = args.cast_rate
     MASCOTS = args.mascots
+    FESTIVAL = not args.no_festival
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
            not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start, not args.no_takes)

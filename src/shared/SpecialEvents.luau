@@ -8,7 +8,9 @@
 -- The server passes os.time(). Events never come within a minute of Award Night, so the two never
 -- stack. Which event comes next is shuffled like a deck: each one comes up once every few slots,
 -- never twice in a row, and the start time inside its slot is random too.
+-- Each week is also a Film Festival for one genre, with seasonal festivals on set dates (below).
 local Events = require(script.Parent.Events)
+local Rewards = require(script.Parent.Rewards)
 local Shop = require(script.Parent.Shop)
 
 local SpecialEvents = {}
@@ -197,6 +199,145 @@ function SpecialEvents.nextAfter(now: number, disabled: { [string]: boolean }?):
 		end
 	end
 	return nil, 0
+end
+
+-- Film Festival -------------------------------------------------------------------------------
+-- Plan section 5, Live events. Every week (Monday to Sunday UTC, the weekly quests' weeks) is a
+-- Film Festival for one genre: three festival goals (Rewards.festivalFor) and, for finishing all
+-- three, a Festival Laurel that stands on the player's lot for good. Genres take turns, never the
+-- genre the weekly quest asks for that week. On set dates a seasonal festival takes over the week
+-- with its own title, colors and genre (Fright Night in late October is Horror). Like the events
+-- above, this is a pure function of the clock, so every server agrees. LiveConfig switches it off
+-- with "FilmFestival" in DisabledEvents (or "ALL").
+SpecialEvents.FestivalId = "FilmFestival"
+
+export type Season = {
+	id: string, -- stable: saved with each Festival Laurel won in it
+	name: string, -- banner title
+	genre: string,
+	from: { number }, -- { month, day } (UTC) it starts on
+	to: { number }, -- { month, day } it ends on, inclusive; may be in the next year
+	colors: { Color3 },
+	icon: string, -- IconModels id
+}
+
+-- A week belongs to a season when its Thursday falls inside these dates, so a season lasting a
+-- week or more always gets at least one festival week.
+SpecialEvents.Seasons = {
+	{
+		id = "FrightNight",
+		name = "FRIGHT NIGHT FESTIVAL",
+		genre = "Horror",
+		from = { 10, 18 },
+		to = { 11, 3 },
+		colors = { Color3.fromRGB(255, 176, 60), Color3.fromRGB(150, 60, 220) },
+		icon = "popcorn",
+	},
+	{
+		id = "HolidayLights",
+		name = "HOLIDAY FILM FESTIVAL",
+		genre = "Comedy",
+		from = { 12, 15 },
+		to = { 1, 5 },
+		colors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(230, 60, 70) },
+		icon = "gift",
+	},
+	{
+		id = "LoveStory",
+		name = "LOVE STORY FESTIVAL",
+		genre = "Romance",
+		from = { 2, 8 },
+		to = { 2, 21 },
+		colors = { Color3.fromRGB(255, 210, 230), Color3.fromRGB(240, 70, 150) },
+		icon = "ticket",
+	},
+	{
+		id = "SummerBlockbuster",
+		name = "SUMMER BLOCKBUSTER FESTIVAL",
+		genre = "Action",
+		from = { 6, 21 },
+		to = { 7, 12 },
+		colors = { Color3.fromRGB(255, 246, 130), Color3.fromRGB(255, 120, 40) },
+		icon = "movieCamera",
+	},
+} :: { Season }
+
+-- An ordinary week's festival colors, by genre.
+SpecialEvents.GenreColors = table.freeze({
+	Action = { Color3.fromRGB(255, 214, 120), Color3.fromRGB(235, 70, 50) },
+	Comedy = { Color3.fromRGB(255, 250, 160), Color3.fromRGB(255, 170, 30) },
+	Horror = { Color3.fromRGB(200, 255, 170), Color3.fromRGB(90, 60, 170) },
+	Romance = { Color3.fromRGB(255, 205, 225), Color3.fromRGB(225, 60, 120) },
+}) :: { [string]: { Color3 } }
+
+export type Festival = {
+	id: string, -- SpecialEvents.FestivalId
+	week: number, -- Rewards.week
+	genre: string,
+	name: string, -- "COMEDY FILM FESTIVAL", or the season's title
+	tagline: string,
+	season: string?, -- Season id, for a seasonal festival
+	colors: { Color3 },
+	icon: string,
+	starts: number, -- Monday 00:00 UTC
+	ends: number, -- the next Monday 00:00 UTC
+}
+
+local seasonById: { [string]: Season } = {}
+for _, season in SpecialEvents.Seasons do
+	seasonById[season.id] = season
+end
+
+function SpecialEvents.getSeason(id: string): Season?
+	return seasonById[id]
+end
+
+-- The season `week` belongs to, if any.
+function SpecialEvents.seasonFor(week: number): Season?
+	local thursday = os.date("!*t", Rewards.weekStart(week) + 3 * 86400)
+	local date = thursday.month * 100 + thursday.day
+	for _, season in SpecialEvents.Seasons do
+		local from, to = season.from[1] * 100 + season.from[2], season.to[1] * 100 + season.to[2]
+		local inside = if from <= to then date >= from and date <= to else date >= from or date <= to
+		if inside then
+			return season
+		end
+	end
+	return nil
+end
+
+-- The genre an ordinary week's festival is for. The weekly quest's genre slot steps through the
+-- same four genres in the same order, so starting two along means the two never ask for the same
+-- genre in the same week.
+function SpecialEvents.festivalGenre(week: number): string
+	local genres = Rewards.FestivalGenres
+	return genres[(week + 2) % #genres + 1]
+end
+
+-- The Film Festival of `week`, or nil when LiveConfig has switched festivals off.
+function SpecialEvents.festival(week: number, disabled: { [string]: boolean }?): Festival?
+	if disabled ~= nil and disabled[SpecialEvents.FestivalId] then
+		return nil
+	end
+	local season = SpecialEvents.seasonFor(week)
+	local genre = if season ~= nil then season.genre else SpecialEvents.festivalGenre(week)
+	return {
+		id = SpecialEvents.FestivalId,
+		week = week,
+		genre = genre,
+		name = if season ~= nil then season.name else `{string.upper(genre)} FILM FESTIVAL`,
+		tagline = `Premiere {genre} movies to win a Festival Laurel!`,
+		season = if season ~= nil then season.id else nil,
+		colors = if season ~= nil then season.colors else SpecialEvents.GenreColors[genre],
+		icon = if season ~= nil then season.icon else "trophy",
+		starts = Rewards.weekStart(week),
+		ends = Rewards.weekStart(week + 1),
+	}
+end
+
+-- The festival running at `now`.
+function SpecialEvents.festivalAt(now: number, disabled: { [string]: boolean }?): Festival?
+	return SpecialEvents.festival(Rewards.week(now), disabled)
 end
 
 -- Where things land ---------------------------------------------------------------------------
