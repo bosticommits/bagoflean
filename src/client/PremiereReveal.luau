@@ -432,8 +432,9 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			card.Size = UDim2.fromOffset(size.X - posterW - gap, size.Y)
 		end
 		poster.Size = UDim2.fromOffset(posterW, posterH)
-		stamp.Size = UDim2.fromOffset(posterW * 0.88, posterH * 0.12)
-		stamp.Position = UDim2.fromOffset(poster.Position.X.Offset + posterW / 2, poster.Position.Y.Offset + posterH * 0.47)
+		-- Centred on the portraits' lower edge (about 0.47) plus a little, so even tilted it stays below the faces and above the title.
+		stamp.Size = UDim2.fromOffset(posterW * 0.8, posterH * 0.1)
+		stamp.Position = UDim2.fromOffset(poster.Position.X.Offset + posterW / 2, poster.Position.Y.Offset + posterH * 0.5)
 		burst.Position = UDim2.fromOffset(poster.Position.X.Offset + posterW / 2, poster.Position.Y.Offset + posterH / 2)
 		burst.Size = UDim2.fromOffset(posterH * 2.6, posterH * 2.6)
 		streak.Position = stamp.Position

@@ -2,10 +2,12 @@
 -- Mascots screen (rules in Shared/Mascots, checks in src/server/MascotService). At the top, the
 -- mascot following you turns on a spotlight in its rarity color, with a button to hide or show it.
 -- Under it, a picture card for each of the six with its buff: owned ones say EQUIP (or EQUIPPED),
--- the others a BUY button with their Cash price (grey until you can afford it). The spotlight
+-- the others two buy buttons: their Cash price (grey until you can afford it) and their Robux
+-- price (Roblox's purchase prompt; "soon" until the product is set up in Shared/Mascots). The spotlight
 -- counts down the buff's warm-up after a swap (Mascots.WarmUp).
 -- A new mascot says so at the bottom of the screen and puts a red badge on the Mascots button
 -- until the screen is opened. The client only names the mascot it wants; the server checks it.
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -13,6 +15,7 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local ShopUi = require(script.Parent.ShopUi)
 local SideMenu = require(script.Parent.SideMenu)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -62,6 +65,8 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 	local stopSpin: (() -> ())? = nil
 	local fresh: { [string]: boolean } = {} -- earned this session and not seen on the screen yet
 
+	local update: () -> ()
+
 	local function build()
 		local unlocked = unlockedSet(player)
 		local equipped = player:GetAttribute("Mascot")
@@ -72,7 +77,17 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 		for _, m in Mascots.List do
 			affordable[m.id] = wallet >= m.price
 		end
-		local signature = UiKit.signature({ unlocked = unlocked, current = current, affordable = affordable, since = player:GetAttribute("MascotSince"), compact = UiKit.isCompact() } :: any)
+		-- Robux prices arrive from Roblox a moment after the screen first opens; each one rebuilds it.
+		local robux: { [string]: number } = {}
+		for _, m in Mascots.List do
+			local id = m.product
+			if id ~= nil and id ~= 0 and not unlocked[m.id] then
+				robux[m.id] = ShopUi.productPrice(id, function()
+					update()
+				end) or -1
+			end
+		end
+		local signature = UiKit.signature({ unlocked = unlocked, current = current, affordable = affordable, robux = robux, restricted = player:GetAttribute("PaidRandomRestricted"), since = player:GetAttribute("MascotSince"), compact = UiKit.isCompact() } :: any)
 		if signature == shown then
 			return
 		end
@@ -204,9 +219,13 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 					Sfx.play("reward")
 				end)
 			else
-				-- For sale: the price, green once you can afford it. The server checks the Cash.
+				-- For sale, two ways: Cash (green once you can afford it; the server checks the Cash)
+				-- and Robux (Roblox's prompt; ShopService grants it from the receipt). Robux is left
+				-- off for Luck mascots where paid random items are restricted.
 				local canBuy = affordable[m.id] == true
-				local shop = makeButton(card, `BUY ${Hud.comma(m.price)}`, if canBuy then UiKit.GREEN else UiKit.DISABLED, actionSize, actionPos)
+				local withRobux = not Mascots.randomItems(m) or player:GetAttribute("PaidRandomRestricted") == false
+				local cashSize = if withRobux then UDim2.fromScale(0.42, 0.19) else actionSize
+				local shop = makeButton(card, if withRobux then `${Hud.comma(m.price)}` else `BUY ${Hud.comma(m.price)}`, if canBuy then UiKit.GREEN else UiKit.DISABLED, cashSize, actionPos)
 				shop.Name = "Buy"
 				shop.ZIndex = 3
 				UiKit.textConstraint(shop, 20)
@@ -215,6 +234,21 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 						buy:FireServer(m.id)
 					end
 				end)
+				if withRobux then
+					local id = m.product or 0
+					local price = robux[m.id]
+					local ready = id ~= 0 and price ~= nil and price >= 0
+					local label = if id == 0 then "R$ soon" elseif ready then `R$ {Hud.comma(price :: number)}` else "R$ ..."
+					local pay = makeButton(card, label, if ready then UiKit.GOLD else UiKit.DISABLED, UDim2.fromScale(0.42, 0.19), UDim2.fromScale(0.51, 0.78))
+					pay.Name = "BuyRobux"
+					pay.ZIndex = 3
+					UiKit.textConstraint(pay, 20)
+					pay.Activated:Connect(function()
+						if ready then
+							MarketplaceService:PromptProductPurchase(player, id)
+						end
+					end)
+				end
 			end
 		end
 	end
@@ -234,7 +268,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 			refreshBadge()
 		end
 	end)
-	local function update()
+	update = function()
 		if panel.Visible then
 			build()
 		end
@@ -267,6 +301,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 	player:GetAttributeChangedSignal("Mascot"):Connect(update)
 	player:GetAttributeChangedSignal("Cash"):Connect(update) -- rebuilds only when a price becomes affordable
 	player:GetAttributeChangedSignal("MascotSince"):Connect(update)
+	player:GetAttributeChangedSignal("PaidRandomRestricted"):Connect(update)
 	task.spawn(function()
 		while true do
 			task.wait(1)

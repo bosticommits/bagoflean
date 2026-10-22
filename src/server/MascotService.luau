@@ -1,6 +1,7 @@
 --!strict
--- Studio mascots (rules in Shared/Mascots). The server sells mascots for Cash, records which ones a
--- player owns and which one they show; CastingService, MovieService and EconomyService read the
+-- Studio mascots (rules in Shared/Mascots). The server sells mascots for Cash (here) or Robux
+-- (ShopService's receipt calls MascotService.grantBought), records which ones a player owns and
+-- which one they show; CastingService, MovieService and EconomyService read the
 -- equipped mascot's buff from the save through Mascots.boost. Every client draws every player's
 -- mascot from attributes on the player:
 --   "Mascot"          the equipped mascot's id ("" when they hid it)
@@ -56,6 +57,13 @@ local function equip(player: Player, data: any, id: string)
 	MascotService.refresh(player)
 end
 
+local function own(data: any, mascot: Mascots.Mascot)
+	if type(data.mascotsOwned) ~= "table" then
+		data.mascotsOwned = {}
+	end
+	data.mascotsOwned[mascot.id] = true
+end
+
 local function allow(player: Player): boolean
 	local now = os.clock()
 	if now - (lastEquip[player] or -math.huge) < MIN_GAP then
@@ -83,7 +91,7 @@ function MascotService.start()
 		equip(player, data, id)
 	end)
 
-	-- Buying a mascot spends its price once and puts it straight out.
+	-- Buying a mascot with Cash spends its price once and puts it straight out.
 	Remotes.get("BuyMascot").OnServerEvent:Connect(function(player: Player, id: any)
 		if type(id) ~= "string" or #id > 40 or not allow(player) then
 			return
@@ -96,13 +104,31 @@ function MascotService.start()
 		if not EconomyService.spendCash(player, mascot.price, "Mascot:" .. mascot.id) then
 			return
 		end
-		if type(data.mascotsOwned) ~= "table" then
-			data.mascotsOwned = {}
-		end
-		data.mascotsOwned[mascot.id] = true
+		own(data, mascot)
 		equip(player, data, mascot.id)
 		MascotService.refresh(player)
 	end)
+end
+
+-- A Robux purchase of `mascot` (inside ShopService's once-only receipt grant): marks it owned and
+-- returns "mascot". If they already own it (they bought it with Cash while the Robux prompt was
+-- open), they get its Cash price instead and it returns "cash", so a payment is never wasted.
+function MascotService.grantBought(player: Player, data: any, mascot: Mascots.Mascot): string
+	if Mascots.owns(mascot, data) then
+		EconomyService.addCash(player, mascot.price, "IAP", "Mascot:" .. mascot.id)
+		return "cash"
+	end
+	own(data, mascot)
+	return "mascot"
+end
+
+-- After a Robux mascot is saved: put it straight out, like a Cash purchase.
+function MascotService.afterBought(player: Player, mascot: Mascots.Mascot, result: string)
+	local data: any = DataService.getData(player)
+	if data ~= nil and result == "mascot" then
+		equip(player, data, mascot.id)
+	end
+	MascotService.refresh(player)
 end
 
 function MascotService.forget(player: Player)
