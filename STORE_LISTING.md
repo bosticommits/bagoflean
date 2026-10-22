@@ -17,7 +17,7 @@ Paste this into the Description field (about 860 characters, under Roblox's 1,00
 🎬 Run your own film studio and become a Hollywood legend!
 
 ⭐ CAST RARE ACTORS
-Hold Casting Calls to discover 21 original actors, from Nervous Intern to the 1 in 1,000,000 Icons like The Mogul's Muse. Find Shiny and Award-Winning versions too!
+Hold Casting Calls to discover 21 original actors, from Nervous Intern to the 1 in 1,000,000 Icons like the Golden Muse. Find Shiny and Award-Winning versions too!
 
 🎥 MAKE MOVIES
 Pick a script, cast up to 3 stars and start filming. Your movies keep filming while you're offline!
