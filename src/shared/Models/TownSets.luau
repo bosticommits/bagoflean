@@ -12,6 +12,7 @@
 -- a focal point (lamps, lanterns, the theatre marquee), and small parts cast no shadow
 -- (MapModels.build).
 local Build = require(script.Parent.Build)
+local FilmScenes = require(script.Parent.Parent.FilmScenes)
 local LotModels = require(script.Parent.LotModels)
 local MapKit = require(script.Parent.MapKit)
 
@@ -284,7 +285,7 @@ end
 -- Dusty Gulch: a western film town, about 160 wide and 150 long. A welcome arch over the road in,
 -- a dusty main street with eight false-front buildings on boardwalks (saloon, bank, sheriff, hotel
 -- and more), hitching rails, barrels and crates, a corral, a covered wagon, a water tank, blocky
--- mesas and cacti, and a film crew shooting at the far end.
+-- mesas and cacti, and a film crew shooting scenes by the hotel (Dusty Gulch is the first film set).
 function TownSets.westernTown(b: Builder)
 	local length = 150
 	b:block("DesertGround", v(170, 0.1, length + 6), v(0, 0.05, length / 2 + 3), SAND)
@@ -384,12 +385,17 @@ function TownSets.westernTown(b: Builder)
 		MapKit.place(b, "Mesa", CFrame.new(info.at) * yaw(i * 33), { scale = info.size })
 	end
 
-	-- At the far end, a film crew shoots a showdown: a camera on a crane, a light and chairs.
-	local crew = b:sub(CFrame.new(0, 0.2, 140) * yaw(180))
-	MapKit.place(crew, "CameraCrane", CFrame.identity, { scale = 1.3 })
-	directorChair(crew, CFrame.new(-7, 0, 4) * yaw(180), "DIRECTOR")
-	directorChair(crew, CFrame.new(7, 0, 4) * yaw(180), nil)
-	MapKit.place(crew, "LightStand", CFrame.new(-10, 0, -2) * yaw(20))
+	-- The film set's gear in the street by the hotel: a camera on a crane filming across at the
+	-- balcony, the director's chair, a light, and hay bales for the stunt double to land on. The
+	-- crew and the actors themselves are puppets each player's game moves (FilmScenes, FilmSetWorld).
+	for _, gear in FilmScenes.Gear do
+		local at = CFrame.new(gear.at) * yaw(gear.yaw)
+		if gear.kit == "DirectorChair" then
+			directorChair(b, at, gear.label)
+		else
+			MapKit.place(b, gear.kit, at)
+		end
+	end
 end
 
 -- Starlight Park ---------------------------------------------------------------------------------
