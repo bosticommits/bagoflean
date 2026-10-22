@@ -16,7 +16,7 @@ export type Style = {
 }
 
 PremiereNight.Styles = table.freeze({
-	Flop = { icon = "popcorn", flashes = 0, tilt = -16, shine = false, beams = "down", rainbow = false },
+	Flop = { icon = "popcorn", flashes = 0, tilt = -9, shine = false, beams = "down", rainbow = false },
 	Hit = { icon = "ticket", flashes = 6, tilt = -8, shine = false, beams = "swing", rainbow = false },
 	Blockbuster = { icon = "star", flashes = 12, tilt = -8, shine = true, beams = "party", rainbow = false },
 	Cult = { icon = "crown", flashes = 14, tilt = -10, shine = true, beams = "party", rainbow = false },

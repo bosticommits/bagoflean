@@ -139,6 +139,38 @@ function scenes.map(folder, load)
 	MapModels.build(folder)
 end
 
+-- The town (no lots) with the Dusty Gulch film crew posed at `arg` seconds into the takes (the
+-- way FilmSetWorld moves them in the game).
+function scenes.filmset(folder, load, roblox, arg)
+	local MapModels = load("src/shared/Models/MapModels.luau")
+	local FilmScenes = load("src/shared/FilmScenes.luau")
+	local CrewRig = load("src/shared/Models/CrewRig.luau")
+	MapModels.build(folder)
+	local frame = FilmScenes.frame(tonumber(arg) or 0)
+	local crew = roblox.Instance.new("Folder")
+	crew.Parent = folder
+	for _, who in FilmScenes.Cast do
+		local rig = CrewRig.build(crew, who)
+		local pose = frame.poses[who]
+		if pose.hidden then
+			rig.model.Parent = nil
+		else
+			for key, cf in CrewRig.cframes(MapModels.GulchFrame, pose, frame.stick) do
+				local piece = rig.model:FindFirstChild(key, true)
+				if piece ~= nil then
+					piece.WorldPivot = cf
+					piece.Parent = rig.model -- the clapper's stick lives in the board's model
+				end
+				local prop = rig.props[key]
+				if prop ~= nil then
+					prop.Parent = rig.model
+					prop.WorldPivot = cf
+				end
+			end
+		end
+	end
+end
+
 -- The special event props (EventModels): the Lucky Star (smaller than in the game), a Cash Rain
 -- coin, the Mystery Crate on its parachute, and an opened crate inside its reach ring.
 function scenes.events(folder, load, roblox)

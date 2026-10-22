@@ -309,13 +309,18 @@ def main():
     results = []
     for actor_id, file_name, builder in ACTORS:
         bpy.ops.wm.read_factory_settings(use_empty=True)
-        obj, flat = kit.build(actor_id, builder)
+        # Seasonal actors don't move, so each is one piece (Body): one mesh named after the actor.
+        objs, flat, pieces = kit.build(actor_id, builder)
+        assert len(objs) == 1, f"{actor_id} should be one piece"
+        obj = objs[0]
+        obj.name = actor_id
         tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
-        lo, hi = kit.bounds(obj)
+        lo, hi = kit.bounds(objs)
         size = hi - lo
         print(f"{actor_id}: {tris} tris, {size.x:.1f} x {size.y:.1f} x {size.z:.1f} studs")
         assert tris <= 10000, f"{actor_id} is over its triangle budget"
-        results.append((actor_id, flat, (lo, hi)))
+        pieces[0]["bounds"] = (lo, hi)
+        results.append((actor_id, flat, (lo, hi), pieces))
         if only and only != actor_id:
             continue
         mmkit.bake_vertex_colors(obj.data)
@@ -329,7 +334,7 @@ def main():
         bpy.ops.wm.read_factory_settings(use_empty=True)
         objs = []
         for i, (actor_id, _, builder) in enumerate(ACTORS):
-            obj, _ = kit.build(actor_id, builder)
+            obj = kit.build(actor_id, builder)[0][0]
             obj.location = (STUD * (i - 1.5) * 3.6, 0, 0)
             obj.rotation_euler = (0, 0, math.radians(-14 + i * 9))
             objs.append(obj)

@@ -42,6 +42,10 @@ SHOTS = {
     "backlot": ((-298, 46, -96), (-182, 0, 0), 30),
     "lanterns": ((10, 6, -158), (-14, 6, -208), 30),
     "desert": ((0, 40, -258), (0, 10, -428), 30),
+    "filmgate": ((0, 8, -100), (0, 6, -140), 30),
+    "filmset": ((-6, 8, -212), (2, 4, -242), 30),
+    "filmsetwide": ((0, 46, -196), (2, 3, -242), 30),
+    "filmbalcony": ((-8, 7, -220), (10, 7, -242), 26),
 }
 
 
@@ -51,7 +55,9 @@ def roblox(p):
 
 
 def main(names):
-    parts = [p for p in kit.dump("map") if p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
+    # MAP_SCENE=filmset MAP_ARG=<seconds> draws the town with the film crew posed at that moment.
+    scene = os.environ.get("MAP_SCENE", "map")
+    parts = [p for p in kit.dump(scene, os.environ.get("MAP_ARG")) if p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
     kit.new_scene(1280, 720, samples=48)
     kit.sky(top="#4A86E0", middle="#8FBDF2", horizon="#F4E6CF", glow="#FFD9A8", strength=1.0, light_strength=0.8)
     kit.light("SUN", (0, 0, 100), 3.2, "#FFF1DC", target=(-40, -60, 0), angle=4, name="Sun")

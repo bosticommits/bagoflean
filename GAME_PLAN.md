@@ -352,8 +352,9 @@ exciting by M3, fix the core before adding anything else.
   screen. Your mascot follows you round town, trotting a step behind your right shoulder and
   hopping as it walks, and jumps a moment after you jump; every player on the server sees
   everyone's mascot.
-- **Bought with Cash, small capped buffs.** The Popcorn Pup is free; the others are bought once
-  with in-game Cash and kept through rebirths (never sold for Robux). Each gives one capped buff
+- **Bought with Cash or Robux, small capped buffs.** The Popcorn Pup is free; the others are
+  bought once, with in-game Cash or with Robux (a developer product each, same mascot and buff),
+  and kept through rebirths. Each gives one capped buff
   while it is out (only one mascot counts, and a buff starts 30 seconds after equipping). Prices,
   caps and what they cost the curve are in ECONOMY.md ("Mascot buffs"):
 
@@ -367,8 +368,9 @@ exciting by M3, fix the core before adding anything else.
   | Premiere Dragon (red-carpet colors) | Legend | $5,000,000 | +20% movie Cash |
 
 - **Screen**: your mascot turns on a spotlight in its rarity color, with HIDE to put it away. Under
-  it, a picture card for each mascot with its buff: EQUIP or EQUIPPED for owned ones, BUY with the
-  price for the rest (green once you can afford it). Buying one puts it straight out and says
+  it, a picture card for each mascot with its buff: EQUIP or EQUIPPED for owned ones, and for the rest a
+  Cash button (green once you can afford it) beside a Robux button ("R$ soon" until its product
+  id is set in `src/shared/Mascots.luau`). Buying one puts it straight out and says
   "New mascot: Reel Kitty!" with a jingle. Under your mascot, its buff and "starts in 25s" or
   "active".
 - **Models**: every mascot is a Blender design (`art/blender/mascots.py`: chunky toy shapes with

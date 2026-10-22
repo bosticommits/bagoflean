@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
+local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
@@ -61,6 +62,7 @@ function CastingService.castLuck(player: Player): number
 		luck *= eventLuck
 	end
 	luck *= 1 + Mascots.boost(data, "luck", now)
+	luck *= 1 + FilmSets.luck(data)
 	return luck
 end
 

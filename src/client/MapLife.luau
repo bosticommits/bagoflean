@@ -18,7 +18,6 @@ local MapLife = {}
 
 local TAU = math.pi * 2
 local EDGE = MapModels.Layout.fenceZ + 1 -- where the park and the Gulch start
-local POND = TownSets.Pond + Vector3.new(0, 0, EDGE) -- the park is built from z = EDGE
 
 type Mover = (t: number) -> ()
 
@@ -98,43 +97,55 @@ local function butterflies(folder: Instance, movers: { Mover })
 	end
 end
 
--- The park's ducks paddle slow loops on the pond: the big one with its duckling behind, and
--- one on its own, clear of the island and the bridge.
-local DUCK_LOOPS = {
-	{ centre = Vector3.new(11, 0.5, -9), radius = 5, lap = 40, lag = 0 },
-	{ centre = Vector3.new(11, 0.5, -9), radius = 5, lap = 40, lag = 0.55 },
-	{ centre = Vector3.new(-14, 0.5, -12), radius = 4, lap = 32, lag = 2 },
-}
-
--- Calls `found(model, n)` for each of the town's models called `name`, the nth found, now and as
--- more arrive (with streaming, far parts of the map reach a player later).
-local function each(town: Instance, name: string, found: (Model, number) -> ())
-	local count = 0
-	local function check(item: Instance)
-		if item:IsA("Model") and item.Name == name then
-			count += 1
-			found(item, count)
-		end
-	end
-	for _, item in town:GetDescendants() do
-		check(item)
-	end
-	town.DescendantAdded:Connect(check)
-end
-
+-- The park's ducks paddle slow loops on the pond (TownSets.DuckLoops). Each duck carries its loop
+-- number, the pond's middle and where it was put (attributes set by TownSets), so it stays on the
+-- water wherever the park is. Its parts are moved one by one, from where each one arrived: with
+-- streaming, a part can leave and come back at the spot the server put it, and moving the model by
+-- its pivot would then carry that part off the pond.
 local function ducks(town: Instance, movers: { Mover })
-	each(town, "Duck", function(model, index)
-		local loop = DUCK_LOOPS[index]
-		if loop == nil then
+	local seen: { [Instance]: boolean } = {}
+	local function found(model: Instance)
+		if seen[model] or not model:IsA("Model") or model.Name ~= "Duck" then
 			return
 		end
+		local loop = TownSets.DuckLoops[model:GetAttribute("DuckLoop") :: number? or 0]
+		local centre = model:GetAttribute("PondCentre")
+		local home = model:GetAttribute("Home")
+		if loop == nil or typeof(centre) ~= "Vector3" or typeof(home) ~= "CFrame" then
+			return
+		end
+		seen[model] = true
+		-- Each part's place relative to the duck, taken as it arrives (still where the server put it).
+		local offsets: { [BasePart]: CFrame } = {}
+		local function track(part: Instance)
+			if part:IsA("BasePart") and not offsets[part] then
+				offsets[part] = home:ToObjectSpace(part.CFrame)
+			end
+		end
+		for _, part in model:GetDescendants() do
+			track(part)
+		end
+		model.DescendantAdded:Connect(track)
+		model.DescendantRemoving:Connect(function(part)
+			if part:IsA("BasePart") then
+				offsets[part] = nil
+			end
+		end)
+		local index = model:GetAttribute("DuckLoop") :: number
 		table.insert(movers, function(t)
 			local a = t / loop.lap * TAU - loop.lag
 			local bob = math.sin(t * 2 + index) * 0.05
-			local at = POND + loop.centre + Vector3.new(math.sin(a) * loop.radius, bob, math.cos(a) * loop.radius)
-			model:PivotTo(facing(at, Vector3.new(math.cos(a), 0, -math.sin(a))))
+			local at = centre + loop.centre + Vector3.new(math.sin(a) * loop.radius, bob, math.cos(a) * loop.radius)
+			local pose = facing(at, Vector3.new(math.cos(a), 0, -math.sin(a)))
+			for part, offset in offsets do
+				part.CFrame = pose * offset
+			end
 		end)
-	end)
+	end
+	for _, item in town:GetDescendants() do
+		found(item)
+	end
+	town.DescendantAdded:Connect(found)
 end
 
 function MapLife.start()
