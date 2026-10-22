@@ -16,7 +16,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
 | `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |
 | `src/shared/Models/Walkways.luau` | Where players may walk, and the invisible walls along the path borders |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `festival_laurel` (the Film Festival prize that stands on a player's lot), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), `seasonal_actors` (the four limited seasonal actors, built with the mascots' shapes; it writes `src/shared/Models/SeasonalShapes.luau` the same way), `actors` (the 21 castable actors, each split into rig pieces Body, Head, ArmL, ArmR and a rarity-colored Base; it also writes `src/shared/Models/ActorShapes.luau`, the part version the game shows until the meshes are imported, and `art/previews/actors_blender.png`), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), `crew_kit.py` the film set crew and actors (six people in rig pieces: head, torso, arm, leg), their props and the film set gate, all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `festival_laurel` (the Film Festival prize that stands on a player's lot), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), `seasonal_actors` (the four limited seasonal actors, built with the mascots' shapes; it writes `src/shared/Models/SeasonalShapes.luau` the same way), `actors` (the 21 castable actors, each split into rig pieces Body, Head, ArmL, ArmR and a rarity-colored Base; it also writes `src/shared/Models/ActorShapes.luau`, the part version the game shows until the meshes are imported, and `art/previews/actors_blender.png`), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), `crew_kit.py` the film set crew and actors (ten people in rig pieces: head, torso, arm, leg), their props and the film set gate, `space_kit.py` Moon Base's rocket, lander, dome, buggy, rocks, craters and backdrop, `jungle_kit.py` the Jungle Temple and its trees, palms, ferns, torches and ruins, all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -44,7 +44,7 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
 - **Poster columns** on the sidewalks and a hazy **city skyline** behind the hills.
 - The town's palm trees and searchlights switch to the Blender meshes too, once imported.
 - **Walk anywhere inside the map**: the town inside its hedge, the theatre forecourt, the Studio
-  Gate road, Starlight Park and Dusty Gulch (`MapModels.PlayAreas`; add a rectangle there to open
+  Gate road, Starlight Park, Dusty Gulch, Moon Base and the Jungle Temple (`MapModels.PlayAreas`; add a rectangle there to open
   up a new area). One tall invisible wall (`MapWall`, 400 studs) runs round the outside of all of
   it, so nobody can jump out over a hedge or a gate; there are no walls inside. Trees, rocks and
   buildings stay solid.
@@ -54,12 +54,15 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   sign text is lettered on named spots, so it stays sharp.
 - **Life** (`src/client/MapLife.luau`, each player's own copy): gulls gliding in flocks, clouds
   drifting overhead, butterflies over the park and ducks paddling on the pond.
-- **Film sets** (`src/client/FilmSetWorld.luau`, each player's own copy): on the Dusty Gulch set a
-  film crew (`CrewRig`, Blender pieces from `crew_kit.py`) shoots two scenes from
-  `src/shared/FilmScenes.luau`, a showdown and a balcony stunt, timed by the server clock so
-  everyone sees the same take. The gate on the way in is bought with Cash; it opens on the
-  owner's screen only. Preview a moment with `MAP_SCENE=filmset MAP_ARG=<seconds>` and the
-  `filmset`, `filmbalcony`, `filmsetwide` or `filmgate` shots.
+- **Film sets** (`src/client/FilmSetWorld.luau`, each player's own copy): a film crew (`CrewRig`,
+  Blender pieces from `crew_kit.py`) shoots on each set from `src/shared/FilmScenes.luau`, timed
+  by the server clock so everyone sees the same take. Dusty Gulch has a showdown and a balcony
+  stunt; Moon Base (`space_kit.py`) has an astronaut planting a flag with an alien sneaking up;
+  the Jungle Temple (`jungle_kit.py`) has an explorer grabbing an idol and outrunning a boulder.
+  The gate on the way in is bought with Cash; it opens on the owner's screen only. Preview a
+  moment with `MAP_SCENE=filmset MAP_ARG=<set id>:<seconds>` (`Gulch`, `MoonBase`, `Jungle`) and
+  the `filmset`, `filmbalcony`, `filmsetwide`, `filmgate`, `moonset`, `moonwide`, `moongate`,
+  `jungleset`, `junglewide` or `junglegate` shots.
 - **Scenery**: woods of trees, pines and bushes round the town and behind the park, a desert of
   cacti, boulders and mesas behind Dusty Gulch, trees up the hills, and a ring of terrain
   mountains (snowy peaks, sandstone mesas behind the Gulch) on the horizon.

@@ -139,23 +139,33 @@ function scenes.map(folder, load)
 	MapModels.build(folder)
 end
 
--- The town (no lots) with the Dusty Gulch film crew posed at `arg` seconds into the takes (the
--- way FilmSetWorld moves them in the game).
+-- The town (no lots) with a film set's crew posed at a moment of its takes (the way FilmSetWorld
+-- moves them in the game). `arg` is "<set id>:<seconds>" (MoonBase:8), or just seconds for the Gulch.
 function scenes.filmset(folder, load, roblox, arg)
 	local MapModels = load("src/shared/Models/MapModels.luau")
+	local MapKit = load("src/shared/Models/MapKit.luau")
+	local Build = load("src/shared/Models/Build.luau")
 	local FilmScenes = load("src/shared/FilmScenes.luau")
 	local CrewRig = load("src/shared/Models/CrewRig.luau")
 	MapModels.build(folder)
-	local frame = FilmScenes.frame(tonumber(arg) or 0)
+	local id, seconds = string.match(arg or "", "^(%a+):([%d%.]+)$")
+	id = id or "Gulch"
+	local base
+	for _, info in MapModels.FilmSets do
+		if info.id == id then
+			base = info.frame
+		end
+	end
+	local frame = FilmScenes.frame(id, tonumber(seconds or arg) or 0)
 	local crew = roblox.Instance.new("Folder")
 	crew.Parent = folder
-	for _, who in FilmScenes.Cast do
+	for _, who in FilmScenes.Sets[id].cast do
 		local rig = CrewRig.build(crew, who)
 		local pose = frame.poses[who]
 		if pose.hidden then
 			rig.model.Parent = nil
 		else
-			for key, cf in CrewRig.cframes(MapModels.GulchFrame, pose, frame.stick) do
+			for key, cf in CrewRig.cframes(base, pose, frame.stick) do
 				local piece = rig.model:FindFirstChild(key, true)
 				if piece ~= nil then
 					piece.WorldPivot = cf
@@ -168,6 +178,10 @@ function scenes.filmset(folder, load, roblox, arg)
 				end
 			end
 		end
+	end
+	local b = Build.new(crew, roblox.CFrame.identity)
+	for kit, at in frame.things do
+		MapKit.place(b, kit, base * at, { solid = false })
 	end
 end
 

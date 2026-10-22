@@ -46,6 +46,12 @@ SHOTS = {
     "filmset": ((-6, 8, -212), (2, 4, -242), 30),
     "filmsetwide": ((0, 46, -196), (2, 3, -242), 30),
     "filmbalcony": ((-8, 7, -220), (10, 7, -242), 26),
+    "moongate": ((66, 9, -209), (110, 6, -209), 30),
+    "moonset": ((120, 13, -224), (156, 5, -208), 30),
+    "moonwide": ((98, 40, -209), (152, 3, -209), 30),
+    "junglegate": ((-78, 9, 168), (-120, 6, 168), 30),
+    "jungleset": ((-148, 10, 192), (-194, 9, 192), 30),
+    "junglewide": ((-120, 40, 192), (-182, 4, 192), 30),
 }
 
 
@@ -55,7 +61,7 @@ def roblox(p):
 
 
 def main(names):
-    # MAP_SCENE=filmset MAP_ARG=<seconds> draws the town with the film crew posed at that moment.
+    # MAP_SCENE=filmset MAP_ARG=<set id>:<seconds> draws the town with that set's crew posed at that moment.
     scene = os.environ.get("MAP_SCENE", "map")
     parts = [p for p in kit.dump(scene, os.environ.get("MAP_ARG")) if p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
     kit.new_scene(1280, 720, samples=48)

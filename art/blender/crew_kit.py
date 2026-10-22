@@ -19,7 +19,7 @@ blocky heads, bevelled outfits, a few bold details that say who they are.
 Blender axes, in studs: Z up, the model faces -Y.
 """
 
-from kitdsl import B, C, E, K, S, T, shade  # noqa: F401
+from kitdsl import B, C, E, K, L, S, T, shade  # noqa: F401
 
 
 def BV(at, size, color, rot=(0, 0, 0), bevel=0.08, neon=False):
@@ -36,6 +36,7 @@ SKIN = {
     "tan": "#D6A06E",
     "brown": "#A56C44",
     "deep": "#70462C",
+    "alien": "#7CD65A",
 }
 
 # Who wears what: skin, shirt, sleeves, pants, shoes.
@@ -45,7 +46,13 @@ PEOPLE = {
     "Operator": {"skin": "tan", "shirt": "#2E86DE", "sleeve": "#2E86DE", "pants": "#3E5C8A", "shoes": "#2E2C34"},
     "Sheriff": {"skin": "fair", "shirt": "#E8D9B0", "sleeve": "#E8D9B0", "pants": "#6A5440", "shoes": "#7A5434"},
     "Outlaw": {"skin": "light", "shirt": "#3A3440", "sleeve": "#3A3440", "pants": "#2E2C34", "shoes": "#2A1E18"},
-    "Stunt": {"skin": "deep", "shirt": "#FF8C28", "sleeve": "#FF8C28", "pants": "#FF8C28", "shoes": "#2E2C34"},
+    "Stunt": {"skin": "deep", "shirt": "#FF8C28", "sleeve": "#FF8C28", "pants": "#FF8C28", "shoes": "#2E2C34", "hand": "#2E2C34"},
+    # The Moon Base set.
+    "Astronaut": {"skin": "tan", "shirt": "#F2F2F0", "sleeve": "#F2F2F0", "pants": "#F2F2F0", "shoes": "#9AA0AA", "hand": "#F2F2F0"},
+    "Alien": {"skin": "alien", "shirt": "#7CD65A", "sleeve": "#7CD65A", "pants": "#5BB040", "shoes": "#3E8A2E"},
+    # The Jungle Temple set.
+    "Explorer": {"skin": "fair", "shirt": "#D8C49A", "sleeve": "#D8C49A", "pants": "#8A6A44", "shoes": "#5A3A24"},
+    "Guide": {"skin": "brown", "shirt": "#5BBF5A", "sleeve": "#5BBF5A", "pants": "#C8B48C", "shoes": "#5A3A24"},
 }
 
 
@@ -62,13 +69,18 @@ def leg(who):
         s += [BV((0, 0, -1.3), (0.9, 0.98, 0.7), p["shoes"]), B((0, -0.5, -1.0), (0.5, 0.06, 0.1), "Gold")]
     if who == "Stunt":
         s.append(BV((0, -0.48, -0.9), (0.6, 0.08, 0.45), "#2E2C34"))  # knee pad
+    if who == "Astronaut":
+        # Chunky moon boots with an orange band.
+        s += [BV((0, 0, -1.45), (0.98, 1.06, 0.9), "#D7DAE1", bevel=0.14), B((0, 0, -1.05), (1.0, 1.08, 0.14), "Orange")]
+    if who == "Explorer":
+        s.append(BV((0, 0, -1.35), (0.92, 1.0, 0.6), "#5A3A24"))  # lace-up boots
     return s
 
 
 def arm(who):
     """An arm hanging from the shoulder joint: sleeve, cuff and hand (a glove for the stunt double)."""
     p = PEOPLE[who]
-    hand = "#2E2C34" if who == "Stunt" else SKIN[p["skin"]]
+    hand = p.get("hand", SKIN[p["skin"]])
     return [
         BV((0, 0, -0.65), (0.6, 0.7, 1.3), p["sleeve"]),
         B((0, 0, -1.28), (0.64, 0.74, 0.12), shade(p["sleeve"], 0.15)),
@@ -130,6 +142,42 @@ def torso(who):
         # A racing jumpsuit with white stripes down the front.
         s += [B((x, -0.51, 1.0), (0.18, 0.05, 1.6), "OffWhite") for x in (-0.3, 0.3)]
         s.append(BV((0, 0, 0.15), (1.86, 1.06, 0.32), "#2E2C34"))
+    elif who == "Astronaut":
+        # A chest control box with lights, a mission patch, and an air pack on the back.
+        s += [
+            BV((0, -0.56, 1.2), (0.9, 0.18, 0.6), "#9AA0AA"),
+            E((-0.25, -0.66, 1.25), (0.08, 0.04, 0.08), "Carpet", neon=True),
+            E((0.0, -0.66, 1.25), (0.08, 0.04, 0.08), "Light", neon=True),
+            E((0.25, -0.66, 1.25), (0.08, 0.04, 0.08), "Teal", neon=True),
+            C((-0.6, -0.52, 1.55), 0.16, 0.06, "Blue", rot=(90, 0, 0), seg=10),
+            BV((0, 0.75, 1.05), (1.4, 0.6, 1.5), "#D7DAE1", bevel=0.12),
+            C((0.4, 0.75, 1.9), 0.1, 0.3, "#9AA0AA", seg=6),
+            BV((0, 0, 0.15), (1.86, 1.06, 0.32), "#9AA0AA"),
+        ]
+    elif who == "Alien":
+        # A shiny silver collar and belt: a costume from the props department.
+        s += [
+            C((0, 0, 1.86), 0.6, 0.16, "Chrome", seg=12),
+            BV((0, 0, 0.15), (1.86, 1.06, 0.32), "Chrome"),
+            E((0, -0.53, 1.1), (0.25, 0.05, 0.25), "Purple", neon=True),
+        ]
+    elif who == "Explorer":
+        # A leather jacket over the shirt, a satchel strap and a coiled whip on the belt.
+        for x in (-0.6, 0.6):
+            s.append(BV((x, -0.03, 1.0), (0.62, 1.08, 1.7), "#7A5434"))
+        s += [
+            B((0, -0.56, 1.0), (0.2, 0.06, 1.9), "#5A3A24", rot=(0, 40, 0)),
+            BV((0, 0, 0.15), (1.9, 1.08, 0.34), "#5A3A24"),
+            C((-0.98, 0, 0.25), 0.32, 0.2, "#5A3A24", rot=(0, 90, 0), seg=10),
+        ]
+    elif who == "Guide":
+        # A many-pocket vest and a water flask.
+        s += [
+            BV((x, -0.53, 0.9), (0.4, 0.08, 0.35), "#3E8A2E") for x in (-0.45, 0.45)
+        ] + [
+            BV((0, 0, 0.15), (1.86, 1.06, 0.32), "#7A5434"),
+            C((0.98, 0, 0.45), 0.25, 0.6, "Steel", seg=8),
+        ]
     return s
 
 
@@ -197,6 +245,53 @@ def head(who):
             B((0, 0, 1.68), (1.4, 1.24, 0.16), "Carpet"),
             BV((0, -0.73, 0.25), (0.9, 0.05, 0.25), shade(skin, 0.2)),
         ]
+    elif who == "Astronaut":
+        s = face(skin, "smile")
+        s += [
+            # A round helmet with a gold visor (raised a little, so the face shows) and an
+            # antenna.
+            E((0, 0.05, 0.85), (1.05, 1.0, 1.05), "#F2F2F0"),
+            BV((0, -0.82, 0.8), (1.3, 0.12, 1.0), "Navy", bevel=0.1),
+            BV((0, -0.86, 1.45), (1.3, 0.16, 0.35), "Gold", bevel=0.08, rot=(-20, 0, 0)),
+            C((0.7, 0.2, 1.9), 0.05, 0.6, "#9AA0AA", seg=6),
+            E((0.7, 0.2, 2.25), (0.1, 0.1, 0.1), "Carpet", neon=True),
+        ]
+        # The face shows through the visor's open window.
+        s.append(B((0, -0.89, 0.8), (1.0, 0.04, 0.75), skin))
+        for x in (-0.3, 0.3):
+            s.append(B((x, -0.92, 0.88), (0.2, 0.04, 0.3), "#2E2C34"))
+        s.append(B((0, -0.92, 0.55), (0.4, 0.04, 0.08), "#782832"))
+    elif who == "Alien":
+        # A big green head with huge black eyes and two bobbly antennae.
+        s = [
+            BV((0, 0, 0.9), (1.7, 1.5, 1.8), skin, bevel=0.35),
+            BV((0, 0, 0.25), (1.2, 1.1, 0.5), skin, bevel=0.15),
+        ]
+        for x in (-0.42, 0.42):
+            s += [
+                E((x, -0.7, 1.05), (0.34, 0.1, 0.42), "#14121A", rot=(0, x * -40, 0)),
+                E((x - 0.1, -0.78, 1.2), (0.08, 0.04, 0.08), "OffWhite"),
+                C((x, 0, 2.05), 0.05, 0.6, skin, rot=(0, x * 30, 0), seg=6),
+                E((x * 1.5, 0, 2.35), (0.16, 0.16, 0.16), "Purple", neon=True),
+            ]
+        s.append(B((0, -0.74, 0.45), (0.35, 0.06, 0.07), "#2E5A22"))
+    elif who == "Explorer":
+        s = face(skin, "grin")
+        s += [
+            # A battered brown fedora and a bit of stubble.
+            C((0, 0, 1.56), 1.15, 0.1, "#7A5434", seg=14),
+            BV((0, 0, 1.9), (1.3, 1.2, 0.66), "#7A5434", bevel=0.2),
+            B((0, 0, 1.66), (1.34, 1.24, 0.16), "#2E2C34"),
+            BV((0, -0.73, 0.28), (0.9, 0.05, 0.22), shade(skin, 0.18)),
+        ]
+    elif who == "Guide":
+        s = face(skin, "smile")
+        s += [
+            # A cork safari helmet.
+            C((0, 0, 1.56), 1.1, 0.1, "#E8D9B0", seg=14),
+            E((0, 0, 1.7), (0.82, 0.78, 0.55), "#E8D9B0"),
+            B((0, 0, 1.62), (1.5, 1.42, 0.14), "#7A5434"),
+        ]
     else:  # Stunt
         s = face(skin, "smile")
         s += [
@@ -254,6 +349,46 @@ def clapper_stick():
     s += [B((-0.3 - i * 0.6, -0.09, 0.17), (0.3, 0.04, 0.34), "#2E2C34", rot=(0, 30, 0)) for i in range(4)]
     s.append(C((0, 0, 0.17), 0.1, 0.25, "Gold", rot=(90, 0, 0), seg=8))
     return s
+
+
+def flag():
+    """A flag on a pole, held by the pole's foot (the pole runs along -Z, the arm's way)."""
+    return [
+        C((0, 0, -2.5), 0.07, 5.0, "Chrome", seg=6),
+        BV((-1.2, 0, -4.4), (2.4, 0.06, 1.5), "Carpet", bevel=0.02),
+        B((-1.2, -0.04, -4.4), (2.2, 0.04, 0.3), "OffWhite"),
+        S((-0.6, -0.05, -4.75), 0.22, 0.04, "OffWhite"),
+        E((0, 0, -5.05), (0.12, 0.12, 0.12), "Gold"),
+    ]
+
+
+def idol():
+    """The golden idol: a squat statue with a big head, held from below (it sits along -Z)."""
+    return [
+        BV((0, 0, -0.25), (0.6, 0.6, 0.3), "Gold"),
+        BV((0, 0, -0.65), (0.5, 0.45, 0.5), "Gold"),
+        BV((0, 0, -1.15), (0.75, 0.65, 0.6), "Gold", bevel=0.12),
+        E((-0.15, -0.34, -1.2), (0.07, 0.03, 0.07), "Carpet", neon=True),
+        E((0.15, -0.34, -1.2), (0.07, 0.03, 0.07), "Carpet", neon=True),
+    ]
+
+
+def torch():
+    """A burning torch, held by the handle; the flame is at the far end (-Z)."""
+    return [
+        C((0, 0, -0.9), 0.1, 1.8, "#7A5434", seg=6),
+        K((0, 0, -1.85), 0.12, 0.22, 0.3, "#5A3A24", seg=8),
+        K((0, 0, -2.3), 0.22, 0.02, 0.7, "Flame", rot=(180, 0, 0), seg=8, neon=True),
+    ]
+
+
+def boulder():
+    """The rolling boulder, centred on the origin (FilmSetWorld rolls it about its middle)."""
+    return [
+        L((0, 0, 0), (3.2, 3.2, 3.2), "#8C8478", jitter=0.06),
+        L((1.2, -2.3, 1.2), (0.9, 0.9, 0.8), "#6E675E", jitter=0.08),
+        L((-1.6, 1.0, -1.8), (0.8, 0.9, 0.8), "#6E675E", jitter=0.08),
+    ]
 
 
 # --- Gate ---------------------------------------------------------------------------------------
@@ -315,6 +450,10 @@ KIT = [(f"Crew{who}{part}", _v(make, who)) for who in PEOPLE for part, make in R
     ("PropRevolver", revolver),
     ("PropClapper", clapper),
     ("PropClapperStick", clapper_stick),
+    ("PropFlag", flag),
+    ("PropIdol", idol),
+    ("PropTorch", torch),
+    ("PropBoulder", boulder),
     ("SetGate", set_gate),
     ("SetGateArm", set_gate_arm),
 ]
@@ -327,6 +466,10 @@ LINEUPS = {
         [f"Crew{who}{part}" for who in ("Director", "Clapper", "Operator") for part in RIG_PARTS],
         [f"Crew{who}{part}" for who in ("Sheriff", "Outlaw", "Stunt") for part in RIG_PARTS]
         + ["PropMegaphone", "PropRevolver", "PropClapper", "PropClapperStick"],
+    ),
+    "map_kit_crew_sets.png": (
+        [f"Crew{who}{part}" for who in ("Astronaut", "Alien") for part in RIG_PARTS],
+        [f"Crew{who}{part}" for who in ("Explorer", "Guide") for part in RIG_PARTS] + ["PropFlag", "PropIdol", "PropTorch", "PropBoulder"],
     ),
     "map_kit_set_gate.png": (["SetGate"], ["SetGateArm"]),
 }

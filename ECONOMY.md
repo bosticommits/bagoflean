@@ -357,10 +357,14 @@ office again on top, every 5 seconds straight into Cash (capped at double):
 | Film set | Price | Luck | Inside |
 |---|---|---|---|
 | Dusty Gulch | $25,000 | x1.05 | double box office |
+| Moon Base | $250,000 | x1.1 | double box office |
+| Jungle Temple | $2,500,000 | x1.15 | double box office |
 
-The Gulch costs the same as the Reel Kitty, a day-one buy. Standing inside is the point (watching
+The Gulch costs the same as the Reel Kitty, a day-one buy; Moon Base and the Jungle Temple are
+goals for later days. Moon Base's gate is inside the Gulch, so players buy the Gulch first; the
+Jungle Temple's gate is in Starlight Park's west fence. Standing inside is the point (watching
 the crew shoot), so the bonus follows the box office rate and stops as soon as the player leaves.
-Planned next: a space station ($250,000, x1.1) and a jungle temple ($2,500,000, x1.15).
+The bonus is double on every set, so a dearer set pays off through its Luck, not its box office.
 
 ## What to watch in playtests
 

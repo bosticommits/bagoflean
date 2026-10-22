@@ -1,6 +1,6 @@
 --!strict
 -- The film sets on this player's screen (rules in Shared/FilmSets):
---   * The crew and actors shooting on the Dusty Gulch set: Blender puppets (CrewRig) this game
+--   * The crews and actors shooting on each film set: Blender puppets (CrewRig) this game
 --     builds and moves itself, playing FilmScenes from the server clock, so every player sees the
 --     same take. Only moved while the camera is near, and none of it collides.
 --   * The gate: its prompt buys the set (FilmSetService checks the Cash and charges). Once this
@@ -16,7 +16,9 @@ local ClientState = require(script.Parent.ClientState)
 local UiKit = require(script.Parent.UiKit)
 local FilmScenes = require(ReplicatedStorage.Shared.FilmScenes)
 local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
+local Build = require(ReplicatedStorage.Shared.Models.Build)
 local CrewRig = require(ReplicatedStorage.Shared.Models.CrewRig)
+local MapKit = require(ReplicatedStorage.Shared.Models.MapKit)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 
 local FilmSetWorld = {}
@@ -53,15 +55,28 @@ local function filmTitle(): string
 	return FALLBACK_TITLE
 end
 
--- The crew ---------------------------------------------------------------------------------------
+-- The crews -------------------------------------------------------------------------------------
 
-local function startCrew()
+local function startCrew(info: MapModels.FilmSetInfo)
+	local scenes = FilmScenes.Sets[info.id]
+	if scenes == nil then
+		return
+	end
 	local folder = Instance.new("Folder")
-	folder.Name = "FilmCrew"
+	folder.Name = "FilmCrew" .. info.id
 	folder.Parent = workspace
 	local rigs: { [string]: CrewRig.Rig } = {}
-	for _, who in FilmScenes.Cast do
+	for _, who in scenes.cast do
 		rigs[who] = CrewRig.build(folder, who)
+	end
+	-- Loose props the scene puts down and picks up (a planted flag, the idol, the boulder).
+	local things: { [string]: Model } = {}
+	local b = Build.new(folder, CFrame.identity)
+	for _, kit in scenes.things do
+		local model = MapKit.place(b, kit, CFrame.identity, { solid = false })
+		Build.decorative(model)
+		model.Parent = nil
+		things[kit] = model
 	end
 
 	local flash = Instance.new("Part")
@@ -77,8 +92,8 @@ local function startCrew()
 	light.Color = flash.Color
 	light.Parent = flash
 
-	local base = MapModels.GulchFrame
-	local centre = base * FilmScenes.Centre
+	local base = info.frame
+	local centre = base * scenes.centre
 	local lastBoard = ""
 	local moved: { BasePart } = {}
 	local targets: { CFrame } = {}
@@ -87,7 +102,7 @@ local function startCrew()
 		if camera == nil or (camera.CFrame.Position - centre).Magnitude > NEAR then
 			return
 		end
-		local frame = FilmScenes.frame(workspace:GetServerTimeNow())
+		local frame = scenes.frame(workspace:GetServerTimeNow())
 		table.clear(moved)
 		table.clear(targets)
 		for who, rig in rigs do
@@ -97,6 +112,19 @@ local function startCrew()
 			end
 		end
 		workspace:BulkMoveTo(moved, targets, Enum.BulkMoveMode.FireCFrameChanged)
+		for kit, model in things do
+			local at: CFrame? = frame.things[kit]
+			if at == nil then
+				if model.Parent ~= nil then
+					model.Parent = nil
+				end
+			else
+				model:PivotTo(base * at)
+				if model.Parent ~= folder then
+					model.Parent = folder
+				end
+			end
+		end
 
 		local shooter = if frame.shot ~= nil then frame.poses[frame.shot] else nil
 		if shooter ~= nil then
@@ -106,7 +134,8 @@ local function startCrew()
 			flash.Parent = nil
 		end
 
-		local board = rigs.Clapper.board
+		local clapper = rigs.Clapper
+		local board = if clapper ~= nil then clapper.board else nil
 		local text = `{filmTitle()}\nSCENE {frame.scene}   TAKE {frame.take}`
 		if board ~= nil and text ~= lastBoard then
 			lastBoard = text
@@ -230,7 +259,9 @@ local function startGates(gui: ScreenGui)
 end
 
 function FilmSetWorld.start(gui: ScreenGui)
-	startCrew()
+	for _, info in MapModels.FilmSets do
+		startCrew(info)
+	end
 	task.spawn(startGates, gui)
 end
 

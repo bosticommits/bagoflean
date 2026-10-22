@@ -374,7 +374,7 @@ function TownSets.westernTown(b: Builder)
 	end
 
 	-- Cacti, boulders and mesas round the edges.
-	local cacti = { v(-34, 0, 20), v(34, 0, 22), v(-62, 0, 30), v(-30, 0, 132), v(36, 0, 140), v(70, 0, 104), v(-72, 0, 80), v(52, 0, 30) }
+	local cacti = { v(-34, 0, 20), v(34, 0, 22), v(-62, 0, 30), v(-30, 0, 132), v(36, 0, 140), v(70, 0, 104), v(-70, 0, 52), v(52, 0, 30) }
 	for i, at in cacti do
 		MapKit.place(b, "Cactus", CFrame.new(at) * yaw(i * 47), { scale = 0.8 + (i % 3) * 0.2 })
 	end
@@ -388,14 +388,45 @@ function TownSets.westernTown(b: Builder)
 	-- The film set's gear in the street by the hotel: a camera on a crane filming across at the
 	-- balcony, the director's chair, a light, and hay bales for the stunt double to land on. The
 	-- crew and the actors themselves are puppets each player's game moves (FilmScenes, FilmSetWorld).
-	for _, gear in FilmScenes.Gear do
-		local at = CFrame.new(gear.at) * yaw(gear.yaw)
-		if gear.kit == "DirectorChair" then
-			directorChair(b, at, gear.label)
+	TownSets.filmSetGear(b, FilmScenes.Sets.Gulch.gear)
+end
+
+-- A film set's gear (FilmScenes.Sets[...].gear), in the set's own space.
+function TownSets.filmSetGear(b: Builder, gear: { FilmScenes.Gear })
+	for _, g in gear do
+		local at = CFrame.new(g.at) * yaw(g.yaw)
+		if g.kit == "DirectorChair" then
+			directorChair(b, at, g.label)
+		elseif g.kit == "JungleTemple" then
+			MapKit.place(b, g.kit, at, { hitbox = true }) -- players climb its steps
 		else
-			MapKit.place(b, gear.kit, at)
+			MapKit.place(b, g.kit, at, {
+				light = if g.light then { range = 16, brightness = 1.8, color = Color3.fromRGB(255, 164, 80) } else nil,
+			})
 		end
 	end
+end
+
+-- Moon Base (film set 2), in its own space (MapModels.FilmSets): the gate at the origin, the set
+-- running along +Z, from x = -57 to 63. Grey moon dust with a paler track from the gate to the
+-- camera; the rocket, lander, dome and backdrop are Blender models (art/blender/space_kit.py).
+function TownSets.moonBase(b: Builder)
+	local dust = Color3.fromRGB(201, 204, 210)
+	b:block("MoonGround", v(124, 0.2, 116), v(3, 0.1, 56), dust, Enum.Material.Sand)
+	b:block("MoonTrack", v(10, 0.2, 38), v(0, 0.12, 19), dust:Lerp(Color3.new(1, 1, 1), 0.35), Enum.Material.Sand)
+	TownSets.filmSetGear(b, FilmScenes.Sets.MoonBase.gear)
+end
+
+-- The Jungle Temple (film set 3), in its own space: the gate at the origin, the set running along
+-- +Z, from x = -36 to 84. Jungle floor with a dirt path to a clearing in front of the temple
+-- (art/blender/jungle_kit.py).
+function TownSets.jungleTemple(b: Builder)
+	local floor = Color3.fromRGB(74, 122, 52)
+	local dirt = Color3.fromRGB(150, 110, 70)
+	b:block("JungleGround", v(124, 0.2, 126), v(24, 0.1, 61), floor, Enum.Material.Grass)
+	b:block("JunglePath", v(12, 0.2, 46), v(0, 0.12, 22), dirt, Enum.Material.Ground)
+	b:block("JungleClearing", v(48, 0.2, 42), v(24, 0.12, 65), dirt, Enum.Material.Ground)
+	TownSets.filmSetGear(b, FilmScenes.Sets.Jungle.gear)
 end
 
 -- Starlight Park ---------------------------------------------------------------------------------
@@ -527,7 +558,13 @@ function TownSets.park(b: Builder)
 
 	-- A low ranch fence along the two sides.
 	for _, s in { -1, 1 } do
-		fenceRun(b, v(s * 106, 0, 2), v(s * 106, 0, 124), "White")
+		if s < 0 then
+			-- A gap on the west side for the Jungle Temple film set's gate.
+			fenceRun(b, v(s * 106, 0, 2), v(s * 106, 0, 30), "White")
+			fenceRun(b, v(s * 106, 0, 50), v(s * 106, 0, 124), "White")
+		else
+			fenceRun(b, v(s * 106, 0, 2), v(s * 106, 0, 124), "White")
+		end
 	end
 end
 
