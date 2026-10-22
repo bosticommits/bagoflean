@@ -105,7 +105,8 @@ local function turn(piece: MascotShapes.Piece, p: Pose): CFrame
 		-- (a larger phase) follows a moment later, so it swings like a whip.
 		local rate = 6 + 5 * p.move
 		local wag = math.sin(t * rate - piece.phase) * 0.32 * amp
-		local lift = -0.45 * p.air + p.jiggle * 0.25 + p.land * 0.2
+		-- Only a little more lift further along, or a two-part tail would curl straight up.
+		local lift = (-0.3 * p.air + p.jiggle * 0.25 + p.land * 0.2) / (1 + 2 * piece.phase)
 		return CFrame.Angles(lift, wag, 0)
 	elseif role == "head" then
 		-- Looks around while it stands still, bobs while it trots, looks up on the way up and dips

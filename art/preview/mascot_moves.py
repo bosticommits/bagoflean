@@ -63,7 +63,7 @@ def main():
 
     # Frame the line-up with room above for the jumps.
     pose(0, STUD * 2.5)
-    mascots.stage(everything, "unused.png", width, height, 1.05, 10, render=False)
+    mascots.stage(everything, "unused.png", width, height, 0.97, 10, render=False)
     scene = bpy.context.scene
 
     count = len(frames[placed[0][0]])
@@ -78,7 +78,7 @@ def main():
 
     from PIL import Image
 
-    images = [Image.open(p).convert("RGB").quantize(colors=200, method=Image.Quantize.MEDIANCUT) for p in stills]
+    images = [Image.open(p).convert("RGB").quantize(colors=128, method=Image.Quantize.MEDIANCUT) for p in stills]
     images[0].save(out_path, save_all=True, append_images=images[1:], duration=int(1000 * every / 30), loop=0, optimize=True)
     print("Wrote", out_path)
 
