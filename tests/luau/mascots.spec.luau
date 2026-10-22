@@ -113,3 +113,103 @@ test("an older save with no equip time gets its buff straight away", function()
 	equal(Mascots.boost(data, "cash", 1800000000), 0.05, "the pup's Cash")
 	equal(Mascots.warmUpLeft(data, 1800000000), 0, "no warm-up")
 end)
+
+local roblox = require("@lune/roblox")
+local MascotModels = H.require("Models/MascotModels")
+local MascotRig = H.require("Models/MascotRig")
+
+local ROLES = { body = true, leg = true, tail = true, head = true, ear = true, hat = true, wing = true, arm = true, spin = true, tape = true, flame = true, jaw = true }
+
+test("every mascot is split into moving pieces the animations know", function()
+	for _, mascot in Mascots.List do
+		local pieces = MascotShapes.Pieces[mascot.id]
+		expect(pieces ~= nil and #pieces > 1, `{mascot.id} has no moving pieces: run art/blender/mascots.py`)
+		equal(pieces[1].name, "Body", `{mascot.id}: the body comes first`)
+		local names = {}
+		for i, piece in pieces do
+			expect(ROLES[piece.role], `{mascot.id} {piece.name} has an unknown role {piece.role}`)
+			expect(not names[piece.name], `{mascot.id} has two pieces called {piece.name}`)
+			names[piece.name] = true
+			if i > 1 then
+				-- A parent always comes first, so one pass moves parents before their children.
+				expect(piece.parent ~= nil and piece.parent < i, `{mascot.id} {piece.name} has a bad parent`)
+			end
+		end
+		local used = {}
+		for _, shape in MascotShapes.Shapes[mascot.id] do
+			expect(pieces[shape.piece] ~= nil, `{mascot.id} has a shape in a missing piece`)
+			used[shape.piece] = true
+		end
+		for i, piece in pieces do
+			expect(used[i], `{mascot.id} {piece.name} has no shapes`)
+		end
+	end
+end)
+
+test("standing still on the ground, legs are exactly where Blender put them", function()
+	for _, mascot in Mascots.List do
+		local folder = roblox.Instance.new("Folder")
+		local model = MascotModels.build(folder, mascot.id)
+		local rig = MascotRig.new(model, mascot.id, roblox.CFrame.identity, 1)
+		expect(rig ~= nil, `{mascot.id} has a rig`)
+		local pose = MascotRig.pose()
+		pose.time = 3.7
+		pose.gait = 1.2 -- legs only swing while it moves, so a leftover stride phase does nothing
+		local root = roblox.CFrame.new(10, 2, -4)
+		MascotRig.solve(rig, pose, root)
+		for j, part in rig.parts do
+			local role = rig.pieces[rig.piece[j]].role
+			local want = root * rig.rest[j]
+			local got = rig.cframes[j]
+			local off = (got.Position - want.Position).Magnitude
+			expect(off == off and off < 50, `{mascot.id}: a {role} part flew off`)
+			if role == "leg" or role == "body" then
+				expect(off < 1e-4, `{mascot.id}: a {role} part moved {off} studs while standing`)
+			end
+		end
+	end
+end)
+
+test("the Croc's clapper opens and shuts and the Camera Bot's flame stays under its nozzle", function()
+	local folder = roblox.Instance.new("Folder")
+	local croc = MascotModels.build(folder, "ClapperCroc")
+	local rig = MascotRig.new(croc, "ClapperCroc", roblox.CFrame.identity, 1)
+	local pose = MascotRig.pose()
+	local function clapperTop(): number
+		MascotRig.solve(rig, pose, roblox.CFrame.identity)
+		local top = -math.huge
+		for j in rig.parts do
+			if rig.pieces[rig.piece[j]].role == "jaw" then
+				top = math.max(top, rig.cframes[j].Position.Y)
+			end
+		end
+		return top
+	end
+	local shut = clapperTop()
+	pose.clap = 1
+	expect(clapperTop() > shut + 0.2, "the clapper opens wide")
+
+	local bot = MascotModels.build(folder, "CameraBot")
+	rig = MascotRig.new(bot, "CameraBot", roblox.CFrame.identity, 1)
+	expect(MascotRig.partOf(rig, "flame") ~= nil, "the Camera Bot has a flame")
+	local nozzle = 0
+	for _, piece in rig.pieces do
+		if piece.role == "flame" then
+			nozzle = piece.pivot.Y
+		end
+	end
+	for _, vy in { 0, 25 } do
+		pose = MascotRig.pose()
+		pose.vy = vy
+		for step = 0, 20 do
+			pose.time = step * 0.037
+			MascotRig.solve(rig, pose, roblox.CFrame.identity)
+			for j in rig.parts do
+				if MascotRig.sized(rig, j) then
+					local top = rig.cframes[j].Position.Y + rig.sizes[j].Y / 2
+					expect(top < nozzle + 0.15, `the flame pokes {top - nozzle} studs into the Camera Bot`)
+				end
+			end
+		end
+	end
+end)

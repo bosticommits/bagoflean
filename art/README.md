@@ -71,8 +71,8 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 
 1. Build the FBX files on your Mac, from the repo folder:
    `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate mascots map_kit; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
-   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` six,
-   `map_kit` one file holding all the map models).
+   This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` one file
+   holding every piece of all six mascots, `map_kit` one file holding all the map models).
 2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
 3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
 4. In the Explorer, open that Model, find its MeshPart, and:
@@ -90,16 +90,13 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `mystery_crate.fbx` | `MysteryCrate` |
 | `mystery_crate_lid.fbx` | `MysteryCrateLid` |
 | `crate_parachute.fbx` | `CrateParachute` |
-| `popcorn_pup.fbx` | `PopcornPup` |
-| `clapper_croc.fbx` | `ClapperCroc` |
-| `reel_kitty.fbx` | `ReelKitty` |
-| `camera_bot.fbx` | `CameraBot` |
-| `spotlight_owl.fbx` | `SpotlightOwl` |
-| `premiere_dragon.fbx` | `PremiereDragon` |
 
-**The map kit is quicker**: import `map_kit.fbx` once (Home → Import 3D, with "Merge meshes"
-off), then drag the whole imported model into `ReplicatedStorage > LotMeshes` as it is. The game
-finds each model inside it by name and sets the colors itself, so there is nothing to rename.
+**The map kit and the mascots are quicker**: import `map_kit.fbx` and `mascots.fbx` once each
+(Home → Import 3D, with "Merge meshes" off), then drag each whole imported model into
+`ReplicatedStorage > LotMeshes` as it is. The game finds each piece inside by name and sets the
+colors itself, so there is nothing to rename. The mascots come in moving pieces
+(`PopcornPup_Body`, `PopcornPup_Tail`, ...) that the game animates; if you imported the older
+one-piece mascots (`PopcornPup` and so on), delete those, since the game no longer uses them.
 
 5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
 
