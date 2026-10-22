@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local TweenService = game:GetService("TweenService")
 
+local Actors = require(ReplicatedStorage.Shared.Actors)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local ClientState = require(script.Parent.ClientState)
 local EventWorld = require(script.Parent.EventWorld)
@@ -313,6 +314,10 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		info.Text = `{escape(festival.tagline)}  <font color="#FFD23F">Goals</font>`
 		setIcons(festival.icon)
 		chat(`<font color="#FFD23F">{festival.name}</font> all week: premiere {festival.genre} movies to win a Festival Laurel! (Goals, Quests tab)`)
+		local limited = Actors.limitedFor(festival.season)
+		if limited ~= nil then
+			chat(`<font color="#FFD23F">LIMITED:</font> {limited.name} can be cast this season only, and winning the festival gives one!`)
+		end
 		slam(festival, true)
 	end
 

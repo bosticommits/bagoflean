@@ -45,6 +45,28 @@ function MascotModels.hasMesh(id: string): boolean
 	return found ~= nil and found:IsA("BasePart")
 end
 
+-- Puts a Blender design into builder `b`: the mesh named `id` if it has been imported, otherwise
+-- its shapes as parts (`shapes` and `bounds` from a generated module such as MascotShapes or
+-- SeasonalShapes). Sets the "Meshed" attribute on the builder's parent when the mesh is used.
+function MascotModels.fill(b: Build.Builder, id: string, shapes: { MascotShapes.Shape }, bounds: { size: Vector3, center: Vector3 })
+	local k = b.scale
+	local mesh = Build.mesh(b, id, CFrame.new(bounds.center.X, 0, bounds.center.Z), bounds.size.Y)
+	if mesh ~= nil then
+		mesh.Name = "Mesh"
+		b.parent:SetAttribute("Meshed", true)
+		return
+	end
+	for i, shape in shapes do
+		local p = partFor(shape)
+		p.Name = shape.kind .. i
+		p.Size *= k
+		-- A cylinder part lies along its X axis: turn it onto the shape's Y axis.
+		p.CFrame = b:at(if shape.kind == "cyl" then shape.cf * CFrame.Angles(0, 0, math.rad(90)) else shape.cf)
+		p.Anchored = true
+		p.Parent = b.parent
+	end
+end
+
 -- A Model named `id` under `parent`, every part anchored with no collisions, touches or queries.
 function MascotModels.build(parent: Instance, id: string, base: CFrame?, scale: number?): Model?
 	local shapes = MascotShapes.Shapes[id]
@@ -53,25 +75,9 @@ function MascotModels.build(parent: Instance, id: string, base: CFrame?, scale: 
 		return nil
 	end
 	local where = base or CFrame.identity
-	local k = scale or 1
 	local model = Instance.new("Model")
 	model.Name = id
-	local b = Build.new(model, where, k)
-	local mesh = Build.mesh(b, id, CFrame.new(bounds.center.X, 0, bounds.center.Z), bounds.size.Y)
-	if mesh ~= nil then
-		mesh.Name = "Mesh"
-		model:SetAttribute("Meshed", true)
-	else
-		for i, shape in shapes do
-			local p = partFor(shape)
-			p.Name = shape.kind .. i
-			p.Size *= k
-			-- A cylinder part lies along its X axis: turn it onto the shape's Y axis.
-			p.CFrame = b:at(if shape.kind == "cyl" then shape.cf * CFrame.Angles(0, 0, math.rad(90)) else shape.cf)
-			p.Anchored = true
-			p.Parent = model
-		end
-	end
+	MascotModels.fill(Build.new(model, where, scale or 1), id, shapes, bounds)
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.CanCollide = false

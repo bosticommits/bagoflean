@@ -9,6 +9,7 @@
 -- stack. Which event comes next is shuffled like a deck: each one comes up once every few slots,
 -- never twice in a row, and the start time inside its slot is random too.
 -- Each week is also a Film Festival for one genre, with seasonal festivals on set dates (below).
+local Actors = require(script.Parent.Actors)
 local Events = require(script.Parent.Events)
 local Rewards = require(script.Parent.Rewards)
 local Shop = require(script.Parent.Shop)
@@ -292,6 +293,13 @@ function SpecialEvents.getSeason(id: string): Season?
 	return seasonById[id]
 end
 
+local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+
+-- A season's dates for people: "Oct 18 - Nov 3".
+function SpecialEvents.seasonDates(season: Season): string
+	return `{MONTHS[season.from[1]]} {season.from[2]} - {MONTHS[season.to[1]]} {season.to[2]}`
+end
+
 -- The season `week` belongs to, if any.
 function SpecialEvents.seasonFor(week: number): Season?
 	local thursday = os.date("!*t", Rewards.weekStart(week) + 3 * 86400)
@@ -321,12 +329,16 @@ function SpecialEvents.festival(week: number, disabled: { [string]: boolean }?):
 	end
 	local season = SpecialEvents.seasonFor(week)
 	local genre = if season ~= nil then season.genre else SpecialEvents.festivalGenre(week)
+	-- A seasonal festival's limited actor (Actors.Limited) can be cast only while it runs.
+	local limited = Actors.limitedFor(if season ~= nil then season.id else nil)
 	return {
 		id = SpecialEvents.FestivalId,
 		week = week,
 		genre = genre,
 		name = if season ~= nil then season.name else `{string.upper(genre)} FILM FESTIVAL`,
-		tagline = `Premiere {genre} movies to win a Festival Laurel!`,
+		tagline = if limited ~= nil
+			then `Limited actor {limited.name}: cast now or win the festival!`
+			else `Premiere {genre} movies to win a Festival Laurel!`,
 		season = if season ~= nil then season.id else nil,
 		colors = if season ~= nil then season.colors else SpecialEvents.GenreColors[genre],
 		icon = if season ~= nil then season.icon else "trophy",

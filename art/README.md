@@ -11,11 +11,11 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
 | `src/shared/Models/TownSets.luau` | The town's landmarks and film sets: the Grand Premiere Theatre, the Studio Gate, the four back street sets, poster columns, the far skyline |
-| `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects |
+| `src/shared/Models/ActorModels.luau` | The 21 actors as toy figures, plus Shiny and Award-Winning effects. The four limited seasonal actors come from `art/blender/seasonal_actors.py` |
 | `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
 | `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |
 | `src/shared/Models/Walkways.luau` | Where players may walk, and the invisible walls along the path borders |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `festival_laurel` (the Film Festival prize that stands on a player's lot), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `festival_laurel` (the Film Festival prize that stands on a player's lot), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), `seasonal_actors` (the four limited seasonal actors, built with the mascots' shapes; it writes `src/shared/Models/SeasonalShapes.luau` the same way), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
 How the lot grows:
@@ -71,8 +71,9 @@ their real Blender meshes, as players see them once `map_kit.fbx` is imported.
 Do this once. Until you do, the game shows the part-built versions, so nothing breaks.
 
 1. Build the FBX files on your Mac, from the repo folder:
-   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate festival_laurel mascots map_kit; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
+   `for m in palm_tree searchlight film_camera film_reel_logo mystery_crate festival_laurel mascots seasonal_actors map_kit; do /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python art/blender/$m.py; done`
    This writes `art/exports/<model>.fbx` (`mystery_crate` writes three files, `mascots` six,
+   `seasonal_actors` four,
    `map_kit` one file holding all the map models).
 2. In Studio, in the Explorer, add a **Folder** inside **ReplicatedStorage** and name it `LotMeshes`.
 3. For each FBX: **Home → Import 3D**, pick the file, click **Import**. It lands in the world as a Model.
@@ -98,6 +99,10 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `camera_bot.fbx` | `CameraBot` |
 | `spotlight_owl.fbx` | `SpotlightOwl` |
 | `premiere_dragon.fbx` | `PremiereDragon` |
+| `pumpkin_phantom.fbx` | `PumpkinPhantom` |
+| `jingle_jester.fbx` | `JingleJester` |
+| `cupid_crooner.fbx` | `CupidCrooner` |
+| `heatwave_hero.fbx` | `HeatwaveHero` |
 
 **The map kit is quicker**: import `map_kit.fbx` once (Home → Import 3D, with "Merge meshes"
 off), then drag the whole imported model into `ReplicatedStorage > LotMeshes` as it is. The game

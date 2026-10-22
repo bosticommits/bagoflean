@@ -252,6 +252,17 @@ player, the first week ends with about 4% more Cash per minute (119k against 115
 before the Superstar row moves (the row comes about 6 minutes of play sooner). Finished on day one
 (`--weekly-day 1`), the change is within the sim's noise: no day-one milestone moves.
 
+**Limited seasonal actors (2026-10-22).** Each seasonal festival has a limited actor
+(`Actors.Limited`, all Star tier). While its season runs it can be cast exactly as often as any one
+Star actor (1 in 2,100 at Open Casting), its slice taken from the agency's commonest tier, so no
+other actor's odds move and the Star row is no slower to finish; winning the festival gives a
+Normal copy. Limited actors stay out of the Index rows, genre sets and the Index count, so their
+only economic effect is one more Star for the cast. The sim's `--season FrightNight` makes every
+week a seasonal one (120 runs, typical player): the first week ends with about 4% more Cash per
+minute (124k against 119k), the first rebirth comes about 6 minutes of play sooner, and the Star
+row and every other milestone stay put. Won on day one (`--weekly-day 1`) it is about 7% (125k
+against 117k). Seasonal weeks are only about 8 weeks a year, so over a year this is smaller still.
+
 **The "Discovered!" hot start (2026-10-15).** Before it, a new player's best pull in the first 10
 minutes was a Pro and the first Star came around minute 17 (slow 10%: minute 30). Now a brand-new
 account's casts carry guarantees (`Actors.HotStart`): at least a Rising on cast 3, a Pro on cast 10
