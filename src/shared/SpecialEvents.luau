@@ -210,24 +210,25 @@ end
 
 SpecialEvents.CoinSpots = table.freeze({
 	-- Boulevard, zigzagging across the road (both ends).
-	spot(30, -5), spot(46, 5), spot(62, -5), spot(78, 5), spot(94, -5), spot(110, 5),
-	spot(-30, 5), spot(-46, -5), spot(-62, 5), spot(-78, -5), spot(-94, 5), spot(-110, -5),
+	spot(30, -5), spot(50, 5), spot(70, -5), spot(90, 5), spot(110, -5), spot(130, 5), spot(150, -5), spot(170, 5),
+	spot(-30, 5), spot(-50, -5), spot(-70, 5), spot(-90, -5), spot(-110, 5), spot(-130, -5), spot(-150, 5), spot(-170, -5),
 	-- Sidewalks, between the curb and the stands.
 	spot(36, 17), spot(64, -17), spot(92, 17), spot(-36, -17), spot(-64, 17), spot(-92, -17),
+	spot(124, 17), spot(166, -17), spot(-124, -17), spot(-166, 17),
 	-- Round the fountain.
 	spot(0, 17), spot(0, -19), spot(15, 5), spot(-15, -5),
-	-- Paths between the lots.
-	spot(40, 64), spot(40, 80), spot(-40, 64), spot(-40, 80),
-	spot(40, -64), spot(40, -80), spot(-40, -64), spot(-40, -80),
+	-- Paths between the lots, between the tall buildings and past the film sets.
+	spot(58, 72), spot(58, 88), spot(-58, 72), spot(-58, 88),
+	spot(58, -72), spot(58, -88), spot(-58, -72), spot(-58, -88),
 	-- Down the middle of the back paths behind the lots, and the side paths at each end of town.
-	spot(0, 110), spot(80, 110), spot(-80, 110), spot(0, -110), spot(80, -110), spot(-80, -110),
-	spot(120, 72), spot(120, -72), spot(-120, 72), spot(-120, -72),
+	spot(0, 118), spot(90, 118), spot(-90, 118), spot(0, -118), spot(90, -118), spot(-90, -118),
+	spot(182, 80), spot(182, -80), spot(-182, 80), spot(-182, -80),
 }) :: { Vector3 }
 
 -- The crate is bigger, so it only lands on the wide boulevard.
 SpecialEvents.CrateSpots = table.freeze({
-	spot(36, 0), spot(60, 0), spot(84, 0), spot(104, 0),
-	spot(-36, 0), spot(-60, 0), spot(-84, 0), spot(-104, 0),
+	spot(36, 0), spot(60, 0), spot(84, 0), spot(104, 0), spot(124, 0), spot(160, 0),
+	spot(-36, 0), spot(-60, 0), spot(-84, 0), spot(-104, 0), spot(-124, 0), spot(-160, 0),
 }) :: { Vector3 }
 
 -- The Cash Rain coins for the event starting at `starts`: CoinCount spots, the same on the server

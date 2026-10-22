@@ -1,5 +1,6 @@
 """Map kit: the Blender models for the town's map overhaul (lamps, trees, Dusty Gulch's
-buildings, Starlight Park's features and the far scenery).
+buildings, Starlight Park's features and the far scenery). It also builds town_kit.py's set pieces
+and boulevard_kit.py's tall boulevard buildings into the same files.
 
   TownLamp          Hollywood double-globe street lamp (boulevard and back paths)
   ParkLamp          green Victorian lantern post (Starlight Park)
@@ -767,9 +768,10 @@ def export_all(objs):
 
 def full_kit():
     """Every model: this file's, then the town's set pieces (town_kit.py)."""
-    import town_kit  # here, not at the top: town_kit uses this file's helpers
+    import boulevard_kit  # here, not at the top: the kits use this file's helpers
+    import town_kit
 
-    return KIT + town_kit.KIT
+    return KIT + town_kit.KIT + boulevard_kit.KIT
 
 
 def main():
@@ -794,13 +796,14 @@ def main():
     export_all(objs)
 
     if not os.environ.get("KIT_NO_RENDER"):
+        import boulevard_kit
         import town_kit
 
         for file_name, (front, back) in [
             ("map_kit_props.png", (["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
                                    ["WaterTower", "WaterTank", "Bandstand", "Mesa"])),
             ("map_kit_buildings.png", (["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]])),
-        ] + list(town_kit.LINEUPS.items()):
+        ] + list(town_kit.LINEUPS.items()) + list(boulevard_kit.LINEUPS.items()):
             if os.environ.get("KIT_ONLY") and os.environ["KIT_ONLY"] not in file_name:
                 continue
             lineup(front, back, file_name)

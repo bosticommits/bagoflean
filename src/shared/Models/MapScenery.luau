@@ -13,15 +13,15 @@ type Builder = Build.Builder
 
 local MapScenery = {}
 
--- The desert starts just past the front hedge (the hedge is at z = -119).
-MapScenery.DesertZ = -122
+-- The desert starts just past the front hedge (the hedge is at z = -127).
+MapScenery.DesertZ = -130
 
 -- Scenery keeps this far from anywhere players can walk, so nothing pokes out over a path.
 local MARGIN = 7
 -- Inside this box is the town itself, which has its own lawns, bushes and palms.
-local TOWN_X, TOWN_Z = 132, 122
+local TOWN_X, TOWN_Z = 194, 130
 -- How far out the props go; past it the mountains take over.
-local REACH = 470
+local REACH = 500
 local SPACING = 28
 
 export type Mountain = { x: number, z: number, radius: number, height: number, style: string }
@@ -55,18 +55,18 @@ MapScenery.Mountains = table.freeze(mountainRing())
 -- (the theatre, the backlot sound stages and water towers, the gate booth, the gold star, the
 -- park's pond and screen, Dusty Gulch's corral, wagon and water tank). World x0, z0, x1, z1.
 local KEEP_CLEAR: { Walkways.Rect } = {
-	Walkways.rect(-182, -32, -144, 32), -- theatre
-	Walkways.rect(-200, -85, -130, -12), -- west sound stage
-	Walkways.rect(-168, 28, -138, 60), -- west water tower
-	Walkways.rect(140, -56, 172, -24), -- east water tower
-	Walkways.rect(166, -40, 230, 40), -- east sound stage
-	Walkways.rect(134, 14, 150, 30), -- guard booth
-	Walkways.rect(-40, 262, 40, 334), -- the gold star on the hill
-	Walkways.rect(-110, 118, 110, 250), -- Starlight Park (it has its own trees)
-	Walkways.rect(-40, -282, 40, -118), -- Dusty Gulch's street and buildings
-	Walkways.rect(-75, -205, -36, -162), -- corral
-	Walkways.rect(36, -192, 64, -164), -- wagon
-	Walkways.rect(36, -238, 62, -210), -- water tank
+	Walkways.rect(-244, -32, -206, 32), -- theatre
+	Walkways.rect(-262, -85, -192, -12), -- west sound stage
+	Walkways.rect(-230, 28, -200, 60), -- west water tower
+	Walkways.rect(202, -56, 234, -24), -- east water tower
+	Walkways.rect(228, -40, 292, 40), -- east sound stage
+	Walkways.rect(196, 14, 212, 30), -- guard booth
+	Walkways.rect(-40, 270, 40, 342), -- the gold star on the hill
+	Walkways.rect(-110, 126, 110, 258), -- Starlight Park (it has its own trees)
+	Walkways.rect(-40, -290, 40, -126), -- Dusty Gulch's street and buildings
+	Walkways.rect(-75, -213, -36, -170), -- corral
+	Walkways.rect(36, -200, 64, -172), -- wagon
+	Walkways.rect(36, -246, 62, -218), -- water tank
 }
 
 -- A fixed pseudo-random number in [0, 1) for a grid spot, so every server builds the same woods.
@@ -99,7 +99,7 @@ local function choose(x: number, z: number): (string?, number)
 	local r = math.sqrt(x * x + z * z)
 	local roll = noise(x, z, 1)
 	local size = 0.85 + noise(x, z, 2) * 0.5
-	local far = r > 320
+	local far = r > 380
 	if z < MapScenery.DesertZ then
 		if far and roll < 0.12 then
 			return "Mesa", 0.55 + noise(x, z, 3) * 0.5
