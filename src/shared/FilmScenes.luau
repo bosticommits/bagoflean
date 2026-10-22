@@ -456,7 +456,7 @@ local MOON_GEAR: { Gear } = {
 	{ kit = "MoonLander", at = v(-8, 0.2, 76), yaw = 0 },
 	{ kit = "MoonDome", at = v(-34, 0, 88), yaw = 0 },
 	{ kit = "MoonBuggy", at = v(26, 0.2, 68), yaw = -30 },
-	{ kit = "MoonCrater", at = v(12, 0.2, 52), yaw = 0 },
+	{ kit = "MoonCrater", at = v(32, 0.2, 34), yaw = 0 },
 	{ kit = "MoonCrater", at = v(-24, 0.2, 58), yaw = 40 },
 	{ kit = "MoonRock", at = v(16, 0.2, 80), yaw = 20 },
 	{ kit = "MoonRock", at = v(-44, 0.2, 66), yaw = 140 },

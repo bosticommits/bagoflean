@@ -374,7 +374,7 @@ function TownSets.westernTown(b: Builder)
 	end
 
 	-- Cacti, boulders and mesas round the edges.
-	local cacti = { v(-34, 0, 20), v(34, 0, 22), v(-62, 0, 30), v(-30, 0, 132), v(36, 0, 140), v(70, 0, 104), v(-72, 0, 80), v(52, 0, 30) }
+	local cacti = { v(-34, 0, 20), v(34, 0, 22), v(-62, 0, 30), v(-30, 0, 132), v(36, 0, 140), v(70, 0, 104), v(-70, 0, 52), v(52, 0, 30) }
 	for i, at in cacti do
 		MapKit.place(b, "Cactus", CFrame.new(at) * yaw(i * 47), { scale = 0.8 + (i % 3) * 0.2 })
 	end
