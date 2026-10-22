@@ -104,7 +104,11 @@ function scenes.lotMid(folder, load, roblox)
 end
 
 function scenes.lotMax(folder, load, roblox)
-	lot(folder, load, roblox, { stages = 5, cinema = 6, office = 5, trophies = 7, filming = { true, false, true, true, true }, star = "PhantomAuteur", variant = "Award" })
+	local C = roblox.Color3.fromRGB
+	lot(folder, load, roblox, {
+		stages = 5, cinema = 6, office = 5, trophies = 7, filming = { true, false, true, true, true }, star = "PhantomAuteur", variant = "Award",
+		laurels = { C(150, 60, 220), C(255, 170, 30), C(235, 70, 50) },
+	})
 end
 
 -- The menu button icons in a row (arg: one icon id to show just that one).
@@ -133,6 +137,38 @@ function scenes.map(folder, load)
 		LotLook.build(folder, MapModels.lotBase(index), index, levels[index])
 	end
 	MapModels.build(folder)
+end
+
+-- The town (no lots) with the Dusty Gulch film crew posed at `arg` seconds into the takes (the
+-- way FilmSetWorld moves them in the game).
+function scenes.filmset(folder, load, roblox, arg)
+	local MapModels = load("src/shared/Models/MapModels.luau")
+	local FilmScenes = load("src/shared/FilmScenes.luau")
+	local CrewRig = load("src/shared/Models/CrewRig.luau")
+	MapModels.build(folder)
+	local frame = FilmScenes.frame(tonumber(arg) or 0)
+	local crew = roblox.Instance.new("Folder")
+	crew.Parent = folder
+	for _, who in FilmScenes.Cast do
+		local rig = CrewRig.build(crew, who)
+		local pose = frame.poses[who]
+		if pose.hidden then
+			rig.model.Parent = nil
+		else
+			for key, cf in CrewRig.cframes(MapModels.GulchFrame, pose, frame.stick) do
+				local piece = rig.model:FindFirstChild(key, true)
+				if piece ~= nil then
+					piece.WorldPivot = cf
+					piece.Parent = rig.model -- the clapper's stick lives in the board's model
+				end
+				local prop = rig.props[key]
+				if prop ~= nil then
+					prop.Parent = rig.model
+					prop.WorldPivot = cf
+				end
+			end
+		end
+	end
 end
 
 -- The special event props (EventModels): the Lucky Star (smaller than in the game), a Cash Rain

@@ -110,8 +110,14 @@ local function onClaimDaily(player: Player)
 	RewardService.afterGrant(player, `Day {streak}: {text}`)
 end
 
--- Claims a finished Studio Request (today's), weekly quest, or one that finished before its day or
--- week ended and waits in `carried`. `scope` is "weekly" or "carried" for those; anything else means
+-- What each quest list is called in analytics and in the "done" message.
+local SKUS = { daily = "Request", weekly = "WeeklyQuest", festival = "FestivalGoal" }
+local CLAIM_EVENTS = { daily = "RequestClaim", weekly = "WeeklyQuestClaim", festival = "FestivalGoalClaim" }
+local NAMES = { daily = "Request", weekly = "Weekly quest", festival = "Festival goal" }
+
+-- Claims a finished Studio Request (today's), weekly quest, Film Festival goal, or one that
+-- finished before its day or week ended and waits in `carried`. `scope` is "weekly", "festival" or
+-- "carried" for those; anything else means
 -- the daily list, as before the Goals screen showed all three. A carried quest is named by its key
 -- (not a position) and removed before it pays out, so it is claimed exactly once.
 local function onClaimRequest(player: Player, index: any, scope: any)
@@ -134,12 +140,15 @@ local function onClaimRequest(player: Player, index: any, scope: any)
 			QuestTracker.sync(player)
 			return fail(player, "That quest is gone")
 		end
-		local text = RewardService.apply(player, data, request.reward, "TimedReward", if waiting.scope == "weekly" then "WeeklyQuest" else "Request")
-		Analytics.event(player, if waiting.scope == "weekly" then "WeeklyQuestClaim" else "RequestClaim", 1, request.id)
-		return RewardService.afterGrant(player, `{if waiting.scope == "weekly" then "Weekly quest" else "Request"} done: {text}`)
+		local text = RewardService.apply(player, data, request.reward, "TimedReward", SKUS[waiting.scope] or "Request")
+		Analytics.event(player, CLAIM_EVENTS[waiting.scope] or "RequestClaim", 1, request.id)
+		if waiting.scope == "daily" then
+			QuestTracker.track(player, "request") -- festival goal: finish Studio Requests
+		end
+		return RewardService.afterGrant(player, `{NAMES[waiting.scope] or "Request"} done: {text}`)
 	end
-	local weekly = scope == "weekly"
-	local list = if weekly then data.weekly.list else data.requests.list
+	local kind = if scope == "weekly" or scope == "festival" then scope else "daily"
+	local list = if kind == "weekly" then data.weekly.list elseif kind == "festival" then data.festival.list else data.requests.list
 	if type(index) ~= "number" or index ~= math.floor(index) or index < 1 or index > #list then
 		return fail(player, "That didn't work")
 	end
@@ -152,9 +161,12 @@ local function onClaimRequest(player: Player, index: any, scope: any)
 		return fail(player, "Not done yet")
 	end
 	entry.claimed = true
-	local text = RewardService.apply(player, data, request.reward, "TimedReward", if weekly then "WeeklyQuest" else "Request")
-	Analytics.event(player, if weekly then "WeeklyQuestClaim" else "RequestClaim", 1, request.id)
-	RewardService.afterGrant(player, `{if weekly then "Weekly quest" else "Request"} done: {text}`)
+	local text = RewardService.apply(player, data, request.reward, "TimedReward", SKUS[kind])
+	Analytics.event(player, CLAIM_EVENTS[kind], 1, request.id)
+	if kind == "daily" then
+		QuestTracker.track(player, "request") -- festival goal: finish Studio Requests
+	end
+	RewardService.afterGrant(player, `{NAMES[kind]} done: {text}`)
 end
 
 local function onRedeemCode(player: Player, raw: any)

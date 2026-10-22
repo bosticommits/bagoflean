@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
+local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local Takes = require(ReplicatedStorage.Shared.Takes)
@@ -266,6 +267,10 @@ local function onStartFilm(player: Player, stage: any, genre: any, lengthId: any
 	if data.passes.FastFilming then
 		seconds = math.max(1, math.floor(seconds * Config.FastFilmingMultiplier))
 	end
+	local mascotSpeed = Mascots.boost(data, "speed", os.time())
+	if mascotSpeed > 0 then
+		seconds = math.max(1, math.floor(seconds * (1 - mascotSpeed)))
+	end
 	local now = os.time()
 	table.insert(data.films, {
 		stage = stage,
@@ -351,10 +356,11 @@ local function onPremiere(player: Player, stage: any)
 		payout *= Config.AwardNightPayoutMultiplier
 	end
 	local fame = Movies.fame(payout)
-	-- Rebirths multiply the Cash, not the Fame, so Fame unlocks stay where ECONOMY.md puts them.
-	-- The cinema keeps the boosted payout, so the box office grows with it.
+	-- Rebirths and a Cash mascot multiply the Cash, not the Fame, so Fame unlocks stay where
+	-- ECONOMY.md puts them. The cinema keeps the boosted payout, so the box office grows with it.
 	local rebirthBonus = Rebirth.cashMultiplier(data.rebirths)
-	payout = math.min(math.floor(payout * rebirthBonus), Movies.MaxPayout)
+	local mascotBonus = 1 + Mascots.boost(data, "cash", os.time())
+	payout = math.min(math.floor(payout * rebirthBonus * mascotBonus), Movies.MaxPayout)
 
 	table.remove(data.films, filmIndex) -- frees the stage and the cast copies
 	EconomyService.accrue(data) -- bank royalties at the old rate before the rate changes
@@ -410,6 +416,7 @@ local function onPremiere(player: Player, stage: any)
 	QuestTracker.track(player, "premiere:" .. film.genre) -- weekly genre quests
 	if result.multiplier >= 3 then
 		QuestTracker.track(player, "hit")
+		QuestTracker.track(player, "hit:" .. film.genre) -- Film Festival goals
 	end
 	VisitService.premiered(player, film.title, result.id) -- visitors on the lot watch it too
 	if result.id == "Masterpiece" then

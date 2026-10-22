@@ -23,9 +23,11 @@ local WHITE = UiKit.WHITE
 local POSTER_ASPECT = 0.7 -- width / height, a one-sheet movie poster
 local BEAM_WARM = Color3.fromRGB(255, 244, 214)
 local BEAM_LAYERS = 7 -- nested strips per spotlight; more layers, softer edges
-local BEAM_LAYER_TRANSPARENCY = 0.9
+local BEAM_LAYER_TRANSPARENCY = 0.84
 local BEAM_SWING = 23 -- degrees either side of straight up
 local RESULT_SPIN_RPM = 12
+local LETTERBOX = 0.06 -- height of each cinema bar, as a fraction of the screen
+local RAY_COUNT = 12
 
 local PremiereReveal = {}
 
@@ -103,8 +105,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			fade.Rotation = 90
 			fade.Transparency = NumberSequence.new({
 				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.25, 0.85),
-				NumberSequenceKeypoint.new(0.499, 0.2),
+				NumberSequenceKeypoint.new(0.25, 0.75),
+				NumberSequenceKeypoint.new(0.499, 0.1),
 				NumberSequenceKeypoint.new(0.5, 1),
 				NumberSequenceKeypoint.new(1, 1),
 			})
@@ -121,6 +123,34 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	flashLayer.ZIndex = 12
 	flashLayer.Parent = overlay
 
+	-- Cinema framing: black bars top and bottom, and the screen edges darken.
+	for _, top in { true, false } do
+		local bar = Instance.new("Frame")
+		bar.Name = if top then "LetterboxTop" else "LetterboxBottom"
+		bar.BackgroundColor3 = Color3.new(0, 0, 0)
+		bar.BorderSizePixel = 0
+		bar.AnchorPoint = Vector2.new(0, if top then 0 else 1)
+		bar.Position = UDim2.fromScale(0, if top then 0 else 1)
+		bar.Size = UDim2.fromScale(1, LETTERBOX)
+		bar.ZIndex = 12
+		bar.Parent = overlay
+	end
+	for _, left in { true, false } do
+		local edge = Instance.new("Frame")
+		edge.Name = if left then "VignetteLeft" else "VignetteRight"
+		edge.BackgroundColor3 = Color3.new(0, 0, 0)
+		edge.BorderSizePixel = 0
+		edge.AnchorPoint = Vector2.new(if left then 0 else 1, 0)
+		edge.Position = UDim2.fromScale(if left then 0 else 1, 0)
+		edge.Size = UDim2.fromScale(0.2, 1)
+		edge.ZIndex = 12
+		edge.Parent = overlay
+		local fade = Instance.new("UIGradient")
+		fade.Transparency = NumberSequence.new(0.3, 1)
+		fade.Rotation = if left then 0 else 180
+		fade.Parent = edge
+	end
+
 	-- The stage holds the poster (left, or top on a tall screen) and the results card.
 	local stage = Instance.new("Frame")
 	stage.Name = "Stage"
@@ -134,6 +164,64 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	stageLimit.Parent = stage
 	local stageScale = Instance.new("UIScale")
 	stageScale.Parent = stage
+
+	-- Sunburst: slow-turning rays behind the poster for good results (ZIndex 1, under the poster).
+	local burst = Instance.new("CanvasGroup")
+	burst.Name = "Sunburst"
+	burst.AnchorPoint = Vector2.new(0.5, 0.5)
+	burst.BackgroundTransparency = 1
+	burst.ZIndex = 1
+	burst.Visible = false
+	burst.Parent = stage
+	local rays: { Frame } = {}
+	for index = 1, RAY_COUNT do
+		local pivot = Instance.new("Frame")
+		pivot.BackgroundTransparency = 1
+		pivot.Size = UDim2.fromScale(1, 1)
+		pivot.Rotation = (index - 1) * 360 / RAY_COUNT
+		pivot.ZIndex = 1
+		pivot.Parent = burst
+		local ray = Instance.new("Frame")
+		ray.AnchorPoint = Vector2.new(0.5, 0)
+		ray.Position = UDim2.fromScale(0.5, 0)
+		ray.Size = UDim2.fromScale(0.09, 0.5)
+		ray.BackgroundColor3 = WHITE
+		ray.BorderSizePixel = 0
+		ray.ZIndex = 1
+		ray.Parent = pivot
+		local fade = Instance.new("UIGradient")
+		fade.Rotation = 90
+		fade.Transparency = NumberSequence.new(1, 0.5)
+		fade.Parent = ray
+		table.insert(rays, ray)
+	end
+	-- A lens streak across the stamp when it lands, and a ring that rolls out from it.
+	local streak = Instance.new("Frame")
+	streak.Name = "LensStreak"
+	streak.AnchorPoint = Vector2.new(0.5, 0.5)
+	streak.BackgroundColor3 = WHITE
+	streak.BorderSizePixel = 0
+	streak.ZIndex = 19
+	streak.Visible = false
+	streak.Parent = stage
+	local streakFade = Instance.new("UIGradient")
+	streakFade.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	streakFade.Parent = streak
+	local ring = Instance.new("Frame")
+	ring.Name = "Shockwave"
+	ring.AnchorPoint = Vector2.new(0.5, 0.5)
+	ring.BackgroundTransparency = 1
+	ring.ZIndex = 19
+	ring.Visible = false
+	ring.Parent = stage
+	round(ring, UDim.new(0.5, 0))
+	local ringStroke = Instance.new("UIStroke")
+	ringStroke.Thickness = 6
+	ringStroke.Parent = ring
 
 	-- Poster ----------------------------------------------------------------------------------
 	local poster = Instance.new("Frame")
@@ -261,7 +349,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	stampRainbow.Enabled = false
 	stampRainbow.Parent = stampEdge
 	UiKit.outline(stamp, 3)
-	UiKit.textConstraint(stamp, 64)
+	UiKit.textConstraint(stamp, 48)
 	local stampPad = Instance.new("UIPadding")
 	stampPad.PaddingTop = UDim.new(0.12, 0)
 	stampPad.PaddingBottom = UDim.new(0.12, 0)
@@ -344,8 +432,13 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			card.Size = UDim2.fromOffset(size.X - posterW - gap, size.Y)
 		end
 		poster.Size = UDim2.fromOffset(posterW, posterH)
-		stamp.Size = UDim2.fromOffset(posterW * 1.04, posterH * 0.17)
-		stamp.Position = UDim2.fromOffset(poster.Position.X.Offset + posterW / 2, poster.Position.Y.Offset + posterH * 0.47)
+		-- Centred on the portraits' lower edge (about 0.47) plus a little, so even tilted it stays below the faces and above the title.
+		stamp.Size = UDim2.fromOffset(posterW * 0.8, posterH * 0.1)
+		stamp.Position = UDim2.fromOffset(poster.Position.X.Offset + posterW / 2, poster.Position.Y.Offset + posterH * 0.5)
+		burst.Position = UDim2.fromOffset(poster.Position.X.Offset + posterW / 2, poster.Position.Y.Offset + posterH / 2)
+		burst.Size = UDim2.fromOffset(posterH * 2.6, posterH * 2.6)
+		streak.Position = stamp.Position
+		ring.Position = stamp.Position
 	end
 	stage:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	UiKit.onViewportChanged(layout)
@@ -503,6 +596,28 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			tween(stageScale, 0.4, { Scale = 1 }, Enum.EasingStyle.Sine)
 			Fx.premiere(res.id, res.color)
 			flashes(style.flashes, if big then 1.6 else 0.9, mine)
+			if style.beams ~= "down" then
+				-- A ring rolls out from the stamp and a lens streak flares across it.
+				local reach = poster.AbsoluteSize.X * (if big then 3 else 2)
+				ring.Size = UDim2.fromOffset(stamp.AbsoluteSize.X * 0.5, stamp.AbsoluteSize.X * 0.5)
+				ringStroke.Color = res.color
+				ringStroke.Transparency = 0
+				ring.Visible = true
+				tween(ring, 0.7, { Size = UDim2.fromOffset(reach, reach) })
+				tween(ringStroke, 0.7, { Transparency = 1 })
+				streak.BackgroundTransparency = 0
+				streak.Size = UDim2.fromOffset(stage.AbsoluteSize.X * 0.2, 5)
+				streak.Visible = true
+				tween(streak, 0.6, { Size = UDim2.fromOffset(stage.AbsoluteSize.X * (if big then 1.5 else 1.1), 3), BackgroundTransparency = 1 })
+			end
+			if big then
+				-- Camera push: the whole stage eases a little closer.
+				task.delay(0.45, function()
+					if premiereToken == mine then
+						keep(tween(stageScale, 5, { Scale = 1.035 }, Enum.EasingStyle.Sine))
+					end
+				end)
+			end
 		end)
 
 		-- Spotlights: a Flop drops them to the floor; big results sweep faster in the result color.
@@ -524,6 +639,23 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			sweep(if big then 1.6 else 1.15, BEAM_WARM:Lerp(res.color, if big then 0.55 else 0.3), false)
 		end
 		posterEdge.Color = if style.beams == "down" then UiKit.INK else res.color
+		if style.beams ~= "down" then
+			-- Rays fan out behind the poster and turn slowly; the poster itself sways a touch.
+			for _, ray in rays do
+				ray.BackgroundColor3 = BEAM_WARM:Lerp(res.color, 0.5)
+			end
+			burst.Rotation = 0
+			burst.GroupTransparency = 1
+			burst.Visible = true
+			keep(tween(burst, 0.8, { GroupTransparency = if big then 0.4 else 0.75 }, Enum.EasingStyle.Sine))
+			local spin = TweenService:Create(burst, TweenInfo.new(if big then 30 else 50, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, -1), { Rotation = 360 })
+			spin:Play()
+			keep(spin)
+			poster.Rotation = -1
+			local sway = TweenService:Create(poster, TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Rotation = 1 })
+			sway:Play()
+			keep(sway)
+		end
 		cardEdge.Color = res.color
 		if style.shine then
 			shine.Visible = true
@@ -557,6 +689,10 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 				end
 			end
 		end
+		-- No bonus line on most premieres: pull Fame and the unlock up so no gap sits under the payout.
+		local hasBonus = bonusLabel.Text ~= ""
+		fameLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.615 else 0.55)
+		unlockLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.7 else 0.64)
 		unlockLabel.Text = if #unlocked > 0 then `NEW: {table.concat(unlocked, ", ")} unlocked!` else ""
 		if #unlocked > 0 then
 			task.delay(0.6, function()
@@ -627,6 +763,11 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		billingLabel.Text = PremiereNight.billing(names)
 		shine.Visible = false
 		dim.BackgroundTransparency = 1
+		burst.Visible = false
+		ring.Visible = false
+		streak.Visible = false
+		poster.Rotation = 0
+		stageScale.Scale = 1
 
 		-- Before the result: the poster rises in under calm spotlights, flashes going off.
 		stamp.Visible = false

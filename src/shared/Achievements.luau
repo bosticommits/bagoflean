@@ -143,6 +143,9 @@ function Achievements.value(view: View, stat: string): number
 			if actor == nil or Actors.getVariant(variant :: string) == nil then
 				continue -- an old or unknown key never counts
 			end
+			if stat == "index" and actor.season ~= nil then
+				continue -- the Index count leaves limited seasonal actors out, like the Collection
+			end
 			if (tierId == nil or actor.tier == tierId) and (variantId == nil or variant == variantId) then
 				count += 1
 			end

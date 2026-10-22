@@ -44,6 +44,7 @@ type Run = {
 	onEnd: () -> (), -- the event just ended: start the exit
 	onResult: (kind: string, index: number, ok: boolean, reason: string) -> (),
 	status: () -> string?, -- a live line for the banner (coins grabbed, crate landing...)
+	finished: boolean, -- nothing left to do this event (the crate was opened and has gone): the banner can leave
 	cleanup: { () -> () },
 	followers: { Follower },
 }
@@ -67,6 +68,8 @@ local STAR_RISE = 1.2
 local COIN_SIZE = 3.2
 local COIN_DROP = 1.1
 local CRATE_DROP = 150
+local CRATE_VANISH_DELAY = 0.9 -- seconds after a claim before the opened crate spins away
+local CRATE_VANISH_SECONDS = 0.7
 local GOLDEN_CLOCK = 17.5 -- Lighting.ClockTime at the height of Golden Hour
 
 local EventWorld = {}
@@ -259,6 +262,7 @@ local function newRun(live: Live): Run
 		step = function() end,
 		onEnd = function() end,
 		onResult = function() end,
+		finished = false,
 		status = function(): string?
 			return nil
 		end,
@@ -476,6 +480,9 @@ local function mysteryCrate(run: Run, late: boolean)
 	local lidOnCrate = crate:GetPivot():ToObjectSpace(lid:GetPivot())
 	local landedAt: number? = nil
 	local openFrom: number? = nil
+	-- Once opened the crate spins up, fades and is cleared away, rather than waiting for the event to end.
+	local vanishAt: number? = nil
+	local gone = false
 
 	local function land(quiet: boolean)
 		landed = true
@@ -501,6 +508,8 @@ local function mysteryCrate(run: Run, late: boolean)
 	local function open(quiet: boolean)
 		opened = true
 		openFrom = if quiet then os.clock() - 10 else os.clock()
+		-- A crate you already opened (rejoining) never shows; otherwise it leaves once the lid has swung open.
+		vanishAt = if quiet then os.clock() - 10 else os.clock() + CRATE_VANISH_DELAY
 		if not quiet then
 			burst(folder, base + Vector3.new(0, 5, 0), { GOLD, Color3.fromRGB(226, 180, 255) }, 40, true)
 			Fx.confetti(60)
@@ -511,7 +520,11 @@ local function mysteryCrate(run: Run, late: boolean)
 		land(true)
 	end
 
+	local vanishFaded = false
 	run.step = function(now: number, _dt: number)
+		if gone then
+			return
+		end
 		if not landed then
 			local left = landAt - now
 			if left <= 0 then
@@ -556,7 +569,24 @@ local function mysteryCrate(run: Run, late: boolean)
 					wiggle = math.sin(cycle * 42) * 0.04 * k
 				end
 			end
-			local pose = CFrame.new(base + Vector3.new(0, hop, 0)) * CFrame.Angles(tilt, wiggle, tilt * 0.6)
+			local spin, rise = 0, 0
+			local leaving = vanishAt
+			if leaving ~= nil and clock >= leaving then
+				local k = math.clamp((clock - leaving) / CRATE_VANISH_SECONDS, 0, 1)
+				if not vanishFaded then
+					vanishFaded = true
+					fadeOut(folder, CRATE_VANISH_SECONDS)
+				end
+				spin = math.rad(540) * k * k
+				rise = 7 * k * k
+				if k >= 1 then
+					gone = true
+					run.finished = true
+					folder:ClearAllChildren()
+					return
+				end
+			end
+			local pose = CFrame.new(base + Vector3.new(0, hop + rise, 0)) * CFrame.Angles(0, spin, 0) * CFrame.Angles(tilt, wiggle, tilt * 0.6)
 			crate:PivotTo(pose)
 			lid:PivotTo(pose * lidOnCrate * CFrame.new(0, lift, 0) * CFrame.Angles(flip, 0, 0))
 		end
@@ -769,6 +799,12 @@ function EventWorld.result(kind: string, index: number, ok: boolean, reason: str
 	if run ~= nil then
 		run.onResult(kind, index, ok, reason)
 	end
+end
+
+-- True once the running event has nothing left for this player (the opened crate has gone).
+function EventWorld.finished(): boolean
+	local run = current
+	return run ~= nil and run.finished
 end
 
 -- A live line for the banner, or nil to show the event's own tagline.

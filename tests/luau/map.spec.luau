@@ -42,12 +42,12 @@ end
 -- Scenery that is meant to reach under or into other things.
 local SKIP = { Ground = true, Hill = true, GateRamp = true }
 
-test("lots sit where they always did and face the boulevard", function()
+test("lots stand in two rows of three, well apart, facing the boulevard", function()
 	for index = 1, 6 do
 		local base = MapModels.lotBase(index)
 		local col, row = (index - 1) % 3, (index - 1) // 3
-		equal(base.Position.X, (col - 1) * 80, `lot {index} x`)
-		equal(base.Position.Z, if row == 0 then -70 else 70, `lot {index} z`)
+		equal(base.Position.X, (col - 1) * 116, `lot {index} x`)
+		equal(base.Position.Z, if row == 0 then -78 else 78, `lot {index} z`)
 		-- Lot-space -Z (the gate side, a CFrame's LookVector) points at z = 0.
 		expect(base.LookVector.Z * base.Position.Z < 0, `lot {index} faces the boulevard`)
 	end
@@ -189,12 +189,12 @@ test("every part of the map can be walked to from spawn", function()
 	local e = Lay.fenceZ + 1
 	for _, place in {
 		{ "theatre steps", Lay.theatreX - 2, 0 },
-		{ "studio gate road", 170, 0 },
+		{ "studio gate road", Lay.backlotEnd - 5, 0 },
 		{ "park movie screen", 0, e + 100 },
 		{ "park bandstand", 60, e + 86 },
 		{ "park island", -60, e + 84 },
 		{ "Dusty Gulch's far end", 0, -e - 145 },
-		{ "back path corner", 120, 110 },
+		{ "back path corner", Lay.townX - 4, Lay.townZ - 4 },
 	} do
 		expect(reached(place[2] :: number, place[3] :: number), place[1] :: string)
 	end
@@ -245,7 +245,7 @@ test("the only invisible walls run round the outside of the map", function()
 	end
 	-- Lawns, grass between the paths, the park's lawns and the Gulch's desert: no wall anywhere near.
 	local e = Lay.fenceZ + 1
-	for _, probe in { { -20, 37 }, { 18, -38 }, { 0, 102 }, { 126, 60 }, { 9, e + 20 }, { -24, -e - 60 }, { -60, e + 40 }, { 60, -e - 100 } } do
+	for _, probe in { { -20, 37 }, { 18, -38 }, { 0, 110 }, { Lay.townX + 2, 60 }, { 9, e + 20 }, { -24, -e - 60 }, { -60, e + 40 }, { 60, -e - 100 } } do
 		local x, z = probe[1], probe[2]
 		expect(inPlay(x, z), `{x}, {z} is part of the map`)
 		expect(not wallNear(x, z, 3), `a wall stands inside the map near {x}, {z}`)
@@ -341,4 +341,32 @@ test("every map kit model has a part version, a size and builds", function()
 	-- Lamps and lanterns get a light.
 	local lamp = MapKit.place(Build.new(folder, CFrame.identity), "TownLamp", CFrame.identity, { light = { range = 10, brightness = 1, color = Color3.new(1, 1, 1) } })
 	expect(lamp:FindFirstChild("LightSpot") ~= nil, "lamp light")
+end)
+
+test("the park's ducks paddle on open water", function()
+	local TownSets = H.require("Models/TownSets")
+	local r = TownSets.PondRadius
+	local island = Vector3.new(-6, 0, 2) -- in the pond's own space, as TownSets builds it
+	local ducks = 0
+	for _, model in town:GetDescendants() do
+		if model.Name == "Duck" and model:IsA("Model") then
+			ducks += 1
+			local loop = TownSets.DuckLoops[model:GetAttribute("DuckLoop")]
+			expect(loop ~= nil, "duck knows its loop")
+			local centre = model:GetAttribute("PondCentre")
+			local home = model:GetAttribute("Home")
+			expect(typeof(centre) == "Vector3" and typeof(home) == "CFrame", "duck knows the pond and its home")
+			local water = Vector3.new(TownSets.Pond.X, 0, TownSets.Pond.Z + Lay.fenceZ + 1)
+			expect((Vector3.new(centre.X, 0, centre.Z) - water).Magnitude < 0.01, `duck's pond {centre} is the park's pond {water}`)
+			for step = 0, 35 do
+				local a = step / 36 * math.pi * 2
+				local p = loop.centre + Vector3.new(math.sin(a) * loop.radius, 0, math.cos(a) * loop.radius)
+				local flat = Vector3.new(p.X, 0, p.Z)
+				expect(flat.Magnitude < r - 2, `duck loop point {p} leaves the pond`)
+				expect((flat - island).Magnitude > 10, `duck loop point {p} runs onto the island`)
+				expect(not (p.X > 0 and math.abs(p.Z - island.Z) < 4), `duck loop point {p} runs under the bridge`)
+			end
+		end
+	end
+	equal(ducks, #TownSets.DuckLoops, "a loop for every duck")
 end)

@@ -18,27 +18,34 @@ import kit  # noqa: E402
 
 # Shots in Roblox coordinates: camera position, target, lens.
 SHOTS = {
-    "aerial": ((70, 200, -250), (-20, 0, 10), 30),
-    "theatre": ((-114, 12, 24), (-160, 12, 0), 26),
-    "west": ((-270, 110, 130), (-70, 0, 0), 30),
-    "gate": ((112, 8, -10), (160, 12, 0), 30),
-    "propsyard": ((34, 10, -46), (42, 3, -90), 30),
-    "trailers": ((-34, 10, 46), (-42, 3, 90), 30),
-    "greenscreen": ((-34, 10, -46), (-42, 3, -90), 30),
-    "foodcorner": ((34, 10, 46), (42, 3, 90), 30),
+    "aerial": ((90, 260, -330), (-20, 0, 10), 30),
+    "boulevard": ((-24, 8, -4), (110, 18, 12), 26),
+    "boulevardback": ((24, 8, 4), (-110, 18, -12), 26),
+    "towers": ((40, 60, -150), (60, 20, 60), 30),
+    "theatre": ((-176, 12, 24), (-222, 12, 0), 26),
+    "west": ((-340, 120, 150), (-90, 0, 0), 30),
+    "gate": ((174, 8, -10), (222, 12, 0), 30),
+    "propsyard": ((50, 10, -40), (58, 3, -98), 30),
+    "trailers": ((-50, 10, 40), (-58, 3, 98), 30),
+    "greenscreen": ((-50, 10, -40), (-58, 3, -98), 30),
+    "foodcorner": ((50, 10, 40), (58, 3, 98), 30),
     "busstop": ((82, 9, -4), (98, 4, -24), 30),
-    "boulevardend": ((96, 9, 16), (124, 4, 2), 30),
+    "boulevardend": ((140, 9, 4), (186, 12, 30), 30),
     "spawn": ((0, 7, -17), (0, 6, 40), 28),
-    "park": ((30, 60, 112), (-10, 0, 190), 30),
-    "parkpath": ((4, 7, 134), (-4, 6, 200), 28),
-    "pond": ((-8, 14, 168), (-62, 2, 210), 28),
-    "screen": ((10, 10, 175), (0, 14, 235), 28),
-    "western": ((0, 7, -136), (0, 8, -220), 28),
-    "gulch": ((70, 70, -110), (0, 0, -200), 30),
-    "blimp": ((60, 40, -120), (0, 110, -240), 30),
-    "backlot": ((-236, 46, -96), (-120, 0, 0), 30),
-    "lanterns": ((10, 6, -150), (-14, 6, -200), 30),
-    "desert": ((0, 40, -250), (0, 10, -420), 30),
+    "park": ((30, 60, 120), (-10, 0, 198), 30),
+    "parkpath": ((4, 7, 142), (-4, 6, 208), 28),
+    "pond": ((-8, 14, 176), (-62, 2, 218), 28),
+    "screen": ((10, 10, 183), (0, 14, 243), 28),
+    "western": ((0, 7, -144), (0, 8, -228), 28),
+    "gulch": ((70, 70, -118), (0, 0, -208), 30),
+    "blimp": ((60, 40, -128), (0, 110, -248), 30),
+    "backlot": ((-298, 46, -96), (-182, 0, 0), 30),
+    "lanterns": ((10, 6, -158), (-14, 6, -208), 30),
+    "desert": ((0, 40, -258), (0, 10, -428), 30),
+    "filmgate": ((0, 8, -100), (0, 6, -140), 30),
+    "filmset": ((-6, 8, -212), (2, 4, -242), 30),
+    "filmsetwide": ((0, 46, -196), (2, 3, -242), 30),
+    "filmbalcony": ((-8, 7, -220), (10, 7, -242), 26),
 }
 
 
@@ -48,7 +55,9 @@ def roblox(p):
 
 
 def main(names):
-    parts = [p for p in kit.dump("map") if p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
+    # MAP_SCENE=filmset MAP_ARG=<seconds> draws the town with the film crew posed at that moment.
+    scene = os.environ.get("MAP_SCENE", "map")
+    parts = [p for p in kit.dump(scene, os.environ.get("MAP_ARG")) if p["name"] not in ("SearchlightBeam", "MapWall", "PathWall")]
     kit.new_scene(1280, 720, samples=48)
     kit.sky(top="#4A86E0", middle="#8FBDF2", horizon="#F4E6CF", glow="#FFD9A8", strength=1.0, light_strength=0.8)
     kit.light("SUN", (0, 0, 100), 3.2, "#FFF1DC", target=(-40, -60, 0), angle=4, name="Sun")
