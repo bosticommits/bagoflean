@@ -121,16 +121,18 @@ function Fx.premiere(resultId: string, color: Color3)
 		Sfx.play("premiereHit")
 	elseif resultId == "Blockbuster" then
 		Sfx.play("premiereBig")
-		Fx.confetti(30, { color, Color3.new(1, 1, 1) })
+		Fx.flash(Color3.new(1, 1, 1), 0.35)
+		Fx.confetti(70, { color, Color3.new(1, 1, 1) })
 	elseif resultId == "Cult" then
 		Sfx.play("premiereBig")
-		Fx.confetti(50, { color, Color3.fromRGB(255, 205, 70) })
+		Fx.flash(color, 0.35)
+		Fx.confetti(90, { color, Color3.fromRGB(255, 205, 70) })
 	else
 		Music.duck(4)
 		Sfx.play("premiereBig")
 		Sfx.play("premiereMasterpiece")
 		Fx.flash(color, 0.6)
-		Fx.confetti(140)
+		Fx.confetti(200)
 	end
 end
 
