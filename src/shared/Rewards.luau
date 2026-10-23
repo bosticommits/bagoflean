@@ -228,6 +228,29 @@ function Rewards.takeCarried(carried: { Carried }, key: any): Carried?
 	return nil
 end
 
+-- Quests in a RewardsSync payload (`requests`, `weekly`, `festival`, `carried`) that are ready to
+-- claim, keyed "<scope>:<id>" ("carried:<key>" for a carried one). The Goals badge and the HUD pull
+-- tab's dot both count these.
+function Rewards.readyQuests(state: any): { [string]: boolean }
+	local ready: { [string]: boolean } = {}
+	for scope, field in { daily = "requests", weekly = "weekly", festival = "festival" } do
+		local entries = state[field]
+		for _, entry in if type(entries) == "table" then entries else {} do
+			local quest = requestById[entry.id]
+			if quest ~= nil and not entry.claimed and entry.progress >= quest.target then
+				ready[`{scope}:{entry.id}`] = true
+			end
+		end
+	end
+	local carried = state.carried
+	for _, entry in if type(carried) == "table" then carried else {} do
+		if requestById[entry.id] ~= nil then
+			ready[`carried:{entry.key}`] = true
+		end
+	end
+	return ready
+end
+
 -- Saved daily state: the day last claimed and the streak reached on it.
 export type DailyState = { day: number, streak: number }
 
