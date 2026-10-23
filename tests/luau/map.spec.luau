@@ -370,3 +370,39 @@ test("the park's ducks paddle on open water", function()
 	end
 	equal(ducks, #TownSets.DuckLoops, "a loop for every duck")
 end)
+
+test("Dusty Gulch's backlot dressing keeps the street, the crew and Moon Base's way clear", function()
+	local TownSets = H.require("Models/TownSets")
+	local frame = MapModels.GulchFrame
+	local function overlaps(lo: any, hi: any, r: { x0: number, z0: number, x1: number, z1: number }): boolean
+		return lo.X < r.x1 and hi.X > r.x0 and lo.Z < r.z1 and hi.Z > r.z0
+	end
+	local street = { x0 = -14, z0 = 0, x1 = 14, z1 = 148 } -- up to the painted flat closing its end
+	local pieces = 0
+	for _, model in town:GetDescendants() do
+		local kit = if model:IsA("Model") then model:GetAttribute("Kit") else nil
+		if typeof(kit) == "string" and (string.sub(kit, 1, 7) == "Backlot" or string.sub(kit, 1, 11) == "StarTrailer") then
+			local feet = frame:PointToObjectSpace(model.WorldPivot.Position)
+			if math.abs(feet.X) <= 90 and feet.Z >= -2 and feet.Z <= 162 then
+				pieces += 1
+				-- Its footprint in the Gulch's space (the frame is a half turn, so a box stays a box).
+				local lo, hi = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
+				local solid = false
+				for _, part in model:GetDescendants() do
+					if part:IsA("BasePart") and part.Name ~= "SignText" then
+						local a, b = bounds(part)
+						for _, p in { frame:PointToObjectSpace(a), frame:PointToObjectSpace(b) } do
+							lo = Vector3.new(math.min(lo.X, p.X), 0, math.min(lo.Z, p.Z))
+							hi = Vector3.new(math.max(hi.X, p.X), 0, math.max(hi.Z, p.Z))
+						end
+						solid = solid or part.CanCollide
+					end
+				end
+				expect(not overlaps(lo, hi, TownSets.GulchCrewClear), `{kit} at {feet} is in the film crew's patch`)
+				expect(not overlaps(lo, hi, TownSets.GulchMoonWay), `{kit} at {feet} blocks the way to Moon Base`)
+				expect(not (solid and overlaps(lo, hi, street)), `solid {kit} at {feet} blocks the street`)
+			end
+		end
+	end
+	expect(pieces >= 60, `only {pieces} backlot pieces in the Gulch`)
+end)

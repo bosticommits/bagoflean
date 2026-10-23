@@ -52,7 +52,9 @@ export type Frame = {
 }
 
 -- A film set's crew, actors and gear.
-export type Gear = { kit: string, at: Vector3, yaw: number, label: string?, light: boolean? }
+-- `label` letters a director's chair's back, or any other kit model's Sign spot. `solid` says
+-- whether players bump into it when the list is placed `loose` (TownSets.filmSetGear).
+export type Gear = { kit: string, at: Vector3, yaw: number, label: string?, light: boolean?, solid: boolean? }
 
 export type SetScenes = {
 	cast: { string }, -- everyone on set, in the order CrewRig builds them
