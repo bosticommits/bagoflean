@@ -57,6 +57,10 @@ COL = {
     "Duck": "#FFD63C",
     "Orange": "#FF8C28",
     "DoorGlass": "#3A5A8C",
+    # The studio backlot (backlot_kit.py).
+    "Plywood": "#D9B27C",
+    "Sandbag": "#B5A27A",
+    "MeshGreen": "#2F5D46",
 }
 
 
