@@ -713,7 +713,9 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		awardRow.waiting.TextColor3 = if active then UiKit.GOLD else UiKit.MUTED
 		local boostLeft = (player:GetAttribute("LuckBoostUntil") or 0) - now
 		luckyRow.frame.Visible = boostLeft > 0
-		show(luckyRow, "Lucky Casting", `x{Config.BoostLuckMultiplier} casting Luck from a boost`, 1, Hud.clock(boostLeft), "Active")
+		if boostLeft > 0 then
+			show(luckyRow, "Lucky Casting", `x{Config.BoostLuckMultiplier} casting Luck from a boost`, 1, Hud.clock(boostLeft), "Active")
+		end
 
 		-- A special event while one runs, else the countdown to the next one.
 		local live = SpecialEventsUi.readLive()

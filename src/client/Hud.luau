@@ -102,6 +102,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	frame.Name = "Hud"
 	frame.Size = UDim2.fromOffset(HUD_WIDTH, 108)
 	frame.BackgroundTransparency = 1
+	frame.ZIndex = 0 -- under every panel (the Quests board covers it on phones)
 	frame.Parent = gui
 	local frameScale = Instance.new("UIScale")
 	frameScale.Parent = frame
@@ -399,6 +400,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local tab = UiKit.makeButton(gui, "", UiKit.PURPLE, UDim2.fromOffset(TAB_WIDTH, TAB_HEIGHT))
 	tab.Name = "HudTab"
 	tab.AnchorPoint = Vector2.new(1, 0.5)
+	tab.ZIndex = 0 -- under the panels too
 	tab.Visible = false
 	local tabScale = Instance.new("UIScale")
 	tabScale.Parent = tab
