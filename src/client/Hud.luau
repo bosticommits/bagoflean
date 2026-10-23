@@ -30,9 +30,10 @@ local BOX_WIDTH = 310
 local TAB_WIDTH = 64
 local TAB_HEIGHT = 64
 local TAB_OVERHANG = 14 -- past the right edge, so only its left corners show
--- Computers: above the middle, clear of the Studio-only "Events" test button at the right middle.
--- Touch screens: at the middle, under the speaker button (top right there) and over the jump button.
+-- Off the middle, clear of the Studio-only "Events" test button at the right middle: above it on
+-- computers; below it on touch screens, where the speaker button is above and the jump button below.
 local TAB_Y = -56
+local TAB_Y_TOUCH = 44
 local SLIDE = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut)
 local SAVE_DELAY = 0.6 -- batch quick taps into one save
 
@@ -265,14 +266,17 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local tuck = UiKit.makeButton(box, "X", UiKit.CLOSE_RED, UDim2.fromOffset(34, 34))
 	tuck.Name = "Tuck"
 	tuck.ZIndex = 6
-	UiKit.textConstraint(tuck, 22)
 
 	alignTop = function(right: boolean)
 		badgeLayout.HorizontalAlignment = if right then Enum.HorizontalAlignment.Right else Enum.HorizontalAlignment.Center
 		box.AnchorPoint = Vector2.new(if right then 1 else 0.5, 0)
 		box.Position = if right then UDim2.new(1, -4, 0, 56) else UDim2.new(0.5, 0, 0, 56)
 		tuck.AnchorPoint = if right then Vector2.new(1, 0) else Vector2.new(0, 0.5)
-		tuck.Position = if right then UDim2.new(0, -22, 1, 4) else UDim2.new(1, 8, 0.5, 0)
+		tuck.Position = if right then UDim2.new(0, -22, 1, 10) else UDim2.new(1, 8, 0.5, 0)
+		-- Touch screens: the X stays a 44 px tap target however small the stack is scaled.
+		local tuckSize = if right then math.ceil(44 / frameScale.Scale) else 34
+		tuck.Size = UDim2.fromOffset(tuckSize, tuckSize)
+		UiKit.textConstraint(tuck, math.floor(tuckSize * 0.65))
 	end
 
 	local function refreshBox()
@@ -396,12 +400,20 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	tab.Name = "HudTab"
 	tab.AnchorPoint = Vector2.new(1, 0.5)
 	tab.Visible = false
-	local function tabAt(shown: boolean): UDim2
-		local y = if UserInputService.TouchEnabled then 0 else TAB_Y
-		return UDim2.new(1, if shown then TAB_OVERHANG else TAB_WIDTH + 24, 0.5, y)
-	end
 	local tabScale = Instance.new("UIScale")
 	tabScale.Parent = tab
+	local function tabAt(shown: boolean): UDim2
+		local y = TAB_Y
+		if UserInputService.TouchEnabled then
+			-- Short landscape phones: lift it to stay above Roblox's jump button, whose top sits 90 px
+			-- over the bottom (210 px once the screen's shorter side is over 500 px).
+			local view = UiKit.viewport()
+			local height = if gui.AbsoluteSize.Y > 0 then gui.AbsoluteSize.Y else view.Y
+			local jumpTop = if math.min(view.X, view.Y) <= 500 then 90 else 210
+			y = math.min(TAB_Y_TOUCH, height / 2 - jumpTop - 8 - TAB_HEIGHT * tabScale.Scale / 2)
+		end
+		return UDim2.new(1, if shown then TAB_OVERHANG else TAB_WIDTH + 24, 0.5, y)
+	end
 	local tabArt = Instance.new("Frame")
 	tabArt.Name = "Icon"
 	tabArt.BackgroundTransparency = 1
@@ -410,10 +422,12 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	tabArt.ZIndex = 3
 	tabArt.Parent = tab
 	Icon3D.outlined(tabArt, "trophy", 0.95)
-	UiKit.onViewportChanged(function()
+	local function placeTab()
 		tabScale.Scale = if UiKit.isCompact() then 0.8 else 1
 		tab.Position = tabAt(tucked)
-	end)
+	end
+	UiKit.onViewportChanged(placeTab)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeTab)
 	local function showReady()
 		local count = gui:GetAttribute("ClaimReady")
 		UiKit.badge(tab, if typeof(count) == "number" and count > 0 then "!" else nil)
