@@ -400,8 +400,12 @@ test("the Jungle Temple's dressing keeps the crew corner and the boulder's run c
 			if inSet and not isGear and model:FindFirstChildWhichIsA("BasePart", true) then
 				checked += 1
 				for _, part in model:GetDescendants() do
+					local lo, hi
 					if part:IsA("BasePart") then
-						local lo, hi = bounds(part)
+						lo, hi = bounds(part)
+					end
+					-- Ground cover (dirt, leaves, cables) lies flat, so the crew walks over it.
+					if lo and hi.Y - frame.Position.Y > 1 then
 						local a, b = frame:PointToObjectSpace(lo), frame:PointToObjectSpace(hi)
 						local x0, x1 = math.min(a.X, b.X), math.max(a.X, b.X)
 						local z0, z1 = math.min(a.Z, b.Z), math.max(a.Z, b.Z)

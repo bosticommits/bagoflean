@@ -41,6 +41,9 @@ the river and the backdrop show their wooden frames from behind, the way film se
   JungleRoots        a clump of arching roots
   JungleMound        a low faceted mossy mound, sunk into the ground (not lifted)
   JungleLeafLitter   a flat patch of fallen leaves
+  JungleDirtPatch    worn dirt with a ragged edge, 22 x 16, sunk into the ground (not lifted);
+                     JungleDirtPatchSmall (11 x 8) and JungleDirtPatchLong (26 x 11) the same
+  JungleShrineBack   the shrine's back as a set piece: plywood on a 2x4 frame, jacks, sandbags
 
   Backdrop and way in
   JungleBackdrop     a painted flat (32 wide, 22 high): jungle, mountains and a waterfall,
@@ -579,6 +582,69 @@ def jungle_leaf_litter():
     return s
 
 
+def dirt_patch(w, d, n, seed):
+    """Worn dirt, w x d, ragged at the edge: overlapping seven-sided discs in two tones, sunk so only
+    a sliver shows above the ground (not lifted)."""
+    s = []
+    for i in range(n):
+        r = rnd(i, seed)
+        a = rnd(i, seed + 1) * 2 * math.pi
+        k = math.sqrt(rnd(i, seed + 2)) * 0.62
+        x, y = math.cos(a) * k * w / 2, math.sin(a) * k * d / 2
+        rad = min(w, d) * (0.24 + 0.16 * r)
+        # Each disc a hair higher than the last: coplanar overlaps render as black.
+        s.append(C((x, y, -0.04 + i * 0.004), rad, 0.2, "#96704A", rot=(0, 0, r * 51), seg=7))
+    for i in range(n // 2):
+        r = rnd(i, seed + 7)
+        x, y = (r - 0.5) * w * 0.6, (rnd(i, seed + 8) - 0.5) * d * 0.5
+        s.append(C((x, y, 0.012 + i * 0.004), min(w, d) * (0.14 + 0.1 * r), 0.2, "#86603E", rot=(0, 0, r * 40), seg=6))
+    # A few pebbles and leaves on it.
+    for i in range(4):
+        x, y = (rnd(i, seed + 3) - 0.5) * w * 0.6, (rnd(i, seed + 4) - 0.5) * d * 0.6
+        s.append(B((x, y, 0.13), (0.7, 0.4, 0.06), ("#A8843E", "#6E7A34", "#9C9484", "#8A6A34")[i], rot=(0, 0, rnd(i, seed + 5) * 180)))
+    return s
+
+
+def jungle_dirt_patch():
+    return dirt_patch(22.0, 16.0, 12, 1)
+
+
+def jungle_dirt_patch_small():
+    return dirt_patch(11.0, 8.0, 7, 2)
+
+
+def jungle_dirt_patch_long():
+    return dirt_patch(26.0, 11.0, 12, 3)
+
+
+def jungle_shrine_back():
+    """The back of the temple's shrine as a set piece: a plywood skin on a 2x4 frame (its back
+    toward +Y, the stone side against the shrine), two short jacks and a sandbag."""
+    w, h = 11.6, 10.6
+    s = [
+        B((0, 0.15, h / 2), (w, 0.3, h), PLY),
+        B((0, 0.4, 0.3), (w, 0.3, 0.4), FRAME),
+        B((0, 0.4, h / 2), (w, 0.3, 0.4), FRAME),
+        B((0, 0.4, h - 0.3), (w, 0.3, 0.4), FRAME),
+        B((0, 0.42, h * 0.27), (0.3, 0.3, h * 0.5), FRAME, rot=(0, 50, 0)),
+        # Painted stone blocks peeling at one corner, the plywood showing where they stop.
+        B((-3.4, -0.02, h - 1.6), (3.6, 0.04, 2.2), STONE_DARK),
+    ]
+    for x in (-w / 2 + 0.25, 0, w / 2 - 0.25):
+        s.append(B((x, 0.4, h / 2), (0.4, 0.3, h), FRAME))
+    for x in (-3.6, 3.6):
+        s += [
+            B((x, 0.85, h * 0.32), (0.35, 0.35, h * 0.62), FRAME),
+            B((x, 1.05, h * 0.3), (0.3, 0.3, h * 0.62), FRAME, rot=(-12, 0, 0)),
+            B((x, 0.95, 0.15), (0.35, 1.4, 0.3), FRAME),
+        ]
+    s += [
+        BV((-3.6, 1.2, 0.45), (1.4, 0.9, 0.5), SANDBAG, bevel=0.2),
+        BV((3.4, 1.2, 0.45), (1.4, 0.9, 0.5), shade(SANDBAG, 0.08), bevel=0.2),
+    ]
+    return s
+
+
 # --- Backdrop and way in ------------------------------------------------------------------
 
 
@@ -721,6 +787,10 @@ KIT = [
     ("JungleRoots", jungle_roots),
     ("JungleMound", jungle_mound),
     ("JungleLeafLitter", jungle_leaf_litter),
+    ("JungleDirtPatch", jungle_dirt_patch),
+    ("JungleDirtPatchSmall", jungle_dirt_patch_small),
+    ("JungleDirtPatchLong", jungle_dirt_patch_long),
+    ("JungleShrineBack", jungle_shrine_back),
     ("JungleBackdrop", jungle_backdrop),
     ("JungleBackdropSide", jungle_backdrop_side),
     ("JungleSignpost", jungle_signpost),
@@ -728,7 +798,7 @@ KIT = [
 ]
 
 # Sunk into the ground: the mound is the top of a squashed blob.
-NO_LIFT = {"JungleMound"}
+NO_LIFT = {"JungleMound", "JungleDirtPatch", "JungleDirtPatchSmall", "JungleDirtPatchLong"}
 
 LINEUPS = {
     "jungle_kit.png": (["IdolPedestal", "JungleFern", "JungleTorch", "JungleRuin", "JunglePalm", "JungleTree"], ["JungleTemple"]),
@@ -738,4 +808,5 @@ LINEUPS = {
     "jungle_water.png": (["JungleRiver", "JungleBridge"], ["JungleRiverBend"]),
     "jungle_backdrop.png": ([], ["JungleBackdrop", "JungleBackdropSide"]),
     "jungle_gate.png": ([], ["JungleGateArch"]),
+    "jungle_ground.png": (["JungleDirtPatchSmall", "JungleShrineBack@180"], ["JungleDirtPatch", "JungleDirtPatchLong"]),
 }

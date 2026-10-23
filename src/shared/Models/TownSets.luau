@@ -443,6 +443,23 @@ local SOFT = { soft = true }
 local LIT = { light = true }
 
 local JUNGLE_DRESSING: { Dressing } = {
+	-- Worn dirt: the road in from the gate and the clearing in front of the temple, overlapping
+	-- ragged patches so neither ends in a straight line.
+	dress("JungleDirtPatchLong", 0, 9, 92, SOFT),
+	dress("JungleDirtPatchLong", 1, 27, 86, SOFT),
+	dress("JungleDirtPatchSmall", -2, 40, 30, SOFT),
+	dress("JungleDirtPatch", 8, 50, 10, SOFT),
+	dress("JungleDirtPatch", 26, 48, -8, SOFT),
+	dress("JungleDirtPatch", 42, 54, 25, SOFT),
+	dress("JungleDirtPatch", 12, 64, -20, SOFT),
+	dress("JungleDirtPatch", 32, 64, 15, SOFT),
+	dress("JungleDirtPatch", 20, 76, 0, SOFT),
+	dress("JungleDirtPatchLong", 24, 70, 90, SOFT),
+	dress("JungleDirtPatchSmall", 4, 78, 40, SOFT),
+	dress("JungleDirtPatchSmall", 44, 74, -30, SOFT),
+	dress("JungleDirtPatchSmall", 50, 44, 60, SOFT),
+	dress("JungleDirtPatchSmall", -4, 56, 10, SOFT),
+	-- The back of the shrine on top of the temple is a plywood flat, like the rest of the set.
 	-- The road in: two star trailers (doors toward the road), craft services across from them.
 	dress("StarTrailerRed", -22, 9, 180),
 	dress("StarTrailerBlue", -22, 26, 180),
@@ -553,6 +570,17 @@ local JUNGLE_DRESSING: { Dressing } = {
 	dress("JungleLeafLitter", 66, 22, 30, SOFT),
 	dress("JungleLeafLitter", -28, 86, 10, SOFT),
 	dress("JunglePalm", 76, 10, 250),
+	dress("JungleTree", -29, 120, 70),
+	dress("JungleTree", 77, 121, 160),
+	dress("JungleBanana", -30, 110, 10),
+	dress("JungleBigLeaf", 76, 108, 30, SOFT),
+	dress("JungleBush", -24, 122, 0),
+	dress("JungleFern", 70, 122, 50),
+	dress("JungleBigLeaf", -31, 30, 120, SOFT),
+	dress("JungleBush", -30, 38, 0),
+	dress("JungleBanana", 78, 40, 300),
+	dress("JungleFern", 74, 30, 0),
+	dress("JungleBigLeaf", 78, 62, 200, SOFT),
 	dress("JunglePalm", 40, 6, 80),
 	-- The woods outside the fence.
 	dress("JungleTree", -44, 18, 30),
@@ -589,10 +617,8 @@ end
 
 function TownSets.jungleTemple(b: Builder)
 	-- The lot's ground is the same green as the woods round it, so it has no edge; the dirt road
-	-- and the clearing are worn into it.
+	-- and the clearing are ragged worn patches on it (in JUNGLE_DRESSING).
 	b:block("JungleGround", v(124, 0.2, 126), v(24, 0.1, 61), P.Green, GRASS)
-	b:block("JunglePath", v(12, 0.2, 46), v(0, 0.12, 22), JUNGLE_DIRT, Enum.Material.Ground)
-	b:block("JungleClearing", v(48, 0.2, 42), v(24, 0.12, 65), JUNGLE_DIRT, Enum.Material.Ground)
 	TownSets.filmSetGear(b, FilmScenes.Sets.Jungle.gear)
 
 	-- The fence: down both sides and across the back, with studio banners by the way in.
@@ -611,6 +637,28 @@ function TownSets.jungleTemple(b: Builder)
 			light = if d.light then { range = 18, brightness = 1.6, color = Color3.fromRGB(255, 236, 200) } else nil,
 		})
 	end
+	-- The back of the shrine on top of the temple is a plywood flat, like the rest of the set.
+	MapKit.place(b, "JungleShrineBack", v(24, 16.2, 101))
+	-- Jungle undergrowth along the outside of the fence and canopy trees behind it (past the play
+	-- area, so nobody walks into it), cycling through the plants so no two neighbours match.
+	local plants = { "JungleFern", "JungleBigLeaf", "JungleBush", "JungleMound", "JungleBanana", "JungleFern", "JungleBush" }
+	local function undergrowth(from: Vector3, to: Vector3, out: Vector3, seed: number)
+		local n = math.floor((to - from).Magnitude / 7)
+		for i = 0, n do
+			local k = (i * 3 + seed) % #plants + 1
+			local wobble = ((i * 37 + seed * 11) % 5) - 2
+			local at = from:Lerp(to, i / n) + out * (4 + wobble * 0.8)
+			MapKit.place(b, plants[k], CFrame.new(at) * yaw(i * 67 + seed * 23), { solid = false })
+			if i % 2 == 0 then
+				local tree = if (i + seed) % 4 == 0 then "JunglePalm" else "JungleTree"
+				MapKit.place(b, tree, CFrame.new(at + out * (10 + wobble * 2)) * yaw(i * 41), { far = true, scale = 0.9 + (i % 3) * 0.15 })
+			end
+		end
+	end
+	undergrowth(v(-35.5, 0.2, 44), v(-35.5, 0.2, 126), v(-1, 0, 0), 1) -- nearer the gate is a studio lot
+	undergrowth(v(83.5, 0.2, 2), v(83.5, 0.2, 126), v(1, 0, 0), 2)
+	undergrowth(v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), v(0, 0, 1), 3)
+
 	MapKit.place(b, "BacklotCraftTent", CFrame.new(19, 0.2, 16) * yaw(90), {
 		labels = { Sign = { text = "CRAFT SERVICES", color = P.Burgundy, stroke = 0 } },
 	})
