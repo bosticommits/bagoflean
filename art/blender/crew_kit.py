@@ -2,12 +2,20 @@
 film set closed until it is bought. map_kit.py builds them into the one map_kit.fbx and the one
 MapKitShapes.luau with the rest of the map kit, so run that file, not this one.
 
-  Rig pieces   Crew<Who><Part>: Head, Torso, Arm, Leg (used for both sides) for each of the six people
-               (Director, Clapper, Operator, Sheriff, Outlaw, Stunt). src/shared/Models/CrewRig.luau
-               puts the pieces together and turns them at their joints, so the same six puppets
-               act out every scene (src/shared/FilmScenes.luau).
+  Rig pieces   Crew<Who><Part>: Head, Torso, Arm, Leg (used for both sides) for each person: the
+               crew (Director, Clapper, Operator, Boom, Gaffer, Makeup) and the actors (Sheriff,
+               Outlaw, Stunt, Astronaut, Alien, Explorer, Guide). src/shared/Models/CrewRig.luau
+               puts the pieces together and turns them at their joints, so the same puppets act
+               out every scene (src/shared/FilmScenes.luau).
   Props        PropMegaphone, PropRevolver, PropClapper (spot Board: the scene and the film's
-               title), PropClapperStick (the hinged top that snaps shut)
+               title), PropClapperStick (the hinged top that snaps shut), PropBoomPole (the boom
+               mic on its pole), PropMakeupBrush, PropFlag, PropIdol, PropTorch, PropBoulder
+  Camera rig   CrewDollyTrack (rails on the ground), CrewDolly (the cart that rolls on them, with a
+               post), CrewJibArm (the crane arm, hinged on the post), CrewCameraHead (the camera
+               hanging at the arm's tip); FilmScenes moves the last three
+  Set gear     CrewLightStand and CrewLightHead (the lamp the lighting tech turns), CrewMakeupKit
+               (a table with the make-up case and a mirror), CrewOpenDoor and CrewBalconyDoor
+               (open doorways the stunt double walks through on the hotel)
   Gate         SetGate (striped posts, a lit sign: spots Sign and Price), SetGateArm (the boom that
                lifts for owners)
 
@@ -19,7 +27,9 @@ blocky heads, bevelled outfits, a few bold details that say who they are.
 Blender axes, in studs: Z up, the model faces -Y.
 """
 
-from kitdsl import B, C, E, K, L, S, T, shade  # noqa: F401
+import math
+
+from kitdsl import B, C, E, G, K, L, S, T, shade  # noqa: F401
 
 
 def BV(at, size, color, rot=(0, 0, 0), bevel=0.08, neon=False):
@@ -53,6 +63,10 @@ PEOPLE = {
     # The Jungle Temple set.
     "Explorer": {"skin": "fair", "shirt": "#D8C49A", "sleeve": "#D8C49A", "pants": "#8A6A44", "shoes": "#5A3A24"},
     "Guide": {"skin": "brown", "shirt": "#5BBF5A", "sleeve": "#5BBF5A", "pants": "#C8B48C", "shoes": "#5A3A24"},
+    # More crew: the boom mic operator, the lighting tech (gaffer) and the make-up artist.
+    "Boom": {"skin": "light", "shirt": "#6B7F3A", "sleeve": "#6B7F3A", "pants": "#3A3440", "shoes": "#5A3A24"},
+    "Gaffer": {"skin": "deep", "shirt": "#C8202F", "sleeve": "#C8202F", "pants": "#5A4A3A", "shoes": "#2A1E18", "hand": "#2E2C34"},
+    "Makeup": {"skin": "fair", "shirt": "#FF78AA", "sleeve": "#FF78AA", "pants": "#2E2C34", "shoes": "#FAF6EC"},
 }
 
 
@@ -170,6 +184,32 @@ def torso(who):
             BV((0, 0, 0.15), (1.9, 1.08, 0.34), "#5A3A24"),
             C((-0.98, 0, 0.25), 0.32, 0.2, "#5A3A24", rot=(0, 90, 0), seg=10),
         ]
+    elif who == "Boom":
+        # A sound vest full of pockets, the recorder bag on a strap across the chest.
+        s += [BV((x, -0.53, 0.95), (0.42, 0.08, 0.4), shade(p["shirt"], 0.25)) for x in (-0.45, 0.45)]
+        s += [
+            B((0, -0.55, 1.05), (0.18, 0.06, 1.9), "#2E2C34", rot=(0, -40, 0)),
+            BV((-0.98, -0.1, 0.45), (0.3, 0.8, 0.6), "#2E2C34"),
+            E((-1.0, -0.52, 0.55), (0.06, 0.03, 0.06), "Carpet", neon=True),
+            BV((0, 0, 0.15), (1.86, 1.06, 0.32), "#2E2C34"),
+        ]
+    elif who == "Gaffer":
+        # A checked work shirt and a tool belt with a roll of gaffer tape and a wrench.
+        s += [B((x, -0.51, 1.0), (0.1, 0.05, 1.6), shade(p["shirt"], 0.3)) for x in (-0.45, 0.0, 0.45)]
+        s += [B((0, -0.51, z), (1.7, 0.05, 0.1), shade(p["shirt"], 0.3)) for z in (0.6, 1.1, 1.6)]
+        s += [
+            BV((0, 0, 0.15), (1.9, 1.08, 0.34), "#5A3A24"),
+            C((0.98, 0, 0.2), 0.3, 0.22, "Chrome", rot=(0, 90, 0), seg=10),
+            BV((-0.98, -0.15, 0.1), (0.18, 0.3, 0.7), "Steel"),
+        ]
+    elif who == "Makeup":
+        # A black apron with brushes in its pocket.
+        s += [
+            BV((0, -0.5, 0.75), (1.4, 0.08, 1.3), "#2E2C34"),
+            B((0, -0.55, 0.55), (1.0, 0.06, 0.4), shade("#2E2C34", -0.2)),
+        ]
+        s += [C((-0.3 + i * 0.2, -0.56, 0.85), 0.05, 0.4, c, seg=5) for i, c in enumerate(["Gold", "Pink", "Teal", "Purple"])]
+        s.append(BV((0, 0, 0.15), (1.86, 1.06, 0.32), "#2E2C34"))
     elif who == "Guide":
         # A many-pocket vest and a water flask.
         s += [
@@ -292,6 +332,37 @@ def head(who):
             E((0, 0, 1.7), (0.82, 0.78, 0.55), "#E8D9B0"),
             B((0, 0, 1.62), (1.5, 1.42, 0.14), "#7A5434"),
         ]
+    elif who == "Boom":
+        s = face(skin, "smile")
+        s += [
+            # A knitted beanie under big headphones.
+            BV((0, 0.05, 1.6), (1.6, 1.5, 0.45), "#E87A2E", bevel=0.18),
+            B((0, 0.05, 1.42), (1.62, 1.52, 0.14), shade("#E87A2E", 0.2)),
+            E((0, 0.05, 1.9), (0.18, 0.18, 0.14), "OffWhite"),
+            B((0, 0, 1.76), (1.74, 0.22, 0.16), "#2E2C34"),
+        ]
+        for x in (-0.84, 0.84):
+            s += [C((x, 0, 0.95), 0.4, 0.3, "#2E2C34", rot=(0, 90, 0), seg=10), B((x, 0, 1.4), (0.12, 0.22, 0.75), "#2E2C34")]
+    elif who == "Gaffer":
+        s = face(skin, "grin")
+        s += [
+            # A yellow cap with a little lamp clipped to it, and a beard.
+            BV((0, 0.05, 1.6), (1.56, 1.46, 0.36), "Duck", bevel=0.15),
+            BV((0, -0.95, 1.47), (1.1, 0.7, 0.12), "Duck"),
+            E((0, -0.76, 1.66), (0.14, 0.06, 0.12), "Light", neon=True),
+            BV((0, -0.72, 0.28), (1.2, 0.1, 0.42), "#2A1E18"),
+        ]
+    elif who == "Makeup":
+        s = face(skin, "smile")
+        s += [
+            # Pink hair in a high ponytail, with a headband and rosy cheeks.
+            BV((0, 0.15, 1.5), (1.6, 1.3, 0.4), "#C24F8E", bevel=0.15),
+            BV((0, 0.62, 1.0), (1.56, 0.3, 1.2), "#C24F8E", bevel=0.12),
+            B((0, 0, 1.52), (1.64, 1.44, 0.14), "Teal"),
+            E((0, 0.8, 1.6), (0.32, 0.32, 0.3), "#C24F8E"),
+            K((0, 0.95, 1.1), 0.28, 0.08, 0.9, "#C24F8E", rot=(160, 0, 0), seg=6),
+        ]
+        s += [B((x, -0.72, 0.62), (0.22, 0.04, 0.12), "#FF9CB8") for x in (-0.5, 0.5)]
     else:  # Stunt
         s = face(skin, "smile")
         s += [
@@ -391,6 +462,201 @@ def boulder():
     ]
 
 
+def boom_pole():
+    """The boom mic: a long pole held at its foot (the pole runs along -Z, the way it points) with
+    a furry windshield hanging under the far end."""
+    return [
+        C((0, 0, -0.3), 0.14, 0.6, "#2E2C34", seg=8),
+        C((0, 0, -5.0), 0.08, 9.4, "Steel", seg=6),
+        C((0, 0, -9.7), 0.11, 0.2, "#2E2C34", seg=8),
+        C((0, 0.25, -9.75), 0.05, 0.5, "#2E2C34", rot=(90, 0, 0), seg=6),
+        L((0, 0.62, -9.75), (0.32, 0.3, 0.75), "#9AA0AA", rot=(0, 0, 0), jitter=0.12),
+    ]
+
+
+def makeup_brush():
+    """A fat make-up brush, held by the handle (the bristles at the far end, -Z)."""
+    return [
+        C((0, 0, -0.35), 0.07, 0.7, "#2E2C34", seg=6),
+        C((0, 0, -0.78), 0.09, 0.18, "Chrome", seg=6),
+        E((0, 0, -1.05), (0.17, 0.17, 0.26), "Pink"),
+    ]
+
+
+# --- The camera rig (the dolly rolls on its track; FilmScenes moves the dolly, arm and camera) ---
+
+RAIL_X = 1.1  # the rails either side of the track's middle
+TRACK_LONG = 14.0
+
+
+def dolly_track():
+    """Two steel rails on wooden sleepers, TRACK_LONG studs along the model's Y (game Z)."""
+    s = []
+    n = 10
+    for i in range(n):
+        y = -TRACK_LONG / 2 + (i + 0.5) * TRACK_LONG / n
+        s.append(BV((0, y, 0.1), (3.2, 0.5, 0.2), "Wood", bevel=0.04))
+    for x in (-RAIL_X, RAIL_X):
+        s += [
+            B((x, 0, 0.3), (0.22, TRACK_LONG, 0.2), "Steel"),
+            B((x, 0, 0.43), (0.12, TRACK_LONG, 0.06), "Chrome"),
+        ]
+        for y in (-TRACK_LONG / 2, TRACK_LONG / 2):
+            s.append(BV((x, y, 0.45), (0.4, 0.3, 0.5), "Carpet", bevel=0.05))
+    return s
+
+
+def dolly():
+    """The dolly cart: a platform on four wheels that sit on the rails (the track runs along Y),
+    a push bar at the back and a post up the middle with a turntable for the jib arm (its hinge
+    4.6 above the origin, which is the ground under the cart's middle)."""
+    s = [
+        BV((0, 0, 0.82), (3.6, 3.6, 0.32), "#2E2C34", bevel=0.08),
+        B((0, 0, 1.0), (3.3, 3.3, 0.06), "#4A4852"),
+        BV((0, 0, 0.6), (2.6, 3.2, 0.2), "Steel"),
+    ]
+    for x in (-RAIL_X, RAIL_X):
+        for y in (-1.2, 1.2):
+            s += [
+                C((x, y, 0.62), 0.22, 0.2, "#14121A", rot=(0, 90, 0), seg=10),
+                C((x, y, 0.62), 0.1, 0.24, "Chrome", rot=(0, 90, 0), seg=6),
+            ]
+    # The push bar at the back (+Y), the post and the turntable.
+    for x in (-1.3, 1.3):
+        s.append(C((x, 1.65, 1.6), 0.07, 1.3, "Chrome", seg=6))
+    s += [
+        C((0, 1.65, 2.25), 0.08, 2.7, "Chrome", rot=(0, 90, 0), seg=6),
+        C((0, 0, 1.4), 0.5, 0.7, "#2E2C34", seg=10),
+        C((0, 0, 2.8), 0.22, 2.4, "Chrome", seg=8),
+        C((0, 0, 4.1), 0.42, 0.25, "Gold", seg=10),
+        BV((0, 0, 4.4), (0.5, 0.7, 0.4), "#2E2C34"),
+    ]
+    return s
+
+
+JIB_FRONT = 6.5  # the camera hangs this far in front of the hinge
+
+
+def jib_arm():
+    """The crane arm, hinged at the origin: a yellow truss JIB_FRONT studs forward (-Y), and
+    behind the hinge the counterweights and the handle bar the operator steers it by."""
+    s = [
+        BV((0, -JIB_FRONT / 2 + 0.4, 0), (0.42, JIB_FRONT + 0.8, 0.42), "Gold", bevel=0.06),
+        B((0, -JIB_FRONT / 2 + 0.4, 0.28), (0.16, JIB_FRONT, 0.12), "#2E2C34"),
+        BV((0, 0.9, 0), (0.42, 1.8, 0.42), "Gold", bevel=0.06),
+        C((0, 0, 0), 0.18, 0.9, "#2E2C34", rot=(0, 90, 0), seg=8),
+        BV((0, -JIB_FRONT, -0.05), (0.6, 0.5, 0.5), "#2E2C34"),
+    ]
+    s += [C((0, 1.3 + i * 0.32, 0), 0.5, 0.26, "#14121A", rot=(90, 0, 0), seg=12) for i in range(2)]
+    s += [
+        C((0, 1.85, -0.35), 0.06, 0.7, "Chrome", seg=6),
+        C((0, 1.85, -0.7), 0.07, 1.6, "#2E2C34", rot=(0, 90, 0), seg=6),
+    ]
+    return s
+
+
+def camera_head():
+    """The film camera hanging under the arm's tip (the origin): a stem, the camera with its
+    lens and matte box toward -Y, a film magazine on top and a little monitor at the back."""
+    s = [
+        C((0, 0, -0.3), 0.12, 0.6, "#2E2C34", seg=8),
+        BV((0, 0, -1.25), (1.1, 1.9, 1.2), "#2E2C34", bevel=0.1),
+        C((0, -1.25, -1.25), 0.36, 0.7, "#14121A", rot=(90, 0, 0), seg=12),
+        C((0, -1.62, -1.25), 0.4, 0.06, "Glass", rot=(90, 0, 0), seg=12),
+        BV((0, -1.75, -1.25), (1.0, 0.25, 0.9), "#2E2C34", bevel=0.04),
+        C((0, 0.35, -0.42), 0.5, 0.3, "#2E2C34", rot=(0, 90, 0), seg=12),
+        C((0, -0.45, -0.42), 0.5, 0.3, "#2E2C34", rot=(0, 90, 0), seg=12),
+        BV((0.5, 0.95, -1.1), (0.08, 0.5, 0.4), "#14121A"),
+        E((0.0, 0.0, -1.0), (0.05, 0.05, 0.05), "Carpet", neon=True),
+    ]
+    s.append(B((0.0, 0.97, -1.15), (0.6, 0.04, 0.4), "Glass"))
+    return s
+
+
+def light_stand():
+    """A tripod stand for the lamp: three legs and a pole up to the lamp's hinge (4.8 up)."""
+    s = [C((0, 0, 2.6), 0.1, 4.4, "#2E2C34", seg=6), C((0, 0, 1.1), 0.16, 0.5, "Steel", seg=8)]
+    tilt = math.degrees(math.atan2(0.9, 1.1))
+    length = math.hypot(0.9, 1.1)
+    for a in (0, 120, 240):
+        s.append(G((0, 0, 0), (0, 0, a), C((0, 0.45, 0.55), 0.06, length, "#2E2C34", rot=(tilt, 0, 0), seg=5), E((0, 0.9, 0.05), (0.14, 0.14, 0.06), "#14121A")))
+    s.append(C((0, 0, 4.7), 0.14, 0.2, "Steel", seg=8))
+    return s
+
+
+def light_head():
+    """The film lamp, turned about its hinge (the origin): a black housing with a glowing lens
+    toward -Y, four barn doors round it, a yoke down to the stand and a handle on top."""
+    s = [
+        BV((0, 0.1, 0.55), (1.4, 1.5, 1.3), "#2E2C34", bevel=0.1),
+        C((0, -0.68, 0.55), 0.5, 0.08, "Light", rot=(90, 0, 0), seg=12, neon=True),
+        B((0, -0.95, 1.28), (1.4, 0.5, 0.06), "#14121A", rot=(-25, 0, 0)),
+        B((0, -0.95, -0.18), (1.4, 0.5, 0.06), "#14121A", rot=(25, 0, 0)),
+        B((0.75, -0.95, 0.55), (0.06, 0.5, 1.3), "#14121A", rot=(0, 0, -25)),
+        B((-0.75, -0.95, 0.55), (0.06, 0.5, 1.3), "#14121A", rot=(0, 0, 25)),
+        C((0, 0.1, 1.35), 0.06, 0.8, "Chrome", rot=(0, 90, 0), seg=6),
+        BV((0, 0.85, 0.55), (0.9, 0.12, 0.7), "#4A4852"),
+    ]
+    for x in (-0.8, 0.8):
+        s.append(B((x, 0.1, 0.25), (0.1, 0.3, 0.7), "Steel"))
+    s.append(B((0, 0.1, -0.08), (1.7, 0.3, 0.1), "Steel"))
+    return s
+
+
+def makeup_kit():
+    """The make-up table: a little folding table with an open case of colours and brushes, a
+    mirror ringed with bulbs, and a stool."""
+    s = [BV((0, 0, 2.0), (2.4, 1.4, 0.15), "#E8D9B0", bevel=0.04)]
+    for x in (-1.0, 1.0):
+        for y in (-0.55, 0.55):
+            s.append(C((x, y, 1.0), 0.06, 2.0, "Steel", seg=5))
+    s += [
+        BV((-0.35, -0.05, 2.25), (1.3, 0.8, 0.35), "#2E2C34", bevel=0.05),
+        BV((-0.35, 0.38, 2.75), (1.3, 0.1, 0.8), "#2E2C34", bevel=0.04, rot=(-15, 0, 0)),
+    ]
+    for i, c in enumerate(["Carpet", "Pink", "Gold", "Teal", "Purple", "#A56C44"]):
+        s.append(B((-0.8 + (i % 3) * 0.45, -0.2 + (i // 3) * 0.32, 2.45), (0.34, 0.24, 0.06), c))
+    s += [
+        BV((0.75, 0.3, 2.95), (0.9, 0.1, 1.5), "#E8D9B0", bevel=0.05),
+        B((0.75, 0.24, 2.95), (0.7, 0.04, 1.3), "Glass"),
+        C((0.75, 0.3, 2.1), 0.05, 0.3, "Steel", seg=5),
+    ]
+    for z in (2.4, 2.95, 3.5):
+        for x in (0.25, 1.25):
+            s.append(E((x, 0.22, z), (0.08, 0.06, 0.08), "Light", neon=True))
+    for x in (0.4, 0.75, 1.1):
+        s.append(E((x, 0.22, 3.72), (0.08, 0.06, 0.08), "Light", neon=True))
+    s += [C((0.75, -0.3, 2.2), 0.04, 0.4, c, seg=5) for c in ("Gold",)]
+    # A round stool beside the table.
+    s += [C((-1.9, -0.6, 1.4), 0.5, 0.18, "Carpet", seg=10), C((-1.9, -0.6, 0.7), 0.07, 1.3, "Chrome", seg=6), C((-1.9, -0.6, 0.06), 0.4, 0.1, "Chrome", seg=10)]
+    return s
+
+
+def open_door(width, height, leaf=True):
+    """An open doorway to stand against a wall (its back at y = 0): a frame round a dark opening,
+    and the door leaf swung right back against the wall beside it."""
+    t = 0.32
+    s = [
+        B((0, -t / 2, height / 2), (width, t * 0.5, height), "#14121A"),
+        BV((-(width / 2 + 0.2), -t / 2, height / 2 + 0.1), (0.4, t, height + 0.2), "Cream", bevel=0.05),
+        BV((width / 2 + 0.2, -t / 2, height / 2 + 0.1), (0.4, t, height + 0.2), "Cream", bevel=0.05),
+        BV((0, -t / 2, height + 0.2), (width + 0.8, t, 0.4), "Cream", bevel=0.05),
+        B((0, -t * 0.4, 0.04), (width, t * 0.6, 0.08), "Bark"),
+    ]
+    if leaf:
+        lx = -(width / 2 + 0.4 + width / 2)
+        s += [
+            BV((lx, -0.12, height / 2), (width - 0.1, 0.18, height - 0.1), "Bark", bevel=0.04),
+            B((lx, -0.23, height * 0.72), (width - 0.6, 0.04, height * 0.3), shade(COL_BARK, 0.15)),
+            B((lx, -0.23, height * 0.3), (width - 0.6, 0.04, height * 0.3), shade(COL_BARK, 0.15)),
+            E((lx - width / 2 + 0.4, -0.27, height * 0.48), (0.14, 0.08, 0.14), "Gold"),
+        ]
+    return s
+
+
+COL_BARK = "#7A5434"
+
+
 # --- Gate ---------------------------------------------------------------------------------------
 
 
@@ -454,12 +720,25 @@ KIT = [(f"Crew{who}{part}", _v(make, who)) for who in PEOPLE for part, make in R
     ("PropIdol", idol),
     ("PropTorch", torch),
     ("PropBoulder", boulder),
+    ("PropBoomPole", boom_pole),
+    ("PropMakeupBrush", makeup_brush),
+    ("CrewDollyTrack", dolly_track),
+    ("CrewDolly", dolly),
+    ("CrewJibArm", jib_arm),
+    ("CrewCameraHead", camera_head),
+    ("CrewLightStand", light_stand),
+    ("CrewLightHead", light_head),
+    ("CrewMakeupKit", makeup_kit),
+    ("CrewOpenDoor", _v(open_door, 3.8, 7.0)),
+    ("CrewBalconyDoor", _v(open_door, 3.2, 6.2, False)),
     ("SetGate", set_gate),
     ("SetGateArm", set_gate_arm),
 ]
 
-# Models that keep their own origin as the joint instead of standing on the ground.
-NO_LIFT = {name for name, _ in KIT if name != "SetGate"}
+# Set gear that stands on the ground like any kit model; everything else (rig pieces, props and
+# the moving parts of the camera rig and the lamp) keeps its own origin as its joint.
+GROUNDED = {"SetGate", "CrewDollyTrack", "CrewLightStand", "CrewMakeupKit", "CrewOpenDoor", "CrewBalconyDoor"}
+NO_LIFT = {name for name, _ in KIT if name not in GROUNDED}
 
 LINEUPS = {
     "map_kit_crew.png": (
@@ -470,6 +749,10 @@ LINEUPS = {
     "map_kit_crew_sets.png": (
         [f"Crew{who}{part}" for who in ("Astronaut", "Alien") for part in RIG_PARTS],
         [f"Crew{who}{part}" for who in ("Explorer", "Guide") for part in RIG_PARTS] + ["PropFlag", "PropIdol", "PropTorch", "PropBoulder"],
+    ),
+    "map_kit_crew_more.png": (
+        [f"Crew{who}{part}" for who in ("Boom", "Gaffer", "Makeup") for part in RIG_PARTS] + ["PropBoomPole", "PropMakeupBrush"],
+        ["CrewDollyTrack", "CrewDolly", "CrewJibArm", "CrewCameraHead", "CrewLightStand", "CrewLightHead", "CrewMakeupKit", "CrewOpenDoor", "CrewBalconyDoor"],
     ),
     "map_kit_set_gate.png": (["SetGate"], ["SetGateArm"]),
 }

@@ -4852,6 +4852,145 @@ MapKitShapes.Shapes.CrewGuideLeg = {
 }
 MapKitShapes.Bounds.CrewGuideLeg = { size = Vector3.new(0.86, 2, 1.22), center = Vector3.new(0, -1, -0.14) }
 
+MapKitShapes.Shapes.CrewBoomHead = {
+	S("box", CFrame.new(0, 0.75, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.5, 1.5, 1.4), "FFDEBE"),
+	S("box", CFrame.new(0.35, 0.85, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.36, 0.06), "2E2C34"),
+	S("box", CFrame.new(0.39, 0.95, -0.74, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.08, 0.04), "FAF6EC"),
+	S("box", CFrame.new(-0.35, 0.85, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.36, 0.06), "2E2C34"),
+	S("box", CFrame.new(-0.31, 0.95, -0.74, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.08, 0.04), "FAF6EC"),
+	S("box", CFrame.new(0, 0.4, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.09, 0.06), "782832"),
+	S("box", CFrame.new(-0.24, 0.45, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.1, 0.06), "782832"),
+	S("box", CFrame.new(0, 1.6, 0.05, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.6, 0.45, 1.5), "E87A2E"),
+	S("box", CFrame.new(0, 1.42, 0.05, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.62, 0.14, 1.52), "BA6225"),
+	S("ball", CFrame.new(0, 1.9, 0.05, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.36, 0.28, 0.36), "FAF6EC"),
+	S("box", CFrame.new(0, 1.76, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.74, 0.16, 0.22), "2E2C34"),
+	S("cyl", CFrame.new(0.84, 0.95, 0, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.8, 0.3, 0.8), "2E2C34"),
+	S("box", CFrame.new(0.84, 1.4, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.75, 0.22), "2E2C34"),
+	S("cyl", CFrame.new(-0.84, 0.95, 0, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.8, 0.3, 0.8), "2E2C34"),
+	S("box", CFrame.new(-0.84, 1.4, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.75, 0.22), "2E2C34"),
+}
+MapKitShapes.Bounds.CrewBoomHead = { size = Vector3.new(1.98, 2.04, 1.57), center = Vector3.new(0, 1.02, 0.025) }
+
+MapKitShapes.Shapes.CrewBoomTorso = {
+	S("box", CFrame.new(0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.8, 1.7, 1), "6B7F3A"),
+	S("box", CFrame.new(0, 0.15, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.84, 0.3, 1.04), "342F3A"),
+	S("cyl", CFrame.new(0, 1.97, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 0.3, 0.6), "FFDEBE"),
+	S("box", CFrame.new(0.45, 0.95, -0.53, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.4, 0.08), "505F2C"),
+	S("box", CFrame.new(-0.45, 0.95, -0.53, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.4, 0.08), "505F2C"),
+	S("box", CFrame.new(0, 1.05, -0.55, 0.766, 0.643, 0, -0.643, 0.766, 0, 0, 0, 1), Vector3.new(0.18, 1.9, 0.06), "2E2C34"),
+	S("box", CFrame.new(0.98, 0.45, -0.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.3, 0.6, 0.8), "2E2C34"),
+	S("ball", CFrame.new(1, 0.55, -0.52, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.12, 0.06), "C8202F", true),
+	S("box", CFrame.new(0, 0.15, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.86, 0.32, 1.06), "2E2C34"),
+}
+MapKitShapes.Bounds.CrewBoomTorso = { size = Vector3.new(2.06, 2.13, 1.11), center = Vector3.new(0.1, 1.055, -0.025) }
+MapKitShapes.Glow.CrewBoomTorso = { Vector3.new(1, 0.55, -0.52) }
+
+MapKitShapes.Shapes.CrewBoomArm = {
+	S("box", CFrame.new(0, -0.65, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 1.3, 0.7), "6B7F3A"),
+	S("box", CFrame.new(0, -1.28, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.64, 0.12, 0.74), "5B6C31"),
+	S("box", CFrame.new(0, -1.58, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.55, 0.5, 0.62), "FFDEBE"),
+}
+MapKitShapes.Bounds.CrewBoomArm = { size = Vector3.new(0.64, 1.83, 0.74), center = Vector3.new(0, -0.915, 0) }
+
+MapKitShapes.Shapes.CrewBoomLeg = {
+	S("box", CFrame.new(0, -0.8, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.82, 1.6, 0.9), "3A3440"),
+	S("box", CFrame.new(0, -1.55, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.86, 0.1, 0.94), "312C36"),
+	S("box", CFrame.new(0, -1.8, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.86, 0.4, 1.2), "5A3A24"),
+}
+MapKitShapes.Bounds.CrewBoomLeg = { size = Vector3.new(0.86, 2, 1.22), center = Vector3.new(0, -1, -0.14) }
+
+MapKitShapes.Shapes.CrewGafferHead = {
+	S("box", CFrame.new(0, 0.75, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.5, 1.5, 1.4), "70462C"),
+	S("box", CFrame.new(0.35, 0.85, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.36, 0.06), "2E2C34"),
+	S("box", CFrame.new(0.39, 0.95, -0.74, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.08, 0.04), "FAF6EC"),
+	S("box", CFrame.new(-0.35, 0.85, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.36, 0.06), "2E2C34"),
+	S("box", CFrame.new(-0.31, 0.95, -0.74, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.08, 0.04), "FAF6EC"),
+	S("box", CFrame.new(0, 0.42, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 0.2, 0.06), "FAF6EC"),
+	S("box", CFrame.new(0, 0.31, -0.72, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.64, 0.05, 0.06), "782832"),
+	S("box", CFrame.new(0, 1.6, 0.05, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.56, 0.36, 1.46), "FFD63C"),
+	S("box", CFrame.new(0, 1.47, -0.95, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.1, 0.12, 0.7), "FFD63C"),
+	S("ball", CFrame.new(0, 1.66, -0.76, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.28, 0.24, 0.12), "FFECBE", true),
+	S("box", CFrame.new(0, 0.28, -0.72, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.2, 0.42, 0.1), "2A1E18"),
+}
+MapKitShapes.Bounds.CrewGafferHead = { size = Vector3.new(1.56, 1.78, 2.08), center = Vector3.new(0, 0.89, -0.26) }
+MapKitShapes.Glow.CrewGafferHead = { Vector3.new(0, 1.66, -0.76) }
+
+MapKitShapes.Shapes.CrewGafferTorso = {
+	S("box", CFrame.new(0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.8, 1.7, 1), "C8202F"),
+	S("box", CFrame.new(0, 0.15, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.84, 0.3, 1.04), "514334"),
+	S("cyl", CFrame.new(0, 1.97, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 0.3, 0.6), "70462C"),
+	S("box", CFrame.new(0.45, 1, -0.51, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 1.6, 0.05), "8C1621"),
+	S("box", CFrame.new(0, 1, -0.51, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 1.6, 0.05), "8C1621"),
+	S("box", CFrame.new(-0.45, 1, -0.51, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 1.6, 0.05), "8C1621"),
+	S("box", CFrame.new(0, 0.6, -0.51, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.7, 0.1, 0.05), "8C1621"),
+	S("box", CFrame.new(0, 1.1, -0.51, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.7, 0.1, 0.05), "8C1621"),
+	S("box", CFrame.new(0, 1.6, -0.51, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.7, 0.1, 0.05), "8C1621"),
+	S("box", CFrame.new(0, 0.15, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.9, 0.34, 1.08), "5A3A24"),
+	S("cyl", CFrame.new(-0.98, 0.2, 0, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.6, 0.22, 0.6), "D7DAE1"),
+	S("box", CFrame.new(0.98, 0.1, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.18, 0.7, 0.3), "6E7078"),
+}
+MapKitShapes.Bounds.CrewGafferTorso = { size = Vector3.new(2.16, 2.37, 1.08), center = Vector3.new(-0.01, 0.935, 0) }
+
+MapKitShapes.Shapes.CrewGafferArm = {
+	S("box", CFrame.new(0, -0.65, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 1.3, 0.7), "C8202F"),
+	S("box", CFrame.new(0, -1.28, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.64, 0.12, 0.74), "AA1B28"),
+	S("box", CFrame.new(0, -1.58, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.55, 0.5, 0.62), "2E2C34"),
+}
+MapKitShapes.Bounds.CrewGafferArm = { size = Vector3.new(0.64, 1.83, 0.74), center = Vector3.new(0, -0.915, 0) }
+
+MapKitShapes.Shapes.CrewGafferLeg = {
+	S("box", CFrame.new(0, -0.8, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.82, 1.6, 0.9), "5A4A3A"),
+	S("box", CFrame.new(0, -1.55, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.86, 0.1, 0.94), "4C3F31"),
+	S("box", CFrame.new(0, -1.8, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.86, 0.4, 1.2), "2A1E18"),
+}
+MapKitShapes.Bounds.CrewGafferLeg = { size = Vector3.new(0.86, 2, 1.22), center = Vector3.new(0, -1, -0.14) }
+
+MapKitShapes.Shapes.CrewMakeupHead = {
+	S("box", CFrame.new(0, 0.75, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.5, 1.5, 1.4), "F0C49C"),
+	S("box", CFrame.new(0.35, 0.85, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.36, 0.06), "2E2C34"),
+	S("box", CFrame.new(0.39, 0.95, -0.74, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.08, 0.04), "FAF6EC"),
+	S("box", CFrame.new(-0.35, 0.85, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.36, 0.06), "2E2C34"),
+	S("box", CFrame.new(-0.31, 0.95, -0.74, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.08, 0.04), "FAF6EC"),
+	S("box", CFrame.new(0, 0.4, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.09, 0.06), "782832"),
+	S("box", CFrame.new(-0.24, 0.45, -0.71, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.1, 0.06), "782832"),
+	S("box", CFrame.new(0, 1.5, 0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.6, 0.4, 1.3), "C24F8E"),
+	S("box", CFrame.new(0, 1, 0.62, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.56, 1.2, 0.3), "C24F8E"),
+	S("box", CFrame.new(0, 1.52, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.64, 0.14, 1.44), "20B2BE"),
+	S("ball", CFrame.new(0, 1.6, 0.8, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.64, 0.6, 0.64), "C24F8E"),
+	S("cone", CFrame.new(0, 1.1, 0.95, 1, 0, 0, 0, -0.94, 0.342, 0, -0.342, -0.94), Vector3.new(0.56, 0.9, 0.56), "C24F8E", nil, 0.286),
+	S("box", CFrame.new(0.5, 0.62, -0.72, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.12, 0.04), "FF9CB8"),
+	S("box", CFrame.new(-0.5, 0.62, -0.72, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.12, 0.04), "FF9CB8"),
+}
+MapKitShapes.Bounds.CrewMakeupHead = { size = Vector3.new(1.64, 1.9, 2.127), center = Vector3.new(0, 0.95, 0.304) }
+
+MapKitShapes.Shapes.CrewMakeupTorso = {
+	S("box", CFrame.new(0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.8, 1.7, 1), "FF78AA"),
+	S("box", CFrame.new(0, 0.15, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.84, 0.3, 1.04), "29282F"),
+	S("cyl", CFrame.new(0, 1.97, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 0.3, 0.6), "F0C49C"),
+	S("box", CFrame.new(0, 0.75, -0.5, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.4, 1.3, 0.08), "2E2C34"),
+	S("box", CFrame.new(0, 0.55, -0.55, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1, 0.4, 0.06), "58565D"),
+	S("cyl", CFrame.new(0.3, 0.85, -0.56, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.4, 0.1), "F5B82E"),
+	S("cyl", CFrame.new(0.1, 0.85, -0.56, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.4, 0.1), "FF78AA"),
+	S("cyl", CFrame.new(-0.1, 0.85, -0.56, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.4, 0.1), "20B2BE"),
+	S("cyl", CFrame.new(-0.3, 0.85, -0.56, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.4, 0.1), "A04DFF"),
+	S("box", CFrame.new(0, 0.15, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.86, 0.32, 1.06), "2E2C34"),
+}
+MapKitShapes.Bounds.CrewMakeupTorso = { size = Vector3.new(1.86, 2.13, 1.13), center = Vector3.new(0, 1.055, -0.035) }
+
+MapKitShapes.Shapes.CrewMakeupArm = {
+	S("box", CFrame.new(0, -0.65, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 1.3, 0.7), "FF78AA"),
+	S("box", CFrame.new(0, -1.28, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.64, 0.12, 0.74), "D96690"),
+	S("box", CFrame.new(0, -1.58, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.55, 0.5, 0.62), "F0C49C"),
+}
+MapKitShapes.Bounds.CrewMakeupArm = { size = Vector3.new(0.64, 1.83, 0.74), center = Vector3.new(0, -0.915, 0) }
+
+MapKitShapes.Shapes.CrewMakeupLeg = {
+	S("box", CFrame.new(0, -0.8, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.82, 1.6, 0.9), "2E2C34"),
+	S("box", CFrame.new(0, -1.55, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.86, 0.1, 0.94), "27252C"),
+	S("box", CFrame.new(0, -1.8, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.86, 0.4, 1.2), "FAF6EC"),
+}
+MapKitShapes.Bounds.CrewMakeupLeg = { size = Vector3.new(0.86, 2, 1.22), center = Vector3.new(0, -1, -0.14) }
+
 MapKitShapes.Shapes.PropMegaphone = {
 	S("box", CFrame.new(0, -0.05, 0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.3, 0.5), "2E2C34"),
 	S("cyl", CFrame.new(0, -0.35, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.44, 0.5, 0.44), "FAF6EC"),
@@ -4926,6 +5065,179 @@ MapKitShapes.Shapes.PropBoulder = {
 	S("ball", CFrame.new(1.6, -1.8, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.6, 1.6, 1.8), "6E675E"),
 }
 MapKitShapes.Bounds.PropBoulder = { size = Vector3.new(5.664, 6.514, 6.022), center = Vector3.new(0.202, 0.024, -0.063) }
+
+MapKitShapes.Shapes.PropBoomPole = {
+	S("cyl", CFrame.new(0, -0.3, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.28, 0.6, 0.28), "2E2C34"),
+	S("cyl", CFrame.new(0, -5, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 9.4, 0.16), "6E7078"),
+	S("cyl", CFrame.new(0, -9.7, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.2, 0.22), "2E2C34"),
+	S("cyl", CFrame.new(0, -9.75, 0.25, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.1, 0.5, 0.1), "2E2C34"),
+	S("ball", CFrame.new(0, -9.75, 0.62, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.64, 1.5, 0.6), "9AA0AA"),
+}
+MapKitShapes.Bounds.PropBoomPole = { size = Vector3.new(0.571, 10.54, 1.029), center = Vector3.new(0.025, -5.27, 0.375) }
+
+MapKitShapes.Shapes.PropMakeupBrush = {
+	S("cyl", CFrame.new(0, -0.35, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.14, 0.7, 0.14), "2E2C34"),
+	S("cyl", CFrame.new(0, -0.78, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.18, 0.18, 0.18), "D7DAE1"),
+	S("ball", CFrame.new(0, -1.05, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.34, 0.52, 0.34), "FF78AA"),
+}
+MapKitShapes.Bounds.PropMakeupBrush = { size = Vector3.new(0.323, 1.31, 0.34), center = Vector3.new(0, -0.655, 0) }
+
+MapKitShapes.Shapes.CrewDollyTrack = {
+	S("box", CFrame.new(0, 0.1, -6.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, -4.9, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, -3.5, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, -2.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, -0.7, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, 0.7, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, 2.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, 3.5, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, 4.9, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(0, 0.1, 6.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.2, 0.5), "96623C"),
+	S("box", CFrame.new(1.1, 0.3, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.2, 14), "6E7078"),
+	S("box", CFrame.new(1.1, 0.43, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.06, 14), "D7DAE1"),
+	S("box", CFrame.new(1.1, 0.45, -7, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 0.5, 0.3), "C8202F"),
+	S("box", CFrame.new(1.1, 0.45, 7, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 0.5, 0.3), "C8202F"),
+	S("box", CFrame.new(-1.1, 0.3, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.22, 0.2, 14), "6E7078"),
+	S("box", CFrame.new(-1.1, 0.43, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.06, 14), "D7DAE1"),
+	S("box", CFrame.new(-1.1, 0.45, -7, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 0.5, 0.3), "C8202F"),
+	S("box", CFrame.new(-1.1, 0.45, 7, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 0.5, 0.3), "C8202F"),
+}
+MapKitShapes.Bounds.CrewDollyTrack = { size = Vector3.new(3.2, 0.7, 14.3), center = Vector3.new(0, 0.35, 0) }
+
+MapKitShapes.Shapes.CrewDolly = {
+	S("box", CFrame.new(0, 0.82, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.6, 0.32, 3.6), "2E2C34"),
+	S("box", CFrame.new(0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.3, 0.06, 3.3), "4A4852"),
+	S("box", CFrame.new(0, 0.6, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(2.6, 0.2, 3.2), "6E7078"),
+	S("cyl", CFrame.new(1.1, 0.62, -1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.44, 0.2, 0.44), "14121A"),
+	S("cyl", CFrame.new(1.1, 0.62, -1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.2, 0.24, 0.2), "D7DAE1"),
+	S("cyl", CFrame.new(1.1, 0.62, 1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.44, 0.2, 0.44), "14121A"),
+	S("cyl", CFrame.new(1.1, 0.62, 1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.2, 0.24, 0.2), "D7DAE1"),
+	S("cyl", CFrame.new(-1.1, 0.62, -1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.44, 0.2, 0.44), "14121A"),
+	S("cyl", CFrame.new(-1.1, 0.62, -1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.2, 0.24, 0.2), "D7DAE1"),
+	S("cyl", CFrame.new(-1.1, 0.62, 1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.44, 0.2, 0.44), "14121A"),
+	S("cyl", CFrame.new(-1.1, 0.62, 1.2, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.2, 0.24, 0.2), "D7DAE1"),
+	S("cyl", CFrame.new(1.3, 1.6, 1.65, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.14, 1.3, 0.14), "D7DAE1"),
+	S("cyl", CFrame.new(-1.3, 1.6, 1.65, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.14, 1.3, 0.14), "D7DAE1"),
+	S("cyl", CFrame.new(0, 2.25, 1.65, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.16, 2.7, 0.16), "D7DAE1"),
+	S("cyl", CFrame.new(0, 1.4, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1, 0.7, 1), "2E2C34"),
+	S("cyl", CFrame.new(0, 2.8, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.44, 2.4, 0.44), "D7DAE1"),
+	S("cyl", CFrame.new(0, 4.1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.84, 0.25, 0.84), "F5B82E"),
+	S("box", CFrame.new(0, 4.4, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.5, 0.4, 0.7), "2E2C34"),
+}
+MapKitShapes.Bounds.CrewDolly = { size = Vector3.new(3.6, 4.189, 3.6), center = Vector3.new(0, 2.505, 0) }
+
+MapKitShapes.Shapes.CrewJibArm = {
+	S("box", CFrame.new(0, 0, -2.85, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.42, 7.3), "F5B82E"),
+	S("box", CFrame.new(0, 0.28, -2.85, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.12, 6.5), "2E2C34"),
+	S("box", CFrame.new(0, 0, 0.9, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.42, 1.8), "F5B82E"),
+	S("cyl", CFrame.new(0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.36, 0.9, 0.36), "2E2C34"),
+	S("box", CFrame.new(0, -0.05, -6.5, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 0.5, 0.5), "2E2C34"),
+	S("cyl", CFrame.new(0, 0, 1.3, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(1, 0.26, 1), "14121A"),
+	S("cyl", CFrame.new(0, 0, 1.62, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(1, 0.26, 1), "14121A"),
+	S("cyl", CFrame.new(0, -0.35, 1.85, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.7, 0.12), "D7DAE1"),
+	S("cyl", CFrame.new(0, -0.7, 1.85, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.14, 1.6, 0.14), "2E2C34"),
+}
+MapKitShapes.Bounds.CrewJibArm = { size = Vector3.new(1.6, 1.261, 8.67), center = Vector3.new(0, -0.13, -2.415) }
+
+MapKitShapes.Shapes.CrewCameraHead = {
+	S("cyl", CFrame.new(0, -0.3, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.24, 0.6, 0.24), "2E2C34"),
+	S("box", CFrame.new(0, -1.25, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.1, 1.2, 1.9), "2E2C34"),
+	S("cyl", CFrame.new(0, -1.25, -1.25, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.72, 0.7, 0.72), "14121A"),
+	S("cyl", CFrame.new(0, -1.25, -1.62, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.8, 0.06, 0.8), "96CDF0"),
+	S("box", CFrame.new(0, -1.25, -1.75, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1, 0.9, 0.25), "2E2C34"),
+	S("cyl", CFrame.new(0, -0.42, 0.35, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(1, 0.3, 1), "2E2C34"),
+	S("cyl", CFrame.new(0, -0.42, -0.45, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(1, 0.3, 1), "2E2C34"),
+	S("box", CFrame.new(-0.5, -1.1, 0.95, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.4, 0.5), "14121A"),
+	S("ball", CFrame.new(0, -1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.1, 0.1), "C8202F", true),
+	S("box", CFrame.new(0, -1.15, 0.97, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 0.4, 0.04), "96CDF0"),
+}
+MapKitShapes.Bounds.CrewCameraHead = { size = Vector3.new(1.1, 1.93, 3.075), center = Vector3.new(0, -0.885, -0.338) }
+MapKitShapes.Glow.CrewCameraHead = { Vector3.new(0, -1, 0) }
+
+MapKitShapes.Shapes.CrewLightStand = {
+	S("cyl", CFrame.new(0, 2.638, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.2, 4.4, 0.2), "2E2C34"),
+	S("cyl", CFrame.new(0, 1.138, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.32, 0.5, 0.32), "6E7078"),
+	S("cyl", CFrame.new(0, 0.588, 0.45, 1, 0, 0, 0, 0.774, 0.633, 0, -0.633, 0.774), Vector3.new(0.12, 1.421, 0.12), "2E2C34"),
+	S("ball", CFrame.new(0, 0.088, 0.9, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.28, 0.12, 0.28), "14121A"),
+	S("cyl", CFrame.new(0.39, 0.588, -0.225, -0.5, -0.548, 0.67, 0, 0.774, 0.633, -0.866, 0.317, -0.387), Vector3.new(0.12, 1.421, 0.12), "2E2C34"),
+	S("ball", CFrame.new(0.779, 0.088, -0.45, -0.5, 0, 0.866, 0, 1, 0, -0.866, 0, -0.5), Vector3.new(0.28, 0.12, 0.28), "14121A"),
+	S("cyl", CFrame.new(-0.39, 0.588, -0.225, -0.5, 0.548, -0.67, 0, 0.774, 0.633, 0.866, 0.317, -0.387), Vector3.new(0.12, 1.421, 0.12), "2E2C34"),
+	S("ball", CFrame.new(-0.779, 0.088, -0.45, -0.5, 0, -0.866, 0, 1, 0, 0.866, 0, -0.5), Vector3.new(0.28, 0.12, 0.28), "14121A"),
+	S("cyl", CFrame.new(0, 4.738, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.28, 0.2, 0.28), "6E7078"),
+}
+MapKitShapes.Bounds.CrewLightStand = { size = Vector3.new(1.816, 4.831, 1.612), center = Vector3.new(0, 2.423, 0.227) }
+
+MapKitShapes.Shapes.CrewLightHead = {
+	S("box", CFrame.new(0, 0.55, 0.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.4, 1.3, 1.5), "2E2C34"),
+	S("cyl", CFrame.new(0, 0.55, -0.68, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(1, 0.08, 1), "FFECBE", true),
+	S("box", CFrame.new(0, 1.28, -0.95, 1, 0, 0, 0, 0.906, -0.423, 0, 0.423, 0.906), Vector3.new(1.4, 0.06, 0.5), "14121A"),
+	S("box", CFrame.new(0, -0.18, -0.95, 1, 0, 0, 0, 0.906, 0.423, 0, -0.423, 0.906), Vector3.new(1.4, 0.06, 0.5), "14121A"),
+	S("box", CFrame.new(-0.75, 0.55, -0.95, 0.906, 0, -0.423, 0, 1, 0, 0.423, 0, 0.906), Vector3.new(0.06, 1.3, 0.5), "14121A"),
+	S("box", CFrame.new(0.75, 0.55, -0.95, 0.906, 0, 0.423, 0, 1, 0, -0.423, 0, 0.906), Vector3.new(0.06, 1.3, 0.5), "14121A"),
+	S("cyl", CFrame.new(0, 1.35, 0.1, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.12, 0.8, 0.12), "D7DAE1"),
+	S("box", CFrame.new(0, 0.55, 0.85, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.9, 0.7, 0.12), "4A4852"),
+	S("box", CFrame.new(0.8, 0.25, 0.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.7, 0.3), "6E7078"),
+	S("box", CFrame.new(-0.8, 0.25, 0.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.7, 0.3), "6E7078"),
+	S("box", CFrame.new(0, -0.08, 0.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.7, 0.1, 0.3), "6E7078"),
+}
+MapKitShapes.Bounds.CrewLightHead = { size = Vector3.new(1.766, 1.726, 2.099), center = Vector3.new(0, 0.55, -0.14) }
+MapKitShapes.Glow.CrewLightHead = { Vector3.new(0, 0.55, -0.68) }
+
+MapKitShapes.Shapes.CrewMakeupKit = {
+	S("box", CFrame.new(0, 2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(2.4, 0.15, 1.4), "E8D9B0"),
+	S("cyl", CFrame.new(1, 1, -0.55, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 2, 0.12), "6E7078"),
+	S("cyl", CFrame.new(1, 1, 0.55, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 2, 0.12), "6E7078"),
+	S("cyl", CFrame.new(-1, 1, -0.55, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 2, 0.12), "6E7078"),
+	S("cyl", CFrame.new(-1, 1, 0.55, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 2, 0.12), "6E7078"),
+	S("box", CFrame.new(0.35, 2.25, -0.05, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.3, 0.35, 0.8), "2E2C34"),
+	S("box", CFrame.new(0.35, 2.75, 0.38, 1, 0, 0, 0, 0.966, -0.259, 0, 0.259, 0.966), Vector3.new(1.3, 0.8, 0.1), "2E2C34"),
+	S("box", CFrame.new(0.8, 2.45, -0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.34, 0.06, 0.24), "C8202F"),
+	S("box", CFrame.new(0.35, 2.45, -0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.34, 0.06, 0.24), "FF78AA"),
+	S("box", CFrame.new(-0.1, 2.45, -0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.34, 0.06, 0.24), "F5B82E"),
+	S("box", CFrame.new(0.8, 2.45, 0.12, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.34, 0.06, 0.24), "20B2BE"),
+	S("box", CFrame.new(0.35, 2.45, 0.12, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.34, 0.06, 0.24), "A04DFF"),
+	S("box", CFrame.new(-0.1, 2.45, 0.12, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.34, 0.06, 0.24), "A56C44"),
+	S("box", CFrame.new(-0.75, 2.95, 0.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.9, 1.5, 0.1), "E8D9B0"),
+	S("box", CFrame.new(-0.75, 2.95, 0.24, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.7, 1.3, 0.04), "96CDF0"),
+	S("cyl", CFrame.new(-0.75, 2.1, 0.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.1, 0.3, 0.1), "6E7078"),
+	S("ball", CFrame.new(-0.25, 2.4, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-1.25, 2.4, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-0.25, 2.95, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-1.25, 2.95, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-0.25, 3.5, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-1.25, 3.5, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-0.4, 3.72, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-0.75, 3.72, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("ball", CFrame.new(-1.1, 3.72, 0.22, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.16, 0.12), "FFECBE", true),
+	S("cyl", CFrame.new(-0.75, 2.2, -0.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.08, 0.4, 0.08), "F5B82E"),
+	S("cyl", CFrame.new(1.9, 1.4, -0.6, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1, 0.18, 1), "C8202F"),
+	S("cyl", CFrame.new(1.9, 0.7, -0.6, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.14, 1.3, 0.14), "D7DAE1"),
+	S("cyl", CFrame.new(1.9, 0.06, -0.6, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.8, 0.1, 0.8), "D7DAE1"),
+}
+MapKitShapes.Bounds.CrewMakeupKit = { size = Vector3.new(3.702, 3.8, 1.8), center = Vector3.new(0.525, 1.9, -0.2) }
+MapKitShapes.Glow.CrewMakeupKit = { Vector3.new(-0.25, 2.4, 0.22), Vector3.new(-1.25, 2.4, 0.22), Vector3.new(-0.25, 2.95, 0.22), Vector3.new(-1.25, 2.95, 0.22), Vector3.new(-0.25, 3.5, 0.22), Vector3.new(-1.25, 3.5, 0.22), Vector3.new(-0.4, 3.72, 0.22), Vector3.new(-0.75, 3.72, 0.22), Vector3.new(-1.1, 3.72, 0.22) }
+
+MapKitShapes.Shapes.CrewOpenDoor = {
+	S("box", CFrame.new(0, 3.5, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.8, 7, 0.16), "14121A"),
+	S("box", CFrame.new(2.1, 3.6, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 7.2, 0.32), "F4E7CF"),
+	S("box", CFrame.new(-2.1, 3.6, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 7.2, 0.32), "F4E7CF"),
+	S("box", CFrame.new(0, 7.2, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(4.6, 0.4, 0.32), "F4E7CF"),
+	S("box", CFrame.new(0, 0.04, -0.128, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.8, 0.08, 0.192), "7A5434"),
+	S("box", CFrame.new(4.2, 3.5, -0.12, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.7, 6.9, 0.18), "7A5434"),
+	S("box", CFrame.new(4.2, 5.04, -0.23, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 2.1, 0.04), "68472C"),
+	S("box", CFrame.new(4.2, 2.1, -0.23, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 2.1, 0.04), "68472C"),
+	S("ball", CFrame.new(5.7, 3.36, -0.27, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.28, 0.28, 0.16), "F5B82E"),
+}
+MapKitShapes.Bounds.CrewOpenDoor = { size = Vector3.new(8.35, 7.4, 0.346), center = Vector3.new(1.875, 3.7, -0.173) }
+
+MapKitShapes.Shapes.CrewBalconyDoor = {
+	S("box", CFrame.new(0, 3.1, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 6.2, 0.16), "14121A"),
+	S("box", CFrame.new(1.8, 3.2, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 6.4, 0.32), "F4E7CF"),
+	S("box", CFrame.new(-1.8, 3.2, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 6.4, 0.32), "F4E7CF"),
+	S("box", CFrame.new(0, 6.4, -0.16, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(4, 0.4, 0.32), "F4E7CF"),
+	S("box", CFrame.new(0, 0.04, -0.128, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.2, 0.08, 0.192), "7A5434"),
+}
+MapKitShapes.Bounds.CrewBalconyDoor = { size = Vector3.new(4, 6.6, 0.32), center = Vector3.new(0, 3.3, -0.16) }
 
 MapKitShapes.Shapes.SetGate = {
 	S("box", CFrame.new(9.2, 0.6, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.2, 1.2, 1.2), "C8202F"),
