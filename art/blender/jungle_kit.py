@@ -44,7 +44,7 @@ the river and the backdrop show their wooden frames from behind, the way film se
 
   Backdrop and way in
   JungleBackdrop     a painted flat (32 wide, 22 high): jungle, mountains and a waterfall,
-                     with jacks and sandbags behind
+                     built with backlot_kit.flat (timber frame, jacks and sandbags behind)
   JungleBackdropSide the matching side flat: jungle and mountains, no waterfall
   JungleSignpost     a wooden signpost for the park path; spot Sign (the arrow board)
   JungleGateArch     a jungle arch for the park fence gap: two stone totems and a log lintel,
@@ -89,33 +89,6 @@ def vine(x, y, z, length, color=VINE, leaves=2, seed=0):
     for k in range(leaves):
         lz = z - length * (k + 0.6) / (leaves + 0.3)
         s.append(B((x + (0.25 if k % 2 else -0.25), y, lz), (0.6, 0.2, 0.6), "Leaf" if (k + seed) % 2 else "LeafDark", rot=(0, 45, 30 * k + seed * 17)))
-    return s
-
-
-def braces(w, z0, h, depth, n):
-    """The back of a studio flat standing at y = 0 with its face to -Y: a frame of 2x4s on the
-    back, and n jacks (triangular braces) with sandbags on their feet.
-    shortcut: our own bracing until backlot_kit.flat() lands, then swap for that."""
-    zc = z0 + h / 2
-    s = [
-        B((0, depth, z0 + 0.3), (w, 0.3, 0.5), FRAME),
-        B((0, depth, z0 + h - 0.3), (w, 0.3, 0.5), FRAME),
-        B((0, depth, zc), (w, 0.3, 0.4), FRAME),
-    ]
-    for i in range(n):
-        x = -w / 2 + 0.6 + i * (w - 1.2) / (n - 1)
-        s.append(B((x, depth, zc), (0.5, 0.3, h), FRAME))
-    reach = h * 0.42
-    for i in range(n - 1):
-        x = -w / 2 + (i + 0.5) * w / (n - 1)
-        s += [
-            B((x, depth + 0.35, z0 + h * 0.45), (0.4, 0.4, h * 0.9), FRAME),  # the jack's upright
-            B((x, depth + reach / 2, 0.2), (0.4, reach, 0.4), FRAME),  # its foot rail
-            B((x, depth + reach / 2, z0 + h * 0.45 - 0.2), (0.35, 0.35, math.hypot(reach, h * 0.9)), FRAME,
-              rot=(math.degrees(math.atan2(reach, h * 0.9)), 0, 0)),  # its diagonal
-            BV((x, depth + reach - 0.6, 0.45), (1.6, 1.0, 0.5), SANDBAG, bevel=0.2),
-            BV((x + 0.2, depth + reach - 0.6, 0.9), (1.3, 0.9, 0.4), shade(SANDBAG, 0.08), bevel=0.18),
-        ]
     return s
 
 
@@ -438,16 +411,19 @@ def jungle_vines():
 
 def river_slice(at, yaw, length, seed):
     """One straight bit of the channel along local X, centred on `at`, as a group."""
+    # Neighbouring slices of a bend overlap, so each sits a hair higher than the last: coplanar
+    # overlaps render as black seams.
+    dz = (seed % 5) * 0.012
     parts = [
-        B((0, 0, 0.1), (length, 8.0, 0.2), WATER),
-        B((0, 0, 0.21), (length * 0.9, 0.5, 0.04), "WaterLight"),  # painted ripples
-        B((length * 0.15, 2.2, 0.21), (length * 0.4, 0.35, 0.04), "WaterLight"),
-        B((-length * 0.2, -2.4, 0.21), (length * 0.35, 0.35, 0.04), "WaterLight"),
+        B((0, 0, 0.1 + dz), (length, 8.0, 0.2), WATER),
+        B((0, 0, 0.26 + dz), (length * 0.9, 0.5, 0.04), "WaterLight"),  # painted ripples
+        B((length * 0.15, 2.2, 0.26 + dz), (length * 0.4, 0.35, 0.04), "WaterLight"),
+        B((-length * 0.2, -2.4, 0.26 + dz), (length * 0.35, 0.35, 0.04), "WaterLight"),
     ]
     for side in (-1, 1):
         parts += [
-            B((0, side * 4.5, 0.3), (length, 1.4, 0.6), MUD),  # the bank
-            B((0, side * 5.6, 0.45), (length, 1.2, 0.9), MOSS_DARK),
+            B((0, side * 4.5, 0.3 + dz), (length, 1.4, 0.6), MUD),  # the bank
+            B((0, side * 5.6, 0.45 + dz), (length, 1.2, 0.9), MOSS_DARK),
         ]
     for i in range(2):
         r = rnd(i, seed)
@@ -607,52 +583,52 @@ def jungle_leaf_litter():
 
 
 def backdrop(waterfall):
-    """A 32 x 22 painted flat on short legs, its face toward -Y, the paint in layers."""
-    w, h, z0 = 32.0, 22.0, 1.0
-    top = z0 + h
-    s = [
-        BV((0, 0, z0 + h / 2), (w + 0.8, 0.6, h + 0.8), FRAME, bevel=0.1),
-        B((0, -0.32, z0 + h * 0.75), (w, 0.1, h * 0.5), "#8FC8F0"),  # sky
-        B((0, -0.32, z0 + h * 0.25), (w, 0.1, h * 0.5), "#BEE3F5"),
-        B((0, -0.33, top - 1.5), (w, 0.1, 3.0), "#6FB4EA"),
-        C((-9, -0.36, top - 4.0), 1.6, 0.08, "OffWhite", rot=(90, 0, 0), seg=10),  # clouds
-        C((-7.2, -0.36, top - 3.6), 2.0, 0.08, "OffWhite", rot=(90, 0, 0), seg=10),
-        C((8.5, -0.36, top - 2.8), 1.4, 0.08, "OffWhite", rot=(90, 0, 0), seg=10),
+    """A 32 x 22 painted flat (backlot_kit.flat: the timber frame, jacks and sandbags behind), its
+    face toward -Y: sky, misty mountains, a waterfall and jungle canopy, painted in layers."""
+    from backlot_kit import dab, disc, flat
+
+    w, h = 32.0, 22.0
+    p = [
+        dab(0, h * 0.86, w, h * 0.28, "#6FB4EA", 1),
+        dab(0, h * 0.5, w, h * 0.3, "#BEE3F5", 1),
+        # Clouds: overlapping puffs each on their own layer, so none z-fight.
+        disc(-9, h * 0.8, 1.6, "OffWhite", 2, seg=10),
+        disc(-7.2, h * 0.82, 2.0, "OffWhite", 3, seg=10),
+        disc(-5.4, h * 0.8, 1.3, "OffWhite", 2, seg=10),
+        disc(8.5, h * 0.87, 1.4, "OffWhite", 2, seg=10),
+        disc(10.0, h * 0.86, 1.0, "OffWhite", 3, seg=10),
     ]
-    # Far mountains: misty blue-green diamonds whose lower halves the jungle covers.
-    for i, (x, size, color) in enumerate(((-11, 15, "#7FA6A8"), (-2, 18, "#6E9A94"), (9, 14, "#7FA6A8"), (14.5, 9, "#6E9A94"))):
-        half = min(size / 2, w / 2 - abs(x))  # stay on the flat
-        s.append(B((x, -0.38 - i * 0.01, z0 + 7), (half * 1.41, 0.08, half * 1.41), color, rot=(0, 45, 0)))
-    # Mountain tops a shade lighter.
-    s.append(B((-2, -0.42, z0 + 7 + 9 * 0.9), (3.0, 0.06, 3.0), "#9CC0B8", rot=(0, 45, 0)))
+    # Far mountains: misty diamonds whose lower halves the jungle covers, lit tops a shade lighter.
+    for i, (x, size, color) in enumerate(((-11, 14, "#7FA6A8"), (-2, 18, "#6E9A94"), (9, 14, "#7FA6A8"))):
+        half = min(size / 2, w / 2 - abs(x))
+        p.append(dab(x, h * 0.42, half * 1.41, half * 1.41, color, 3 + i % 2, turn=45))
+    p.append(dab(-2, h * 0.42 + 7.2, 2.6, 2.6, "#9CC0B8", 6, turn=45))
     if waterfall:
-        s += [
-            B((4.0, -0.46, z0 + 9.0), (4.2, 0.08, 7.0), "#5E7E70"),  # the cliff
-            B((4.0, -0.5, z0 + 8.4), (1.6, 0.06, 8.2), "OffWhite"),
-            B((4.0, -0.52, z0 + 8.4), (0.6, 0.06, 8.2), "WaterLight"),
-            C((4.0, -0.54, z0 + 4.6), 1.8, 0.06, "OffWhite", rot=(90, 0, 0), seg=10),  # spray
+        p += [
+            dab(4.0, h * 0.42, 4.4, 7.0, "#5E7E70", 5),  # the cliff
+            dab(4.0, h * 0.4, 1.8, 7.6, "OffWhite", 6),
+            dab(4.0, h * 0.4, 0.7, 7.6, "WaterLight", 7),
+            disc(4.0, h * 0.24, 1.9, "OffWhite", 8, seg=10),  # spray
         ]
-    # Jungle canopy in three bands: far (blue-green), middle, near (deep green), nearer = lower.
-    for band, (z, r, color, n) in enumerate(((z0 + 6.0, 2.2, "#4E8E5A", 10), (z0 + 3.6, 2.4, "#2F7A40", 9), (z0 + 1.4, 2.4, "#24603A", 9))):
+    # Jungle canopy in three bands, nearer ones lower and darker: a solid band with round crowns
+    # along its top edge.
+    for band, (z, r, color, n) in enumerate(((h * 0.3, 2.2, "#4E8E5A", 9), (h * 0.2, 2.4, "#2F7A40", 8), (h * 0.1, 2.4, "#24603A", 8))):
+        layer = 9 + band * 2
+        p.append(dab(0, z / 2, w, z, color, layer))
         for i in range(n):
-            x = -w / 2 + r * 0.8 + i * (w - r * 1.6) / (n - 1)
-            if waterfall and band == 0 and abs(x - 4.0) < 2.5:
+            x = -w / 2 + r + i * (w - r * 2) / (n - 1)
+            if waterfall and band == 0 and abs(x - 4.0) < 2.6:
                 continue
-            zz = z + (rnd(i, band) - 0.5) * 1.4
-            s.append(C((x, -0.6 - band * 0.04, zz), r * (0.85 + rnd(i, band + 5) * 0.3), 0.06, color, rot=(90, 0, 0), seg=8))
-        s.append(B((0, -0.6 - band * 0.04, (z0 + z) / 2), (w, 0.06, z - z0), color))
+            p.append(disc(x, z + (rnd(i, band) - 0.5) * 1.2, r * (0.85 + rnd(i, band + 5) * 0.3), color, layer + 1, seg=8))
     # A couple of painted palms on the near band.
     for x in (-12.5, 12.0):
-        s += [
-            B((x, -0.8, z0 + 4.5), (0.4, 0.06, 6.0), "#3A3020"),
-            B((x - 1.0, -0.82, z0 + 7.6), (2.4, 0.06, 0.5), "#24603A", rot=(0, 20, 0)),
-            B((x + 1.0, -0.82, z0 + 7.6), (2.4, 0.06, 0.5), "#24603A", rot=(0, -20, 0)),
-            B((x, -0.82, z0 + 8.0), (0.5, 0.06, 1.8), "#2F7A40"),
+        p += [
+            dab(x, h * 0.22, 0.4, 5.6, "#3A3020", 16),
+            dab(x - 1.0, h * 0.35, 2.4, 0.5, "#24603A", 17, turn=20),
+            dab(x + 1.0, h * 0.35, 2.4, 0.5, "#24603A", 17, turn=-20),
+            dab(x, h * 0.37, 0.5, 1.8, "#2F7A40", 17),
         ]
-    # The legs it stands on, then the frame, jacks and sandbags behind.
-    s += [B((x, 0, z0 / 2), (0.8, 0.6, z0), FRAME) for x in (-w / 2 + 0.4, 0, w / 2 - 0.4)]
-    s += braces(w, z0, h, 0.45, 4)
-    return s
+    return flat(w, h, p, base="#8FC8F0")
 
 
 def jungle_backdrop():
