@@ -2,6 +2,10 @@ local roblox = require("@lune/roblox")
 
 local H = require("./harness")
 local Config = H.require("Config")
+local CrewRig = H.require("Models/CrewRig")
+local FilmScenes = H.require("FilmScenes")
+local FilmSets = H.require("FilmSets")
+local Walkways = H.require("Models/Walkways")
 local IconModels = H.require("Models/IconModels")
 local LotModels = H.require("Models/LotModels")
 local MapModels = H.require("Models/MapModels")
@@ -92,4 +96,102 @@ test("applause can't be spammed and a tour takes a real stay", function()
 	expect(Visits.DwellSeconds >= 3, "a tour needs a few seconds on the lot")
 	expect(Visits.ApplaudCooldown >= 1, "claps are spaced out")
 	expect(Visits.TeleportCooldown >= 2, "jumps are spaced out")
+end)
+
+-- Film sets -------------------------------------------------------------------------------------
+
+test("a film set jump takes only a known set id and a real save", function()
+	local owned = { filmSetsOwned = { Gulch = true } }
+	for _, bad in { nil, 5, true, {}, "", "Nope", "gulch", string.rep("G", 41), "Gulch\0" } do
+		equal(Visits.filmSetArrival(bad, owned), nil, `id {bad} is refused`)
+	end
+	equal(Visits.filmSetArrival("Gulch", nil), nil, "no save, no jump")
+	equal(Visits.filmSetArrival("Gulch", "broken"), nil, "a broken save, no jump")
+	local _, inside = Visits.filmSetArrival("Gulch", owned)
+	expect(inside, "an owner goes inside")
+	local _, outside = Visits.filmSetArrival("Gulch", { filmSetsOwned = "broken" })
+	expect(not outside, "a broken owned list owns nothing: the gate")
+	-- Moon Base's gate is in Dusty Gulch: no jumping past the Gulch's gate.
+	local spot, _, needs = Visits.filmSetArrival("MoonBase", {})
+	expect(spot == nil and needs == "Gulch", "Moon Base's gate needs the Gulch first")
+	expect(Visits.filmSetArrival("MoonBase", owned) ~= nil, "with the Gulch, Moon Base's gate")
+	expect(Visits.filmSetArrival("MoonBase", { filmSetsOwned = { MoonBase = true } }) ~= nil, "an owner always gets in")
+end)
+
+local town = roblox.Instance.new("Folder")
+MapModels.build(town)
+local solids = {}
+for _, d in town:GetDescendants() do
+	if d:IsA("BasePart") and d.CanCollide then
+		table.insert(solids, d)
+	end
+end
+
+-- The solid part a character standing at `spot` (its root part) would be inside, if any.
+local function blocked(spot)
+	local body = spot.Position - Vector3.new(0, 0.5, 0) -- feet 3 below the root, head 2 above
+	for _, part in solids do
+		local p = part.CFrame:PointToObjectSpace(body)
+		local half = part.Size / 2
+		if math.abs(p.X) < half.X + 1.5 and math.abs(p.Y) < half.Y + 2.5 and math.abs(p.Z) < half.Z + 1.5 then
+			return part
+		end
+	end
+	return nil
+end
+
+local everyone = { filmSetsOwned = {} }
+for _, set in FilmSets.List do
+	everyone.filmSetsOwned[set.id] = true
+end
+
+test("owners land inside their set, clear of props and the crew, facing the shoot", function()
+	for _, info in MapModels.FilmSets do
+		local spot, inside = Visits.filmSetArrival(info.id, everyone)
+		expect(spot ~= nil and inside, `{info.id}: owners go inside`)
+		local p = spot.Position
+		expect(Walkways.isWalkable({ info.area }, p.X, p.Z), `{info.id}: the spot {p} is outside the set's area`)
+		local part = blocked(spot)
+		expect(part == nil, `{info.id}: the spot {p} is inside {part and part:GetFullName()}`)
+		local scenes = FilmScenes.Sets[info.id]
+		local centre = info.frame * scenes.centre
+		local toShoot = Vector3.new(centre.X - p.X, 0, centre.Z - p.Z).Unit
+		expect(spot.LookVector:Dot(toShoot) > 0.99, `{info.id}: the spot faces the shoot`)
+		for _, gear in scenes.gear do
+			local at = info.frame * gear.at
+			local gap = Vector3.new(at.X - p.X, 0, at.Z - p.Z).Magnitude
+			expect(gap > 6, `{info.id}: the spot is {gap} studs from the {gear.kit}`)
+		end
+		-- Nobody in the scene walks through the spot, over two whole takes.
+		for i = 0, FilmScenes.TakeLength * 2 / 0.1 do
+			local frame = FilmScenes.frame(info.id, 500 * FilmScenes.TakeLength + i * 0.1)
+			for who, pose in frame.poses do
+				if not pose.hidden then
+					local torso = CrewRig.cframes(info.frame, pose, frame.stick).Torso.Position
+					local gap = Vector3.new(torso.X - p.X, 0, torso.Z - p.Z).Magnitude
+					expect(gap > 5, `{info.id}: {who} passes {gap} studs from the spot at {frame.time}`)
+				end
+			end
+		end
+	end
+end)
+
+test("buyers land just outside the gate on the town side, facing its buy prompt", function()
+	for _, info in MapModels.FilmSets do
+		-- Owning the other sets, so only this set's gate decides.
+		local data = { filmSetsOwned = table.clone(everyone.filmSetsOwned) }
+		data.filmSetsOwned[info.id] = nil
+		local spot, inside = Visits.filmSetArrival(info.id, data)
+		expect(spot ~= nil and not inside, `{info.id}: buyers go to the gate`)
+		local p = spot.Position
+		expect(not Walkways.isWalkable({ info.area }, p.X, p.Z), `{info.id}: the gate spot is inside the set`)
+		expect(Walkways.isWalkable(MapModels.PlayAreas, p.X, p.Z), `{info.id}: the gate spot is off the map`)
+		local local_ = info.gate:PointToObjectSpace(p)
+		expect(local_.Z < -2, `{info.id}: the gate spot is not on the town side of the wall`)
+		local prompt = info.gate * Vector3.new(0, 3, -1.5)
+		expect((prompt - p).Magnitude < 12, `{info.id}: the buy prompt is out of reach`)
+		expect(spot.LookVector:Dot((prompt - p).Unit) > 0.9, `{info.id}: the spot faces the prompt`)
+		local part = blocked(spot)
+		expect(part == nil, `{info.id}: the gate spot is inside {part and part:GetFullName()}`)
+	end
 end)
