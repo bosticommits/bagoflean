@@ -12,12 +12,21 @@ that file, not this one.
                   big flat, propped up behind with wooden braces, the way film sets do it
   MoonBuggy       a little moon buggy with mesh wheels and a dish
 
+The open backlot version of the set (TownSets.moonBase) uses the bigger pieces: MoonRocketPad (the
+rocket on an octagonal pad with a lattice gantry), MoonLanderHero (the lander, same porch and
+ladder as MoonLander), MoonHabitat (dome, airlock, lab, solar panels, dish), MoonBuggyHero,
+MoonFoamRock, MoonPropCart, MoonFakeEarth, MoonSupplyCrates, the ground pieces (MoonCraterSmall,
+-Mid, -Big, MoonRegolith, MoonDuneEdge, MoonBoulders, MoonPebbles, MoonTracks, MoonFootprints,
+MoonFlagMark), and the painted flats, built with backlot_kit.flat() so they share its timber frame,
+jacks and sandbags: MoonFlatEarthrise, MoonFlatStarfield, MoonFlatHorizon and MoonGroundRow.
+
 A film set, so a little stagey: bright toy colors, gold foil, glowing lights. Chunky low-poly toy
 style (ART_STYLE.md). Blender axes, in studs: Z up, the model faces -Y, standing on Z = 0.
 """
 
 import math
 
+import backlot_kit
 from kitdsl import B, C, E, G, K, L, S, T, W, ring, shade  # noqa: F401
 
 
@@ -561,102 +570,120 @@ def moon_footprints():
     return s
 
 
-def braced_flat(w, h, z0=0.6):
-    """A plain studio flat w wide and h tall, its painted face toward -Y at y = -0.3, with the
-    wooden frame, jacks and sandbags behind it. shortcut: own bracing until backlot_kit's flat()
-    lands; swap this for it then."""
-    zc = z0 + h / 2
-    pine = "#C99A62"
-    s = [B((0, 0, zc), (w, 0.4, h), "#2A3266")]
-    # The frame on the back: stiles, top and bottom rails, a middle rail and toggles.
-    s += [B((x, 0.4, zc), (0.5, 0.4, h), pine) for x in (-w / 2 + 0.25, w / 2 - 0.25)]
-    s += [B((0, 0.4, z), (w, 0.4, 0.5), pine) for z in (z0 + 0.25, zc, z0 + h - 0.25)]
-    # Jacks: an upright against the frame, a diagonal down to a foot, a sandbag on the foot.
-    n = max(2, round(w / 9))
-    for i in range(n):
-        x = -w / 2 + w * (i + 0.5) / n
-        top_z, foot_y = z0 + h * 0.7, h * 0.32
-        s += [
-            B((x, 0.85, z0 + h * 0.35), (0.5, 0.5, h * 0.7), "Wood"),
-            rod((x, 0.9, top_z), (x, foot_y, 0.25), 0.28, "Wood", seg=4),
-            B((x, (0.9 + foot_y) / 2, 0.2), (0.5, foot_y - 0.9, 0.4), "Wood"),
-            BV((x, foot_y - 1.0, 0.45), (1.8, 1.0, 0.9), "#B5A27A", bevel=0.35),
-            BV((x + 0.2, foot_y - 0.9, 1.15), (1.6, 0.9, 0.6), "#A8946B", bevel=0.3),
-        ]
-    return s
-
-
 def disc(at, r, color, seg=12, neon=False, t=0.1):
-    """A flat painted disc on a backdrop face (facing -Y)."""
+    """A flat disc facing -Y (a painted star on a backdrop's face)."""
     return C(at, r, t, color, rot=(90, 0, 0), seg=seg, neon=neon)
 
 
-def sky(w, h, z0):
-    """The painted night: darker toward the top, a purple haze along the bottom."""
-    return [B((0, -0.22, z0 + h * (k + 0.5) / 4), (w, 0.04, h / 4), color)
-            for k, color in enumerate(("#3A3570", "#2A3266", "#1E2652", "#141A3A"))]
+NIGHT = ("#3A3570", "#2A3266", "#1E2652", "#141A3A")  # the painted sky, bottom band to top
 
 
-def starfield(w, h, z0, seed, skip=()):
+def night(w, h):
+    """The painted night on a flat's face: darker toward the top, a purple haze low down."""
+    return [backlot_kit.dab(0, h * (k + 0.5) / 4, w, h / 4, color, 1) for k, color in enumerate(NIGHT)]
+
+
+def stars(w, h, seed, skip=(), z0=0.0):
+    """Glowing painted stars over a flat's face, missing the circles in `skip` ((x, z, r), ...)."""
     s = []
-    for i in range(int(w * h / 20)):
+    for i in range(int(w * (h - z0) / 22)):
         x = -w / 2 + 1.0 + ((i * 37 + seed * 11) % int(w - 2))
-        z = z0 + 1.0 + ((i * 53 + seed * 7) % int(h - 2)) + 0.5 * (i % 2)
-        if any(abs(x - sx) < sr and abs(z - sz) < sr for sx, sz, sr in skip):
+        z = z0 + 1.0 + ((i * 53 + seed * 7) % int(h - z0 - 2)) + 0.5 * (i % 2)
+        if any(math.hypot(x - sx, z - sz) < sr for sx, sz, sr in skip):
             continue
-        if i % 9 == 0:
-            s.append(S((x, -0.35, z), 0.5, 0.1, "Light", neon=True))
+        y = backlot_kit.FACE - 0.6
+        if i % 7 == 0:
+            s.append(S((x, y, z), 0.55, 0.1, "Light", neon=True))
         else:
-            s.append(disc((x, -0.35, z), 0.14 + (i % 3) * 0.07, "Light", seg=6, neon=True))
+            s.append(disc((x, y, z), 0.16 + (i % 3) * 0.08, "Light", seg=6, neon=True))
     return s
 
 
-def space_backdrop_hero():
-    """The painted night sky at the back of the set: three braced flats, the middle one 28 wide and
-    the side ones 22 wide turned 25 degrees toward the front (about 68 wide in all, 30 tall), with
-    a ground row of grey hills along the bottom to hide where the flats meet the floor."""
-    h, z0 = 30.0, 0.6
-    zc = z0 + h / 2
-    # The middle flat: the Earth, with clouds and its glow.
-    mid = braced_flat(28, h, z0) + sky(28, h, z0) + [
-        disc((2, -0.35, zc + 4), 6.4, "#3A5AA8", seg=20),
-        disc((2, -0.45, zc + 4), 6.0, "Blue", seg=20),
-        disc((0.2, -0.55, zc + 5.5), 2.4, "Green", seg=10),
-        disc((3.8, -0.55, zc + 2.4), 1.8, "Green", seg=10),
-        disc((4.4, -0.55, zc + 6.6), 1.1, "DarkGreen", seg=8),
-        disc((-0.2, -0.55, zc + 2.0), 1.3, "Green", seg=8),
-        disc((4.9, -0.55, zc + 4.6), 1.0, "Green", seg=8),
-        disc((0.0, -0.62, zc + 3.2), 0.9, "OffWhite", seg=8),
-        disc((1.2, -0.62, zc + 3.0), 1.1, "OffWhite", seg=8),
-        disc((2.3, -0.62, zc + 3.3), 0.7, "OffWhite", seg=8),
-        disc((4.0, -0.62, zc + 7.6), 0.8, "OffWhite", seg=8),
-        disc((5.0, -0.62, zc + 7.3), 0.6, "OffWhite", seg=8),
-    ] + starfield(28, h, z0, 1, skip=((2, zc + 4, 8),))
-    # The left flat: a ringed planet. The right flat: a purple nebula, a small moon and a comet.
-    left = braced_flat(22, h, z0) + sky(22, h, z0) + [
-        disc((-1, -0.35, zc + 3), 4.8, "#E8834A", seg=18),
-        disc((-0.6, -0.45, zc + 4.0), 4.0, "#F2A86A", seg=18),
-        disc((-1.4, -0.5, zc + 1.8), 3.0, "#C9653A", seg=14),
-        B((-1, -0.6, zc + 3), (14.0, 0.1, 0.9), "#F5D58C", rot=(0, -16, 0)),
-    ] + starfield(22, h, z0, 2, skip=((-1, zc + 3, 7),))
-    right = braced_flat(22, h, z0) + sky(22, h, z0) + [
-        disc((-3, -0.3, zc + 1), 5.0, "#3C2A78", seg=12),
-        disc((1, -0.32, zc + 3), 4.0, "#5A3A9A", seg=12),
-        disc((-1, -0.34, zc - 2), 3.0, "#7A4AB8", seg=10),
-        disc((4, -0.45, zc + 9), 2.0, PANEL, seg=14),
-        disc((4.5, -0.55, zc + 9.3), 0.5, MOON_DARK, seg=8),
-        B((-3, -0.5, zc + 9.5), (6.0, 0.1, 0.35), "Teal", rot=(0, 20, 0)),
-        E((-0.3, -0.55, zc + 10.5), (0.6, 0.1, 0.6), "OffWhite", neon=True),
-    ] + starfield(22, h, z0, 3, skip=((-1, zc + 1, 6), (4, zc + 9, 3)))
-    turn = 25
-    dx = 14 + 11 * math.cos(math.radians(turn))
-    dy = -11 * math.sin(math.radians(turn))
-    s = [G((0, 0, 0), (0, 0, 0), *mid), G((-dx, dy, 0), (0, 0, turn), *left), G((dx, dy, 0), (0, 0, -turn), *right)]
-    # The ground row: grey hills cut out of board, standing in front of the flats' feet.
-    for i in range(9):
-        x = -30 + i * 7.5
-        y = -1.6 - (abs(x) > 14) * (abs(x) - 14) * 0.45
-        s.append(L((x, y, 0.2), (4.6 + (i % 2), 1.0, 1.6 + 0.8 * (i % 3)), MOON if i % 2 else shade(MOON, 0.07), rot=(0, 0, (x < -14) * turn - (x > 14) * turn), jitter=0.06))
+def moon_hills(w, z0, layer, color, peaks):
+    """A painted grey horizon along a flat: a band of ground with rounded hill tops (x, rise)."""
+    s = [backlot_kit.dab(0, z0 / 2, w, z0, color, layer)]
+    for x, rise in peaks:
+        s.append(backlot_kit.disc(x, z0 - rise * 0.4, rise, color, layer + 1, seg=14))
+    return s
+
+
+def earth(x, z, r, layer):
+    """The painted Earth: blue with green land, white cloud swirls and a pale glow ring."""
+    d = backlot_kit.disc
+    return [
+        d(x, z, r * 1.12, "#5A6AB8", layer, seg=20),
+        d(x, z, r, "Blue", layer + 1, seg=20),
+        d(x - r * 0.3, z + r * 0.25, r * 0.42, "Green", layer + 2, seg=10),
+        d(x + r * 0.35, z - r * 0.25, r * 0.3, "Green", layer + 2, seg=10),
+        d(x + r * 0.45, z + r * 0.45, r * 0.18, "DarkGreen", layer + 2, seg=8),
+        d(x - r * 0.05, z - r * 0.45, r * 0.2, "Green", layer + 2, seg=8),
+        # Cloud swirls: little clusters of white puffs.
+        *[d(x + cx * r, z + cz * r, cr * r, "OffWhite", layer + 3 + i % 3, seg=8)
+          for i, (cx, cz, cr) in enumerate( ((-0.35, 0.05, 0.16), (-0.15, 0.1, 0.2), (0.05, 0.02, 0.14), (0.3, 0.62, 0.13), (0.45, 0.58, 0.1),
+                             (-0.25, -0.68, 0.12), (-0.08, -0.72, 0.1), (0.6, -0.1, 0.1)))],
+    ]
+
+
+def moon_flat_earthrise():
+    """The middle backdrop, 44 x 26: the Earth rising over a grey moon horizon, under the stars."""
+    w, h = 44.0, 26.0
+    p = night(w, h) + earth(4, h * 0.56, 7.0, 2)
+    p += moon_hills(w, h * 0.3, 6, "#7E828C", ((-15, 3.4), (-6, 2.2), (12, 4.0), (19, 2.4)))
+    p += moon_hills(w, h * 0.2, 8, "#A7ABB4", ((-18, 2.0), (-2, 3.0), (9, 1.6), (17, 2.6)))
+    # Painted craters on the near ground.
+    for x, z, r in ((-12, 2.6, 1.6), (7, 3.4, 1.1), (15, 1.8, 2.0), (-3, 1.4, 0.9)):
+        p += [backlot_kit.dab(x, z, r * 2.2, r * 0.7, MOON_DARK, 10), backlot_kit.dab(x, z + r * 0.2, r * 1.6, r * 0.3, "#C3C7CF", 11)]
+    p += stars(w, h, 1, skip=((4, h * 0.56, 9),), z0=h * 0.45)
+    return backlot_kit.flat(w, h, p, base=NIGHT[2])
+
+
+def moon_flat_starfield():
+    """A side backdrop, 36 x 24: deep space with a ringed planet, a purple nebula and a comet."""
+    w, h = 36.0, 24.0
+    d = backlot_kit.disc
+    p = night(w, h) + [
+        d(-7, h * 0.62, 5.6, "#3C2A78", 2, seg=12),
+        d(-3, h * 0.7, 4.2, "#5A3A9A", 3, seg=12),
+        d(-9, h * 0.48, 3.2, "#7A4AB8", 3, seg=10),
+        d(9, h * 0.58, 4.4, "#E8834A", 4, seg=18),
+        d(9.4, h * 0.62, 3.6, "#F2A86A", 5, seg=18),
+        d(8.4, h * 0.5, 2.6, "#C9653A", 6, seg=14),
+        backlot_kit.dab(9, h * 0.58, 13.0, 0.9, "#F5D58C", 7, turn=-16),
+        backlot_kit.dab(-10, h * 0.86, 7.0, 0.4, "Teal", 4, turn=18),
+        d(-6.6, h * 0.92, 0.7, "OffWhite", 5, seg=8),
+    ]
+    p += stars(w, h, 2, skip=((9, h * 0.58, 7), (-6, h * 0.62, 6)))
+    return backlot_kit.flat(w, h, p, base=NIGHT[2])
+
+
+def moon_flat_horizon():
+    """A lower side backdrop, 36 x 16: a jagged grey moon horizon with a small distant moon."""
+    w, h = 36.0, 16.0
+    p = night(w, h) + [backlot_kit.disc(10, h * 0.78, 2.2, PANEL, 2, seg=14), backlot_kit.disc(10.7, h * 0.82, 0.6, MOON_DARK, 3, seg=8)]
+    for x, pw, ph, color in ((-12, 14, 8.5, "#7E828C"), (2, 10, 6.0, "#8E929C"), (13, 12, 7.0, "#7E828C")):
+        p += [
+            backlot_kit.slope(x, h * 0.3, pw / 2, ph, color, 4, False),
+            backlot_kit.slope(x, h * 0.3, pw / 2, ph, shade(color, 0.12), 4, True),
+        ]
+    p += moon_hills(w, h * 0.3, 7, "#A7ABB4", ((-10, 1.8), (6, 2.4), (15, 1.4)))
+    p += stars(w, h, 3, skip=((10, h * 0.78, 3),), z0=h * 0.62)
+    return backlot_kit.flat(w, h, p, base=NIGHT[2])
+
+
+def moon_ground_row():
+    """A ground row: grey hills cut out of board, 24 along X, standing in front of a backdrop to hide
+    where it meets the floor, with a little brace and a sandbag behind each one."""
+    s = []
+    for i, (x, w, h) in enumerate(((-9, 8.0, 3.0), (-1, 9.0, 4.2), (8, 9.0, 3.4))):
+        tone = MOON if i % 2 else shade(MOON, 0.08)
+        s += [
+            B((x, 0, h * 0.35), (w, 0.3, h * 0.7), tone),
+            C((x, -0.05, h * 0.62), w * 0.38, 0.3, tone, rot=(90, 0, 0), seg=10),
+            B((x, 0.25, h * 0.4), (w * 0.9, 0.2, 0.25), "Plywood"),
+            B((x, 0.7, h * 0.3), (0.3, 1.0, h * 0.6), "Wood", rot=(-30, 0, 0)),
+            BV((x, 1.3, 0.3), (1.0, 0.8, 0.6), "Sandbag", bevel=0.2),
+        ]
+        s += [L((x + dx, -0.4, 0.1), (0.5, 0.3, 0.35), MOON_DARK, jitter=0.1) for dx in (-w * 0.3, w * 0.25)]
     return s
 
 
@@ -796,7 +823,10 @@ KIT = [
     ("MoonPebbles", moon_pebbles),
     ("MoonTracks", moon_tracks),
     ("MoonFootprints", moon_footprints),
-    ("SpaceBackdropHero", space_backdrop_hero),
+    ("MoonFlatEarthrise", moon_flat_earthrise),
+    ("MoonFlatStarfield", moon_flat_starfield),
+    ("MoonFlatHorizon", moon_flat_horizon),
+    ("MoonGroundRow", moon_ground_row),
     ("MoonFoamRock", moon_foam_rock),
     ("MoonBuggyHero", moon_buggy_hero),
     ("MoonFlagMark", moon_flag_mark),
@@ -804,7 +834,6 @@ KIT = [
     ("MoonPropCart", moon_prop_cart),
 ]
 
-# Sunk into the ground: the dome is the top half of a ball.
 # Sunk into the ground: the domes are the top half of a ball, the ground pieces are flat blobs
 # mostly below the floor, so their edges melt into it.
 NO_LIFT = {"MoonDome", "MoonHabitat", "MoonRegolith", "MoonDuneEdge"}
@@ -815,5 +844,5 @@ LINEUPS = {
     "space_kit_props.png": ([], ["MoonLanderHero", "MoonBuggyHero", "MoonFakeEarth", "MoonPropCart", "MoonSupplyCrates", "MoonFoamRock"]),
     "space_kit_ground.png": (["MoonCraterSmall", "MoonCraterMid", "MoonBoulders", "MoonPebbles", "MoonFlagMark", "MoonTracks", "MoonFootprints"],
                              ["MoonCraterBig", "MoonRegolith", "MoonDuneEdge"]),
-    "space_kit_backdrop.png": ([], ["SpaceBackdropHero"]),
+    "space_kit_backdrop.png": (["MoonGroundRow", "MoonFlatHorizon"], ["MoonFlatStarfield", "MoonFlatEarthrise", "MoonFlatEarthrise@180"]),
 }
