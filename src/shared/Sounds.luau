@@ -68,6 +68,11 @@ Sounds.Slots = {
 	takePerfect = slot("stinger", 1.15),
 	takeGood = slot("clap", 1.05),
 	takeMiss = slot("low", 0.9),
+	-- The film crews on the film sets (FilmSetWorld), heard from where it happens
+	filmSnap = slot("clap", 0.8), -- the clapperboard snaps shut
+	filmAction = slot("low", 1.35), -- the director's "ACTION!"
+	filmCut = slot("low", 0.85), -- the director's "CUT!"
+	filmCheer = slot("stinger", 1.2), -- a clean take: the crew claps and confetti pops
 
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed

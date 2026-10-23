@@ -539,18 +539,19 @@ JIB_FRONT = 6.5  # the camera hangs this far in front of the hinge
 
 def jib_arm():
     """The crane arm, hinged at the origin: a yellow truss JIB_FRONT studs forward (-Y), and
-    behind the hinge the counterweights and the handle bar the operator steers it by."""
+    just behind the hinge the counterweights, with the handle bar hanging under the back end for
+    the operator, who stands behind it on the dolly."""
     s = [
         BV((0, -JIB_FRONT / 2 + 0.4, 0), (0.42, JIB_FRONT + 0.8, 0.42), "Gold", bevel=0.06),
         B((0, -JIB_FRONT / 2 + 0.4, 0.28), (0.16, JIB_FRONT, 0.12), "#2E2C34"),
-        BV((0, 0.9, 0), (0.42, 1.8, 0.42), "Gold", bevel=0.06),
+        BV((0, 0.5, 0), (0.42, 1.0, 0.42), "Gold", bevel=0.06),
         C((0, 0, 0), 0.18, 0.9, "#2E2C34", rot=(0, 90, 0), seg=8),
         BV((0, -JIB_FRONT, -0.05), (0.6, 0.5, 0.5), "#2E2C34"),
     ]
-    s += [C((0, 1.3 + i * 0.32, 0), 0.5, 0.26, "#14121A", rot=(90, 0, 0), seg=12) for i in range(2)]
+    s += [C((0, 0.55 + i * 0.27, 0), 0.48, 0.22, "#14121A", rot=(90, 0, 0), seg=12) for i in range(2)]
     s += [
-        C((0, 1.85, -0.35), 0.06, 0.7, "Chrome", seg=6),
-        C((0, 1.85, -0.7), 0.07, 1.6, "#2E2C34", rot=(0, 90, 0), seg=6),
+        C((0, 0.98, -0.47), 0.06, 0.95, "Chrome", seg=6),
+        C((0, 0.98, -0.95), 0.07, 1.4, "#2E2C34", rot=(0, 90, 0), seg=6),
     ]
     return s
 
