@@ -253,3 +253,31 @@ test("the blooper takes turns: a stumble, a forgotten line, the giggles", functi
 		end
 	end
 end)
+
+test("each set's crew works inside the zone its backlot keeps clear", function()
+	local TownSets = H.require("Models/TownSets")
+	local zones = {
+		Gulch = TownSets.GulchCrewClear,
+		MoonBase = { x0 = -12, z0 = 40, x1 = 12, z1 = 56 },
+		Jungle = { x0 = 8, z0 = 51, x1 = 40, z1 = 65 },
+	}
+	for id, zone in zones do
+		local def = (FilmScenes :: any)._defs[id]
+		local crew = def.crew
+		local spots = {
+			director = crew.director.at,
+			clapper = crew.clapper.at,
+			gaffer = crew.gaffer.at,
+			lamp = crew.lamp.at,
+			makeup = crew.makeup.at,
+			trackFrom = crew.operatorTrack.from,
+			trackTo = crew.operatorTrack.to,
+		}
+		for i, scene in def.scenes do
+			spots[`boom{i}`] = scene.boom.at
+		end
+		for name, at in spots do
+			expect(at.X >= zone.x0 and at.X <= zone.x1 and at.Z >= zone.z0 and at.Z <= zone.z1, `{id}: the {name} mark {at} is outside the crew zone`)
+		end
+	end
+end)

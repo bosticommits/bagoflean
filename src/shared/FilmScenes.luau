@@ -109,8 +109,10 @@ export type Frame = {
 	beatWho: string?, -- who makes that sound
 }
 
--- What stands on a set all the time (MapModels places it).
-export type Gear = { kit: string, at: Vector3, yaw: number, label: string?, light: boolean? }
+-- What stands on a set all the time (MapModels places it). `label` letters a director's chair's
+-- back, or any other kit model's Sign spot. `solid` says whether players bump into it when the
+-- list is placed `loose` (TownSets.filmSetGear).
+export type Gear = { kit: string, at: Vector3, yaw: number, label: string?, light: boolean?, solid: boolean? }
 
 -- The owner's cue (FilmScenes.cue): the clock runs on `old` until `from`, then on `new`. `slot` is
 -- the start of the slot the cue arrived in; `cut` the story time it ends that take at (-1: it
@@ -780,7 +782,7 @@ local BALCONY_INSIDE = v(-21.8, BALCONY, 114) -- behind the open balcony door
 local OUTLAW_AIM_AT = v(-16.5, BALCONY + 4, 114)
 local OUTLAW_AIM = facing(OUTLAW_START[2], OUTLAW_AIM_AT)
 
-local GULCH_BOOM: Mark = { at = v(-10, GROUND, 124), yaw = -150 }
+local GULCH_BOOM: Mark = { at = v(-8.5, GROUND, 125), yaw = 0 }
 
 -- Scene 1: the showdown.
 local SHOWDOWN_SHERIFF = newPlan(SHERIFF_START[1], 180, 0)
@@ -1181,7 +1183,7 @@ local MOON_SCENES: { Scene } = {
 		blooper = { at = 3.6, who = "Astronaut" },
 		mic = { "Astronaut", "Alien" },
 		aim = v(-2, 3.5, 66),
-		boom = { at = v(-8, GROUND, 55.6), yaw = 160 },
+		boom = { at = v(-8, GROUND, 55.6), yaw = 0 },
 		notes = { at = v(-3.5, GROUND, 55.5), yaw = 180 },
 		touch = { who = "Astronaut", at = v(-7.7, GROUND, 67.6), yaw = 180, via = { v(-10.5, GROUND, 56.5) } },
 		rehearse = { Alien = { ALIEN_ROUND, v(17, GROUND, 73) } },
@@ -1417,7 +1419,7 @@ local JUNGLE_SCENES: { Scene } = {
 		blooper = { at = 4.4, who = "Explorer" },
 		mic = { "Explorer", "Guide" },
 		aim = v(24, 5, 80),
-		boom = { at = v(32.5, GROUND, 67.5), yaw = 200 },
+		boom = { at = v(31.5, GROUND, 64.5), yaw = 0 },
 		notes = { at = v(17, GROUND, 68.5), yaw = 180 },
 		touch = { who = "Explorer", at = v(24.4, GROUND, 75.4), yaw = SHOT_SIDE, wait = 12, via = { v(24.5, GROUND, 71) } },
 		rehearse = { Explorer = { v(24, GROUND, 77.5), v(24, GROUND, 84) } },
