@@ -53,6 +53,18 @@ Sounds.Slots = {
 	revealEpic = slot("stinger", 0.9), -- Superstar and up: a deeper sting
 	revealLegend = slot("jingle"), -- Legend and Icon, on top of the deeper sting (music dips under it)
 	revealShiny = slot("stinger", 1.25), -- Shiny and Award variants, on top of the tier sound
+	-- The reveal build-up (CastingUi): drumroll ticks speed up, a tone each time the glow climbs a
+	-- tier (pitched up per tier), and a burst when a fake-out jumps to the real tier.
+	drumroll = slot("clap", 0.6),
+	drumrollLow = slot("click", 0.5), -- the second drum layer for Superstar+ and the near miss
+	revealStep = slot("indicator"),
+	revealBurst = slot("stinger", 1.2),
+	-- The announcer on the flip (Fish Audio voice lines).
+	voiceStar = slot("pop", 1.2),
+	voiceSuperstar = slot("pop", 1.1),
+	voiceLegend = slot("pop", 1),
+	voiceIcon = slot("pop", 0.9),
+	voiceSoClose = slot("low", 1.1), -- the near-miss tease lands on a lower tier
 
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up

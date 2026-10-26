@@ -171,10 +171,11 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 	Analytics.onboarding(player, Analytics.Steps.FirstCast)
 	if actor.tier == "Superstar" or actor.tier == "Legend" or actor.tier == "Icon" then
 		Analytics.event(player, "RarePull", 1, actor.tier, variant.id)
+		-- World reaction for everyone: sky flash, fireworks over the lot, a shake nearby (Fx.celebrate).
+		LotService.celebrate(player, "pull", actor.tier)
 	end
 	if actor.tier == "Legend" or actor.tier == "Icon" then
 		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
-		LotService.celebrate(player, "pull")
 	elseif actor.season ~= nil then
 		Analytics.event(player, "LimitedPull", 1, actor.id, variant.id)
 		if isNew then

@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local Reveal = require(ReplicatedStorage.Shared.Reveal)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
@@ -777,6 +778,69 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			bar.BackgroundTransparency = 1 - strength
 		end
 	end
+	-- Two spotlights sweep from the bottom corners during the build-up. Each beam is the top half of
+	-- a holder centered on its pivot, so rotating the holder swings the beam from its base.
+	local spotlights: { Frame } = {}
+	for i, x in { 0.12, 0.88 } do
+		local holder = Instance.new("Frame")
+		holder.Name = "Spotlight"
+		holder.BackgroundTransparency = 1
+		holder.AnchorPoint = Vector2.new(0.5, 0.5)
+		holder.Position = UDim2.fromScale(x, 1.02)
+		holder.Size = UDim2.fromScale(0.2, 2.2)
+		holder.ZIndex = 10
+		holder.Visible = false
+		holder.Parent = overlay
+		local beam = Instance.new("Frame")
+		beam.Size = UDim2.fromScale(1, 0.5)
+		beam.BorderSizePixel = 0
+		beam.BackgroundTransparency = 0.5
+		beam.ZIndex = 10
+		beam.Parent = holder
+		local fade = Instance.new("UIGradient")
+		fade.Rotation = 90
+		fade.Transparency = NumberSequence.new(1, 0.2)
+		fade.Parent = beam
+		spotlights[i] = holder
+	end
+
+	-- A gold note across the top of the card: the guarantee that covered this cast, or the near
+	-- miss's kind "So close!".
+	local noteLabel = UiKit.makeTitle(card, "", WHITE, UDim2.fromScale(0.62, 0.065), UDim2.fromScale(0.19, 0.085), 2.5)
+	noteLabel.BackgroundTransparency = 0
+	noteLabel.BackgroundColor3 = UiKit.GOLD
+	noteLabel.ZIndex = 14
+	corner(noteLabel, 10)
+	UiKit.border(noteLabel, 3)
+	textConstraint(noteLabel, 22)
+
+	-- The build-up can be skipped by a tap anywhere (or A / Space); the result never is.
+	local skipButton = Instance.new("TextButton")
+	skipButton.Name = "Skip"
+	skipButton.Text = ""
+	skipButton.AutoButtonColor = false
+	skipButton.BackgroundTransparency = 1
+	skipButton.Size = UDim2.fromScale(1, 1)
+	skipButton.ZIndex = 16
+	skipButton.Visible = false
+	skipButton.Parent = overlay
+	local skipHint = UiKit.makeTitle(skipButton, "Tap to skip", UiKit.MUTED, UDim2.fromScale(0.5, 0.05), UDim2.fromScale(0.25, 0.9), 2)
+	skipHint.ZIndex = 16
+	textConstraint(skipHint, 22)
+
+	local building = false -- the build-up is playing
+	local skipBuild = false
+	local buildAmp = 0 -- card shake, degrees
+	skipButton.Activated:Connect(function()
+		skipBuild = true
+	end)
+	UserInputService.InputBegan:Connect(function(input)
+		local key = input.KeyCode
+		if building and (key == Enum.KeyCode.ButtonA or key == Enum.KeyCode.ButtonB or key == Enum.KeyCode.Space or key == Enum.KeyCode.Return) then
+			skipBuild = true
+		end
+	end)
+
 	overlay:GetPropertyChangedSignal("Visible"):Connect(function()
 		if not overlay.Visible and stopSpin ~= nil then
 			stopSpin()
@@ -784,10 +848,20 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end)
 	RunService.RenderStepped:Connect(function()
-		if not (overlay.Visible and rays.Visible) then
+		if not overlay.Visible then
 			return
 		end
-		local angle = os.clock() * 12
+		local now = os.clock()
+		card.Rotation = if building then math.sin(now * 47) * buildAmp else 0
+		for i, holder in spotlights do
+			if holder.Visible then
+				holder.Rotation = (if i == 1 then 1 else -1) * (18 + math.sin(now * 1.6 + i * 2) * 22)
+			end
+		end
+		if not rays.Visible then
+			return
+		end
+		local angle = now * 12
 		for i, bar in rayBars do
 			bar.Rotation = angle + i * 30
 		end
@@ -825,6 +899,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		card.BackgroundColor3 = PANEL
 		nameLabel.Visible = true
 		nameLabel.Text = "Casting..."
+		noteLabel.Visible = false
 		nameLabel.TextColor3 = WHITE
 		art.Visible = true
 		showArt(function(frame)
@@ -852,14 +927,73 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		card.BackgroundColor3 = PANEL
 		stroke.Color = UiKit.FAINT
 		rainbow.Enabled = false
-		-- Build-up: the new actor's silhouette spins fast, then stops spinning to show who it is.
+		-- Build-up (Reveal.plan): the silhouette spins fast while spotlights sweep, a drumroll speeds
+		-- up and the card shakes, glowing one rarity after another up to the real one (or looking
+		-- Common, then bursting: the fake-out; or climbing to Superstar gold: the near miss). Then the
+		-- card flips to the result.
 		art.Visible = true
 		showArt(function(frame)
 			return Icon3D.actor(frame, actor.id, variant.id, true)
 		end, 150)
 		setRays(nil, 0)
-
-		task.delay(0.7, function()
+		local rank = table.find(Actors.Tiers, tier) or 1
+		local plan = Reveal.plan(rank, result.tease, math.random())
+		local long = plan.seconds >= 0.8
+		if rank >= 5 then
+			Fx.holdOwnPull() -- the fireworks over our lot wait for the flip
+		end
+		task.spawn(function()
+			building, skipBuild = true, false
+			skipButton.Visible = long
+			for _, holder in spotlights do
+				holder.Visible = long
+			end
+			local deep = plan.nearMiss or rank >= 5
+			local start, stepIndex, nextTick, glowRank = os.clock(), 0, 0, 1
+			while revealToken == mine and not skipBuild do
+				local t = os.clock() - start
+				if t >= plan.seconds then
+					break
+				end
+				local progress = t / plan.seconds
+				while stepIndex < #plan.steps and plan.steps[stepIndex + 1].at <= t do
+					stepIndex += 1
+					glowRank = plan.steps[stepIndex].rank
+					local glow = Actors.Tiers[glowRank]
+					stroke.Color = glow.color
+					rainbow.Enabled = glowRank == 7
+					setRays(glow.color, 0.15 + glowRank * 0.07)
+					for _, holder in spotlights do
+						(holder:FindFirstChildOfClass("Frame") :: Frame).BackgroundColor3 = glow.color:Lerp(WHITE, 0.4)
+					end
+					if plan.fakeOut and stepIndex == 2 then
+						Sfx.play("revealBurst")
+						Fx.flash(glow.color, 0.3)
+					elseif stepIndex > 1 then
+						Sfx.play("revealStep", 0.8 + glowRank * 0.1)
+					end
+				end
+				if long and t >= nextTick then
+					Sfx.play("drumroll", 1 + progress * 0.3)
+					if deep then
+						Sfx.play("drumrollLow")
+					end
+					nextTick = t + 0.16 - progress * 0.1
+				end
+				buildAmp = progress * (0.5 + glowRank * 0.6)
+				task.wait()
+			end
+			building, buildAmp = false, 0
+			skipButton.Visible = false
+			for _, holder in spotlights do
+				holder.Visible = false
+			end
+			if revealToken ~= mine then
+				return
+			end
+			-- The flip: the card squeezes to an edge and opens on the result.
+			TweenService:Create(card, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.fromScale(0, 0.72) }):Play()
+			task.wait(0.12)
 			if revealToken ~= mine then
 				return
 			end
@@ -867,7 +1001,6 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			showArt(function(frame)
 				return Icon3D.actor(frame, actor.id, variant.id)
 			end, 12)
-			local rank = table.find(Actors.Tiers, tier) or 1
 			setRays(if variant.id == "Normal" then tier.color else variant.color, math.clamp(0.25 + rank * 0.1, 0, 0.9))
 			stroke.Color = if tier.id == "Icon" then WHITE else tier.color
 			rainbow.Enabled = tier.id == "Icon"
@@ -890,11 +1023,10 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			powerLabel.Text = Hud.comma(tier.starPower * variant.multiplier)
 			genreLabel.Text = actor.genre
 			genreLabel.TextColor3 = UiKit.GENRE_COLORS[actor.genre] or WHITE
-			-- A hot start guarantee (Actors.HotStart) gets a gold DISCOVERED! badge instead.
 			-- A limited seasonal actor's first copy says LIMITED! in gold.
 			local limitedNew = result.isNew and actor.season ~= nil
-			tagLabel.Text = if result.discovered then "DISCOVERED!" elseif limitedNew then "LIMITED!" elseif result.isNew then "NEW!" else "x" .. result.count
-			tagLabel.BackgroundColor3 = if result.discovered or limitedNew
+			tagLabel.Text = if limitedNew then "LIMITED!" elseif result.isNew then "NEW!" else "x" .. result.count
+			tagLabel.BackgroundColor3 = if limitedNew
 				then UiKit.GOLD
 				elseif result.isNew then UiKit.CLOSE_RED
 				else UiKit.TAB_OFF
@@ -902,8 +1034,23 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			variantLabel.Text = string.upper(if variant.id == "Award" then "Award" else variant.name)
 			variantLabel.BackgroundColor3 = variant.color
 			variantLabel.TextColor3 = WHITE
+			-- The guarantee that covered this cast (server-decided), or the near miss's kind line.
+			local note = if plan.nearMiss
+				then "So close! Superstar soon!"
+				elseif result.guarantee == "firstSuperstar" then "YOUR FIRST SUPERSTAR!"
+				elseif result.guarantee == "pity" then "PITY GUARANTEE!"
+				elseif result.guarantee == "hotStart" or result.discovered then "DISCOVERED!"
+				else nil
+			noteLabel.Visible = note ~= nil
+			noteLabel.Text = note or ""
 			Fx.castReveal(tier.id, variant.id)
-			card.Size = UDim2.fromScale(0.7, 0.6)
+			if plan.nearMiss then
+				Sfx.play("voiceSoClose")
+			end
+			if rank >= 5 then
+				Fx.releaseOwnPull()
+			end
+			card.Size = UDim2.fromScale(0.05, 0.72)
 			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, 0.72) }):Play()
 		end)
 	end
