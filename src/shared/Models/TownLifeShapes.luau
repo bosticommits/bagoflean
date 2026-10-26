@@ -318,30 +318,6 @@ TownLifeShapes.Spots.HotDogCart = {
 	Sign = { cf = CFrame.new(0, 1.9, -1.29, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(2.6, 0.6, 0.04) },
 }
 
-TownLifeShapes.Shapes.BusStop = {
-	S("box", CFrame.new(0, 0.1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(7, 0.2, 3), "D6C8B0"),
-	S("box", CFrame.new(0, 2.4, 1.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(6.6, 4.2, 0.15), "96CDF0"),
-	S("box", CFrame.new(0, 4.2, 1.32, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(6.6, 0.5, 0.18), "F5B82E"),
-	S("box", CFrame.new(0, 4.7, 0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(7.2, 0.3, 3), "2E86DE"),
-	S("box", CFrame.new(0, 4.7, -1.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(7.2, 0.32, 0.1), "F5B82E"),
-	S("box", CFrame.new(0, 1.4, 0.7, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(5.6, 0.25, 1), "96623C"),
-	S("box", CFrame.new(0, 1.95, 1.1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(5.6, 0.8, 0.2), "96623C"),
-	S("cyl", CFrame.new(-3.9, 2.8, -1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.24, 5.6, 0.24), "6E7078"),
-	S("box", CFrame.new(-3.9, 5, -1, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.25, 1.2, 1.6), "2E86DE"),
-	S("box", CFrame.new(3.2, 2.4, 0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.25, 4.4, 2.6), "6E7078"),
-	S("box", CFrame.new(-3.2, 2.4, 0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.25, 4.4, 2.6), "6E7078"),
-	S("box", CFrame.new(2.4, 0.8, 0.8, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.2, 1.1, 0.8), "6E7078"),
-	S("box", CFrame.new(0, 0.8, 0.8, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.2, 1.1, 0.8), "6E7078"),
-	S("box", CFrame.new(-2.4, 0.8, 0.8, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.2, 1.1, 0.8), "6E7078"),
-	S("box", CFrame.new(1.8, 2.6, 1.21, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.4, 2, 0.04), "1B2340"),
-	S("star", CFrame.new(1.8, 2.9, 1.18, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.8, 0.8, 0.04), "F5B82E"),
-	S("box", CFrame.new(1.8, 2, 1.19, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1, 0.2, 0.04), "C8202F"),
-}
-TownLifeShapes.Bounds.BusStop = { size = Vector3.new(7.625, 5.6, 3.5), center = Vector3.new(-0.213, 2.8, -0.05) }
-TownLifeShapes.Spots.BusStop = {
-	Sign = { cf = CFrame.new(-3.9, 5, -1, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(0.05, 1, 1.4) },
-}
-
 TownLifeShapes.Shapes.PaparazziCamera = {
 	S("box", CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(1.3, 0.9, 0.8), "2E2C34"),
 	S("cyl", CFrame.new(0, -0.05, -0.6, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.7, 0.6, 0.7), "6E7078"),

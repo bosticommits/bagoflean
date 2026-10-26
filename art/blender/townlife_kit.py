@@ -1,10 +1,11 @@
 """Town Life kit: the townsfolk and props that make the boulevard feel lived in
-(src/client/TownLife.luau moves them, on each player's own screen).
+(src/client/TownLife.luau moves them, on each player's own screen). The bus stops are the map
+kit's own (town_kit.py); the townsfolk only wait at them.
 
   People   TownFanA..TownFanD, TownVendor, TownPhotog, TownMime, each as rig pieces Head, Torso,
            Arm, Leg (the film crew's body from crew_kit.py: the arm and leg serve both sides, and
            each piece keeps its joint at its origin, so TownLife turns them like CrewRig does)
-  Props    HotDogCart (spot Sign), BusStop (spot Sign), PaparazziCamera (its flash glows),
+  Props    HotDogCart (spot Sign), PaparazziCamera (its flash glows),
            FanSign (a star placard on a stick, held up: the stick runs down from the grip along -Z),
            Guitar (held across the body), TipHat (a top hat on the ground with a few coins)
 
@@ -126,30 +127,6 @@ def hot_dog_cart():
     return s
 
 
-def bus_stop():
-    """A bus shelter with a bench, a glass back and a sign on a pole (spot Sign)."""
-    s = [
-        B((0, 0, 0.1), (7.0, 3.0, 0.2), "Paving"),
-        B((0, 1.3, 2.4), (6.6, 0.15, 4.2), "Glass"),
-        B((0, 1.32, 4.2), (6.6, 0.18, 0.5), "Gold"),
-        crew_kit.BV((0, 0.2, 4.7), (7.2, 3.0, 0.3), "#2E86DE", bevel=0.1),
-        B((0, -1.3, 4.7), (7.2, 0.1, 0.32), "Gold"),
-        crew_kit.BV((0, 0.7, 1.4), (5.6, 1.0, 0.25), "Wood"),
-        crew_kit.BV((0, 1.1, 1.95), (5.6, 0.2, 0.8), "Wood"),
-        # Sign pole at the front corner.
-        C((3.9, -1.0, 2.8), 0.12, 5.6, "Steel", seg=6),
-        crew_kit.BV((3.9, -1.0, 5.0), (0.25, 1.6, 1.2), "#2E86DE", bevel=0.05),
-        T((3.9, -1.0, 5.0), (0.05, 1.4, 1.0), "Sign"),
-    ]
-    for x in (-3.2, 3.2):
-        s.append(B((x, 0.2, 2.4), (0.25, 2.6, 4.4), "Steel"))
-    for x in (-2.4, 0, 2.4):
-        s.append(B((x, 0.8, 0.8), (0.2, 0.8, 1.1), "Steel"))
-    # A movie poster on the glass.
-    s += [B((-1.8, 1.21, 2.6), (1.4, 0.04, 2.0), "Navy"), S((-1.8, 1.18, 2.9), 0.4, 0.04, "Gold"), B((-1.8, 1.19, 2.0), (1.0, 0.04, 0.2), "Carpet")]
-    return s
-
-
 def paparazzi_camera():
     """A press camera with a big flash gun on top, centred on the grip, lens along -Y."""
     return [
@@ -198,14 +175,13 @@ def _v(fn, *args):
 PIECES = {"Head": head, "Torso": torso, "Arm": crew_kit.arm, "Leg": crew_kit.leg}
 KIT = [(f"Town{who}{part}", _v(make, who)) for who in FOLK for part, make in PIECES.items()] + [
     ("HotDogCart", hot_dog_cart),
-    ("BusStop", bus_stop),
     ("PaparazziCamera", paparazzi_camera),
     ("FanSign", fan_sign),
     ("Guitar", guitar),
     ("TipHat", tip_hat),
 ]
 # Rig pieces and held props keep their origin as the joint or grip; the rest stand on the ground.
-GROUNDED = {"HotDogCart", "BusStop", "TipHat"}
+GROUNDED = {"HotDogCart", "TipHat"}
 
 LUAU_OUT = os.path.join(mmkit.REPO, "src", "shared", "Models", "TownLifeShapes.luau")
 FBX_OUT = os.path.join(mmkit.EXPORTS, "townlife_kit.fbx")
@@ -281,7 +257,7 @@ def preview():
     for i, who in enumerate(FOLK):
         shown += person(who, (i - 3) * 3.2, 0, "cheer" if who.startswith("Fan") else "stand")
     kit = dict(KIT)
-    props = [("HotDogCart", -8, 9), ("BusStop", 4, 10), ("PaparazziCamera", -6, -5), ("FanSign", -2, -5), ("Guitar", 3, -5), ("TipHat", 8, -5)]
+    props = [("HotDogCart", -1, 9), ("PaparazziCamera", -6, -5), ("FanSign", -2, -5), ("Guitar", 3, -5), ("TipHat", 8, -5)]
     for name, x, y in props:
         o = map_kit.build(name, kit[name], lift_to_ground=name in GROUNDED)[0]
         lo, hi = map_kit.bounds(o)
