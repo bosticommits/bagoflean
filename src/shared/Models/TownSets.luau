@@ -101,8 +101,9 @@ end
 -- (z -32..32, -Z toward the boulevard). Props keep to the sides (|x| >= 5.5) so the middle stays
 -- a clear walk.
 
-local function directorChair(b: Builder, at: CFrame, label: string?)
+local function directorChair(b: Builder, at: CFrame, label: string?, solid: boolean?)
 	MapKit.place(b, "DirectorChair", at, {
+		solid = solid,
 		labels = if label ~= nil then { Back = { text = label, color = P.Gold, stroke = 0 } } else nil,
 	})
 end
@@ -282,6 +283,135 @@ local function westernBuilding(b: Builder, info: WesternInfo)
 	MapKit.place(b, info.kit, CFrame.identity, { labels = { Sign = { text = info.title, color = info.color } } })
 end
 
+-- The facing (degrees, for yaw()) that turns a model's front (-Z) from (x, z) toward (tx, tz).
+local function toward(x: number, z: number, tx: number, tz: number): number
+	return math.deg(math.atan2(x - tx, z - tz))
+end
+
+-- Turned so a model's X axis runs along `delta`, its front (-Z) to the left of the way it runs.
+local function along(delta: Vector3): CFrame
+	return yaw(math.deg(math.atan2(-delta.Z, delta.X)))
+end
+
+-- A run of backlot fence (map kit BacklotFence: 12-stud sections hung with green mesh on their
+-- front) from `from` to `to`, the mesh facing to the left of the way it runs. `signs` letters a studio banner on
+-- the sections it names (1 is the first). A drift of sand at every other post (never at the run's
+-- ends, which may be a gateway) hides the ground's edge.
+local function backlotFence(b: Builder, from: Vector3, to: Vector3, signs: { [number]: string }?)
+	local delta = to - from
+	local sections = math.max(1, math.round(delta.Magnitude / 12))
+	local turn = along(delta)
+	for i = 0, sections - 1 do
+		local mid = from + delta * ((i + 0.5) / sections)
+		local text = if signs then signs[i + 1] else nil
+		MapKit.place(b, if text then "BacklotFenceSign" else "BacklotFence", CFrame.new(mid) * turn, {
+			scale = delta.Magnitude / sections / 12,
+			labels = if text then { Sign = { text = text, color = P.Burgundy, stroke = 0 } } else nil,
+		})
+		if i % 2 == 1 then
+			MapKit.place(b, "BacklotBerm", CFrame.new(from + delta * (i / sections)) * turn * yaw(if i % 4 == 1 then 8 else -10), { solid = false })
+		end
+	end
+	MapKit.place(b, "BacklotFencePost", to)
+end
+
+-- A cable run along the ground through `points`: lengths of map kit BacklotCable laid end to end,
+-- overlapping a little (and past the ends of runs shorter than a length).
+local function cableRun(b: Builder, points: { Vector3 })
+	for k = 1, #points - 1 do
+		local from, to = points[k], points[k + 1]
+		local delta = to - from
+		local pieces = math.max(1, math.ceil(delta.Magnitude / 8))
+		for i = 0, pieces - 1 do
+			local mid = from + delta * ((i + 0.5) / pieces)
+			MapKit.place(b, "BacklotCable", CFrame.new(mid) * along(delta), { solid = false })
+		end
+	end
+end
+
+-- Dusty Gulch as an open studio backlot (art/blender/backlot_kit.py), in the Gulch's space: green
+-- mesh fence round the lot (open at the town hedge and at Moon Base's gate, x = -88, z = 81),
+-- painted flats propped up behind the street's end and behind the hotel, light rigs aimed at the
+-- action with cables back to a generator, a basecamp of star trailers and a craft services tent
+-- behind the east row, and the director's video village down the street from the camera. The
+-- film crew's patch (x 3..13, z 100..130), the actors' street and the stunt landing stay clear by
+-- about 12 studs; tests/luau/map.spec.luau checks it.
+TownSets.GulchCrewClear = { x0 = -9, z0 = 88, x1 = 25, z1 = 142 }
+TownSets.GulchMoonWay = { x0 = -88, z0 = 70, x1 = -20, z1 = 92 }
+
+local function gulchBacklot(b: Builder)
+	local G = 0.1 -- the desert ground
+	local S = 0.2 -- the street
+	local W = 0.8 -- the boardwalks
+	local ACTION = v(-5, 0, 114)
+	local function aim(x: number, z: number): number
+		return toward(x, z, ACTION.X, ACTION.Z)
+	end
+
+	-- The fence, clockwise from the town hedge on the west (-X) side, leaving the way out to Moon
+	-- Base's gate open.
+	backlotFence(b, v(-85, G, 2), v(-85, G, 68), { [3] = "BACKLOT 9" })
+	MapKit.place(b, "BacklotFencePost", v(-85, G, 94))
+	backlotFence(b, v(-85, G, 94), v(-85, G, 157))
+	backlotFence(b, v(-85, G, 157), v(85, G, 157))
+	backlotFence(b, v(85, G, 157), v(85, G, 2), { [4] = "QUIET ON SET", [9] = "STUDIO PROPERTY" })
+
+	local gear: { FilmScenes.Gear } = {
+		-- Painted flats: a trail running off to the horizon closing the street's end, a desert sky
+		-- behind the hotel (it rises over the roofs behind the shot), and one by the wagon with
+		-- its bracing toward the way in.
+		{ kit = "BacklotFlatTrail", at = v(0, S, 149), yaw = 0, solid = true },
+		{ kit = "BacklotFlatDesert", at = v(-43, G, 132), yaw = -90, solid = true },
+		{ kit = "BacklotFlatDesert", at = v(-56, G, 37), yaw = 180, solid = true },
+		{ kit = "BacklotBrace", at = v(-36, G, 52), yaw = 90 },
+
+		-- Lights aimed at the showdown from the street's far end, and a fresnel down the street.
+		{ kit = "BacklotTrussTower", at = v(34, G, 141), yaw = aim(34, 141), light = true, solid = true },
+		{ kit = "BacklotScaffold", at = v(-30, G, 139), yaw = aim(-30, 139), light = true, solid = true },
+		{ kit = "BacklotCStand", at = v(-23, G, 131), yaw = aim(-23, 131) },
+		{ kit = "BacklotGroundLight", at = v(-11, S, 84), yaw = aim(-11, 84) },
+		{ kit = "BacklotCase", at = v(-12, S, 79), yaw = 15 },
+
+		-- Power: the generator behind the truss tower; the runs are below.
+		{ kit = "BacklotGenerator", at = v(52, G, 149), yaw = 90, solid = true },
+		{ kit = "BacklotCableRamp", at = v(0, S, 145), yaw = 0 },
+		{ kit = "BacklotCableCoil", at = v(44, G, 141), yaw = 30 },
+		{ kit = "BacklotCaseStack", at = v(40, G, 147), yaw = -15 },
+		{ kit = "BacklotCart", at = v(-38, G, 145), yaw = 80 },
+		{ kit = "BacklotCase", at = v(-36, G, 128), yaw = -20 },
+
+		-- The director's video village, down the street from the camera, out of the shot: the
+		-- monitors face the way in, the chairs face the monitors (and the action beyond them).
+		{ kit = "BacklotVideoVillage", at = v(9, S, 80), yaw = 0 },
+		{ kit = "DirectorChair", at = v(6.5, S, 75.5), yaw = 180 },
+		{ kit = "DirectorChair", at = v(9.5, S, 75.2), yaw = 180, label = "DIRECTOR" },
+		{ kit = "DirectorChair", at = v(12.5, S, 75.5), yaw = 180 },
+		{ kit = "BacklotScriptTable", at = v(17, W, 77), yaw = 90 },
+		{ kit = "BacklotAppleBoxes", at = v(16.5, W, 83), yaw = 20 },
+
+		-- Basecamp behind the east row: star trailers, craft services, a grip cart.
+		{ kit = "StarTrailerRed", at = v(64, G, 96), yaw = 0, solid = true },
+		{ kit = "StarTrailerBlue", at = v(64, G, 117), yaw = 0, solid = true },
+		{ kit = "DirectorChair", at = v(56, G, 92), yaw = 120 },
+		{ kit = "DirectorChair", at = v(56, G, 121), yaw = 60 },
+		{ kit = "BacklotCraftTent", at = v(46, G, 131), yaw = 90, label = "CRAFT SERVICES", solid = true },
+		{ kit = "BacklotCart", at = v(44, G, 106), yaw = 5 },
+		{ kit = "BacklotCase", at = v(42, G, 112), yaw = -25 },
+	}
+	TownSets.filmSetGear(b, gear, true)
+
+	-- Generator to the truss tower, and on across the street's end (over the ramp) to the
+	-- scaffold and down the west boardwalk to the fresnel.
+	cableRun(b, { v(48, G, 145.5), v(36, G, 142.5) })
+	cableRun(b, { v(36, G, 142.5), v(28, S, 145), v(-24, S, 145), v(-29, G, 140) })
+	cableRun(b, { v(-24, S, 145), v(-13.2, S, 137), v(-13.2, S, 87) })
+
+	-- Scrub where the set dressing meets the desert.
+	for i, at in { v(-48, G, 153), v(56, G, 140), v(72, G, 122), v(-62, G, 33), v(-30, G, 54), v(48, G, 88), v(-44, G, 150), v(-80, G, 100), v(80, G, 46) } do
+		MapKit.place(b, "BacklotClump", CFrame.new(at) * yaw(i * 61), { solid = false })
+	end
+end
+
 -- Dusty Gulch: a western film town, about 160 wide and 150 long. A welcome arch over the road in,
 -- a dusty main street with eight false-front buildings on boardwalks (saloon, bank, sheriff, hotel
 -- and more), hitching rails, barrels and crates, a corral, a covered wagon, a water tank, blocky
@@ -374,7 +504,7 @@ function TownSets.westernTown(b: Builder)
 	end
 
 	-- Cacti, boulders and mesas round the edges.
-	local cacti = { v(-34, 0, 20), v(34, 0, 22), v(-62, 0, 30), v(-30, 0, 132), v(36, 0, 140), v(70, 0, 104), v(-70, 0, 52), v(52, 0, 30) }
+	local cacti = { v(-28, 0, 16), v(34, 0, 22), v(-60, 0, 20), v(-60, 0, 148), v(36, 0, 140), v(70, 0, 104), v(-70, 0, 52), v(52, 0, 30) }
 	for i, at in cacti do
 		MapKit.place(b, "Cactus", CFrame.new(at) * yaw(i * 47), { scale = 0.8 + (i % 3) * 0.2 })
 	end
@@ -389,19 +519,23 @@ function TownSets.westernTown(b: Builder)
 	-- balcony, the director's chair, a light, and hay bales for the stunt double to land on. The
 	-- crew and the actors themselves are puppets each player's game moves (FilmScenes, FilmSetWorld).
 	TownSets.filmSetGear(b, FilmScenes.Sets.Gulch.gear)
+	gulchBacklot(b)
 end
 
--- A film set's gear (FilmScenes.Sets[...].gear), in the set's own space.
-function TownSets.filmSetGear(b: Builder, gear: { FilmScenes.Gear })
+-- A film set's gear (FilmScenes.Sets[...].gear), in the set's own space. `loose`: backlot
+-- dressing players walk through (cases, cables, stands), except pieces marked `solid`.
+function TownSets.filmSetGear(b: Builder, gear: { FilmScenes.Gear }, loose: boolean?)
 	for _, g in gear do
 		local at = CFrame.new(g.at) * yaw(g.yaw)
 		if g.kit == "DirectorChair" then
-			directorChair(b, at, g.label)
+			directorChair(b, at, g.label, if loose then g.solid == true else g.solid)
 		elseif g.kit == "JungleTemple" then
 			MapKit.place(b, g.kit, at, { hitbox = true }) -- players climb its steps
 		else
 			MapKit.place(b, g.kit, at, {
+				solid = if loose then g.solid == true else g.solid,
 				light = if g.light then { range = 16, brightness = 1.8, color = Color3.fromRGB(255, 164, 80) } else nil,
+				labels = if g.label then { Sign = { text = g.label, color = P.Gold } } else nil,
 			})
 		end
 	end

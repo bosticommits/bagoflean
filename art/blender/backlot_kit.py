@@ -1,7 +1,7 @@
 """Backlot kit: the studio dressing that makes a film set read as an open backlot set, not props on
 a pad. map_kit.py builds these into the one map_kit.fbx and the one MapKitShapes.luau with the
-rest of the map kit, so run that file, not this one. src/shared/Models/Backlot.luau places them
-from a layout table (Dusty Gulch's is there; other sets add their own).
+rest of the map kit, so run that file, not this one. Each set places them from a gear list in its
+own TownSets function (TownSets.filmSetGear, with `loose` so they don't collide).
 
   Fence     BacklotFence (a 12-stud run of chain link hung with green screen mesh, a post at each
             end, along X), BacklotFenceSign (the same with a studio banner: spot Sign),
@@ -154,7 +154,7 @@ def flat(width, height, paint, base=SKY, jacks=None):
 def slope(x, z, w, h, color, layer, right):
     """A right-angled triangle of paint, its tall side at x, sloping down away from it (toward +x
     when `right`)."""
-    return W((x + (w / 2 if right else -w / 2), FACE - 0.04 * layer + 0.01, z), (0.04, w, h), color, rot=(0, 0, 90 if not right else -90))
+    return W((x + (w / 2 if right else -w / 2), FACE - 0.04 * layer + 0.01, z), (0.04, w, h), color, rot=(0, 0, -90 if not right else 90))
 
 
 def mesa_paint(x, w, h, z0, layer, light, mid, dark):
@@ -225,11 +225,12 @@ def flat_trail():
     p += mesa_paint(15, 13, 7.0, hz, 5, "RockLight", "Rock", "RockDark")
     p += [
         dab(0, hz / 2, w, hz, "Sand", 9),
-        # The trail: bands narrowing toward the horizon.
-        dab(0, hz * 0.15, 12, hz * 0.3, "Dust", 10),
-        dab(0, hz * 0.45, 7, hz * 0.3, "Dust", 10),
-        dab(0, hz * 0.75, 3, hz * 0.3, "Dust", 10),
-        dab(0, hz * 0.96, 1.2, hz * 0.1, "Dust", 10),
+        # The trail: a strip narrowing to a point on the horizon, with ruts down it.
+        dab(0, hz / 2, 1.2, hz, "Dust", 10),
+        slope(-0.6, hz / 2, 6.4, hz, "Dust", 10, False),
+        slope(0.6, hz / 2, 6.4, hz, "Dust", 10, True),
+        slope(-1.6, hz * 0.3, 2.2, hz * 0.6, "#D49A60", 11, False),
+        slope(1.6, hz * 0.3, 2.2, hz * 0.6, "#D49A60", 11, True),
     ]
     p += cactus_paint(-11, hz * 0.1, 5, 11) + cactus_paint(12, hz * 0.2, 4, 11)
     return flat(w, h, p)
@@ -259,37 +260,41 @@ def lamp(at, tilt=28, size=1.0):
 
 def truss_tower():
     """A 24-stud box truss on a weighted base, a lamp bar of three lamps across its top."""
-    h, a = 24.0, 1.1
+    h, a = 24.0, 1.2
+    bays, bay = 6, 3.8
+    diag = math.hypot(2 * a, bay)
     s = [
-        BV((0, 0, 0.25), (4.4, 4.4, 0.5), "Charcoal", bevel=0.1),
+        BV((0, 0, 0.25), (4.6, 4.6, 0.5), "Charcoal", bevel=0.1),
     ]
     for x in (-a, a):
         for y in (-a, a):
-            s.append(B((x, y, h / 2), (0.32, 0.32, h), PIPE))
-    for k in range(9):
-        z = 1.2 + k * 2.75
+            s.append(B((x, y, h / 2), (0.5, 0.5, h), PIPE))
+    for k in range(bays + 1):
+        z = 1.0 + k * bay
         s += [
-            B((0, -a, z), (2 * a, 0.18, 0.18), PIPE),
-            B((0, a, z), (2 * a, 0.18, 0.18), PIPE),
-            B((-a, 0, z), (0.18, 2 * a, 0.18), PIPE),
-            B((a, 0, z), (0.18, 2 * a, 0.18), PIPE),
+            B((0, -a, z), (2 * a, 0.3, 0.3), PIPE),
+            B((0, a, z), (2 * a, 0.3, 0.3), PIPE),
+            B((-a, 0, z), (0.3, 2 * a, 0.3), PIPE),
+            B((a, 0, z), (0.3, 2 * a, 0.3), PIPE),
         ]
+        if k == bays:
+            break
         # Zig-zag diagonals on the front and the sides.
-        lean = 38 if k % 2 == 0 else -38
+        lean = math.degrees(math.atan2(2 * a, bay)) * (1 if k % 2 == 0 else -1)
         s += [
-            B((0, -a, z + 1.375), (0.16, 0.16, 3.4), PIPE, rot=(0, lean, 0)),
-            B((-a, 0, z + 1.375), (0.16, 0.16, 3.4), PIPE, rot=(-lean, 0, 0)),
-            B((a, 0, z + 1.375), (0.16, 0.16, 3.4), PIPE, rot=(lean, 0, 0)),
+            B((0, -a, z + bay / 2), (0.26, 0.26, diag), PIPE, rot=(0, lean, 0)),
+            B((-a, 0, z + bay / 2), (0.26, 0.26, diag), PIPE, rot=(-lean, 0, 0)),
+            B((a, 0, z + bay / 2), (0.26, 0.26, diag), PIPE, rot=(lean, 0, 0)),
         ]
     s += [
         # The lamp bar: a short horizontal truss, three lamps hanging off its front.
-        BV((0, 0, h + 0.3), (3.0, 3.0, 0.6), "Charcoal", bevel=0.1),
-        B((0, -0.6, h + 1.4), (10.0, 0.3, 0.3), PIPE),
-        B((0, 0.6, h + 1.4), (10.0, 0.3, 0.3), PIPE),
-        B((0, 0, h + 2.4), (10.0, 0.3, 0.3), PIPE),
-        lamp((-3.6, -1.6, h + 0.6), 30),
-        lamp((0, -1.6, h + 0.6), 30),
-        lamp((3.6, -1.6, h + 0.6), 30),
+        BV((0, 0, h + 0.3), (3.2, 3.2, 0.6), "Charcoal", bevel=0.1),
+        B((0, -0.7, h + 1.5), (11.0, 0.45, 0.45), PIPE),
+        B((0, 0.7, h + 1.5), (11.0, 0.45, 0.45), PIPE),
+        B((0, 0, h + 2.7), (11.0, 0.45, 0.45), PIPE),
+        lamp((-3.9, -1.9, h + 0.5), 30, 1.25),
+        lamp((0, -1.9, h + 0.5), 30, 1.25),
+        lamp((3.9, -1.9, h + 0.5), 30, 1.25),
     ]
     for x in (-1.9, 1.9):
         s.append(BV((x, 2.4, 0.6), (1.4, 1.6, 0.7), "Sandbag", bevel=0.25))
@@ -305,23 +310,23 @@ def scaffold():
     for x in (-w / 2, w / 2):
         for y in (-d / 2, d / 2):
             s += [
-                B((x, y, h / 2 + 1.5), (0.3, 0.3, h + 3.0), PIPE),
+                B((x, y, h / 2 + 1.5), (0.42, 0.42, h + 3.0), PIPE),
                 B((x, y, 0.1), (0.9, 0.9, 0.2), "Charcoal"),
             ]
     for z in (0.8, 6.0, h, h + 2.8):
         s += [
-            B((0, -d / 2, z), (w, 0.22, 0.22), PIPE),
-            B((0, d / 2, z), (w, 0.22, 0.22), PIPE),
-            B((-w / 2, 0, z), (0.22, d, 0.22), PIPE),
-            B((w / 2, 0, z), (0.22, d, 0.22), PIPE),
+            B((0, -d / 2, z), (w, 0.3, 0.3), PIPE),
+            B((0, d / 2, z), (w, 0.3, 0.3), PIPE),
+            B((-w / 2, 0, z), (0.3, d, 0.3), PIPE),
+            B((w / 2, 0, z), (0.3, d, 0.3), PIPE),
         ]
     # Cross bracing on the back and both ends.
     for z0, z1 in ((0.8, 6.0), (6.0, h)):
         zm, run = (z0 + z1) / 2, z1 - z0
         s += [
-            B((0, d / 2, zm), (0.18, 0.18, math.hypot(w, run)), PIPE, rot=(0, math.degrees(math.atan2(w, run)), 0)),
-            B((-w / 2, 0, zm), (0.18, 0.18, math.hypot(d, run)), PIPE, rot=(math.degrees(math.atan2(d, run)), 0, 0)),
-            B((w / 2, 0, zm), (0.18, 0.18, math.hypot(d, run)), PIPE, rot=(-math.degrees(math.atan2(d, run)), 0, 0)),
+            B((0, d / 2, zm), (0.26, 0.26, math.hypot(w, run)), PIPE, rot=(0, math.degrees(math.atan2(w, run)), 0)),
+            B((-w / 2, 0, zm), (0.26, 0.26, math.hypot(d, run)), PIPE, rot=(math.degrees(math.atan2(d, run)), 0, 0)),
+            B((w / 2, 0, zm), (0.26, 0.26, math.hypot(d, run)), PIPE, rot=(-math.degrees(math.atan2(d, run)), 0, 0)),
         ]
     for z in (6.0, h):
         s += [
@@ -330,12 +335,12 @@ def scaffold():
         ]
     # The ladder up the +X end.
     for y in (-0.6, 0.6):
-        s.append(B((w / 2 + 0.4, y, h / 2), (0.15, 0.15, h), "Gold"))
+        s.append(B((w / 2 + 0.4, y, h / 2), (0.24, 0.24, h), "Gold"))
     for k in range(7):
-        s.append(B((w / 2 + 0.4, 0, 1.0 + k * 1.7), (0.15, 1.2, 0.15), "Gold"))
+        s.append(B((w / 2 + 0.4, 0, 1.0 + k * 1.7), (0.22, 1.2, 0.22), "Gold"))
     s += [
-        lamp((-1.6, -d / 2 - 0.8, h + 2.0), 32),
-        lamp((1.6, -d / 2 - 0.8, h + 2.0), 32),
+        lamp((-1.6, -d / 2 - 0.9, h + 2.0), 32, 1.2),
+        lamp((1.6, -d / 2 - 0.9, h + 2.0), 32, 1.2),
         # A black flag on an arm off the -X corner, cutting the spill.
         B((-w / 2 - 1.5, -d / 2, h + 3.4), (3.0, 0.15, 0.15), PIPE),
         BV((-w / 2 - 2.6, -d / 2, h + 2.2), (2.2, 0.15, 2.4), "Charcoal", bevel=0.05),
@@ -410,8 +415,8 @@ def scrim():
 def cable():
     """8 studs of cable along X: a heavy black feeder with an orange stinger beside it."""
     return [
-        C((0, 0, 0.22), 0.22, 8.0, CABLE, rot=(0, 90, 0), seg=6),
-        C((0, 0.55, 0.14), 0.14, 8.0, STINGER, rot=(0, 90, 0), seg=6),
+        C((0, 0, 0.32), 0.32, 8.0, CABLE, rot=(0, 90, 0), seg=6),
+        C((0, 0.75, 0.2), 0.2, 8.0, STINGER, rot=(0, 90, 0), seg=6),
     ]
 
 
@@ -420,7 +425,7 @@ def cable_bend():
     s = []
     for k in range(4):
         a = math.radians(11.25 + k * 22.5)
-        for r, rad, color in ((3.0, 0.22, CABLE), (2.45, 0.14, STINGER)):
+        for r, rad, color in ((3.0, 0.32, CABLE), (2.25, 0.2, STINGER)):
             x, y = math.sin(a) * r, 3.0 - math.cos(a) * r
             s.append(C((x, y, rad), rad, r * 0.41, color, rot=(0, 90, math.degrees(a)), seg=6))
     return s
@@ -442,9 +447,9 @@ def cable_coil():
     """A coil of cable lying on the ground, its end trailing off along +X."""
     s = []
     for layer, r in enumerate((1.4, 1.25, 1.35)):
-        s += ring(10, r, 0.22 + layer * 0.3, lambda x, y, a, z=0.22 + layer * 0.3, r=r: B((x, y, z), (0.95, 0.36, 0.36), CABLE, rot=(0, 0, -a)))
+        s += ring(10, r, 0.22 + layer * 0.3, lambda x, y, a, z=0.22 + layer * 0.3, r=r: B((x, y, z), (0.95, 0.46, 0.46), CABLE, rot=(0, 0, -a)))
     s += [
-        C((2.6, -1.3, 0.2), 0.2, 2.6, CABLE, rot=(0, 90, 0), seg=6),
+        C((2.6, -1.3, 0.28), 0.28, 2.6, CABLE, rot=(0, 90, 0), seg=6),
         BV((3.8, -1.3, 0.3), (0.6, 0.5, 0.5), STINGER, bevel=0.08),
     ]
     return s
@@ -619,14 +624,10 @@ def video_village():
         C((0, 1.6, 4.2), 0.12, 8.4, PIPE, seg=6),
         BV((0, 1.6, 0.25), (1.4, 1.4, 0.5), "Charcoal", bevel=0.1),
         BV((0.9, 2.1, 0.5), (1.3, 1.0, 0.6), "Sandbag", bevel=0.2),
-        K((0, 0.6, 8.0), 4.8, 0.3, 1.2, "Charcoal", seg=8),
-        C((0, 0.6, 8.65), 0.25, 0.3, "Charcoal", seg=6),
+        K((0, 0.6, 7.7), 4.8, 3.0, 0.5, "OffWhite", seg=8),
+        K((0, 0.6, 8.32), 3.0, 0.3, 0.75, "Navy", seg=8),
+        C((0, 0.6, 8.8), 0.3, 0.3, "Gold", seg=6),
     ]
-    for k in range(8):
-        a = 22.5 + k * 45
-        if k % 2 == 0:
-            r = math.radians(a)
-            s.append(B((math.sin(r) * 3.0, 0.6 + math.cos(r) * 3.0, 7.95), (2.2, 2.0, 0.08), "OffWhite", rot=(0, 0, -a)))
     return s
 
 

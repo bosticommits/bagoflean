@@ -1,8 +1,11 @@
 --!strict
 -- The film sets on this player's screen (rules in Shared/FilmSets):
 --   * The crews and actors shooting on each film set: Blender puppets (CrewRig) this game
---     builds and moves itself, playing FilmScenes from the server clock, so every player sees the
---     same take. Only moved while the camera is near, and none of it collides.
+--     builds and moves itself, playing FilmScenes from the server clock (and the owner's cue, a
+--     workspace attribute FilmSetService sets), so every player sees the same take. Only moved
+--     while the camera is near, and none of it collides. Their sounds come from where they
+--     happen, a clean take pops confetti, and each set has a quiet ambience heard up close.
+--   * The clapper loader's "Call Action!" prompt, for the set's owner standing inside it.
 --   * The gate: its prompt buys the set (FilmSetService checks the Cash and charges). Once this
 --     player owns it, their own screen lifts the boom, opens the invisible wall and hides the
 --     prompt; other players still see the gate shut and bump into the wall.
@@ -13,9 +16,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local ClientState = require(script.Parent.ClientState)
+local Fx = require(script.Parent.Fx)
+local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 local FilmScenes = require(ReplicatedStorage.Shared.FilmScenes)
 local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
+local Sounds = require(ReplicatedStorage.Shared.Sounds)
 local Build = require(ReplicatedStorage.Shared.Models.Build)
 local CrewRig = require(ReplicatedStorage.Shared.Models.CrewRig)
 local MapKit = require(ReplicatedStorage.Shared.Models.MapKit)
@@ -57,6 +63,20 @@ end
 
 -- The crews -------------------------------------------------------------------------------------
 
+local ACTION_GAP = 1 -- seconds between this player's "Action!" calls (the server checks too)
+
+-- A model's parts, with their place relative to its pivot, so a frame moves them all at once.
+local function partsOf(model: Model): { { part: BasePart, offset: CFrame } }
+	local list = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored, d.CanCollide, d.CanTouch, d.CanQuery = true, false, false, false
+			table.insert(list, { part = d, offset = d.CFrame })
+		end
+	end
+	return list
+end
+
 local function startCrew(info: MapModels.FilmSetInfo)
 	local scenes = FilmScenes.Sets[info.id]
 	if scenes == nil then
@@ -67,16 +87,17 @@ local function startCrew(info: MapModels.FilmSetInfo)
 	folder.Parent = workspace
 	local rigs: { [string]: CrewRig.Rig } = {}
 	for _, who in scenes.cast do
-		rigs[who] = CrewRig.build(folder, who)
+		rigs[who] = CrewRig.build(folder, who, scenes.props[who])
 	end
-	-- Loose props the scene puts down and picks up (a planted flag, the idol, the boulder).
-	local things: { [string]: Model } = {}
+	-- Loose props the scene puts down and picks up (a planted flag, the idol, the boulder) and the
+	-- moving camera rig and lamp.
+	local things: { [string]: { model: Model, parts: { { part: BasePart, offset: CFrame } } } } = {}
 	local b = Build.new(folder, CFrame.identity)
 	for _, kit in scenes.things do
 		local model = MapKit.place(b, kit, CFrame.identity, { solid = false })
 		Build.decorative(model)
+		things[kit] = { model = model, parts = partsOf(model) }
 		model.Parent = nil
-		things[kit] = model
 	end
 
 	local flash = Instance.new("Part")
@@ -94,15 +115,83 @@ local function startCrew(info: MapModels.FilmSetInfo)
 
 	local base = info.frame
 	local centre = base * scenes.centre
+
+	-- The set's ambience: a quiet loop from the middle of the set, fading out by the fence.
+	local ambience: Sound? = nil
+	local loop = Sounds.Ambience[info.id]
+	if loop ~= nil and loop.id > 0 then
+		local area = info.area
+		local holder = Instance.new("Attachment")
+		holder.Name = "FilmSetAmbience"
+		holder.WorldPosition = centre + Vector3.new(0, 4, 0)
+		holder.Parent = workspace.Terrain
+		ambience = Sfx.loop(loop.id, loop.volume, holder, math.max(area.x1 - area.x0, area.z1 - area.z0) / 2)
+	end
+
+	-- The owner can call "Action!" at the clapper loader (FilmSetService checks it's really them).
+	local clapperRig = rigs.Clapper
+	local prompt: ProximityPrompt? = nil
+	local torso = if clapperRig ~= nil then clapperRig.parts.Torso[1] else nil
+	if torso ~= nil then
+		local p = Instance.new("ProximityPrompt")
+		p.Name = "CallAction"
+		p.ActionText = "Call Action!"
+		p.ObjectText = "Clapper"
+		p.KeyboardKeyCode = Enum.KeyCode.E
+		p.HoldDuration = 0.3
+		p.MaxActivationDistance = 12
+		p.RequiresLineOfSight = false
+		p.Enabled = false
+		p.Parent = torso.part
+		local last = -math.huge
+		p.Triggered:Connect(function()
+			local now = os.clock()
+			if now - last < ACTION_GAP then
+				return
+			end
+			last = now
+			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+			local remote = if remotes ~= nil then remotes:FindFirstChild("FilmSetAction") else nil
+			if remote ~= nil and remote:IsA("RemoteEvent") then
+				remote:FireServer(info.id)
+			end
+		end)
+		prompt = p
+	end
+
+	local cueAttribute = "FilmSetCue_" .. info.id
+	local cueText: any = nil
+	local cue: FilmScenes.Cue? = nil
+	local lastBeat = 0
 	local lastBoard = ""
 	local moved: { BasePart } = {}
 	local targets: { CFrame } = {}
 	RunService.Heartbeat:Connect(function()
 		local camera = workspace.CurrentCamera
-		if camera == nil or (camera.CFrame.Position - centre).Magnitude > NEAR then
+		local near = camera ~= nil and (camera.CFrame.Position - centre).Magnitude <= NEAR
+		if ambience ~= nil and ambience.IsPlaying ~= near then
+			if near then
+				ambience:Play()
+			else
+				ambience:Stop()
+			end
+		end
+		if prompt ~= nil then
+			local here = near and owns(info.id) and player:GetAttribute("OnFilmSet") == info.id
+			if prompt.Enabled ~= here then
+				prompt.Enabled = here
+			end
+		end
+		if not near then
 			return
 		end
-		local frame = scenes.frame(workspace:GetServerTimeNow())
+		local text = workspace:GetAttribute(cueAttribute)
+		if text ~= cueText then
+			cueText = text
+			cue = FilmScenes.parseCue(text)
+		end
+		local now = workspace:GetServerTimeNow()
+		local frame = scenes.frame(now, cue)
 		table.clear(moved)
 		table.clear(targets)
 		for who, rig in rigs do
@@ -111,20 +200,24 @@ local function startCrew(info: MapModels.FilmSetInfo)
 				CrewRig.apply(rig, base, pose, frame.stick, frame.say[who], moved, targets)
 			end
 		end
-		workspace:BulkMoveTo(moved, targets, Enum.BulkMoveMode.FireCFrameChanged)
-		for kit, model in things do
+		for kit, thing in things do
 			local at: CFrame? = frame.things[kit]
 			if at == nil then
-				if model.Parent ~= nil then
-					model.Parent = nil
+				if thing.model.Parent ~= nil then
+					thing.model.Parent = nil
 				end
 			else
-				model:PivotTo(base * at)
-				if model.Parent ~= folder then
-					model.Parent = folder
+				local cf = base * at
+				for _, entry in thing.parts do
+					table.insert(moved, entry.part)
+					table.insert(targets, cf * entry.offset)
+				end
+				if thing.model.Parent ~= folder then
+					thing.model.Parent = folder
 				end
 			end
 		end
+		workspace:BulkMoveTo(moved, targets, Enum.BulkMoveMode.FireCFrameChanged)
 
 		local shooter = if frame.shot ~= nil then frame.poses[frame.shot] else nil
 		if shooter ~= nil then
@@ -134,12 +227,27 @@ local function startCrew(info: MapModels.FilmSetInfo)
 			flash.Parent = nil
 		end
 
+		-- Sounds from whoever makes them, and confetti over a clean take.
+		local beat = frame.beat
+		if beat ~= nil and frame.beatAt ~= lastBeat then
+			lastBeat = frame.beatAt
+			local who = if frame.beatWho ~= nil then frame.poses[frame.beatWho] else nil
+			local at = if who ~= nil then base * (who.at + Vector3.new(0, 5, 0)) else centre
+			local slot = FilmScenes.BeatSounds[beat]
+			if slot ~= nil then
+				Sfx.playAt(slot, at, NEAR * 0.6, if beat == "cheer" then 3 else nil)
+			end
+			if beat == "cheer" then
+				Fx.confettiAt(centre + Vector3.new(0, 9, 0), 70)
+			end
+		end
+
 		local clapper = rigs.Clapper
 		local board = if clapper ~= nil then clapper.board else nil
-		local text = `{filmTitle()}\nSCENE {frame.scene}   TAKE {frame.take}`
-		if board ~= nil and text ~= lastBoard then
-			lastBoard = text
-			board.Text = text
+		local words = `{filmTitle()}\nSCENE {frame.scene}   TAKE {frame.take}`
+		if board ~= nil and words ~= lastBoard then
+			lastBoard = words
+			board.Text = words
 		end
 	end)
 end
