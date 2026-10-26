@@ -1,6 +1,7 @@
 """Map kit: the Blender models for the town's map overhaul (lamps, trees, Dusty Gulch's
-buildings, Starlight Park's features and the far scenery). It also builds town_kit.py's set pieces
-and boulevard_kit.py's tall boulevard buildings into the same files.
+buildings, Starlight Park's features and the far scenery). It also builds town_kit.py's set pieces,
+boulevard_kit.py's tall boulevard buildings and the other kits (crew, space, jungle, backlot) into
+the same files.
 
   TownLamp          Hollywood double-globe street lamp (boulevard and back paths)
   ParkLamp          green Victorian lantern post (Starlight Park)
@@ -778,22 +779,26 @@ def export_all(objs):
 
 def full_kit():
     """Every model: this file's, then the town's set pieces (town_kit.py)."""
+    import backlot_kit
     import boulevard_kit  # here, not at the top: the kits use this file's helpers
     import crew_kit
     import jungle_kit
     import space_kit
     import town_kit
 
-    return KIT + town_kit.KIT + boulevard_kit.KIT + crew_kit.KIT + space_kit.KIT + jungle_kit.KIT
+    return KIT + town_kit.KIT + boulevard_kit.KIT + crew_kit.KIT + space_kit.KIT + jungle_kit.KIT + backlot_kit.KIT
 
 
 def keeps_origin(name):
     """Models built where they are instead of lifted onto the ground: rig pieces and props keep
     their joint at the origin, and a few set pieces are meant to sink into the ground."""
+    import backlot_kit
     import crew_kit
+    import jungle_kit
     import space_kit
 
-    return name in crew_kit.NO_LIFT or name in space_kit.NO_LIFT
+    return (name in crew_kit.NO_LIFT or name in space_kit.NO_LIFT or name in jungle_kit.NO_LIFT
+            or name in backlot_kit.NO_LIFT)
 
 
 def main():
@@ -818,6 +823,7 @@ def main():
     export_all(objs)
 
     if not os.environ.get("KIT_NO_RENDER"):
+        import backlot_kit
         import boulevard_kit
         import crew_kit
         import jungle_kit
@@ -828,18 +834,19 @@ def main():
             ("map_kit_props.png", (["TownLamp", "ParkLamp", "Lantern", "ParkBench", "Bush", "Cactus", "DesertRock", "ParkTree", "BlossomTree", "PineTree"],
                                    ["WaterTower", "WaterTank", "Bandstand", "Mesa"])),
             ("map_kit_buildings.png", (["Western" + w[0] for w in WESTERN[:4]], ["Western" + w[0] for w in WESTERN[4:]])),
-        ] + list(town_kit.LINEUPS.items()) + list(boulevard_kit.LINEUPS.items()) + list(crew_kit.LINEUPS.items()) + list(space_kit.LINEUPS.items()) + list(jungle_kit.LINEUPS.items()):
+        ] + list(town_kit.LINEUPS.items()) + list(boulevard_kit.LINEUPS.items()) + list(crew_kit.LINEUPS.items()) + list(space_kit.LINEUPS.items()) + list(jungle_kit.LINEUPS.items()) + list(backlot_kit.LINEUPS.items()):
             if os.environ.get("KIT_ONLY") and os.environ["KIT_ONLY"] not in file_name:
                 continue
             lineup(front, back, file_name)
 
 
 def lineup(front, back, file_name):
-    """Render two rows of kit models (front row nearer the camera)."""
+    """Render two rows of kit models (front row nearer the camera). A name ending "@180" shows
+    that model from behind."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     names = front + back
     kit = dict(full_kit())
-    objs = {n: build(n, kit[n], lift_to_ground=not keeps_origin(n))[0] for n in names}
+    objs = {n: build(n.split("@")[0], kit[n.split("@")[0]], lift_to_ground=not keeps_origin(n.split("@")[0]))[0] for n in names}
     shown = []
     y = 0.0
     for row in (front, back):
@@ -853,7 +860,7 @@ def lineup(front, back, file_name):
             o = objs[n]
             lo, hi = bounds(o)
             o.location = (STUD * (x + wd / 2 - (lo.x + hi.x) / 2), STUD * (y - (lo.y + hi.y) / 2), STUD * -min(0.0, lo.z))
-            o.rotation_euler = (0, 0, math.radians(-14))
+            o.rotation_euler = (0, 0, math.radians(-14 + (180 if n.endswith("@180") else 0)))
             shown.append(o)
             x += wd + gap
         y += depth + 6

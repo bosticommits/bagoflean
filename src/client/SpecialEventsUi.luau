@@ -37,7 +37,8 @@ local SLAM_MIN_LEFT = 8 -- after waiting for a panel to close, still slam if thi
 local LATE_SECONDS = 4 -- arriving later than this into an event skips its entrance
 local TEASER_COLORS = { Color3.fromRGB(255, 240, 150), Color3.fromRGB(255, 160, 40) }
 
-local function readLive(): EventWorld.Live?
+-- The live special event, as the server published it (the Quests board shows it too).
+function SpecialEventsUi.readLive(): EventWorld.Live?
 	local raw = ReplicatedStorage:GetAttribute("SpecialEvent")
 	if type(raw) ~= "string" then
 		return nil
@@ -370,7 +371,7 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 
 	-- What changed on the server: a new event, or the end of one.
 	local function onEventChanged()
-		local state = readLive()
+		local state = SpecialEventsUi.readLive()
 		local previous = live
 		if state ~= nil and previous ~= nil and state.key == previous.key then
 			return
