@@ -204,6 +204,18 @@ function Fx.celebrate(lotIndex: number, kind: string)
 	Debris:AddItem(anchor, bursts * 0.6 + 4.5)
 end
 
+-- A burst of paper confetti at `at` in the world (a film set's clean take).
+function Fx.confettiAt(at: Vector3, count: number)
+	local anchor = Instance.new("Attachment")
+	anchor.Name = "ConfettiFx"
+	anchor.WorldPosition = at
+	anchor.Parent = workspace.Terrain
+	local confetti = emitter(anchor, CONFETTI_TEXTURE, CONFETTI_COLORS, NumberRange.new(18, 32), NumberRange.new(2, 3.2), 0.5)
+	confetti.EmissionDirection = Enum.NormalId.Top
+	confetti:Emit(count)
+	Debris:AddItem(anchor, 4)
+end
+
 function Fx.start(remotes: Instance)
 	local celebrateRemote = remotes:WaitForChild("Celebrate", 10)
 	if celebrateRemote == nil or not celebrateRemote:IsA("RemoteEvent") then

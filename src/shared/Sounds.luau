@@ -68,6 +68,13 @@ Sounds.Slots = {
 	takePerfect = slot("stinger", 1.15),
 	takeGood = slot("clap", 1.05),
 	takeMiss = slot("low", 0.9),
+	-- The film crews on the film sets (FilmSetWorld), heard from where it happens. The voice lines
+	-- were still in moderation review when added; the fallbacks play only if an id is cleared.
+	FilmClapper = { id = 9120916820, volume = 0.7, fallback = "clap", pitch = 0.8 }, -- the clapperboard snaps shut (PSE "Wood Impacts 13")
+	FilmAction = { id = 123389177574608, volume = 0.8, fallback = "low", pitch = 1.35 }, -- the director's "Action!"
+	FilmCut = { id = 133550941117464, volume = 0.8, fallback = "low", pitch = 0.85 }, -- the director's "Cut!"
+	FilmPlaces = { id = 109213125841224, volume = 0.8, fallback = "indicator" }, -- "Places everyone!" when the owner walks in
+	FilmApplause = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- a clean take (PSE "Applause Tight 4"; FilmSetWorld plays ~3 s of it)
 
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed
@@ -105,6 +112,12 @@ Sounds.Music = {
 	} :: { Track },
 	event = { id = 17422163655, name = "Cloud Blitz", volume = 0.4 } :: Track, -- energetic, 2:18
 }
+
+-- Film set ambience: a quiet loop heard only up close on each set (FilmSetWorld), by set id. A
+-- set with no entry, or an id of 0, stays silent; adding a set is one line here.
+Sounds.Ambience = {
+	Gulch = { id = 9112832297, volume = 0.25 }, -- placeholder: audio pass (PSE "Mountain Birds 2" stands in for wind; creaking wood still missing)
+} :: { [string]: LibrarySound }
 
 -- Player volume settings: 0..1 in steps of 1/STEPS. Saved with the player's data.
 Sounds.STEPS = 10
