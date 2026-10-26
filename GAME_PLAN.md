@@ -421,4 +421,4 @@ exciting by M3, fix the core before adding anything else.
   Phantom  1 in N, until Nov 1" (live odds for the chosen agency and Luck; tap opens the odds). The odds
   row says "until Nov 1" too. Odds and prices unchanged; not sold.
 - **Audio**: slots `frightSting` and `frightVoice` (Fish Audio announcer "Fright Night has begun!") and
-  track `Sounds.Music.fright` (falls back to the event track while its id is 0).
+  track `Sounds.Music.fright` ("Bouncing Halloween" from Roblox's licensed APM library; the sting is still a pitched library stinger).
