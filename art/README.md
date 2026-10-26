@@ -59,6 +59,11 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   by the server clock so everyone sees the same take. Dusty Gulch has a showdown and a balcony
   stunt; Moon Base (`space_kit.py`) has an astronaut planting a flag with an alien sneaking up;
   the Jungle Temple (`jungle_kit.py`) has an explorer grabbing an idol and outrunning a boulder.
+  Eight people on each set (director, camera operator on a dolly and crane, clapper loader,
+  boom operator, lighting tech, make-up artist and the actors) play a loop of rehearsals, takes,
+  bloopers, notes and resets with planted-foot walks; `tests/luau/crew.spec.luau` plays every
+  frame to check nobody snaps, slides or bumps. `map_kit_crew_more.png` shows the newer crew
+  pieces and the camera rig.
   The gate on the way in is bought with Cash; it opens on the owner's screen only. Preview a
   moment with `MAP_SCENE=filmset MAP_ARG=<set id>:<seconds>` (`Gulch`, `MoonBase`, `Jungle`) and
   the `filmset`, `filmbalcony`, `filmsetwide`, `filmgate`, `moonset`, `moonwide`, `moongate`,

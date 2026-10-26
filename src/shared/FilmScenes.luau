@@ -296,7 +296,10 @@ function FilmScenes.pieces(base: CFrame, p: Pose, stick: number): { [string]: CF
 	if p.hold ~= nil then
 		local grip = out.ArmR * CFrame.new(0, -GRIP, 0)
 		if p.aim ~= nil then
-			grip = CFrame.lookAt(grip.Position, base * p.aim) * CFrame.Angles(math.pi / 2, 0, 0)
+			-- (Built by hand: Lune's CFrame.lookAt, which the previews and tests run on, is off.)
+			local look = (base * p.aim - grip.Position).Unit
+			local right = look:Cross(Vector3.yAxis).Unit
+			grip = CFrame.fromMatrix(grip.Position, right, right:Cross(look), -look) * CFrame.Angles(math.pi / 2, 0, 0)
 		elseif p.level then
 			grip = CFrame.new(grip.Position) * root.Rotation * CFrame.Angles(math.pi / 2, 0, 0)
 		end
@@ -1774,7 +1777,7 @@ local function crewPoses(set: SetDef, plan: SlotPlan, s: number, frame: Frame, g
 			arm(director, 1, 2.6, -0.65, window(s, plan.cutAt + 1.6, plan.cutAt + 2.9, 0.3)) -- face palm
 		end
 	end
-	arm(director, 2, 1.55, 0.05, call)
+	arm(director, 2, 1.85, -0.45, call) -- the megaphone up at his mouth
 	local notes = plans.Director.keys.notes
 	if notes ~= nil then
 		local length = if rehearsal then plans.Director.moves[#plans.Director.moves - 1].t1 - notes else 2.8
