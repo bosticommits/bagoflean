@@ -1,5 +1,5 @@
 --!strict
--- The server-wide banner (plan section 22): one slim strip under the HUD top stack that shows, one
+-- The server-wide banner (plan section 22): one slim strip just under the HUD top stack that shows, one
 -- at a time from a queue, the plain announcements (Masterpieces, sequels, festival winners...) and
 -- the rare-pull news (Superstar and up, Legend and Icon also from other servers) in the tier color.
 -- Waits while the casting reveal is open (never covers the card), slides below the special-event
@@ -14,7 +14,8 @@ local PullNews = require(ReplicatedStorage.Shared.PullNews)
 local SpecialEventsUi = require(script.Parent.SpecialEventsUi)
 local UiKit = require(script.Parent.UiKit)
 
-local TOP = 168 -- under the HUD top stack, where the old banner sat
+local TOP = 8
+local DODGE = { "Hud", "NextUp", "SpecialEvent" } -- top-centre elements the banner slides under
 local HEIGHT = 36
 local GAP = 6
 local QUEUE_MAX = 8
@@ -63,15 +64,24 @@ function Announcements.start(gui: ScreenGui, remotes: Instance)
 		return reveal ~= nil and reveal:IsA("GuiObject") and reveal.Visible
 	end
 
-	-- Below the special-event banner when the two would overlap (it sits at 30% of the height).
+	-- Just under whatever sits at the top-centre right now: the HUD top stack and the special-event
+	-- banner (by name, so a moved or renamed stack only costs us the dodge, not the banner).
 	local function place()
 		local y = TOP
-		local event = gui:FindFirstChild("SpecialEvent")
-		if event ~= nil and event:IsA("GuiObject") and event.Visible then
-			local top = event.AbsolutePosition.Y - gui.AbsolutePosition.Y
-			local bottom = top + event.AbsoluteSize.Y
-			if top < TOP + HEIGHT and bottom > TOP then
-				y = bottom + GAP
+		local boxes = {}
+		for _, name in DODGE do
+			local object = gui:FindFirstChild(name)
+			if object ~= nil and object:IsA("GuiObject") and object.Visible then
+				local top = object.AbsolutePosition.Y - gui.AbsolutePosition.Y
+				table.insert(boxes, { top = top, bottom = top + object.AbsoluteSize.Y })
+			end
+		end
+		table.sort(boxes, function(a, b)
+			return a.top < b.top
+		end)
+		for _, box in boxes do
+			if box.top < y + HEIGHT and box.bottom > y then
+				y = box.bottom + GAP
 			end
 		end
 		banner.Position = UDim2.new(0.5, 0, 0, y)
