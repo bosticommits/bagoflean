@@ -509,3 +509,11 @@ exciting by M3, fix the core before adding anything else.
   from a server eval. Lune spec: `tests/luau/pullnews.spec.luau` (validation, text, merge, limiter).
 - Verified in Studio at PC size (art/previews/announce_*_pc.jpg). The phone simulator errored, so
   phone layout is reasoned, not seen.
+
+## 23. As built (first-ten-minute analytics)
+- `Analytics.onboarding` emits `FTUEStepWithin10Minutes` once per first-time onboarding milestone
+  reached within 600 seconds of server-counted active play. Custom field 1 names the milestone and
+  the event value records cumulative active play seconds. This supplements (and does not replace)
+  the full onboarding funnel; no save fields or client remotes were added.
+- Creator Hub verification is still required after publishing. See `LAUNCH_CHECKLIST.md` for the
+  dashboard steps and the native D1/D7 retention and purchase-conversion views.
