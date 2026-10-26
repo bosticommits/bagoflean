@@ -23,12 +23,14 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
+local PullNews = require(ReplicatedStorage.Shared.PullNews)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local LiveConfig = require(script.Parent.LiveConfig)
 local LotService = require(script.Parent.LotService)
+local PullNewsService = require(script.Parent.PullNewsService)
 local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
 
@@ -175,11 +177,11 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 		-- World reaction for everyone: sky flash, fireworks over the lot, a shake nearby (Fx.celebrate).
 		LotService.celebrate(player, "pull", actor.tier)
 	end
-	if actor.tier == "Legend" or actor.tier == "Icon" then
-		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
-	elseif actor.season ~= nil then
+	-- Banner and chat line for Superstar and up; Legend and Icon go to every server too.
+	PullNewsService.onPull(player, actor.id, variant.id, actor.tier)
+	if actor.season ~= nil and not PullNews.Global[actor.tier] then
 		Analytics.event(player, "LimitedPull", 1, actor.id, variant.id)
-		if isNew then
+		if isNew and not PullNews.isBig(actor.tier) then -- a big pull already got its banner
 			Remotes.announce(`{player.DisplayName} cast the limited {actor.name}!`)
 		end
 	end
