@@ -50,6 +50,12 @@ function LiveConfig.eventDisabled(id: string): boolean
 	return disabledEvents.ALL == true or disabledEvents[string.upper(id)] == true
 end
 
+-- Whether `id` is listed by name in DisabledEvents ("ALL" does not count). Used for switches that
+-- are not special events, e.g. "FirstSuperstar" turns off the new player's guaranteed Superstar.
+function LiveConfig.switchedOff(id: string): boolean
+	return disabledEvents[string.upper(id)] == true
+end
+
 function LiveConfig.start()
 	task.spawn(function()
 		while true do

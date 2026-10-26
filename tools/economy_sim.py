@@ -12,6 +12,8 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --no-rebirth        # the player never rebirths
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
+    python3 tools/economy_sim.py --no-pity           # without the pity meter (--pity-every N tries another length)
+    python3 tools/economy_sim.py --no-early          # without the new player's near-miss tease and first Superstar
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
     python3 tools/economy_sim.py --no-festival       # the same week without the Film Festival's goals
@@ -183,6 +185,11 @@ def load_tuning() -> dict:
         "variants": _rows(_block(actors_text, "Actors.Variants")),
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
         "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
+        # Pity meter and early crazy pulls (Actors.castWithGuarantees)
+        "pity_every": _num(re.search(r"Actors\.PityEvery = ([^\n-]+)", actors_text).group(1)),
+        "tease_after": _num(re.search(r"Actors\.TeaseAfter = ([^\n-]+)", actors_text).group(1)),
+        "tease_min": re.search(r'Actors\.TeaseMinTier = "(\w+)"', actors_text).group(1),
+        "first_superstar_after": _num(re.search(r"Actors\.FirstSuperstarAfter = ([^\n-]+)", actors_text).group(1)),
         "upgrades": {u["id"]: u for u in upgrades},
         # Mascots.List: (id, Cash price, buff kind, amount)
         "mascots": [
@@ -399,6 +406,8 @@ GIFTS = True  # the playtime gift ladder (--no-gifts)
 # A season id (SpecialEvents.Seasons) to make every week that seasonal festival (--season): its
 # limited actor (Actors.Limited) joins its tier's casting pool, and winning the festival gives one.
 SEASON: str | None = None
+EARLY = True  # the near-miss tease and first guaranteed Superstar for new players (--no-early)
+PITY_EVERY: float | None = None  # override Actors.PityEvery (--pity-every; --no-pity sets 0)
 
 
 class Player:
@@ -452,6 +461,8 @@ class Player:
         self.rebirth_enabled = True
         self.mascots_owned: set[str] = set()
         self.hot_start = 0  # casts counted toward the "Discovered!" hot start; a new player starts at 0
+        self.pity: dict[str, int] = {}  # casts since the agency's pity tier, per agency
+        self.early = 0  # 0 new, 1 near-miss tease shown, 2 first Superstar done
         self.takes_on = True
 
     # stats
@@ -914,12 +925,36 @@ class Player:
             self.roll(agency, self.cast_luck())
 
     def roll(self, agency: dict, luck: float):
-        floor_tier = None
-        hot = self.g.t["hot_start"]
+        """Actors.castWithGuarantees: the best of the hot start, pity and first-Superstar floors."""
+        t, rank = self.g.t, self.g.tier_index
+        floor_tier, why = None, None
+        def offer(tier, reason):
+            nonlocal floor_tier, why
+            if tier is not None and (floor_tier is None or rank[tier] > rank[floor_tier]):
+                floor_tier, why = tier, reason
+        hot = t["hot_start"]
         if hot and self.hot_start < max(hot):
             self.hot_start += 1
-            floor_tier = hot.get(self.hot_start)
+            offer(hot.get(self.hot_start), "hotStart")
+        count = self.pity.get(agency["id"], 0) + 1
+        if t["pity_every"] and count >= t["pity_every"]:
+            offer(agency["pity"], "pity")
+        if t["early"] and self.early < 2 and self.played >= t["first_superstar_after"]:
+            offer("Superstar", "firstSuperstar")
         actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]), floor_tier, self.limited)
+        got = rank[self.g.actor[actor_id]["tier"]]
+        self.pity[agency["id"]] = 0 if got >= rank[agency["pity"]] else count
+        if got >= rank[agency["pity"]]:
+            self.counts["rare"] = self.counts.get("rare", 0) + 1  # pulls of the agency's pity tier or better
+        if why in ("pity", "firstSuperstar"):
+            self.counts[why] = self.counts.get(why, 0) + 1
+            self.mark(f"First {why} pull")
+        if t["early"] and self.early < 2:
+            if got >= rank["Superstar"]:
+                self.early = 2
+            elif self.early == 0 and self.played >= t["tease_after"] and got >= rank[t["tease_min"]]:
+                self.early = 1
+                self.mark("Superstar near-miss tease")
         key = f"{actor_id}:{variant}"
         self.roster[key] = self.roster.get(key, 0) + 1
         self.index.add(key)
@@ -1041,7 +1076,7 @@ class Player:
                 "index": len(self.everyday_index()),
                 "reward %": 100 * self.reward_earned / max(1, self.earned_total),
                 "offline %": 100 * self.offline_earned / max(1, self.earned_total), "stages": self.stage_count, "premieres": self.premieres,
-                "rebirths": self.rebirths}
+                "rebirths": self.rebirths, "rare pulls": self.counts.get("rare", 0), "from pity": self.counts.get("pity", 0)}
 
 
 # --- Schedules ----------------------------------------------------------------------------------
@@ -1154,12 +1189,17 @@ def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int =
     tuning = load_tuning()
     if not hot_start:
         tuning["hot_start"] = {}
+    tuning["early"] = EARLY
+    if PITY_EVERY is not None:
+        tuning["pity_every"] = PITY_EVERY  # 0 = no pity meter
     game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials, weekly,
                                            weekly_day, takes)
     owns = " with the 2x Luck pass" if luck_pass else ""
     never = ", never rebirths" if not rebirth else ""
     without = ", no special events" if not specials else ""
     without += ", no hot start" if not hot_start else ""
+    without += ", no early Superstar" if not EARLY else ""
+    without += f", pity every {tuning['pity_every']:.0f}" if tuning["pity_every"] else ", no pity meter"
     without += ", ignores TAKE! cards" if not takes else ""
     print(f"# Movie Mogul economy sim: {kind} player{owns}{never}{without}, {runs} runs\n")
     total_played = sum(on for _, on, _ in sched)
@@ -1214,6 +1254,9 @@ if __name__ == "__main__":
     parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
                         help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
     parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
+    parser.add_argument("--no-pity", action="store_true", help="switch the pity meter off (to compare)")
+    parser.add_argument("--pity-every", type=int, default=None, help="try another pity meter length than Actors.PityEvery")
+    parser.add_argument("--no-early", action="store_true", help="leave the new player's tease and first guaranteed Superstar out (to compare)")
     parser.add_argument("--no-gifts", action="store_true", help="leave the playtime gift ladder out (to compare)")
     parser.add_argument("--no-takes", action="store_true", help="the player ignores the TAKE! cards (to compare)")
     parser.add_argument("--mascots", default="none", choices=["none", "cash", "luck", "speed", "boxOffice"],
@@ -1224,5 +1267,7 @@ if __name__ == "__main__":
     FESTIVAL = not args.no_festival
     GIFTS = not args.no_gifts
     SEASON = args.season
+    EARLY = not args.no_early
+    PITY_EVERY = 0 if args.no_pity else args.pity_every
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
            not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start, not args.no_takes)

@@ -73,6 +73,12 @@ export type PlayerData = {
 	visits: { day: number, toured: { [string]: boolean }, applauded: { [string]: boolean } },
 	-- "Discovered!" hot start (Actors.HotStart): casts counted so far, up to Actors.HotStartLength.
 	hotStart: number,
+	-- Pity meter (Actors.PityEvery): casts since each agency's pity tier, by agency id.
+	pity: { [string]: number },
+	-- Early crazy pulls (Actors.castWithGuarantees): 0 new, 1 tease shown, 2 done; and seconds
+	-- played, counted by the server (CastingService.refresh).
+	early: number,
+	played: number,
 	-- Film Festival (SpecialEvents.festival): this week's three festival goals, and every festival
 	-- won (each one puts a Festival Laurel on the lot, kept through Sequel).
 	festival: { week: number, list: { Request } },
@@ -86,7 +92,7 @@ export type Request = { id: string, progress: number, claimed: boolean }
 export type Carried = { key: string, id: string, scope: string }
 export type Laurel = { week: number, genre: string, season: string? }
 
-local CURRENT_VERSION = 11 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival, 11: playtime gifts
+local CURRENT_VERSION = 12 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival, 11: playtime gifts, 12: pity + early pulls
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -124,6 +130,9 @@ local TEMPLATE: PlayerData = {
 	likes = 0,
 	visits = { day = 0, toured = {}, applauded = {} },
 	hotStart = Actors.HotStartLength, -- profiles from before v9 have played already; load() sets 0 for new ones
+	pity = {}, -- old saves start every meter at 0
+	early = Actors.EarlyDone, -- profiles from before v12 have played already; load() sets 0 for new ones
+	played = 0,
 	festival = { week = 0, list = {} },
 	laurels = {},
 	hudTucked = false,
@@ -179,6 +188,23 @@ local function migrate(data: any)
 		data.hotStart = Actors.HotStartLength
 	end
 	data.hotStart = math.min(math.floor(data.hotStart), Actors.HotStartLength)
+	if type(data.early) ~= "number" or data.early ~= data.early or data.early < 0 then
+		data.early = Actors.EarlyDone
+	end
+	data.early = math.min(math.floor(data.early), Actors.EarlyDone)
+	if type(data.played) ~= "number" or data.played ~= data.played or data.played < 0 then
+		data.played = 0
+	end
+	local pity = {}
+	if type(data.pity) == "table" then
+		for _, agency in Actors.Agencies do
+			local count = data.pity[agency.id]
+			if type(count) == "number" and count == count and count >= 0 then
+				pity[agency.id] = math.min(math.floor(count), Actors.PityEvery - 1)
+			end
+		end
+	end
+	data.pity = pity
 	if type(data.stageCount) ~= "number" or data.stageCount < 1 then
 		data.stageCount = 1
 	end
@@ -280,6 +306,7 @@ function DataService.load(player: Player): PlayerData?
 		profile.Data.cash = Config.StartingCash
 		profile.Data.funnel = 0 -- a new player: log their onboarding funnel
 		profile.Data.hotStart = 0 -- and give them the "Discovered!" hot start
+		profile.Data.early = 0 -- and the near-miss tease and first Superstar
 	end
 	migrate(profile.Data)
 

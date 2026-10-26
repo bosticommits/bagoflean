@@ -441,3 +441,42 @@ exciting by M3, fix the core before adding anything else.
   101236104871779). Setting `ART.closed = 0` in `PlaytimeGiftsUi` draws the presents in code instead.
 - **Studio testing**: in Studio only, `Remotes.TestGifts:FireServer("skip", minutes)` adds play time and
   `("reset")` starts a fresh ladder.
+
+## 21. As built (pity meter and early crazy pulls)
+- **Pity meter** for everyone: each agency counts casts since its last rare pull (Star at Open
+  Casting, Superstar at the Talent Agency and Hollywood Casting, the `pity` field on
+  `Actors.Agencies`), and the 400th (`Actors.PityEvery`) is that tier or better. Natural rares reset
+  it; crate casts count. Saved as `pity` (by agency id). Tuning in ECONOMY.md.
+- **Early crazy pulls** for new accounts (old saves count as done, `early = 2`): a Superstar
+  near-miss tease on the first Pro-or-better cast after 5 minutes played, and one guaranteed
+  Superstar on the first cast after 12 minutes. Playtime is counted by the server in
+  `CastingService.refresh` (`played`, seconds). Analytics: `NearMissTease`, `FirstSuperstar`.
+- **One rule function**, `Actors.castWithGuarantees`, applies the hot start, pity and first
+  Superstar (the best floor wins, a better roll is kept) and is covered by `tests/luau/pity.spec.luau`.
+- **HUD**: the hot start bar over the Cast button is now the guarantee meter: it counts down to
+  whichever guarantee is sooner, the hot start step or the chosen agency's pity ("STAR GUARANTEED
+  IN 37 CASTS"). The odds panel has one line on the pity rule.
+- **CastResult payload** for the reveal: `guarantee` ("hotStart" | "pity" | "firstSuperstar" | nil),
+  `tease` ("nearMiss" | nil) and `pity` ({ agency, tier, count, every } after the cast), next to the
+  old fields; documented at the top of `src/server/CastingService.luau`.
+- **Reveal presentation** (`CastingUi`, timing rule in `src/shared/Reveal.luau`, spec
+  `tests/luau/reveal.spec.luau`): the card glows one rarity after another while two spotlights sweep,
+  a drumroll speeds up and the card shakes, then it flips to the result. Build-up: Newcomer/Rising
+  0.45 s (about 1 s with the flip), Pro 0.8 s, Star 1.7 s, Superstar 2.7 s, Legend 3.8 s, Icon 4.4 s.
+  Tap anywhere (or A, B, Space, Enter) skips the build-up, never the result.
+  - **Fake-out** (client only): 1 in 4 Pro pulls and 1 in 6 Star-and-up pulls glow Common, then burst
+    into the real tier. The rule: the build-up never glows better than the real tier and always ends
+    on it (tested).
+  - **Near miss** (`tease = "nearMiss"`): climbs to Superstar gold with a second drum layer, then lands
+    on the real tier with a gold "So close! Superstar soon!" note and the announcer's "Ooh, so close!".
+  - **Guarantee note** (gold, top of the card): PITY GUARANTEE!, DISCOVERED! (hot start), YOUR FIRST
+    SUPERSTAR!. The corner tag now only says NEW! / LIMITED! / xN.
+  - **World reaction** on Superstar and up (first Superstar included): CastingService fires the
+    existing `Celebrate` remote to everyone as (lot, "pull", tier, UserId); every client gets a sky flash
+    (a temporary ColorCorrection), fireworks in the tier color over the lot (3/4/5 bursts, low particle
+    counts, cleaned up by Debris) and a small camera shake within 80 studs. The puller's own client holds
+    it until its card flips. Legend and Icon still get the server announcement.
+  - **Sounds**: slots `drumroll`, `drumrollLow`, `revealStep` (pitched up per tier), `revealBurst`
+    (library sounds), and Fish Audio announcer lines `voiceStar`, `voiceSuperstar`, `voiceLegend`,
+    `voiceIcon`, `voiceSoClose` (voice "Energetic Male"; clips in `art/audio/reveal/`).
+
