@@ -542,13 +542,141 @@ function TownSets.filmSetGear(b: Builder, gear: { FilmScenes.Gear }, loose: bool
 end
 
 -- Moon Base (film set 2), in its own space (MapModels.FilmSets): the gate at the origin, the set
--- running along +Z, from x = -57 to 63. Grey moon dust with a paler track from the gate to the
--- camera; the rocket, lander, dome and backdrop are Blender models (art/blender/space_kit.py).
+-- running along +Z, from x = -57 to 63 and z = 2.5 to 112. An open studio backlot: a fenced lot of
+-- desert sand with the crew's base camp at the front (star trailers, craft services, a generator,
+-- the video village, cases and cables), and the moon set in the middle on grey dust that fades out
+-- to sand, lit from truss towers and scaffolds, with painted flats at the far end. The camera
+-- stands near the gate filming toward the flats, so everything tall keeps to the sides and the
+-- back. Models: art/blender/space_kit.py (the moon) and backlot_kit.py (the studio).
+
+-- The moon set (in set space). The hero spots FilmScenes plays on: the lander's porch and ladder
+-- at (-8, 76), the flag at (0.9, 61) and the foam rock the alien hides behind at (16, 80); the
+-- alien's sneak (round the rock's east end, then diagonally to the flag) crosses open dust.
+local MOON_SET: { FilmScenes.Gear } = {
+	{ kit = "MoonFlatEarthrise", at = v(0, 0.2, 101), yaw = 0 },
+	{ kit = "MoonFlatStarfield", at = v(39.4, 0.2, 96.3), yaw = 15 },
+	{ kit = "MoonFlatHorizon", at = v(-39.4, 0.2, 96.3), yaw = -15 },
+	{ kit = "MoonGroundRow", at = v(-8, 0.2, 98), yaw = 0 },
+	{ kit = "MoonGroundRow", at = v(14, 0.2, 97.5), yaw = 4 },
+	{ kit = "MoonLanderHero", at = v(-8, 0.2, 76), yaw = 0 },
+	{ kit = "MoonRocketPad", at = v(36, 0.2, 74), yaw = 180 },
+	{ kit = "MoonHabitat", at = v(-36, 0.2, 82), yaw = 0 },
+	{ kit = "MoonBuggyHero", at = v(24, 0.2, 54), yaw = 60 },
+	{ kit = "MoonTracks", at = v(35, 0.2, 60.5), yaw = 60 },
+	{ kit = "MoonFoamRock", at = v(16, 0.2, 80), yaw = 0 },
+	{ kit = "MoonFlagMark", at = v(0.9, 0.2, 61), yaw = 0 },
+	{ kit = "MoonFootprints", at = v(-4.2, 0.2, 66.6), yaw = 141 },
+	{ kit = "MoonCraterBig", at = v(-32, 0.2, 58), yaw = 20 },
+	{ kit = "MoonCraterMid", at = v(6, 0.2, 90), yaw = 0 },
+	{ kit = "MoonCraterSmall", at = v(-16, 0.2, 92), yaw = 40 },
+	{ kit = "MoonCraterSmall", at = v(30, 0.2, 40), yaw = 0 },
+	{ kit = "MoonRegolith", at = v(20, 0.2, 90), yaw = 30 },
+	{ kit = "MoonRegolith", at = v(-20, 0.2, 70), yaw = -20 },
+	{ kit = "MoonBoulders", at = v(48, 0.2, 52), yaw = 20 },
+	{ kit = "MoonBoulders", at = v(-22, 0.2, 98), yaw = 200 },
+	{ kit = "MoonPebbles", at = v(-14, 0.2, 64), yaw = 0 },
+	{ kit = "MoonPebbles", at = v(7, 0.2, 80), yaw = 90 },
+	{ kit = "MoonPebbles", at = v(26, 0.2, 86), yaw = 30 },
+	{ kit = "MoonFakeEarth", at = v(-17, 0.2, 52), yaw = 160 },
+	{ kit = "MoonPropCart", at = v(17, 0.2, 38), yaw = 90 },
+}
+
+-- The studio round it: lights, base camp and crew gear (in set space).
+local MOON_BACKLOT: { FilmScenes.Gear } = {
+	-- Lights: truss towers and scaffolds round the sides aimed at the action, a fresnel and flags.
+	{ kit = "BacklotTrussTower", at = v(54, 0.2, 46), yaw = 112 },
+	{ kit = "BacklotTrussTower", at = v(-52, 0.2, 50), yaw = -109 },
+	{ kit = "BacklotScaffold", at = v(36, 0.2, 98), yaw = 50 },
+	{ kit = "BacklotScaffold", at = v(-24, 0.2, 104), yaw = -30 },
+	{ kit = "BacklotGroundLight", at = v(-18, 0.2, 62), yaw = -95 },
+	{ kit = "BacklotCStand", at = v(-14, 0.2, 56), yaw = 200 },
+	{ kit = "BacklotCStand", at = v(26, 0.2, 70), yaw = 120 },
+	-- Base camp, east (+x): two star trailers and the generator.
+	{ kit = "StarTrailerRed", at = v(52, 0.2, 14), yaw = 0 },
+	{ kit = "StarTrailerBlue", at = v(52, 0.2, 31), yaw = 0 },
+	{ kit = "PatioTable", at = v(43, 0.2, 22), yaw = 0 },
+	{ kit = "BacklotGenerator", at = v(34, 0.2, 10), yaw = 90 },
+	{ kit = "BacklotCart", at = v(30, 0.2, 26), yaw = 70 },
+	{ kit = "BacklotCableCoil", at = v(26, 0.2, 14), yaw = 0 },
+	-- Base camp, west (-x): craft services, the video village, cases.
+	{ kit = "BacklotCraftTent", at = v(-46, 0.2, 16), yaw = -90 },
+	{ kit = "BacklotScriptTable", at = v(-38, 0.2, 26), yaw = -60 },
+	{ kit = "BacklotVideoVillage", at = v(-24, 0.2, 40), yaw = 0 },
+	{ kit = "BacklotCaseStack", at = v(-44, 0.2, 34), yaw = -80 },
+	{ kit = "BacklotCase", at = v(-37, 0.2, 38), yaw = 20 },
+	{ kit = "BacklotCase", at = v(-32, 0.2, 12), yaw = -10 },
+	{ kit = "BacklotAppleBoxes", at = v(-14, 0.2, 36), yaw = 30 },
+	{ kit = "BacklotAppleBoxes", at = v(10, 0.2, 34), yaw = -20 },
+	{ kit = "BacklotCaseStack", at = v(44, 0.2, 64), yaw = 100 },
+	-- Desert scatter in the sand round the edges.
+	{ kit = "BacklotBerm", at = v(-50, 0.2, 76), yaw = 80 },
+	{ kit = "BacklotBerm", at = v(56, 0.2, 88), yaw = -70 },
+	{ kit = "BacklotBerm", at = v(-20, 0.2, 18), yaw = 10 },
+	{ kit = "BacklotClump", at = v(16, 0.2, 18), yaw = 0 },
+	{ kit = "BacklotClump", at = v(-52, 0.2, 100), yaw = 60 },
+	{ kit = "BacklotClump", at = v(58, 0.2, 72), yaw = 120 },
+	{ kit = "BacklotClump", at = v(-8, 0.2, 26), yaw = 200 },
+}
+
+-- A run of kit model `kit` (`length` studs long along its X) from `from` to `to`, stretched to fit.
+local function run(b: Builder, kit: string, length: number, from: Vector3, to: Vector3)
+	local delta = to - from
+	local sections = math.max(1, math.round(delta.Magnitude / length))
+	-- Turned by hand rather than with CFrame.lookAt, which the test runner's CFrame gets backwards.
+	local turn = CFrame.Angles(0, math.atan2(-delta.X, -delta.Z), 0) * CFrame.Angles(0, math.pi / 2, 0)
+	for i = 0, sections - 1 do
+		MapKit.place(b, kit, CFrame.new(from + delta * ((i + 0.5) / sections)) * turn, {
+			scale = delta.Magnitude / sections / length,
+			solid = kit ~= "BacklotCable",
+		})
+	end
+end
+
 function TownSets.moonBase(b: Builder)
+	-- The ground: grey moon dust in overlapping rounds round the action, each ringed by two paler
+	-- rounds that fade it into the desert sand, so the set has no hard edge.
 	local dust = Color3.fromRGB(201, 204, 210)
-	b:block("MoonGround", v(124, 0.2, 116), v(3, 0.1, 56), dust, Enum.Material.Sand)
-	b:block("MoonTrack", v(10, 0.2, 38), v(0, 0.12, 19), dust:Lerp(Color3.new(1, 1, 1), 0.35), Enum.Material.Sand)
-	TownSets.filmSetGear(b, FilmScenes.Sets.MoonBase.gear)
+	local tones = { dust, Color3.fromRGB(213, 201, 183), Color3.fromRGB(224, 199, 156) }
+	local rounds = { -- { x, z, radius }
+		{ 0, 74, 26 }, { -26, 82, 20 }, { 26, 80, 20 }, { -32, 60, 14 }, { 30, 62, 14 },
+		{ 0, 92, 13 }, { -22, 93, 11 }, { 22, 93, 11 }, { 40, 86, 12 }, { -42, 88, 12 },
+	}
+	for k = 3, 1, -1 do
+		for _, r in rounds do
+			b:cylinder("MoonDust", 0.1, 2 * (r[3] + (k - 1) * 5), v(r[1], 0.04 + (4 - k) * 0.03, r[2]), tones[k], Enum.Material.Sand)
+		end
+	end
+	-- The way in from the gate to the camera: packed dirt.
+	b:block("MoonTrack", v(10, 0.1, 36), v(0, 0.06, 20), DUST, Enum.Material.Sand)
+
+	-- The lot's fence, with the gate in the middle of the front.
+	local x0, x1, z0, z1 = -56, 62, 2.5, 111
+	run(b, "BacklotFence", 12, v(-11, 0, z0), v(x0, 0, z0))
+	run(b, "BacklotFence", 12, v(x1, 0, z0), v(11, 0, z0))
+	run(b, "BacklotFence", 12, v(x0, 0, z0), v(x0, 0, z1))
+	run(b, "BacklotFence", 12, v(x0, 0, z1), v(x1, 0, z1))
+	run(b, "BacklotFence", 12, v(x1, 0, z1), v(x1, 0, z0))
+	for _, at in { v(x0, 0, z0), v(x0, 0, z1), v(x1, 0, z1), v(x1, 0, z0) } do
+		MapKit.place(b, "BacklotFencePost", at)
+	end
+	local quiet: MapKit.Label = { text = "QUIET ON SET", color = P.Burgundy, stroke = 0 }
+	MapKit.place(b, "BacklotFenceSign", CFrame.new(x1 - 0.5, 0, 56) * yaw(90), { labels = { Sign = quiet } })
+	MapKit.place(b, "BacklotFenceSign", CFrame.new(x0 + 0.5, 0, 26) * yaw(-90), { labels = { Sign = quiet } })
+
+	-- Cables from the generator: along the front past the gate path (over a ramp) to the video
+	-- village, and up the east side to the truss tower.
+	run(b, "BacklotCable", 8, v(30, 0.2, 10), v(4, 0.2, 10))
+	MapKit.place(b, "BacklotCableRamp", CFrame.new(0, 0.2, 10) * yaw(0))
+	run(b, "BacklotCable", 8, v(-4, 0.2, 10), v(-24, 0.2, 10))
+	run(b, "BacklotCable", 8, v(-24, 0.2, 10), v(-24, 0.2, 34))
+	run(b, "BacklotCable", 8, v(36, 0.2, 14), v(50, 0.2, 40))
+
+	TownSets.filmSetGear(b, MOON_SET)
+	TownSets.filmSetGear(b, MOON_BACKLOT)
+	TownSets.filmSetGear(b, FilmScenes.Sets.MoonBase.gear) -- the crew's own gear
+	-- Two more chairs at the video village.
+	directorChair(b, CFrame.new(-26.5, 0.2, 35.5) * yaw(180), "PRODUCER")
+	directorChair(b, CFrame.new(-21.5, 0.2, 35.5) * yaw(180), nil)
 end
 
 -- The Jungle Temple (film set 3), in its own space: the gate at the origin, the set running along

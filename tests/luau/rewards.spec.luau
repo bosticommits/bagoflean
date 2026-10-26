@@ -226,3 +226,20 @@ test("shop keys are unique and set ids never collide", function()
 		end
 	end
 end)
+
+test("readyQuests finds finished, unclaimed quests and every carried one", function()
+	local ready = Rewards.readyQuests({
+		requests = {
+			{ id = "Cast10", progress = 10, claimed = false }, -- done: ready
+			{ id = "Clap30", progress = 29, claimed = false }, -- not yet
+			{ id = "Hit1", progress = 1, claimed = true }, -- already claimed
+		},
+		weekly = { { id = "WHit3", progress = 5, claimed = false } },
+		carried = { { key = "daily:3:Cast10", id = "Cast10", scope = "daily" }, { key = "x", id = "Gone", scope = "daily" } },
+	})
+	expect(ready["daily:Cast10"], "a finished daily quest")
+	expect(not ready["daily:Clap30"] and not ready["daily:Hit1"], "unfinished and claimed quests")
+	expect(ready["weekly:WHit3"], "a finished weekly quest")
+	expect(ready["carried:daily:3:Cast10"] and not ready["carried:x"], "carried quests, unknown ids left out")
+	expect(next(Rewards.readyQuests({})) == nil, "an empty or partial payload has nothing ready")
+end)

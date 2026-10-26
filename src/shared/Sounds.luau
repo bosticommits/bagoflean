@@ -80,6 +80,7 @@ Sounds.Slots = {
 	reward = slot("stinger"), -- a reward or code claimed
 	welcome = slot("jingle"), -- welcome back, daily reward ready, tutorial done
 	gift = slot("pop"), -- the stay gift pops up
+	giftOpen = slot("stinger", 1.3), -- a playtime gift present pops open
 	goal = slot("jingle", 1.1), -- an achievement goal reached (Goals screen)
 
 	-- Server events
@@ -122,6 +123,7 @@ Sounds.Music = {
 -- set with no entry, or an id of 0, stays silent; adding a set is one line here.
 Sounds.Ambience = {
 	Gulch = { id = 9112832297, volume = 0.25 }, -- placeholder: audio pass (PSE "Mountain Birds 2" stands in for wind; creaking wood still missing)
+	MoonBase = { id = 9114330786, volume = 0.25 }, -- placeholder: audio pass (PSE "Energy Field Constant" hum with beeps)
 	Jungle = { id = 9112805601, volume = 0.25 }, -- placeholder: audio pass (PSE "Jungle Birds Ambience 2", birds; distant drums still missing)
 } :: { [string]: LibrarySound }
 
