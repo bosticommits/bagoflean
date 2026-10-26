@@ -13,6 +13,7 @@ local ActorModels = require(script.Parent.ActorModels)
 local Build = require(script.Parent.Build)
 local IconModels = require(script.Parent.IconModels)
 local LotModels = require(script.Parent.LotModels)
+local FilmScenes = require(script.Parent.Parent.FilmScenes)
 local FilmSets = require(script.Parent.Parent.FilmSets)
 local MapKit = require(script.Parent.MapKit)
 local MapScenery = require(script.Parent.MapScenery)
@@ -80,6 +81,10 @@ export type FilmSetInfo = {
 	wallWidth: number, -- the wall across the way in
 	wallX: number, -- the wall's middle, along the gate (in the gate's space)
 	area: Walkways.Rect, -- inside the set, past the gate
+	-- Where the Visit menu's GO lands an owner (set space, the root part's height): clear of the
+	-- props and the crew's marks, facing the shoot (FilmScenes centre). Re-check it when the set
+	-- is re-dressed (tests/luau/visits.spec.luau does).
+	inside: CFrame,
 }
 
 -- Moon Base: out in the desert east of Dusty Gulch, its gate on the Gulch's east edge (so players
@@ -89,14 +94,19 @@ MapModels.MoonFrame = CFrame.new(88, 0, -209) * CFrame.Angles(0, math.pi / 2, 0)
 -- set running toward world -X.
 MapModels.JungleFrame = CFrame.new(-108, 0, 168) * CFrame.Angles(0, -math.pi / 2, 0)
 
-local function filmSet(id: string, frame: CFrame, wallWidth: number, wallX: number, area: Walkways.Rect): FilmSetInfo
-	return { id = id, frame = frame, gate = frame * CFrame.new(0, 0.2, 1.5), wallWidth = wallWidth, wallX = wallX, area = area }
+local function filmSet(id: string, frame: CFrame, wallWidth: number, wallX: number, area: Walkways.Rect, spot: Vector3): FilmSetInfo
+	local centre = FilmScenes.Sets[id].centre
+	-- Turned by angle, not CFrame.lookAt, which Lune (the tests) gets backwards.
+	local inside = CFrame.new(spot) * CFrame.Angles(0, math.atan2(spot.X - centre.X, spot.Z - centre.Z), 0)
+	return { id = id, frame = frame, gate = frame * CFrame.new(0, 0.2, 1.5), wallWidth = wallWidth, wallX = wallX, area = area, inside = inside }
 end
 
+-- The arrival spots: the Gulch's in the street south of the crew, the others on the track or path
+-- in from the gate, behind the camera crane.
 MapModels.FilmSets = table.freeze({
-	filmSet("Gulch", MapModels.GulchFrame, 172, 0, Walkways.rect(-86, -(Lay.fenceZ + 1) - 158, 86, -(Lay.fenceZ + 4))),
-	filmSet("MoonBase", MapModels.MoonFrame, 124, 3, Walkways.rect(90.5, -272, 200, -152)),
-	filmSet("Jungle", MapModels.JungleFrame, 124, 24, Walkways.rect(-232, 132, -110.5, 252)),
+	filmSet("Gulch", MapModels.GulchFrame, 172, 0, Walkways.rect(-86, -(Lay.fenceZ + 1) - 158, 86, -(Lay.fenceZ + 4)), Vector3.new(2, 3.4, 90)),
+	filmSet("MoonBase", MapModels.MoonFrame, 124, 3, Walkways.rect(90.5, -272, 200, -152), Vector3.new(0, 3.4, 24)),
+	filmSet("Jungle", MapModels.JungleFrame, 124, 24, Walkways.rect(-232, 132, -110.5, 252), Vector3.new(2, 3.4, 36)),
 } :: { FilmSetInfo })
 
 -- The lawns along each lot's front, either side of its gate (x from, x to).
@@ -804,6 +814,10 @@ local WALL_THICK = 4
 -- Where the gate's boom is hinged, in the gate's space: just inside the left post, resting across
 -- the path on the right post (FilmSetWorld lifts it for owners).
 MapModels.GateArmHinge = CFrame.new(-8, 3.25, 0)
+
+-- Where the Visit menu's GO TO GATE lands a buyer, in the gate's space: on the town side, in reach
+-- of the buy prompt, facing it.
+MapModels.GateArrival = CFrame.new(0, 3.2, -8) * CFrame.Angles(0, math.pi, 0)
 
 -- Each film set's gate (kit SetGate and SetGateArm), the invisible wall across the way in, and an
 -- anchor for the buy prompt. Returns the anchors.

@@ -2,6 +2,7 @@
 -- Studio visits (rules in Shared/Visits, checks in src/server/VisitService). This file shows them:
 --   * the Visit screen: every studio on the server with its owner, applause, Masterpieces, top star
 --     and what it is filming, and a VISIT button that jumps you to its gate (GO HOME for your own);
+--     below your studio, the film sets: GO into the ones you own, GO TO GATE to buy the others;
 --   * the tour card, on the right while you stand on someone else's studio, with the APPLAUD button;
 --   * applause in the world: clapping hands over whoever applauds, "+1" over the studio's gate;
 --   * premieres seen from the studio you are visiting, and the owner's notices ("Ava is touring
@@ -17,6 +18,7 @@ local Debris = game:GetService("Debris")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
+local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local LotModels = require(ReplicatedStorage.Shared.Models.LotModels)
 local Movies = require(ReplicatedStorage.Shared.Movies)
@@ -129,6 +131,18 @@ local function myLot(): number?
 	return nil
 end
 
+-- What the local player owns, shaped like the save (`filmSetsOwned`) for Visits.filmSetArrival.
+local function ownedSets(): { filmSetsOwned: { [string]: boolean } }
+	local owned: { [string]: boolean } = {}
+	local list = Players.LocalPlayer:GetAttribute("FilmSets")
+	if type(list) == "string" then
+		for id in string.gmatch(list, "[^,]+") do
+			owned[id] = true
+		end
+	end
+	return { filmSetsOwned = owned }
+end
+
 -- Round owner headshots, fetched once per player.
 local headshots: { [number]: string } = {}
 local function headshot(image: ImageLabel, userId: number)
@@ -236,6 +250,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		return
 	end
 	local visitRemote = remotes:WaitForChild("VisitStudio") :: RemoteEvent
+	local filmSetRemote = remotes:WaitForChild("VisitFilmSet") :: RemoteEvent
 	local applaudRemote = remotes:WaitForChild("Applaud") :: RemoteEvent
 	local applauseRemote = remotes:WaitForChild("Applause") :: RemoteEvent
 	local noticeRemote = remotes:WaitForChild("VisitNotice") :: RemoteEvent
@@ -256,6 +271,26 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 
 	local function now(): number
 		return workspace:GetServerTimeNow()
+	end
+
+	-- A section heading like the Quests board's: gold title, a muted note on the right, a gold rule.
+	local function heading(order: number, text: string, note: string)
+		local row = UiKit.addRow(list, order, 40)
+		UiKit.plainRow(row)
+		local title = makeTitle(row, text, UiKit.GOLD, UDim2.new(0.5, -12, 0, 28), UDim2.fromOffset(12, 4), 2)
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		local noteLabel = makeLabel(row, note, UiKit.MUTED, UDim2.new(0.5, -12, 0, 20), UDim2.new(0.5, 0, 0, 9))
+		noteLabel.TextXAlignment = Enum.TextXAlignment.Right
+		UiKit.textConstraint(noteLabel, 16)
+		local rule = Instance.new("Frame")
+		rule.Name = "Rule"
+		rule.BorderSizePixel = 0
+		rule.BackgroundColor3 = UiKit.AWARD_GOLD
+		rule.BackgroundTransparency = 0.55
+		rule.Position = UDim2.new(0, 12, 1, -4)
+		rule.Size = UDim2.new(1, -24, 0, 3)
+		rule.Parent = row
+		UiKit.corner(rule, 2)
 	end
 
 	local function build()
@@ -292,6 +327,57 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 			end
 		end
 
+		-- The film sets, owned first.
+		local data = ownedSets()
+		local ownedCount = 0
+		for _, set in FilmSets.List do
+			if FilmSets.owns(set, data) then
+				ownedCount += 1
+			end
+		end
+		order += 1
+		heading(order, "Film Sets", `{ownedCount} of {#FilmSets.List} owned`)
+		local sets = table.clone(FilmSets.List)
+		table.sort(sets, function(a, b)
+			local aOwned, bOwned = FilmSets.owns(a, data), FilmSets.owns(b, data)
+			if aOwned ~= bOwned then
+				return aOwned
+			end
+			return a.price < b.price
+		end)
+		local onSet = player:GetAttribute("OnFilmSet")
+		for _, set in sets do
+			local owned = FilmSets.owns(set, data)
+			local _, _, needs = Visits.filmSetArrival(set.id, data)
+			local needSet = if needs ~= nil then FilmSets.get(needs) else nil
+			order += 1
+			local row = UiKit.addRow(list, order, 72)
+			if owned then
+				row.BackgroundColor3 = UiKit.ROW:Lerp(UiKit.GREEN, 0.15)
+			end
+			local title = makeTitle(row, set.name, UiKit.WHITE, UDim2.new(0.6, -14, 0, 28), UDim2.fromOffset(14, 6))
+			title.TextXAlignment = Enum.TextXAlignment.Left
+			local text = if owned then `Yours: {string.match(FilmSets.describe(set), "\n(.+)$") or ""}` else `{FilmSets.priceText(set)}  ·  x{1 + set.luck} casting Luck`
+			local line = makeLabel(row, text, if owned then UiKit.CASH_GREEN else UiKit.GOLD, UDim2.new(0.6, -14, 0, 20), UDim2.fromOffset(14, 40))
+			line.TextXAlignment = Enum.TextXAlignment.Left
+			local size, at = UDim2.new(0.36, 0, 0, 52), UDim2.new(0.62, 0, 0, 10) -- a big thumb target on phones
+			if owned and onSet == set.id then
+				makeTitle(row, "You're here", UiKit.CASH_GREEN, UDim2.new(0.36, 0, 0, 40), UDim2.new(0.62, 0, 0, 16))
+			elseif needSet ~= nil then
+				local locked = makeButton(row, `{string.upper(needSet.name)} FIRST`, UiKit.DISABLED, size, at)
+				UiKit.setEnabled(locked, false, UiKit.BLUE)
+				locked.Activated:Connect(function()
+					UiKit.toast(gui, `{set.name}'s gate is inside {needSet.name}: buy {needSet.name} first`)
+				end)
+			else
+				local go = makeButton(row, if owned then "GO" else "GO TO GATE", if owned then UiKit.GREEN else UiKit.BLUE, size, at)
+				go.Activated:Connect(function()
+					filmSetRemote:FireServer(set.id)
+					panel.Visible = false
+				end)
+			end
+		end
+
 		local others: { Studio } = {}
 		for _, studio in all do
 			if studio.index ~= mine then
@@ -316,10 +402,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		end)
 
 		order += 1
-		local heading = UiKit.addRow(list, order, 30)
-		UiKit.plainRow(heading)
-		local headingText = makeTitle(heading, "Tour a studio and give it a round of applause!", UiKit.GOLD, UDim2.new(1, -8, 1, 0), UDim2.fromOffset(4, 0), 2)
-		headingText.TextXAlignment = Enum.TextXAlignment.Left
+		heading(order, "Studios", "Tour one, give it applause!")
 
 		if #others == 0 then
 			order += 1
@@ -393,7 +476,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 				Visits.status(studio.nextPremiere, t).kind,
 			} :: { any })
 		end
-		return UiKit.signature({ parts, myLot() or 0, standingOn() or 0 } :: { any })
+		return UiKit.signature({ parts, myLot() or 0, standingOn() or 0, player:GetAttribute("FilmSets") or "", player:GetAttribute("OnFilmSet") or "" } :: { any })
 	end
 
 	local function open()
@@ -581,6 +664,18 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 	end)
 
 	arrivedRemote.OnClientEvent:Connect(function(index)
+		if type(index) == "string" and FilmSets.get(index) ~= nil then
+			Sfx.play("visitJump")
+			-- A film set: the camera behind you, looking the way you face (at the shoot, or the gate).
+			task.defer(function()
+				local camera = workspace.CurrentCamera
+				local part = root()
+				if camera ~= nil and part ~= nil then
+					camera.CFrame = CFrame.lookAt(part.CFrame * Vector3.new(0, 5, 12), part.CFrame * Vector3.new(0, 1, -20))
+				end
+			end)
+			return
+		end
 		if not validLot(index) then
 			return
 		end
