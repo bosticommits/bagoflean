@@ -349,7 +349,9 @@ casual player's first Superstar moves from day 3 to day 1. Nothing breaks (no mi
 more than a session, Legend and Icon stay within noise, and the Talent Agency stays in its 20 to 30
 minute window), so nothing was retuned. If playtests say the casual curve runs too fast, the
 mitigations in order: the pity meter to 500 (9% of rares), then the first rebirth's price
-($250,000) up to about $350,000, which brings Rebirth 1 back to where it was.
+($250,000) up to about $350,000, which brings Rebirth 1 back to where it was. The first
+Superstar can also be switched off in live servers without an update: add "FirstSuperstar" to
+`DisabledEvents` in the `GameConfig` DataStore (LiveConfig; "ALL" does not include it).
 
 ## Special events
 

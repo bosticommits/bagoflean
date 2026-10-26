@@ -84,7 +84,9 @@ test("early pulls: tease after TeaseAfter on a decent roll, then one Superstar",
 	_, _, _, tease = Actors.castWithGuarantees(save, OPEN, rollAs("Pro"))
 	equal(tease, nil, "only once")
 	save.played = Actors.FirstSuperstarAfter
-	local actor, _, guarantee = Actors.castWithGuarantees(save, OPEN, rollAs("Newcomer"))
+	local actor, _, guarantee = Actors.castWithGuarantees(save, OPEN, rollAs("Newcomer"), true)
+	equal(actor.tier, "Newcomer", "live switch holds the first Superstar back")
+	actor, _, guarantee = Actors.castWithGuarantees(save, OPEN, rollAs("Newcomer"))
 	equal(actor.tier, "Superstar", "guaranteed Superstar")
 	equal(guarantee, "firstSuperstar", "reason")
 	equal(save.early, Actors.EarlyDone, "done")

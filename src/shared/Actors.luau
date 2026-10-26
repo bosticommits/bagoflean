@@ -347,7 +347,7 @@ end
 -- luckier roll always keeps its tier. Updates `save` and returns the actor, the variant, which
 -- guarantee covered this cast ("hotStart" | "pity" | "firstSuperstar" | nil) and the tease
 -- ("nearMiss" | nil; presentation only, the result is the real roll).
-function Actors.castWithGuarantees(save: CastSave, agency: Agency, roll: (string?) -> (Actor, Variant)): (Actor, Variant, string?, string?)
+function Actors.castWithGuarantees(save: CastSave, agency: Agency, roll: (string?) -> (Actor, Variant), noFirstSuperstar: boolean?): (Actor, Variant, string?, string?)
 	local floor: string?, guarantee: string? = nil, nil
 	local function offer(tierId: string?, why: string)
 		if tierId ~= nil and (floor == nil or rank(tierId) > rank(floor :: string)) then
@@ -362,7 +362,7 @@ function Actors.castWithGuarantees(save: CastSave, agency: Agency, roll: (string
 	if pityCount >= Actors.PityEvery then
 		offer(agency.pity, "pity")
 	end
-	if save.early < Actors.EarlyDone and save.played >= Actors.FirstSuperstarAfter then
+	if not noFirstSuperstar and save.early < Actors.EarlyDone and save.played >= Actors.FirstSuperstarAfter then
 		offer("Superstar", "firstSuperstar")
 	end
 
