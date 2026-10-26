@@ -117,6 +117,8 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 		if image ~= nil then
 			local id = if state == "opened" then ART.opened elseif state == "ready" then ART.ready else ART.closed
 			image.Image = "rbxassetid://" .. id
+			-- The ready picture has room left for its (removed) glow: draw it a bit bigger.
+			image.Size = UDim2.fromScale(if state == "ready" then 1.2 else 1, if state == "ready" then 1.2 else 1)
 		end
 		if state == "opened" then
 			slot.label.Text = ""
@@ -237,6 +239,8 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 			local image = Instance.new("ImageLabel")
 			image.Name = "Art"
 			image.BackgroundTransparency = 1
+			image.AnchorPoint = Vector2.new(0.5, 0.5)
+			image.Position = UDim2.fromScale(0.5, 0.5)
 			image.Size = UDim2.fromScale(1, 1)
 			image.ZIndex = 7
 			image.Image = "rbxassetid://" .. ART.closed
