@@ -153,8 +153,9 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	end
 	refreshCastButton()
 
-	-- "Discovered!" hot start: a bar over the Cast button counts down to a new player's next
-	-- guaranteed pull (Actors.HotStart). Shown from their first cast until the last guarantee.
+	-- Guarantee meter over the Cast button: counts down to the next guaranteed pull, whichever
+	-- comes sooner: a new player's "Discovered!" hot start step (Actors.HotStart) or the chosen
+	-- agency's pity meter (Actors.PityEvery, mirrored by the server as Pity<agencyId>).
 	local hotBar = Instance.new("Frame")
 	hotBar.Name = "HotStart"
 	hotBar.BackgroundColor3 = UiKit.DARK
@@ -175,26 +176,34 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	textConstraint(hotLabel, 18)
 	local function refreshHotStart()
 		local done = player:GetAttribute("HotStart")
+		local agency = currentAgency()
+		local pityCount = player:GetAttribute("Pity" .. agency.id)
+		-- (tier, casts left, fraction filled) of the sooner guarantee
+		local tierId, left, fraction = nil, math.huge, 0
 		local step = if type(done) == "number" then Actors.nextHotStart(done) else nil
-		hotBar.Visible = step ~= nil and (done :: number) > 0
-		if step == nil then
+		if step ~= nil and (done :: number) > 0 then
+			local previous = 0
+			for _, other in Actors.HotStart do
+				if other.cast < step.cast then
+					previous = other.cast
+				end
+			end
+			tierId, left = step.tier, step.cast - (done :: number)
+			fraction = ((done :: number) - previous) / (step.cast - previous)
+		end
+		if type(pityCount) == "number" and Actors.PityEvery - pityCount < left then
+			tierId, left, fraction = agency.pity, Actors.PityEvery - pityCount, pityCount / Actors.PityEvery
+		end
+		hotBar.Visible = tierId ~= nil and player:GetAttribute("DataLoaded") == true
+		if tierId == nil then
 			return
 		end
-		local castsDone = done :: number
-		local tier = Actors.getTier(step.tier) :: Actors.Tier
-		local previous = 0
-		for _, other in Actors.HotStart do
-			if other.cast < step.cast then
-				previous = other.cast
-			end
-		end
-		local left = step.cast - castsDone
+		local tier = Actors.getTier(tierId) :: Actors.Tier
 		hotLabel.Text = if left == 1
 			then `{string.upper(tier.name)} GUARANTEED NEXT CAST!`
 			else `{string.upper(tier.name)} GUARANTEED IN {left} CASTS`
 		hotFill.BackgroundColor3 = tier.color
-		local fraction = math.clamp((castsDone - previous) / (step.cast - previous), 0, 1)
-		TweenService:Create(hotFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(fraction, 1) }):Play()
+		TweenService:Create(hotFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1) }):Play()
 	end
 	refreshHotStart()
 
@@ -218,6 +227,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		button.Activated:Connect(function()
 			agencyId = agency.id
 			refreshCastButton()
+			refreshHotStart()
 			buildOdds()
 		end)
 	end
@@ -285,6 +295,9 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		order += 1
 		local note = UiKit.addRow(oddsList, order, 40)
 		makeLabel(note, "Luck x" .. string.format("%.2f", luck) .. "  -  odds apply to every roll", UiKit.MUTED, UDim2.fromScale(1, 1))
+		order += 1
+		local pity = UiKit.addRow(oddsList, order, 40)
+		makeLabel(pity, `Pity: a {agency.pity} or better at least once every {Actors.PityEvery} casts here`, UiKit.MUTED, UDim2.fromScale(1, 1))
 	end
 
 	-- Collection panel: Roster and Index tabs -------------------------------------------------
@@ -929,7 +942,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	player.AttributeChanged:Connect(function(name)
 		if (name == "Luck" or name == "Fame") and oddsPanel.Visible then
 			buildOdds()
-		elseif name == "HotStart" then
+		elseif name == "HotStart" or name == "DataLoaded" or string.sub(name, 1, 4) == "Pity" then
 			refreshHotStart()
 		end
 	end)
