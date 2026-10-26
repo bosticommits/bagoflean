@@ -131,6 +131,7 @@ def load_tuning() -> dict:
     takes_text = (SHARED / "Takes.luau").read_text()
     take_luck = {k: _num(v) for k, v in re.findall(r"(Perfect|Good|Miss) = ([\d.]+)", re.search(r"Takes\.Luck = table\.freeze\(\{([^}]*)\}", takes_text).group(1))}
     mascots_text = (SHARED / "Mascots.luau").read_text()
+    gifts_text = (SHARED / "PlaytimeGifts.luau").read_text()
 
     return {
         "config": config,
@@ -143,6 +144,10 @@ def load_tuning() -> dict:
         "award_period": _num(re.search(r"Events.AwardNightPeriod = ([^\n]+)", events_text).group(1)),
         "award_length": _num(re.search(r"Events.AwardNightLength = ([^\n]+)", events_text).group(1)),
         "daily": [_reward(line) for line in _block(rewards_text, "Rewards.Daily").splitlines() if "{" in line],
+        # Playtime gift ladder: (minutes, reward) per present, plus its away and daily-cap rules.
+        "gifts": [(_num(m.group(1)), _reward(m.group(2))) for m in re.finditer(r"\{ minutes = (\d+), reward = (.*) \},", gifts_text)],
+        "gift_away": _num(re.search(r"PlaytimeGifts.AwayMinutes = (\d+)", gifts_text).group(1)),
+        "gift_ladders": int(_num(re.search(r"PlaytimeGifts.LaddersPerDay = (\d+)", gifts_text).group(1))),
         "stay_gift": _reward(re.search(r"Rewards.StayGift = (\{[^\n]*\})", rewards_text).group(1)),
         "requests": [_reward(line.split("reward =")[1]) for line in _block(rewards_text, "Rewards.Requests").splitlines()
                      if "reward =" in line],
@@ -390,6 +395,7 @@ UPGRADE_ORDER = ["Stages", "Cinema", "Luck", "Offline", "Clap"]
 # Set by --mascots. Players here never swap, so the warm-up after equipping does not come up.
 MASCOTS = "none"
 FESTIVAL = True  # the Film Festival's goals, finished with the weekly quests (--no-festival)
+GIFTS = True  # the playtime gift ladder (--no-gifts)
 # A season id (SpecialEvents.Seasons) to make every week that seasonal festival (--season): its
 # limited actor (Actors.Limited) joins its tier's casting pool, and winning the festival gives one.
 SEASON: str | None = None
@@ -430,6 +436,8 @@ class Player:
         self.achievements = True
         self.weekly_on = True
         self.festival_on = FESTIVAL
+        # Playtime gift ladder state, as PlaytimeGifts.luau keeps it (played seconds, opened count).
+        self.gift_played, self.gift_open, self.gift_seen, self.gift_day, self.gift_ladders = 0.0, 0, None, 0, 0
         self.limited = next((a for a in game.t["limited"] if a["season"] == SEASON), None) if SEASON else None
         self.weekly_day = 4
         self.counts = {"cast": 0, "premiere": 0, "hit": 0, "clap": 0, "script": 0, "collect": 0}
@@ -974,9 +982,25 @@ class Player:
         # day's requests, ten minutes into the session, not at its very start.
         weekly_at = requests_at if first_today and day % 7 == self.weekly_day % 7 and self.weekly_on else None
         last_collect = self.now
+        gifts = self.g.t["gifts"] if GIFTS else []
+        if gifts:  # PlaytimeGifts.begin
+            if day != self.gift_day:
+                self.gift_day, self.gift_ladders = day, 0
+            away = self.gift_seen is None or self.now - self.gift_seen >= self.g.t["gift_away"] * M
+            if away and self.gift_ladders < self.g.t["gift_ladders"]:
+                self.gift_played, self.gift_open = 0.0, 0
+                self.gift_ladders += 1
         while self.now < end:
             self.now += step
             self.played += step
+            if gifts:
+                self.gift_played += step
+                # Presents are opened as they get ready (in order, they open at rising times).
+                while self.gift_open < len(gifts) and self.gift_played >= gifts[self.gift_open][0] * M:
+                    self.grant(gifts[self.gift_open][1])
+                    self.gift_open += 1
+                    if self.gift_open == len(gifts):
+                        self.mark("Full gift ladder")
             mark = int(self.played // M)
             if mark in CURVE_MINUTES and mark not in self.curve:
                 self.curve[mark] = self.snapshot()
@@ -1006,6 +1030,7 @@ class Player:
             self.cast(step)
         if last_today and seconds >= self.g.c["StayGiftMinSeconds"]:
             self.grant(self.g.t["stay_gift"])
+        self.gift_seen = self.now
         self.collect()
         self.buy_upgrades()
         self.start_films(offline_after)
@@ -1189,6 +1214,7 @@ if __name__ == "__main__":
     parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
                         help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
     parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
+    parser.add_argument("--no-gifts", action="store_true", help="leave the playtime gift ladder out (to compare)")
     parser.add_argument("--no-takes", action="store_true", help="the player ignores the TAKE! cards (to compare)")
     parser.add_argument("--mascots", default="none", choices=["none", "cash", "luck", "speed", "boxOffice"],
                         help="the kind of mascot buff the player keeps out (default: none)")
@@ -1196,6 +1222,7 @@ if __name__ == "__main__":
     CAST_RATE = args.cast_rate
     MASCOTS = args.mascots
     FESTIVAL = not args.no_festival
+    GIFTS = not args.no_gifts
     SEASON = args.season
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
            not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start, not args.no_takes)

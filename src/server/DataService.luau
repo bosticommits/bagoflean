@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
+local PlaytimeGifts = require(ReplicatedStorage.Shared.PlaytimeGifts)
 local ProfileStore = require(script.Parent.ProfileStore)
 
 -- A movie being filmed. Times are os.time() stamps, so filming continues while offline.
@@ -77,13 +78,15 @@ export type PlayerData = {
 	festival: { week: number, list: { Request } },
 	laurels: { Laurel },
 	hudTucked: boolean, -- the top HUD stack is tucked into its pull tab (HudSettingsService)
+	-- Playtime gift ladder (PlaytimeGifts.luau): time played this ladder and the presents opened.
+	gifts: PlaytimeGifts.State,
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
 export type Carried = { key: string, id: string, scope: string }
 export type Laurel = { week: number, genre: string, season: string? }
 
-local CURRENT_VERSION = 10 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival
+local CURRENT_VERSION = 11 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival, 11: playtime gifts
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -124,6 +127,7 @@ local TEMPLATE: PlayerData = {
 	festival = { week = 0, list = {} },
 	laurels = {},
 	hudTucked = false,
+	gifts = PlaytimeGifts.fresh(nil),
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -235,6 +239,7 @@ local function migrate(data: any)
 		end
 	end
 	data.laurels = laurels
+	data.gifts = PlaytimeGifts.fresh(data.gifts)
 	data.version = CURRENT_VERSION
 end
 
