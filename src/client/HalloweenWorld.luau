@@ -45,7 +45,7 @@ local function layout(): { Piece }
 		local yaw = if side < 0 then math.pi else 0
 		add("JackOLantern", center.X - 9, LAWN_Y, z, yaw + 0.2)
 		add("PumpkinPlain", center.X - 12, LAWN_Y, z + side * 1.5, yaw)
-		add("HayBale", center.X + 10, LAWN_Y, z, yaw)
+		add("HalloweenHayBale", center.X + 10, LAWN_Y, z, yaw)
 		add("CandyBucket", center.X + 8.6, LAWN_Y + 1.8, z, yaw - 0.3)
 		if center.X == 0 then
 			add("Scarecrow", 20, LAWN_Y, side * 43, yaw - 0.15)

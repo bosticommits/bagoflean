@@ -4,7 +4,7 @@
   JackOLanternSmall  a smaller one with a spooky face (the Pumpkin Patch pickups)
   PumpkinPlain       a squat uncarved pumpkin, for piles
   GoldenPumpkin      the Pumpkin Patch event's golden pumpkin (a free cast)
-  HayBale            a straw bale with two bands
+  HalloweenHayBale   a straw bale (the map kit already has a HayBale) with two bands
   Scarecrow          a friendly scarecrow on a post: sack head, witch hat, patched shirt
   CandyBucket        a pumpkin pail full of sweets
 
@@ -183,7 +183,7 @@ KIT = [
     ("JackOLanternSmall", jack_o_lantern_small),
     ("PumpkinPlain", pumpkin_plain),
     ("GoldenPumpkin", golden_pumpkin),
-    ("HayBale", hay_bale),
+    ("HalloweenHayBale", hay_bale),
     ("Scarecrow", scarecrow),
     ("CandyBucket", candy_bucket),
 ]
@@ -232,7 +232,7 @@ def main():
     print("Exported", FBX_OUT)
 
     if not os.environ.get("KIT_NO_RENDER"):
-        lineup(["CandyBucket", "PumpkinPlain", "JackOLanternSmall", "JackOLantern", "GoldenPumpkin"], ["HayBale", "Scarecrow"], "halloween_kit.png")
+        lineup(["CandyBucket", "PumpkinPlain", "JackOLanternSmall", "JackOLantern", "GoldenPumpkin"], ["HalloweenHayBale", "Scarecrow"], "halloween_kit.png")
 
 
 def lineup(front, back, file_name):

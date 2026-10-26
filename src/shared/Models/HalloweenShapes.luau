@@ -109,7 +109,7 @@ HalloweenShapes.Shapes.GoldenPumpkin = {
 HalloweenShapes.Bounds.GoldenPumpkin = { size = Vector3.new(3.092, 3.171, 3.204), center = Vector3.new(0, 1.621, -0.106) }
 HalloweenShapes.Glow.GoldenPumpkin = { Vector3.new(0.432, 1.608, -1.408), Vector3.new(0.72, 1.608, -1.408), Vector3.new(-0.72, 1.608, -1.408), Vector3.new(-0.432, 1.608, -1.408), Vector3.new(-0.072, 1.176, -1.504), Vector3.new(0.072, 1.176, -1.504), Vector3.new(0, 0.744, -1.424), Vector3.new(0.768, 0.912, -1.312), Vector3.new(-0.768, 0.912, -1.312) }
 
-HalloweenShapes.Shapes.HayBale = {
+HalloweenShapes.Shapes.HalloweenHayBale = {
 	S("box", CFrame.new(0, 0.96, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(3.6, 1.8, 2), "F2C75C"),
 	S("box", CFrame.new(0.9, 0.96, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.3, 1.92, 2.12), "D9A43E"),
 	S("box", CFrame.new(-0.9, 0.96, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.3, 1.92, 2.12), "D9A43E"),
@@ -118,7 +118,7 @@ HalloweenShapes.Shapes.HayBale = {
 	S("box", CFrame.new(-1.3, 1.91, -0.2, 0.866, -0.499, 0.035, 0.5, 0.864, -0.06, 0, 0.07, 0.998), Vector3.new(0.08, 0.35, 0.08), "D9A43E"),
 	S("box", CFrame.new(0.3, 1.91, -0.6, 0.707, -0.68, 0.195, 0.707, 0.68, -0.195, 0, 0.276, 0.961), Vector3.new(0.08, 0.35, 0.08), "D9A43E"),
 }
-HalloweenShapes.Bounds.HayBale = { size = Vector3.new(3.6, 2.093, 2.12), center = Vector3.new(0, 1.047, 0) }
+HalloweenShapes.Bounds.HalloweenHayBale = { size = Vector3.new(3.6, 2.093, 2.12), center = Vector3.new(0, 1.047, 0) }
 
 HalloweenShapes.Shapes.Scarecrow = {
 	S("box", CFrame.new(0, 2.6, 0.25, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.4, 5.2, 0.4), "7A5434"),

@@ -85,7 +85,8 @@ Sounds.Slots = {
 	eventPickup = slot("pop", 1.3), -- picking up a Cash Rain coin or crate
 	eventEnd = slot("sweep", 0.8), -- a special event ends
 	frightSting = slot("stinger", 0.6), -- the Pumpkin Patch starts (Fright Night): a spooky sting
-	frightVoice = slot("whoosh", 0.6), -- then the announcer: "Fright Night has begun!"
+	-- Then the announcer: "Fright Night has begun! Grab the pumpkins!" (Fish Audio, uploaded 2026-10-26).
+	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6 },
 
 	-- Studio visits
 	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio

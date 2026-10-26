@@ -154,6 +154,12 @@ test("the Pumpkin Patch is dealt only in Fright Night, never twice in a row", fu
 	local pumpkins = SpecialEvents.pumpkinSpots(starts)
 	equal(#pumpkins, SpecialEvents.PumpkinCount, "pumpkin count")
 	equal(pumpkins[1], SpecialEvents.coinSpots(starts)[1], "on coin spots")
+	-- Kit names are looked up by name in LotMeshes and MapKit, so none may clash with the map kit.
+	local HalloweenShapes = H.require("Models/HalloweenShapes")
+	local MapKitShapes = H.require("Models/MapKitShapes")
+	for name in HalloweenShapes.Shapes do
+		expect(MapKitShapes.Shapes[name] == nil, `{name} is also a map kit model`)
+	end
 end)
 
 test("at() and nextAfter() follow the schedule", function()
