@@ -325,7 +325,7 @@ end
 -- Pity meter: each agency counts the casts since its last pull of its `pity` tier or better, and
 -- the PityEvery-th one is guaranteed that tier. Per agency, so cheap Open Casting casts cannot
 -- fill up the Talent Agency's meter. Tuned in ECONOMY.md ("Pity meter").
-Actors.PityEvery = 200
+Actors.PityEvery = 400
 
 -- Early crazy pulls for a brand-new account, by seconds of play (counted on the server):
 -- a Superstar near-miss tease, then one guaranteed Superstar. `early` in the save: 0 = neither yet,

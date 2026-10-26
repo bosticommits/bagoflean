@@ -15,6 +15,8 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
     python3 tools/economy_sim.py --cast-rate 1.0     # casts per second while online (default 0.35); 1.0 = the server cap, 1 / CastCooldown
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
+    python3 tools/economy_sim.py --no-pity           # without the pity meter (--pity-every N tries another length)
+    python3 tools/economy_sim.py --no-early          # without the new player's near-miss tease and first Superstar
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
@@ -275,6 +277,55 @@ against 4, Talent Agency 28 against 30, the first rebirth unchanged at 75 minute
 ends within 1% on Cash per minute. Casual players: first Star 7 against 15 minutes, week one ends
 about 4% richer on Cash per minute (the early Star's films pay a bit more all day one). Compare
 with `--no-hot-start`. No price, odds or payout changed.
+
+**Pity meter and early crazy pulls (2026-10-26).** Two new safety nets, both in
+`Actors.castWithGuarantees` and both saved (save version 11).
+- **Pity meter.** Every agency keeps its own count of casts since its last rare pull, and the
+  400th one in a row without one is a guaranteed rare (`Actors.PityEvery = 400`). "Rare" depends
+  on the agency, because a Star is common at the better ones (at Luck 3 a Star or better is 1 in
+  214 at Open Casting, 1 in 40 at the Talent Agency, 1 in 6 at Hollywood Casting): **Star** at
+  Open Casting, **Superstar** at the Talent Agency and Hollywood Casting (Superstar is 1 in 485
+  at the Talent Agency at Luck 3, about the same as a Star at Open Casting). In words: "a Star or
+  better at least once every 400 casts here". A luckier pull resets the meter, the guarantee never
+  lowers a better roll, crate casts count for their agency, and old saves start at 0. The meters
+  are separate so cheap Open Casting casts cannot fill the Talent Agency's.
+- **Why 400.** Lengths tried (typical player, 60 runs, no early pulls), share of week-one rare
+  pulls that came from the meter: 200 gives 28%, 300 gives 17%, **400 gives 12%**, 500 gives 9%.
+  At 200 it became a main source of Superstars at the Talent Agency; at 400 it only catches unlucky
+  streaks (about 19 minutes of casting at one cast every 3 seconds, so the bar visibly fills in a
+  session or two). The first pity pull comes early on day 2 (median 71 minutes played).
+- **Early crazy pulls (new accounts only; old saves count as done).** The server counts seconds
+  played (`played` in the save). The first cast after 5 minutes that rolls a Pro or better is a
+  **near-miss tease** (the reveal builds up like a Superstar, then lands on the real result; the
+  odds do not change). The first cast after 12 minutes is a **guaranteed Superstar**, once (a
+  natural Superstar before then uses it up). The hot start (casts 3, 10, 25) is unchanged.
+
+Sim, 100 runs each, all of it against neither (`--no-pity --no-early`):
+
+| | Typical: before | Typical: after | Casual: before | Casual: after |
+|---|---|---|---|---|
+| First Star | 6 min | 6 min | 6 min | 6 min |
+| Near-miss tease | - | 6 min | - | 6 min |
+| First Superstar | day 2 (68 min) | day 1, 12 min | day 3 (59 min) | day 1, 12 min |
+| Talent Agency | 28 min | 25 min | day 2 (27 min) | day 2 (25 min) |
+| Sound stage 3 | day 2 (60 min) | day 1 (53 min) | day 3 (45 min) | day 3 (45 min) |
+| Rebirth 1 | day 2 (73 min) | day 2 (60 min) | day 3 (55 min) | day 3 (45 min) |
+| Rebirth 2 | day 3 (108 min) | day 3 (105 min) | day 5 (95 min) | day 5 (85 min) |
+| Hollywood Casting | day 5 (237 min) | day 5 (221 min) | - | - |
+| Legend in week one | 68% | 78% | 12% | 11% |
+| Cash per minute, end of day 1 | 2,880 | 4,337 (+51%) | 1,311 | 1,936 (+48%) |
+| Cash per minute, end of week 1 | 121,675 | 139,929 (+15%) | 34,853 | 47,383 (+36%) |
+| Rare pulls in week one (from pity) | 40 (0) | 51 (5) | 8 (0) | 12 (3) |
+
+Honestly: the early Superstar is the big mover. A 50-power actor at minute 12 makes day one pay
+about half as much again, which pulls the Talent Agency 3 minutes and the first rebirth about 13
+minutes of play sooner. The typical week ends about 15% richer (the pity meter alone, `--no-early`,
+lands within run-to-run noise of that, 142k), the casual week about 36% richer, mostly because the
+casual player's first Superstar moves from day 3 to day 1. Nothing breaks (no milestone moves by
+more than a session, Legend and Icon stay within noise, and the Talent Agency stays in its 20 to 30
+minute window), so nothing was retuned. If playtests say the casual curve runs too fast, the
+mitigations in order: the pity meter to 500 (9% of rares), then the first rebirth's price
+($250,000) up to about $350,000, which brings Rebirth 1 back to where it was.
 
 ## Special events
 

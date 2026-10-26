@@ -400,3 +400,23 @@ exciting by M3, fix the core before adding anything else.
   (no income scaling) plus 3 minutes of Luck on the Star goal; prices and odds are untouched. Sim: day-one
   milestones unchanged (`tools/economy_sim.py` now understands the two new stats).
 - Studio and phone checks of the strip's placement are pending.
+
+## 19. As built (pity meter and early crazy pulls)
+- **Pity meter** for everyone: each agency counts casts since its last rare pull (Star at Open
+  Casting, Superstar at the Talent Agency and Hollywood Casting, the `pity` field on
+  `Actors.Agencies`), and the 400th (`Actors.PityEvery`) is that tier or better. Natural rares reset
+  it; crate casts count. Saved as `pity` (by agency id). Tuning in ECONOMY.md.
+- **Early crazy pulls** for new accounts (old saves count as done, `early = 2`): a Superstar
+  near-miss tease on the first Pro-or-better cast after 5 minutes played, and one guaranteed
+  Superstar on the first cast after 12 minutes. Playtime is counted by the server in
+  `CastingService.refresh` (`played`, seconds). Analytics: `NearMissTease`, `FirstSuperstar`.
+- **One rule function**, `Actors.castWithGuarantees`, applies the hot start, pity and first
+  Superstar (the best floor wins, a better roll is kept) and is covered by `tests/luau/pity.spec.luau`.
+- **HUD**: the hot start bar over the Cast button is now the guarantee meter: it counts down to
+  whichever guarantee is sooner, the hot start step or the chosen agency's pity ("STAR GUARANTEED
+  IN 37 CASTS"). The odds panel has one line on the pity rule.
+- **CastResult payload** for the reveal: `guarantee` ("hotStart" | "pity" | "firstSuperstar" | nil),
+  `tease` ("nearMiss" | nil) and `pity` ({ agency, tier, count, every } after the cast), next to the
+  old fields; documented at the top of `src/server/CastingService.luau`. The reveal itself does not
+  use them yet (a second worker builds that presentation).
+
