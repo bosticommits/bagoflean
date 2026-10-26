@@ -73,7 +73,7 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 - [ ] Special events every 15 minutes (Lucky Star, Cash Rain, Mystery Crate, Spotlight, Golden
       Hour), built. *Done when:* each one is played in Studio with the test buttons and its
       banner, effect and reward all work, on PC and on a phone screen.
-- [x] Server announcement when anyone pulls Legend or Icon or gets a Masterpiece.
+- [x] Server announcement when anyone pulls Superstar or up (queued tier-coloured banner + chat line) or gets a Masterpiece; Legend and Icon also go to every server (MessagingService, rate-limited, LiveConfig "GlobalPulls" switch). See GAME_PLAN §22.
       *Done when:* everyone on the server sees the message.
 - [x] Daily login rewards. *Done when:* they cannot be claimed twice by changing the
       device clock or rejoining.
