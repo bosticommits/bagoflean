@@ -18,11 +18,13 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --no-pity           # without the pity meter (--pity-every N tries another length)
     python3 tools/economy_sim.py --no-early          # without the new player's near-miss tease and first Superstar
     python3 tools/economy_sim.py --no-gifts          # leave the playtime gift ladder out, to compare
+    python3 tools/economy_sim.py --film-sets --film-set-visit-minutes 5  # auto-buy sets; assume 5 min inside/session
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
-Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
-than about 20 minutes of income, and rebirths as soon as it can afford one). It does not model game passes other than 2x Luck, or
-Robux cash packs. Treat it as the shape of the curve, not a promise: playtests decide.
+the playtime gift ladder, pity, the early Superstar, Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
+than about 20 minutes of income, and rebirths as soon as it can afford one). The optional `--film-sets` scenario auto-buys each permanent set as soon as
+affordable; `--film-set-visit-minutes N` assumes the player spends the first N minutes of each later session inside a set. This applies the owned set's Luck
+and models its extra box-office Cash while inside. The visit time is a sensitivity assumption, not observed player behavior; the sim approximates the service's 5-second payout cadence at a 2-second step, so a payment can land up to one step late. The simulator does not model game passes other than 2x Luck, Robux cash packs, or the planned actor-level and franchise systems. Treat it as the shape of the curve, not a promise: playtests decide.
 
 ## The curve in plain words
 
@@ -452,6 +454,47 @@ goals for later days. Moon Base's gate is inside the Gulch, so players buy the G
 Jungle Temple's gate is in Starlight Park's west fence. Standing inside is the point (watching
 the crew shoot), so the bonus follows the box office rate and stops as soon as the player leaves.
 The bonus is double on every set, so a dearer set pays off through its Luck, not its box office.
+
+## Combined-feature balance guardrails
+
+The current simulator already applies the gift rewards (including the hardcore schedule's full
+60-minute ladders), the first Superstar, pity, and special events together. “About 5% richer” for
+hardcore gifts is an observed effect of those rewards in the schedule, not a separate 5% multiplier.
+FrightNight can be stress-tested with `--season FrightNight`; that deliberately makes the whole
+simulated week a Halloween week. Film sets are opt-in because the extra box office depends on time
+spent inside them, which we do not yet know from real players.
+
+Use these as review triggers before adding more income features; they are not instructions to
+change prices automatically:
+
+| Measure | Target / trigger |
+|---|---|
+| Talent Agency, typical profile | Median 20–30 minutes played, matching the launch goal |
+| First guaranteed Superstar | First qualifying cast at or after 12 minutes; do not move the guarantee earlier |
+| First rebirth, typical profile | Usually day 2 and around 60–75 minutes played; a median below 60 minutes triggers review |
+| First rebirth, hardcore profile | Day 1, roughly 85–120 minutes played |
+| Pity's share of week-one rare pulls | Around the established 9–17% band; investigate if it becomes a main source of rares |
+| Week-one Cash/min with all current systems | Compare to the same profile and season without film-set visits; investigate a rise above 10% |
+
+The new `--film-sets` option buys each set as soon as the simulated player can afford it and adds
+its Luck. `--film-set-visit-minutes N` adds the set's extra box-office Cash for the first N minutes
+of each later session. This lets us bracket player behavior instead of assuming every player uses
+the sets. Example combined seasonal run:
+
+```
+python3 tools/economy_sim.py --runs 100 --seed 7 --season FrightNight --film-sets --film-set-visit-minutes 5
+python3 tools/economy_sim.py --runs 100 --seed 7 --season FrightNight --player hardcore --film-sets --film-set-visit-minutes 5
+```
+
+Exploratory same-seed run (20 typical, 10 hardcore; all current gifts, pity, early Superstar, and
+FrightNight events enabled): with five assumed minutes inside a set each session, typical Rebirth 1
+kept a 60-minute median (the fast 10% moved from 46 to 39 minutes, and the slow 10% from 62 to 85).
+Hardcore's median moved from 106 to 83 minutes. Typical week-one Cash/min was 147,834 without sets
+and 156,967 with them (+6.2%); hardcore was 243,364 and 256,949 (+5.6%). These small samples are
+directional only. The typical curve stays in its target range; the hardcore rebirth and income
+results are close enough to their review triggers to merit the documented 100-run comparison before
+changing odds or prices. Actor levels and franchises are not in the game or simulator yet; rerun and
+revisit these guardrails when those systems are designed, before adding their payouts.
 
 ## What to watch in playtests
 
