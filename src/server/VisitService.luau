@@ -8,7 +8,8 @@
 -- the gate and in the Visit menu) and pays nobody. A visitor's applause counts once per studio per
 -- UTC day, saved on the visitor's profile, so rejoining or changing servers doesn't reset it; after
 -- that the button still claps for the show. Every check is made here from where the server sees
--- the player: the remotes carry no values except which lot to jump to.
+-- the player: the remotes carry no values except which lot or film set to jump to. The Visit menu
+-- also jumps owners into their film sets, and anyone to a set's gate (Visits.filmSetArrival).
 --
 -- Premieres on a lot are shown to the people touring it (LotPremiere), and the owner hears how big
 -- the audience was. Player attributes tell the visitor's tour card what it may do:
@@ -41,7 +42,8 @@ local visitRemote = Remotes.get("VisitStudio") -- client -> server: lot index to
 local applaudRemote = Remotes.get("Applaud") -- client -> server: no arguments
 local applauseRemote = Remotes.get("Applause") -- server -> all: lot, clapper UserId, counted, total
 local noticeRemote = Remotes.get("VisitNotice") -- server -> owner: a line to show
-local arrivedRemote = Remotes.get("VisitArrived") -- server -> visitor: lot index, after a jump
+local arrivedRemote = Remotes.get("VisitArrived") -- server -> visitor: lot index or film set id, after a jump
+local filmSetRemote = Remotes.get("VisitFilmSet") -- client -> server: film set id to jump to
 local premiereRemote = Remotes.get("LotPremiere") -- server -> all: lot, title, result id
 
 local bases: { CFrame } = {}
@@ -177,28 +179,45 @@ local function onApplaud(player: Player)
 	applauseRemote:FireAllClients(tour.lot, player.UserId, counts, ownerData.likes)
 end
 
+-- Moves a live character to `to` (unseated first), within the jump cooldown. False if it can't.
+local function jumpTo(player: Player, to: CFrame): boolean
+	local clock = os.clock()
+	local last = lastJump[player]
+	if last ~= nil and clock - last < Visits.TeleportCooldown then
+		return false
+	end
+	local character = player.Character
+	local humanoid = if character ~= nil then character:FindFirstChildOfClass("Humanoid") else nil
+	if character == nil or humanoid == nil or humanoid.Health <= 0 or rootPart(player) == nil then
+		return false
+	end
+	lastJump[player] = clock
+	humanoid.Sit = false
+	character:PivotTo(to)
+	return true
+end
+
 -- Jump to lot `index`: any claimed studio, or your own (home).
 local function onVisit(player: Player, index: any)
 	if type(index) ~= "number" or index ~= math.floor(index) or index < 1 or index > Config.LotCount then
 		return
 	end
-	local clock = os.clock()
-	local last = lastJump[player]
-	if last ~= nil and clock - last < Visits.TeleportCooldown then
-		return
-	end
 	if LotService.ownerOf(index) == nil then
 		return -- a free lot: nothing to visit (the client only offers claimed ones)
 	end
-	local character = player.Character
-	local humanoid = if character ~= nil then character:FindFirstChildOfClass("Humanoid") else nil
-	if character == nil or humanoid == nil or humanoid.Health <= 0 or rootPart(player) == nil then
-		return
+	if jumpTo(player, Visits.arrival(bases[index])) then
+		arrivedRemote:FireClient(player, index)
 	end
-	lastJump[player] = clock
-	humanoid.Sit = false
-	character:PivotTo(Visits.arrival(bases[index]))
-	arrivedRemote:FireClient(player, index)
+end
+
+-- Jump to film set `id`: inside it if the save owns it, else outside its gate (Visits.filmSetArrival
+-- checks the id and refuses a gate behind another set's gate).
+local function onFilmSet(player: Player, id: any)
+	local data = DataService.getData(player)
+	local spot = if data ~= nil then Visits.filmSetArrival(id, data) else nil
+	if spot ~= nil and jumpTo(player, spot) then
+		arrivedRemote:FireClient(player, id)
+	end
 end
 
 -- `owner` just premiered a film: show it to the people on their lot and tell the owner about the
@@ -228,6 +247,7 @@ end
 function VisitService.start()
 	applaudRemote.OnServerEvent:Connect(onApplaud)
 	visitRemote.OnServerEvent:Connect(onVisit)
+	filmSetRemote.OnServerEvent:Connect(onFilmSet)
 	task.spawn(function()
 		while true do
 			local ok, err = pcall(function()
