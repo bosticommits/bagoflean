@@ -191,6 +191,7 @@ for _, id in { "Gulch", "MoonBase", "Jungle" } do
 		check(id, "cue", play(id, t - 2, cue.from + 12, cue))
 		local greeted = FilmScenes.frame(id, cue.from + 1, cue)
 		equal(greeted.say.Director, "Places everyone!", `{id}: the director greets the owner`)
+		equal(FilmScenes.frame(id, cue.from + 0.4, cue).beat, "places", `{id}: "Places everyone!" is heard`)
 		local acked = FilmScenes.frame(id, t + 0.5, cue)
 		expect(acked.say.Clapper ~= nil, `{id}: the clapper loader answers the owner`)
 		-- A second cue later on, chained on the first.
@@ -224,7 +225,7 @@ test("every set has the whole crew, a slate, Action, a clean cut, a blooper and 
 			expect(said[words], `{id} never says "{words}"`)
 		end
 		for beat, slot in FilmScenes.BeatSounds do
-			expect(beats[beat], `{id} never has the {beat} moment`)
+			expect(beats[beat] or beat == "places", `{id} never has the {beat} moment`)
 			expect(Sounds.Slots[slot] ~= nil, `{beat} plays unknown sound slot {slot}`)
 		end
 		expect(#set.cast >= 8, `{id} has {#set.cast} people`)

@@ -5129,15 +5129,15 @@ MapKitShapes.Bounds.CrewDolly = { size = Vector3.new(3.6, 4.189, 3.6), center = 
 MapKitShapes.Shapes.CrewJibArm = {
 	S("box", CFrame.new(0, 0, -2.85, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.42, 7.3), "F5B82E"),
 	S("box", CFrame.new(0, 0.28, -2.85, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.16, 0.12, 6.5), "2E2C34"),
-	S("box", CFrame.new(0, 0, 0.9, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.42, 1.8), "F5B82E"),
+	S("box", CFrame.new(0, 0, 0.5, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.42, 0.42, 1), "F5B82E"),
 	S("cyl", CFrame.new(0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.36, 0.9, 0.36), "2E2C34"),
 	S("box", CFrame.new(0, -0.05, -6.5, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.6, 0.5, 0.5), "2E2C34"),
-	S("cyl", CFrame.new(0, 0, 1.3, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(1, 0.26, 1), "14121A"),
-	S("cyl", CFrame.new(0, 0, 1.62, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(1, 0.26, 1), "14121A"),
-	S("cyl", CFrame.new(0, -0.35, 1.85, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.7, 0.12), "D7DAE1"),
-	S("cyl", CFrame.new(0, -0.7, 1.85, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.14, 1.6, 0.14), "2E2C34"),
+	S("cyl", CFrame.new(0, 0, 0.55, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.96, 0.22, 0.96), "14121A"),
+	S("cyl", CFrame.new(0, 0, 0.82, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.96, 0.22, 0.96), "14121A"),
+	S("cyl", CFrame.new(0, -0.47, 0.98, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.12, 0.95, 0.12), "D7DAE1"),
+	S("cyl", CFrame.new(0, -0.95, 0.98, 0, -1, 0, 1, 0, 0, 0, 0, 1), Vector3.new(0.14, 1.4, 0.14), "2E2C34"),
 }
-MapKitShapes.Bounds.CrewJibArm = { size = Vector3.new(1.6, 1.261, 8.67), center = Vector3.new(0, -0.13, -2.415) }
+MapKitShapes.Bounds.CrewJibArm = { size = Vector3.new(1.4, 1.491, 7.8), center = Vector3.new(0, -0.265, -2.85) }
 
 MapKitShapes.Shapes.CrewCameraHead = {
 	S("cyl", CFrame.new(0, -0.3, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.24, 0.6, 0.24), "2E2C34"),

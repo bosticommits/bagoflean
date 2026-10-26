@@ -63,10 +63,11 @@ local SHOULDER_X, SHOULDER_Y = 1.2, 1.75
 
 -- The sound slot (Shared/Sounds) each moment plays.
 FilmScenes.BeatSounds = table.freeze({
-	snap = "filmSnap", -- the clapperboard snaps shut
-	action = "filmAction", -- "ACTION!"
-	cut = "filmCut", -- "CUT!"
-	cheer = "filmCheer", -- a clean take: the crew claps and confetti pops
+	places = "FilmPlaces", -- "Places everyone!" for the set's owner
+	snap = "FilmClapper", -- the clapperboard snaps shut
+	action = "FilmAction", -- "ACTION!"
+	cut = "FilmCut", -- "CUT!"
+	cheer = "FilmApplause", -- a clean take: the crew claps and confetti pops
 })
 
 export type Arm = { number } -- { swing forward (radians; pi/2 points ahead, pi straight up), out to the side }
@@ -103,7 +104,7 @@ export type Frame = {
 	say: { [string]: string }, -- speech bubbles, by who says them
 	shot: string?, -- who fires a shot this moment (a flash at their revolver's muzzle)
 	things: { [string]: CFrame }, -- loose props and the moving camera rig (kit name: where)
-	beat: string?, -- the latest moment with a sound (FilmScenes.BeatSounds), within half a second
+	beat: string?, -- the latest moment with a sound (FilmScenes.BeatSounds), within half a second of it
 	beatAt: number, -- the server time of that moment (tells one beat from the next)
 	beatWho: string?, -- who makes that sound
 }
@@ -671,7 +672,7 @@ type Scene = {
 	blooper: { at: number, who: string }, -- the blooper starts at a safe time
 	mic: { string }, -- who the boom follows
 	aim: Vector3, -- where the camera points
-	boom: Mark, -- the boom operator's spot
+	boom: Mark, -- the boom operator's spot (they face the camera's aim)
 	notes: Mark, -- where the director gives notes
 	touch: { who: string, at: Vector3, yaw: number, via: { Vector3 }?, wait: number? }, -- the make-up artist's spot for a touch-up (the way there, and how long after the reset starts she sets off)
 	rehearse: { [string]: { Vector3 } }, -- the walk-through: each actor's path out (and back)
@@ -758,7 +759,7 @@ local GULCH: Crew = {
 	ground = gulchGround,
 	director = { at = v(9, GROUND, 103.4), yaw = SHOT_SIDE },
 	clapper = { at = v(4.5, GROUND, 124.5), yaw = SHOT_SIDE },
-	slate = { at = v(0.5, GROUND, 111.5), yaw = CAMERA_SIDE },
+	slate = { at = v(-1.5, GROUND, 110.5), yaw = CAMERA_SIDE },
 	operatorTrack = { from = v(9.5, GROUND, 109), to = v(9.5, GROUND, 118) },
 	gaffer = { at = v(9.8, GROUND, 129.2), yaw = 120 },
 	lamp = { at = v(6.5, GROUND, 127.2), yaw = 45 },
@@ -1183,7 +1184,7 @@ local MOON_SCENES: { Scene } = {
 		boom = { at = v(-8, GROUND, 55.6), yaw = 160 },
 		notes = { at = v(-3.5, GROUND, 55.5), yaw = 180 },
 		touch = { who = "Astronaut", at = v(-7.7, GROUND, 67.6), yaw = 180, via = { v(-10.5, GROUND, 56.5) } },
-		rehearse = { Alien = { ALIEN_ROUND, v(12, GROUND, 67) } },
+		rehearse = { Alien = { ALIEN_ROUND, v(17, GROUND, 73) } },
 		reset = { Astronaut = astronautBack },
 		routes = { Alien = { ALIEN_ROUND } },
 		things = moonThings,
@@ -1569,6 +1570,14 @@ local function takePlan(set: SetDef, scene: Scene, nextScene: Scene, outcome: Ou
 
 	local dollyEnd = smooth(span(cutAt, STORY, STORY + scene.cut))
 	local dollyBack = resetAt + crew.dollyBack
+
+	-- The boom operator moves to the next scene's spot once the camera has turned to it.
+	local boom = newPlan(scene.boom.at, facing(scene.boom.at, scene.aim), 0, crew.ground)
+	if (nextScene.boom.at - scene.boom.at).Magnitude > 0.1 then
+		waitUntil(boom, dollyBack + 4)
+		go(boom, { nextScene.boom.at }, facing(nextScene.boom.at, nextScene.aim))
+		plans.Boom = boom
+	end
 	local length = dollyBack + 4
 	for _, p in plans do
 		length = math.max(length, planEnd(p))
@@ -1832,7 +1841,10 @@ local function crewPoses(set: SetDef, plan: SlotPlan, s: number, frame: Frame, g
 	end
 
 	-- The boom operator: the pole up over the actors while the camera rolls, resting otherwise.
-	local boom = pose(scene.boom.at, scene.boom.yaw)
+	local boom = if plans.Boom ~= nil then planPose(plans.Boom, s) else pose(scene.boom.at, facing(scene.boom.at, aim))
+	if not boom.walking and plans.Boom == nil then
+		boom.yaw = facing(boom.at, aim)
+	end
 	boom.hold = "PropBoomPole"
 	local heads = {}
 	for _, who in scene.mic do
@@ -1951,10 +1963,10 @@ local function frameAt(set: SetDef, t: number, cue: Cue?): Frame
 	-- The moment's sound, if one just happened.
 	local beats = if plan.outcome == "rehearsal"
 		then {}
-		else { { "snap", SNAP, "Clapper" }, { "action", ACTION, "Director" }, { "cut", plan.cutAt, "Director" }, { "cheer", plan.cutAt + 1.0, "Director" } }
+		else { { "places", QUIET, "Director" }, { "snap", SNAP, "Clapper" }, { "action", ACTION, "Director" }, { "cut", plan.cutAt, "Director" }, { "cheer", plan.cutAt + 1.0, "Director" } }
 	for _, b in beats do
 		local at = b[2] :: number
-		if s >= at and s - at < 0.5 and (b[1] ~= "cheer" or plan.outcome == "clean") then
+		if s >= at and s - at < 0.5 and (b[1] ~= "cheer" or plan.outcome == "clean") and (b[1] ~= "places" or greet) then
 			frame.beat, frame.beatAt, frame.beatWho = b[1] :: string, start + at, b[3] :: string
 		end
 	end
