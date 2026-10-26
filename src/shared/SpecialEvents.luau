@@ -23,6 +23,7 @@ export type Event = {
 	seconds: number, -- how long it lasts
 	icon: string, -- IconModels id shown on the banner
 	colors: { Color3 }, -- the title's gradient, top to bottom
+	season: string?, -- a Seasons id: only dealt while that season runs
 }
 
 SpecialEvents.List = {
@@ -66,6 +67,17 @@ SpecialEvents.List = {
 		icon = "clapper",
 		colors = { Color3.fromRGB(255, 214, 140), Color3.fromRGB(240, 96, 64) },
 	},
+	{
+		-- Fright Night only: fog rolls in, the sky darkens and glowing pumpkins pop up round town
+		-- (candy Cash, like Cash Rain coins), with one golden pumpkin (a free cast, like the crate).
+		id = "PumpkinPatch",
+		name = "PUMPKIN PATCH",
+		tagline = "Grab the glowing pumpkins and find the golden one!",
+		seconds = 120,
+		icon = "pumpkin",
+		colors = { Color3.fromRGB(255, 196, 80), Color3.fromRGB(150, 60, 220) },
+		season = "FrightNight",
+	},
 } :: { Event }
 
 local byId: { [string]: Event } = {}
@@ -97,6 +109,10 @@ SpecialEvents.CrateLuckMultiplier = 3 -- its free cast: best unlocked agency, x3
 SpecialEvents.CrateRadius = 8
 SpecialEvents.SpotlightReward = { luckMinutes = 5 } :: Shop.Reward -- visit the studio once
 SpecialEvents.FilmSpeed = 2 -- Golden Hour: films shoot this many times as fast
+-- Pumpkin Patch: fewer pickups than Cash Rain, each paying a Cash Rain coin, plus one golden
+-- pumpkin with the Mystery Crate's free cast, so the whole event is worth less than those two.
+SpecialEvents.PumpkinCount = 12
+SpecialEvents.GoldenLuckMultiplier = 3
 
 -- Cash for one Cash Rain coin, for a player with cinema income `ratePerSecond` and `fame`.
 function SpecialEvents.coinCash(ratePerSecond: number, fame: number): number
@@ -104,11 +120,20 @@ function SpecialEvents.coinCash(ratePerSecond: number, fame: number): number
 	return if cash == cash and cash < math.huge then math.floor(cash) else SpecialEvents.CoinCash
 end
 
--- Ignoring `disabled` ids (LiveConfig can switch events off), in List order.
-local function enabledEvents(disabled: { [string]: boolean }?): { Event }
+-- The season running at `now`, by festival week (seasonFor, below), so the Pumpkin Patch, the
+-- town decor and the limited actor come and go together.
+function SpecialEvents.seasonAt(now: number): Season?
+	return SpecialEvents.seasonFor(Rewards.week(now))
+end
+
+-- The events dealt in `slot`, in List order: not switched off (LiveConfig `disabled` ids), and
+-- seasonal ones only in their season.
+local function enabledEvents(disabled: { [string]: boolean }?, slot: number): { Event }
 	local list: { Event } = {}
+	local season = SpecialEvents.seasonAt(slot * SpecialEvents.SlotSeconds)
+	local seasonId = if season ~= nil then season.id else nil
 	for _, event in SpecialEvents.List do
-		if disabled == nil or not disabled[event.id] then
+		if (disabled == nil or not disabled[event.id]) and (event.season == nil or event.season == seasonId) then
 			table.insert(list, event)
 		end
 	end
@@ -169,7 +194,23 @@ end
 
 -- The event in `slot` and when it starts, or nil.
 function SpecialEvents.forSlot(slot: number, disabled: { [string]: boolean }?): (Event?, number)
-	local event = eventFor(slot, enabledEvents(disabled))
+	local events = enabledEvents(disabled, slot)
+	local event = eventFor(slot, events)
+	-- When a season starts or ends the deck changes, so its first card could repeat the last
+	-- slot's event: deal one unlike both neighbours instead (seasons are weeks apart, so the
+	-- neighbours themselves are ordinary deals).
+	if event ~= nil and #events >= 3 then
+		local before = enabledEvents(disabled, slot - 1)
+		if #before ~= #events and eventFor(slot - 1, before) == event then
+			local after = eventFor(slot + 1, events)
+			for _, other in events do
+				if other ~= event and other ~= after then
+					event = other
+					break
+				end
+			end
+		end
+	end
 	if event == nil then
 		return nil, 0
 	end
@@ -395,6 +436,12 @@ function SpecialEvents.coinSpots(starts: number): { Vector3 }
 		spots[i], spots[j] = spots[j], spots[i]
 	end
 	return { table.unpack(spots, 1, count) }
+end
+
+-- The Pumpkin Patch's pumpkins for the event starting at `starts` (on coin spots); its golden
+-- pumpkin sits on crateSpot(starts).
+function SpecialEvents.pumpkinSpots(starts: number): { Vector3 }
+	return { table.unpack(SpecialEvents.coinSpots(starts), 1, SpecialEvents.PumpkinCount) }
 end
 
 -- Where the Mystery Crate of the event starting at `starts` lands.

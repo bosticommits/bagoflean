@@ -400,3 +400,25 @@ exciting by M3, fix the core before adding anything else.
   (no income scaling) plus 3 minutes of Luck on the Star goal; prices and odds are untouched. Sim: day-one
   milestones unchanged (`tools/economy_sim.py` now understands the two new stats).
 - Studio and phone checks of the strip's placement are pending.
+
+## 19. As built (Fright Night / Halloween 2026)
+- **Season** = the FrightNight festival weeks (`SpecialEvents.seasonAt`, the same Thursday rule as the
+  festival and the limited actor; in 2026 that is Oct 19 - Nov 1 UTC). Everything below comes and goes
+  with it, as a pure function of the clock.
+- **Town decor** (`src/client/HalloweenWorld.luau`, each player's own copy): big jack-o'-lanterns round
+  the plaza (the only four PointLights), pumpkins, hay bales with candy buckets and two scarecrows on the
+  lawns by every lot gate, small jack-o'-lanterns at the boulevard lamps, and a faint purple haze. All
+  decoration: no collision, no clicks. Models: `art/blender/halloween_kit.py` -> `HalloweenShapes.luau`
+  (part fallback) and `halloween_kit.fbx`; `MapKit.place` reads either shapes file.
+- **Pumpkin Patch** special event (`SpecialEvents.List`, `season = "FrightNight"`): only dealt into the
+  deck in season, so it comes up about once every six slots and drops out after; at the season edges a
+  repeat of the previous slot's event is swapped out, so "never twice in a row" holds. LiveConfig
+  `DisabledEvents` "PumpkinPatch" switches it off. Fog thickens, the sky goes to dusk, 12 glowing
+  pumpkins pop up on Cash Rain coin spots (each pays a Cash Rain coin, claimed as `"coin"`) and a golden
+  pumpkin on a crate spot gives a free x3 Luck cast (`"golden"`, the crate's path). Pickups are
+  server-checked and saved per event like Cash Rain. New 3D icon `pumpkin`.
+- **Pumpkin Phantom featured**: in season a gold tag over the Cast button reads "LIMITED: The Pumpkin
+  Phantom  1 in N, until Nov 1" (live odds for the chosen agency and Luck; tap opens the odds). The odds
+  row says "until Nov 1" too. Odds and prices unchanged; not sold.
+- **Audio**: slots `frightSting` and `frightVoice` (Fish Audio announcer "Fright Night has begun!") and
+  track `Sounds.Music.fright` (falls back to the event track while its id is 0).
