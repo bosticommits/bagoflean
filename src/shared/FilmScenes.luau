@@ -1292,8 +1292,8 @@ do
 	-- skid his planted foot).
 	local path = { v(24, GROUND, 82) }
 	local p0, p1, p2 = Vector3.new(24, 0, 82), Vector3.new(24, 0, 72.5), Vector3.new(RUN_END.X, 0, RUN_END.Z)
-	for i = 1, 8 do
-		local u = i / 8
+	for i = 1, 16 do
+		local u = i / 16
 		local q = p0 * (1 - u) ^ 2 + p1 * 2 * u * (1 - u) + p2 * u * u
 		table.insert(path, v(q.X, GROUND, q.Z))
 	end
