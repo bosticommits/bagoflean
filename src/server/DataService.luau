@@ -4,6 +4,7 @@
 -- In Studio without DataStore access, ProfileStore falls back to a mock store by itself.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -143,7 +144,11 @@ local TEMPLATE: PlayerData = {
 -- on a later join, never years later, so a short log is enough to grant each one exactly once.
 local PURCHASE_ID_LOG = 100
 
-local playerStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
+-- ProfileStore.Mock is isolated from every live DataStore. Always use it in Studio, including
+-- when API access is enabled, so an accidental test can never load or save the production profile.
+local playerStore = if RunService:IsStudio()
+	then ProfileStore.New("PlayerData_v1", TEMPLATE).Mock
+	else ProfileStore.New("PlayerData_v1", TEMPLATE)
 
 local profiles: { [Player]: any } = {}
 local releasing: { [number]: boolean } = {}
