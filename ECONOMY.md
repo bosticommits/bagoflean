@@ -294,7 +294,11 @@ Typical player, 100 runs, with against `--no-gifts`: day-one milestones move by 
 first rebirth comes at 67 instead of 73 minutes, end of day one earns about 9% more a minute
 (3,150 against 2,880, the Luck boosts and Skips mostly), and week one ends within run-to-run noise
 (117k against 122k a minute; Hollywood Casting day 5 either way, Legend 68% either way).
-CASUAL_HARDCORE_PLACEHOLDER
+Casual players (two short visits a day, never past the 15-minute present): within noise (Talent
+Agency and the first rebirth on the same day and minute; week one 32k against 35k a minute, Legend 9%
+against 12%, both run-to-run noise at 100 runs). Hardcore players (full ladder every 60-minute
+session): day one the same (first rebirth 106 against 105 minutes), week one about 5% richer (219k
+against 209k a minute), Legend 97% against 95%, Icon 20% against 14% (the free Luck boosts).
 
 ## Special events
 
