@@ -162,9 +162,11 @@ test("owners land inside their set, clear of props and the crew, facing the shoo
 			local gap = Vector3.new(at.X - p.X, 0, at.Z - p.Z).Magnitude
 			expect(gap > 6, `{info.id}: the spot is {gap} studs from the {gear.kit}`)
 		end
-		-- Nobody in the scene walks through the spot, over two whole takes.
-		for i = 0, FilmScenes.TakeLength * 2 / 0.1 do
-			local frame = FilmScenes.frame(info.id, 500 * FilmScenes.TakeLength + i * 0.1)
+		-- Nobody in the scene walks through the spot, over a whole loop (or two takes on sets
+		-- without a loop period).
+		local period = (scenes :: any).period or (FilmScenes :: any).TakeLength * 2
+		for i = 0, period / 0.1 do
+			local frame = FilmScenes.frame(info.id, 500 * period + i * 0.1)
 			for who, pose in frame.poses do
 				if not pose.hidden then
 					local torso = CrewRig.cframes(info.frame, pose, frame.stick).Torso.Position
