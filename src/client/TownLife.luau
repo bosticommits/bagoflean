@@ -521,9 +521,9 @@ local function start()
 	folder.Parent = Workspace
 
 	-- Street spots (world space, on the wide sidewalks between the road and the lots).
-	vendor(standAt(64, 26.4, 0)) -- behind the cart, facing the boulevard
-	prop("HotDogCart", standAt(64, 24, 0))
-	mime(standAt(-64, -24, math.pi))
+	vendor(standAt(84, 24.4, 0)) -- behind the cart, facing the boulevard
+	prop("HotDogCart", standAt(84, 22, 0))
+	mime(standAt(-84, -22, math.pi))
 	busker(standAt(150, 34, 0))
 	busStop(CFrame.new(96, ground(96, -22), -22) * CFrame.Angles(0, math.pi, 0), { "FanA", "FanC", "FanD" })
 	busStop(CFrame.new(-128, ground(-128, 22), 22), { "FanD", "FanB", "Photog" })
