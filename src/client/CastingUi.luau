@@ -787,14 +787,14 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		holder.BackgroundTransparency = 1
 		holder.AnchorPoint = Vector2.new(0.5, 0.5)
 		holder.Position = UDim2.fromScale(x, 1.02)
-		holder.Size = UDim2.fromScale(0.2, 2.2)
+		holder.Size = UDim2.fromScale(0.11, 2.2)
 		holder.ZIndex = 10
 		holder.Visible = false
 		holder.Parent = overlay
 		local beam = Instance.new("Frame")
 		beam.Size = UDim2.fromScale(1, 0.5)
 		beam.BorderSizePixel = 0
-		beam.BackgroundTransparency = 0.5
+		beam.BackgroundTransparency = 0.6
 		beam.ZIndex = 10
 		beam.Parent = holder
 		local fade = Instance.new("UIGradient")
@@ -826,6 +826,9 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	skipButton.Parent = overlay
 	local skipHint = UiKit.makeTitle(skipButton, "Tap to skip", UiKit.MUTED, UDim2.fromScale(0.5, 0.05), UDim2.fromScale(0.25, 0.9), 2)
 	skipHint.ZIndex = 16
+	skipHint.BackgroundTransparency = 0.3 -- a dark pill so it reads over the Cast button
+	skipHint.BackgroundColor3 = UiKit.INK
+	corner(skipHint, 12)
 	textConstraint(skipHint, 22)
 
 	local building = false -- the build-up is playing
