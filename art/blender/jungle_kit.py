@@ -44,6 +44,8 @@ the river and the backdrop show their wooden frames from behind, the way film se
   JungleDirtPatch    worn dirt with a ragged edge, 22 x 16, sunk into the ground (not lifted);
                      JungleDirtPatchSmall (11 x 8) and JungleDirtPatchLong (26 x 11) the same
   JungleShrineBack   the shrine's back as a set piece: plywood on a 2x4 frame, jacks, sandbags
+  PropSandbag        the bag of sand the explorer swaps for the idol (held like the idol)
+  PropDart           a trap's dart, flying toward -Y, centred on the origin
 
   Backdrop and way in
   JungleBackdrop     a painted flat (32 wide, 22 high): jungle, mountains and a waterfall,
@@ -645,6 +647,26 @@ def jungle_shrine_back():
     return s
 
 
+def prop_sandbag():
+    """The bag of sand the explorer swaps for the idol: held from below like the idol (it sits
+    along -Z from the grip), about the idol's size."""
+    return [
+        BV((0, 0, -0.55), (0.75, 0.6, 0.8), SANDBAG, bevel=0.25),
+        BV((0, 0, -1.05), (0.45, 0.4, 0.3), shade(SANDBAG, 0.1), bevel=0.12),  # the gathered neck
+        B((0, 0, -1.25), (0.5, 0.45, 0.08), "#C8B080"),  # the tie
+        B((0, -0.31, -0.5), (0.3, 0.04, 0.2), MUD),  # a patch
+    ]
+
+
+def prop_dart():
+    """A blowpipe dart from the temple's trap, flying toward -Y, centred on the origin."""
+    return [
+        C((0, 0.1, 0), 0.05, 1.0, "Bark", rot=(90, 0, 0), seg=6),
+        K((0, -0.55, 0), 0.07, 0.0, 0.25, "Steel", rot=(90, 0, 0), seg=6),
+        K((0, 0.62, 0), 0.22, 0.05, 0.35, "Carpet", rot=(-90, 0, 0), seg=6),  # the fluff
+    ]
+
+
 # --- Backdrop and way in ------------------------------------------------------------------
 
 
@@ -791,6 +813,8 @@ KIT = [
     ("JungleDirtPatchSmall", jungle_dirt_patch_small),
     ("JungleDirtPatchLong", jungle_dirt_patch_long),
     ("JungleShrineBack", jungle_shrine_back),
+    ("PropSandbag", prop_sandbag),
+    ("PropDart", prop_dart),
     ("JungleBackdrop", jungle_backdrop),
     ("JungleBackdropSide", jungle_backdrop_side),
     ("JungleSignpost", jungle_signpost),
@@ -798,7 +822,7 @@ KIT = [
 ]
 
 # Sunk into the ground: the mound is the top of a squashed blob.
-NO_LIFT = {"JungleMound", "JungleDirtPatch", "JungleDirtPatchSmall", "JungleDirtPatchLong"}
+NO_LIFT = {"PropSandbag", "PropDart", "JungleMound", "JungleDirtPatch", "JungleDirtPatchSmall", "JungleDirtPatchLong"}
 
 LINEUPS = {
     "jungle_kit.png": (["IdolPedestal", "JungleFern", "JungleTorch", "JungleRuin", "JunglePalm", "JungleTree"], ["JungleTemple"]),
@@ -808,5 +832,5 @@ LINEUPS = {
     "jungle_water.png": (["JungleRiver", "JungleBridge"], ["JungleRiverBend"]),
     "jungle_backdrop.png": ([], ["JungleBackdrop", "JungleBackdropSide"]),
     "jungle_gate.png": ([], ["JungleGateArch"]),
-    "jungle_ground.png": (["JungleDirtPatchSmall", "JungleShrineBack@180"], ["JungleDirtPatch", "JungleDirtPatchLong"]),
+    "jungle_ground.png": (["JungleDirtPatchSmall", "JungleShrineBack@180", "PropSandbag", "PropDart"], ["JungleDirtPatch", "JungleDirtPatchLong"]),
 }

@@ -6439,6 +6439,21 @@ MapKitShapes.Shapes.JungleShrineBack = {
 }
 MapKitShapes.Bounds.JungleShrineBack = { size = Vector3.new(11.6, 10.665, 1.92), center = Vector3.new(0, 5.333, 0.92) }
 
+MapKitShapes.Shapes.PropSandbag = {
+	S("box", CFrame.new(0, -0.55, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.75, 0.8, 0.6), "B5A27A"),
+	S("box", CFrame.new(0, -1.05, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.45, 0.3, 0.4), "A3926E"),
+	S("box", CFrame.new(0, -1.25, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.5, 0.08, 0.45), "C8B080"),
+	S("box", CFrame.new(0, -0.5, -0.31, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(0.3, 0.2, 0.04), "6E5236"),
+}
+MapKitShapes.Bounds.PropSandbag = { size = Vector3.new(0.75, 1.14, 0.63), center = Vector3.new(0, -0.72, -0.015) }
+
+MapKitShapes.Shapes.PropDart = {
+	S("cyl", CFrame.new(0, 0, 0.1, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.1, 1, 0.1), "7A5434"),
+	S("cone", CFrame.new(0, 0, -0.55, 1, 0, 0, 0, 0, 1, 0, -1, 0), Vector3.new(0.14, 0.25, 0.14), "6E7078", nil, 0),
+	S("cone", CFrame.new(0, 0, 0.62, 1, 0, 0, 0, 0, -1, 0, 1, 0), Vector3.new(0.44, 0.35, 0.44), "C8202F", nil, 0.227),
+}
+MapKitShapes.Bounds.PropDart = { size = Vector3.new(0.381, 0.44, 1.47), center = Vector3.new(0, 0, 0.06) }
+
 MapKitShapes.Shapes.JungleBackdrop = {
 	S("box", CFrame.new(0, 11.654, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(32, 22, 0.6), "8FC8F0"),
 	S("box", CFrame.new(0, 11.654, 0.2, 1, 0, 0, 0, 1, 0, 0, 0, 1), Vector3.new(31.8, 21.8, 0.4), "D9B27C"),
