@@ -5,6 +5,8 @@
 --   Mystery Crate  a crate parachutes onto the boulevard under a purple beam, and opens for you
 --   Spotlight      a pillar of light and sweeping searchlights on one player's studio
 --   Golden Hour    the sun drops to a warm sunset and gold dust floats in the air
+--   Pumpkin Patch  fog rolls in, the sky darkens and glowing pumpkins pop up round town, with a
+--                  golden one under a beam (Fright Night only)
 -- Everything here is presentation. Pickups are only asked for (the `claim` function given to
 -- start); the server checks and pays (SpecialEventService). Props live in
 -- workspace.SpecialEventFx and Lighting effects named "SpecialEvent...", and fade away when the
@@ -16,8 +18,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Build = require(ReplicatedStorage.Shared.Models.Build)
 local EventModels = require(ReplicatedStorage.Shared.Models.EventModels)
 local LotModels = require(ReplicatedStorage.Shared.Models.LotModels)
+local MapKit = require(ReplicatedStorage.Shared.Models.MapKit)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local Fx = require(script.Parent.Fx)
@@ -738,12 +742,161 @@ local function goldenHour(run: Run, late: boolean)
 	end)
 end
 
+-- Pumpkin Patch -------------------------------------------------------------------------------
+local FRIGHT_CLOCK = 18.4 -- dusk
+local PUMPKIN_ORANGE = Color3.fromRGB(255, 150, 40)
+
+type Pumpkin = { model: Model, spot: Vector3, ground: number, pops: number, state: string, retryAt: number }
+
+local function pumpkinPatch(run: Run, late: boolean)
+	local folder = run.folder
+	local clock = os.clock()
+	local function prop(name: string, spot: Vector3, ground: number): Model
+		local model = MapKit.place(Build.new(folder, CFrame.new(spot.X, ground, spot.Z)), name, CFrame.Angles(0, random:NextNumber(-0.6, 0.6), 0), { solid = false })
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CanQuery = false
+			end
+		end
+		return model
+	end
+	local pumpkins: { Pumpkin } = {}
+	for index, spot in SpecialEvents.pumpkinSpots(run.live.starts) do
+		local ground = groundAt(spot.X, spot.Z, folder)
+		local model = prop("JackOLanternSmall", spot, ground)
+		EventModels.beam(model, Vector3.new(spot.X, ground, spot.Z), 40, 0.6, PUMPKIN_ORANGE).Transparency = 0.72
+		local pops = if late then clock - 1 else clock + 1 + index * 0.15
+		table.insert(pumpkins, { model = model, spot = spot, ground = ground, pops = pops, state = "open", retryAt = 0 })
+	end
+	local goldSpot = SpecialEvents.crateSpot(run.live.starts)
+	local goldGround = groundAt(goldSpot.X, goldSpot.Z, folder)
+	local golden = prop("GoldenPumpkin", goldSpot, goldGround)
+	local goldBase = Vector3.new(goldSpot.X, goldGround, goldSpot.Z)
+	EventModels.beam(folder, goldBase, 170, 4, GOLD).Transparency = 0.72
+	EventModels.ring(folder, goldBase + Vector3.new(0, 0.1, 0), SpecialEvents.CrateRadius * 2, GOLD).Transparency = 0.6
+	local light = Instance.new("PointLight")
+	light.Color = PALE_GOLD
+	light.Range = 18
+	light.Brightness = 2
+	light.Parent = anchor(folder, goldBase + Vector3.new(0, 3, 0))
+	local _, distance = marker(folder, goldBase + Vector3.new(0, 8, 0), "GOLDEN PUMPKIN", GOLD)
+	local goldState = "open"
+	local goldRetry = 0
+	local grabbed = 0
+
+	-- Fog rolls in and the sky darkens to dusk (put back as it was when the event ends).
+	local air = Lighting:FindFirstChildOfClass("Atmosphere")
+	local airWas = if air ~= nil then { Density = air.Density, Color = air.Color, Decay = air.Decay, Haze = air.Haze } else nil
+	local clockWas = normalClock or Lighting.ClockTime
+	normalClock = clockWas
+	local tint = Instance.new("ColorCorrectionEffect")
+	tint.Name = "SpecialEventTint"
+	tint.Parent = Lighting
+	local info = TweenInfo.new(if late then 0 else 4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+	TweenService:Create(Lighting, info, { ClockTime = FRIGHT_CLOCK }):Play()
+	TweenService:Create(tint, info, { TintColor = Color3.fromRGB(226, 214, 255), Saturation = 0.05 }):Play()
+	if air ~= nil then
+		TweenService:Create(air, info, { Density = 0.5, Color = Color3.fromRGB(170, 140, 210), Decay = Color3.fromRGB(90, 60, 120), Haze = 2.4 }):Play()
+	end
+	if not late then
+		Sfx.play("frightSting")
+		task.delay(1.2, Sfx.play, "frightVoice")
+	end
+
+	local function setHidden(model: Model, hidden: boolean)
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.LocalTransparencyModifier = if hidden then 1 else 0
+			end
+		end
+	end
+
+	run.step = function(_now: number, _dt: number)
+		local t = os.clock()
+		local at = rootPosition()
+		for index, pumpkin in pumpkins do
+			if pumpkin.state == "taken" then
+				continue
+			end
+			-- Each pumpkin pops up out of the ground, then bobs a little.
+			local u = math.clamp((t - pumpkin.pops) / 0.5, 0, 1)
+			local y = pumpkin.ground - 3 + 3 * backOut(u) + (if u >= 1 then math.sin(t * 2 + index) * 0.15 else 0)
+			pumpkin.model:PivotTo(CFrame.new(pumpkin.spot.X, y, pumpkin.spot.Z) * CFrame.Angles(0, math.sin(t + index) * 0.3, 0))
+			if u >= 1 and pumpkin.state == "open" and t >= pumpkin.retryAt and at ~= nil and SpecialEvents.near(at, pumpkin.spot, SpecialEvents.CoinRadius) then
+				pumpkin.state = "asked"
+				setHidden(pumpkin.model, true)
+				burst(folder, Vector3.new(pumpkin.spot.X, pumpkin.ground + 1.5, pumpkin.spot.Z), { PUMPKIN_ORANGE, PALE_GOLD }, 18)
+				Sfx.play("eventPickup", 0.7 + random:NextNumber(0, 0.15))
+				sendClaim("coin", index)
+			end
+		end
+		golden:PivotTo(CFrame.new(goldBase + Vector3.new(0, 0.3 + math.sin(t * 2) * 0.3, 0)) * CFrame.Angles(0, t * 0.8, 0))
+		showDistance(distance, goldBase)
+		if goldState == "open" and t >= goldRetry and at ~= nil and SpecialEvents.near(at, goldSpot, SpecialEvents.CrateRadius) then
+			goldState = "asked"
+			sendClaim("golden", 1)
+		end
+	end
+	run.onResult = function(kind: string, index: number, ok: boolean, reason: string)
+		if kind == "golden" then
+			if ok or reason == "claimed" then
+				goldState = "taken"
+				if ok then
+					burst(folder, goldBase + Vector3.new(0, 3, 0), { GOLD, PALE_GOLD }, 40, true)
+					Fx.confetti(60)
+					Sfx.play("reward")
+				end
+				fadeOut(golden, 0.6)
+			else
+				goldState = "open"
+				goldRetry = os.clock() + 1
+			end
+			return
+		end
+		local pumpkin = pumpkins[index]
+		if kind ~= "coin" or pumpkin == nil then
+			return
+		end
+		if ok or reason == "claimed" then
+			pumpkin.state = "taken"
+			grabbed += if ok then 1 else 0
+		else
+			pumpkin.state = "open"
+			pumpkin.retryAt = os.clock() + 1
+			setHidden(pumpkin.model, false)
+		end
+	end
+	run.status = function(): string?
+		local gold = if goldState == "taken" then "Golden pumpkin found!" else "Find the golden pumpkin!"
+		return `Grab the pumpkins!  {grabbed}/{#pumpkins}   {gold}`
+	end
+	run.onEnd = function()
+		fadeOut(folder, FADE * 0.8)
+		local back = TweenInfo.new(FADE, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+		TweenService:Create(Lighting, back, { ClockTime = clockWas }):Play()
+		TweenService:Create(tint, back, { TintColor = Color3.new(1, 1, 1), Saturation = 0 }):Play()
+		if air ~= nil and airWas ~= nil then
+			TweenService:Create(air, back, airWas):Play()
+		end
+	end
+	table.insert(run.cleanup, function()
+		tint:Destroy()
+		Lighting.ClockTime = clockWas
+		if air ~= nil and airWas ~= nil then
+			for key, value in airWas do
+				(air :: any)[key] = value
+			end
+		end
+	end)
+end
+
 local BUILDERS: { [string]: (run: Run, late: boolean) -> () } = {
 	LuckyStar = luckyStar,
 	CashRain = cashRain,
 	MysteryCrate = mysteryCrate,
 	Spotlight = spotlight,
 	GoldenHour = goldenHour,
+	PumpkinPatch = pumpkinPatch,
 }
 
 -- API -----------------------------------------------------------------------------------------

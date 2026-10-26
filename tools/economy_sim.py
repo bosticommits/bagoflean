@@ -195,6 +195,11 @@ def load_tuning() -> dict:
         "specials": {
             "events": [(m.group(1), _num(m.group(2))) for m in re.finditer(
                 r'id = "(\w+)",.*?seconds = ([\d.]+)', _block(specials_text, "SpecialEvents.List"), re.S)],
+            # Seasonal events (Pumpkin Patch): only dealt while their season runs.
+            "event_season": {m.group(1): m.group(2) for m in re.finditer(
+                r'id = "(\w+)",(?:(?!id = ").)*?season = "(\w+)"', _block(specials_text, "SpecialEvents.List"), re.S)},
+            "pumpkins": int(_special(specials_text, "PumpkinCount")),
+            "golden_luck": _special(specials_text, "GoldenLuckMultiplier"),
             "slot": _special(specials_text, "SlotSeconds"),
             "gap": _special(specials_text, "Gap"),
             "luck": _special(specials_text, "LuckMultiplier"),
@@ -248,7 +253,8 @@ class Game:
     def special_for_slot(self, slot: int) -> tuple[str, float, float] | None:
         if slot in self._special_cache:
             return self._special_cache[slot]
-        events = self.t["specials"]["events"]
+        seasons = self.t["specials"]["event_season"]
+        events = [e for e in self.t["specials"]["events"] if seasons.get(e[0]) in (None, SEASON)]
 
         def deck(cycle: int) -> list:
             cards = list(events)
@@ -671,6 +677,13 @@ class Player:
             self.roll(agency, self.cast_luck() * sp["crate_luck"])
         elif event_id == "Spotlight":
             self.grant(sp["spotlight_reward"])
+        elif event_id == "PumpkinPatch":
+            # Half the pumpkins (each a Cash Rain coin) and the golden pumpkin's free cast.
+            coin = max(sp["coin_cash"], self.rate() * sp["coin_cinema_seconds"], self.fame * sp["coin_fame_share"])
+            for _ in range(sp["pumpkins"] // 2):
+                self.grant({"cash": coin})
+            agency = [a for a in self.g.t["agencies"] if self.fame >= a["fame"]][-1]
+            self.roll(agency, self.cast_luck() * sp["golden_luck"])
 
     def finish_requests(self):
         """Studio Requests: the player finishes the day's three during the first session."""
