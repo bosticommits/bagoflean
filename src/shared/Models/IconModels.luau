@@ -395,12 +395,31 @@ function BUILDERS.visit(b: Builder)
 	b:ball("PinDot", 0.72, v(0, 3.8, -1.02), P.OffWhite)
 end
 
+-- A jack-o'-lantern with a glowing face, for the Pumpkin Patch event (Fright Night).
+function BUILDERS.pumpkin(b: Builder)
+	local orange, dark, glow = rgb(255, 138, 30), rgb(224, 102, 26), rgb(255, 216, 74)
+	b:ball("Pumpkin", 3, v(0, 1.4, 0), orange)
+	for _, x in { -0.75, 0.75 } do
+		local rib = b:ball("Rib", 2.4, v(x, 1.4, 0.1), dark)
+		rib.Size = Vector3.new(1.7, 2.6, 2.6)
+	end
+	b:cylinder("Stem", 0.8, 0.4, CFrame.new(0.05, 3.1, 0) * CFrame.Angles(0, 0, math.rad(-12)), rgb(94, 122, 46))
+	-- Triangle eyes (two wedges each) and a grin, standing proud of the front.
+	for _, x in { -0.55, 0.55 } do
+		b:wedge("Eye", v(0.3, 0.6, 0.3), CFrame.new(x + 0.15, 1.85, -1.42) * CFrame.Angles(0, math.rad(-90), 0), glow, NEON)
+		b:wedge("Eye", v(0.3, 0.6, 0.3), CFrame.new(x - 0.15, 1.85, -1.42) * CFrame.Angles(0, math.rad(90), 0), glow, NEON)
+	end
+	b:block("Grin", v(1.5, 0.32, 0.3), v(0, 1.0, -1.42), glow, NEON)
+	b:block("Tooth", v(0.28, 0.16, 0.34), v(-0.3, 1.1, -1.44), orange)
+	b:block("Tooth", v(0.28, 0.16, 0.34), v(0.3, 0.9, -1.44), orange)
+end
+
 local IconModels = {}
 
 IconModels.Ids = table.freeze({
 	"clapper", "dice", "arrow", "gift", "popcorn", "ticket", "coin", "trophy", "camera", "star",
 	"movieCamera", "clover", "magnet", "stage", "bolt", "crown", "potion", "skip", "moneybag", "vault",
-	"script", "chest", "lock", "rebirth", "visit",
+	"script", "chest", "lock", "rebirth", "visit", "pumpkin",
 })
 
 -- Build icon `id` into a new Model under `parent`. Unknown ids build an empty model. `scale`
