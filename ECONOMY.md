@@ -15,6 +15,7 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
     python3 tools/economy_sim.py --cast-rate 1.0     # casts per second while online (default 0.35); 1.0 = the server cap, 1 / CastCooldown
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
+    python3 tools/economy_sim.py --no-gifts          # leave the playtime gift ladder out, to compare
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
 Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
@@ -275,6 +276,25 @@ against 4, Talent Agency 28 against 30, the first rebirth unchanged at 75 minute
 ends within 1% on Cash per minute. Casual players: first Star 7 against 15 minutes, week one ends
 about 4% richer on Cash per minute (the early Star's films pay a bit more all day one). Compare
 with `--no-hot-start`. No price, odds or payout changed.
+
+**Playtime gift ladder (2026-10-26).** A row of seven presents opens after 2, 5, 10, 15, 25, 40
+and 60 minutes played in a session (`src/shared/PlaytimeGifts.luau`): $25 or 1 minute of income,
+$50 or 2 minutes, a Skip, $100 or 5 minutes, x2 Luck for 5 minutes, two Comedy Indie scripts with $200
+or 10 minutes, and the big one, x2 Luck for 15 minutes (free Lucky Casting) with a Skip and $300 or 15
+minutes. Early Cash is kept as small as the "Next up" chain's for the same reason (the first minutes
+are where extra Cash shows most). Only time in the game counts. Anti-farming: a new ladder only
+starts after 30 minutes away (a quick rejoin or server hop carries on the same ladder, saved in the
+profile), and at most 3 new ladders a UTC day (after that a rejoin carries on the last one).
+Rejoining every few minutes therefore gets nothing new, and 30 minutes away buys back only the small
+first presents. The sim opens every present a session reaches (every sim session is hours apart, so
+each one starts a ladder): a typical day one reaches 4, 4 and 5 presents, later days three 15-minute
+visits (4 each); hardcore players get the full ladder in each 60-minute session.
+Typical player, 100 runs, with against `--no-gifts`: day-one milestones move by a minute at most
+(Talent Agency 27 against 28 minutes, first Star 6 either way, Sound stage 3 at 60 either way), the
+first rebirth comes at 67 instead of 73 minutes, end of day one earns about 9% more a minute
+(3,150 against 2,880, the Luck boosts and Skips mostly), and week one ends within run-to-run noise
+(117k against 122k a minute; Hollywood Casting day 5 either way, Legend 68% either way).
+CASUAL_HARDCORE_PLACEHOLDER
 
 ## Special events
 

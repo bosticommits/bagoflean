@@ -17,8 +17,9 @@ local UiKit = require(script.Parent.UiKit)
 
 local PlaytimeGiftsUi = {}
 
--- Present pictures (uploaded image ids). 0 = draw the present in code instead.
-local ART = { closed = 0, ready = 0, opened = 0 }
+-- Present pictures (image ids, ForgeGUI art in art/ui/gift_*.png; decals 117097257889551,
+-- 112488073936113, 131932256497483). Set closed to 0 to draw the presents in code instead.
+local ART = { closed = 121409647430879, ready = 99908336297706, opened = 101236104871779 }
 
 local SLOT, BIG, GAP, LABEL = 44, 52, 4, 16
 local COUNT = #PlaytimeGifts.Ladder
@@ -239,6 +240,7 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 			image.Size = UDim2.fromScale(1, 1)
 			image.ZIndex = 7
 			image.Image = "rbxassetid://" .. ART.closed
+			image.ScaleType = Enum.ScaleType.Fit
 			image.Parent = button
 			art = image
 		else
