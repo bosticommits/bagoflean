@@ -3,9 +3,11 @@
 -- reward shape, Shop.Reward) and handles the claim remotes. The client names what it is claiming;
 -- whether it is claimable, and what it gives, is decided here.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local PlaytimeGifts = require(ReplicatedStorage.Shared.PlaytimeGifts)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
@@ -22,6 +24,9 @@ local claimRequest = Remotes.get("ClaimRequest")
 local redeemCode = Remotes.get("RedeemCode")
 local claimStayGift = Remotes.get("ClaimStayGift")
 local rewardResult = Remotes.get("RewardResult")
+local claimGift = Remotes.get("ClaimGift")
+local giftsSync = Remotes.get("GiftsSync")
+local testGifts = if RunService:IsStudio() then Remotes.get("TestGifts") else nil
 
 local lastAction: { [Player]: { [string]: number } } = {}
 local lastSync: { [Player]: number } = {}
@@ -223,9 +228,68 @@ local function onClaimStayGift(player: Player)
 	RewardService.afterGrant(player, `Gift: {text}`)
 end
 
--- Call once the player's data has loaded: starts the session clock for the stay gift.
+-- Playtime gift ladder (PlaytimeGifts.luau). The server clock decides; the client only names
+-- which present it tapped. `opened`/`text` tell the row which present just popped and what it gave.
+local function syncGifts(player: Player, opened: number?, text: string?)
+	local data = DataService.getData(player)
+	if data == nil then
+		return
+	end
+	PlaytimeGifts.tick(data.gifts, os.time())
+	local claimed = {}
+	for k = 1, #PlaytimeGifts.Ladder do
+		claimed[k] = PlaytimeGifts.isClaimed(data.gifts, k)
+	end
+	giftsSync:FireClient(player, { played = data.gifts.played, claimed = claimed, opened = opened, text = text })
+end
+
+local function onClaimGift(player: Player, k: any)
+	if not allow(player, "gift", Config.ActionCooldown) then
+		return
+	end
+	local data = DataService.getData(player)
+	if data == nil then
+		return fail(player, "Still loading your data")
+	end
+	PlaytimeGifts.tick(data.gifts, os.time())
+	local ok, why = PlaytimeGifts.check(data.gifts, k)
+	if not ok then
+		syncGifts(player) -- puts the row right if it was ahead of the server
+		return fail(player, why or "That didn't work")
+	end
+	PlaytimeGifts.claim(data.gifts, k)
+	local text = RewardService.apply(player, data, PlaytimeGifts.Ladder[k].reward, "TimedReward", "PlaytimeGift")
+	Analytics.event(player, "PlaytimeGiftClaim", k)
+	RewardService.afterGrant(player)
+	syncGifts(player, k, text)
+end
+
+-- Studio only: "skip" adds `minutes` of play, "reset" starts a fresh ladder (as after a long break).
+local function onTestGifts(player: Player, action: any, minutes: any)
+	local data = DataService.getData(player)
+	if not RunService:IsStudio() or data == nil then
+		return
+	end
+	PlaytimeGifts.tick(data.gifts, os.time())
+	if action == "skip" and type(minutes) == "number" then
+		data.gifts.played += math.clamp(minutes, 0, 120) * 60
+	elseif action == "reset" then
+		data.gifts = PlaytimeGifts.fresh(nil)
+		PlaytimeGifts.begin(data.gifts, os.time())
+	end
+	syncGifts(player)
+end
+
+-- Call once the player's data has loaded: starts the session clock for the stay gift, and starts
+-- or carries on the gift ladder.
 function RewardService.joined(player: Player)
 	joinedAt[player] = os.clock()
+	local data = DataService.getData(player)
+	if data ~= nil then
+		PlaytimeGifts.begin(data.gifts, os.time())
+		DataService.markDirty(player)
+	end
+	syncGifts(player)
 end
 
 function RewardService.start()
@@ -233,6 +297,15 @@ function RewardService.start()
 	claimRequest.OnServerEvent:Connect(onClaimRequest)
 	redeemCode.OnServerEvent:Connect(onRedeemCode)
 	claimStayGift.OnServerEvent:Connect(onClaimStayGift)
+	claimGift.OnServerEvent:Connect(onClaimGift)
+	Remotes.get("GiftsRequest").OnServerEvent:Connect(function(player)
+		if allow(player, "giftsSync", 1) then
+			syncGifts(player)
+		end
+	end)
+	if testGifts ~= nil then
+		testGifts.OnServerEvent:Connect(onTestGifts)
+	end
 	Remotes.get("RewardsRequest").OnServerEvent:Connect(function(player)
 		local now = os.clock()
 		if lastSync[player] == nil or now - lastSync[player] >= 1 then
@@ -243,6 +316,11 @@ function RewardService.start()
 end
 
 function RewardService.forget(player: Player)
+	-- Bank the session's play time (and when they left) before the final save.
+	local data = DataService.getData(player)
+	if data ~= nil then
+		PlaytimeGifts.tick(data.gifts, os.time())
+	end
 	lastAction[player] = nil
 	lastSync[player] = nil
 	joinedAt[player] = nil
