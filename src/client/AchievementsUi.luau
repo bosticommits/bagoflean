@@ -180,6 +180,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		local claim = makeButton(frame, "CLAIM", UiKit.GREEN, UDim2.new(0.3, 0, 0, 48), UDim2.new(0.68, 0, 0.5, -24))
 		UiKit.pulse(claim)
 		local waiting = makeLabel(frame, "In progress", UiKit.MUTED, UDim2.new(0.3, 0, 0, 40), UDim2.new(0.68, 0, 0.5, -20))
+		UiKit.textConstraint(waiting, 18) -- a status, so smaller than the row's title
 		local done = Instance.new("Frame")
 		done.BackgroundTransparency = 1
 		done.Position = UDim2.fromScale(0.68, 0.08)
@@ -326,6 +327,17 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		end
 		local countdown = makeLabel(row, "", UiKit.MUTED, UDim2.new(0.5, -12, 0, 24), UDim2.new(0.5, 0, 0, 10))
 		countdown.TextXAlignment = Enum.TextXAlignment.Right
+		UiKit.textConstraint(countdown, 18)
+		-- A thin gold rule under the heading, so each section reads as its own block.
+		local rule = Instance.new("Frame")
+		rule.Name = "Rule"
+		rule.BorderSizePixel = 0
+		rule.BackgroundColor3 = UiKit.AWARD_GOLD
+		rule.BackgroundTransparency = 0.55
+		rule.Position = UDim2.new(0, 12, 1, -4)
+		rule.Size = UDim2.new(1, -24, 0, 3)
+		rule.Parent = row
+		UiKit.corner(rule, 2)
 		return countdown, row
 	end
 
@@ -645,12 +657,14 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		end
 	end
 
-	-- Rows that only show something: no CLAIM, a status where "In progress" goes.
-	local function infoRow(order: number, icon: string): Row
+	-- Rows that only show something: no CLAIM, a status where "In progress" goes. Tinted by section
+	-- (purple events, green box office) so the board's sections read apart at a glance.
+	local function infoRow(order: number, icon: string, tint: Color3): Row
 		local row = newRow(boardList, order, icon)
 		row.claim.Visible = false
 		row.done.Visible = false
 		row.outline.Color = UiKit.AWARD_GOLD
+		row.frame.BackgroundColor3 = UiKit.ROW:Lerp(tint, 0.28)
 		return row
 	end
 	local function show(row: Row, title: string, line: string, share: number, count: string, status: string)
@@ -662,13 +676,13 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 	end
 
 	heading(boardList, 30, "Events")
-	local awardRow = infoRow(31, "trophy")
-	local luckyRow = infoRow(32, "clover")
+	local awardRow = infoRow(31, "trophy", UiKit.PURPLE)
+	local luckyRow = infoRow(32, "clover", UiKit.PURPLE)
 	local specialRow: Row? = nil
 	local specialKey = ""
 
 	heading(boardList, 40, "Box office")
-	local cinemaRow = infoRow(41, "ticket")
+	local cinemaRow = infoRow(41, "ticket", UiKit.GREEN)
 	local filmRows: { Row } = {}
 	local filmKey = ""
 	local noFilm = UiKit.addRow(boardList, 42, 44)
@@ -728,7 +742,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 				specialRow = nil
 			end
 			if key ~= "" then
-				specialRow = infoRow(33, if live ~= nil and key ~= "next" then live.event.icon else "gift")
+				specialRow = infoRow(33, if live ~= nil and key ~= "next" then live.event.icon else "gift", UiKit.PURPLE)
 			end
 		end
 		local special = specialRow
@@ -766,7 +780,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			end
 			table.clear(filmRows)
 			for index in films do
-				table.insert(filmRows, infoRow(42 + index, "movieCamera"))
+				table.insert(filmRows, infoRow(42 + index, "movieCamera", UiKit.GREEN))
 			end
 		end
 		noFilm.Visible = #films == 0

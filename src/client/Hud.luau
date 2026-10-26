@@ -27,7 +27,7 @@ local HUD_SIDE_MARGIN = 12 -- gap kept to each screen edge
 local HUD_MIN_SCALE = 0.5 -- smallest the event lines shrink to on a narrow screen
 local BADGE_WIDTH = 196
 local BOX_WIDTH = 310
-local TAB_WIDTH = 64
+local TAB_WIDTH = 76 -- room for the "<" pull hint left of the trophy
 local TAB_HEIGHT = 64
 local TAB_OVERHANG = 14 -- past the right edge, so only its left corners show
 -- Off the middle, clear of the Studio-only "Events" test button at the right middle: above it on
@@ -215,7 +215,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	box.Name = "BoxOffice"
 	box.BackgroundColor3 = UiKit.NAVY
 	box.AnchorPoint = Vector2.new(0.5, 0)
-	box.Position = UDim2.new(0.5, 0, 0, 56)
+	box.Position = UDim2.new(0.5, 0, 0, 54)
 	box.Size = UDim2.fromOffset(BOX_WIDTH, 50)
 	box.Parent = frame
 	UiKit.corner(box, 14)
@@ -271,7 +271,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	alignTop = function(right: boolean)
 		badgeLayout.HorizontalAlignment = if right then Enum.HorizontalAlignment.Right else Enum.HorizontalAlignment.Center
 		box.AnchorPoint = Vector2.new(if right then 1 else 0.5, 0)
-		box.Position = if right then UDim2.new(1, -4, 0, 56) else UDim2.new(0.5, 0, 0, 56)
+		box.Position = if right then UDim2.new(1, -4, 0, 54) else UDim2.new(0.5, 0, 0, 54) -- 8 px gaps to the badges and Next Up
 		tuck.AnchorPoint = if right then Vector2.new(1, 0) else Vector2.new(0, 0.5)
 		tuck.Position = if right then UDim2.new(0, -22, 1, 10) else UDim2.new(1, 8, 0.5, 0)
 		-- Touch screens: the X stays a 44 px tap target however small the stack is scaled.
@@ -402,8 +402,6 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	tab.AnchorPoint = Vector2.new(1, 0.5)
 	tab.ZIndex = 0 -- under the panels too
 	tab.Visible = false
-	local tabScale = Instance.new("UIScale")
-	tabScale.Parent = tab
 	local function tabAt(shown: boolean): UDim2
 		local y = TAB_Y
 		if UserInputService.TouchEnabled then
@@ -412,27 +410,34 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			local view = UiKit.viewport()
 			local height = if gui.AbsoluteSize.Y > 0 then gui.AbsoluteSize.Y else view.Y
 			local jumpTop = if math.min(view.X, view.Y) <= 500 then 90 else 210
-			y = math.min(TAB_Y_TOUCH, height / 2 - jumpTop - 8 - TAB_HEIGHT * tabScale.Scale / 2)
+			y = math.min(TAB_Y_TOUCH, height / 2 - jumpTop - 8 - TAB_HEIGHT / 2)
 		end
 		return UDim2.new(1, if shown then TAB_OVERHANG else TAB_WIDTH + 24, 0.5, y)
 	end
+	-- A "<" on the visible edge says "pull me out"; the trophy says what comes back.
+	local pull = UiKit.makeTitle(tab, "<", UiKit.WHITE, UDim2.fromOffset(14, TAB_HEIGHT - 16), UDim2.fromOffset(4, 8), 2.5)
+	pull.Name = "Pull"
+	pull.ZIndex = 3
 	local tabArt = Instance.new("Frame")
 	tabArt.Name = "Icon"
 	tabArt.BackgroundTransparency = 1
-	tabArt.Position = UDim2.fromOffset(2, 4)
-	tabArt.Size = UDim2.fromOffset(TAB_WIDTH - TAB_OVERHANG - 4, TAB_HEIGHT - 8)
+	tabArt.Position = UDim2.fromOffset(16, 6)
+	tabArt.Size = UDim2.fromOffset(TAB_WIDTH - TAB_OVERHANG - 18, TAB_HEIGHT - 12)
 	tabArt.ZIndex = 3
 	tabArt.Parent = tab
 	Icon3D.outlined(tabArt, "trophy", 0.95)
+	-- Full size on phones too: 64 px stays an easy thumb target.
 	local function placeTab()
-		tabScale.Scale = if UiKit.isCompact() then 0.8 else 1
 		tab.Position = tabAt(tucked)
 	end
 	UiKit.onViewportChanged(placeTab)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeTab)
+	local tabStroke = tab:FindFirstChild("Outline") :: UIStroke
 	local function showReady()
 		local count = gui:GetAttribute("ClaimReady")
-		UiKit.badge(tab, if typeof(count) == "number" and count > 0 then "!" else nil)
+		local ready = typeof(count) == "number" and count > 0
+		UiKit.badge(tab, if ready then "!" else nil)
+		tabStroke.Color = if ready then UiKit.AWARD_GOLD else UiKit.INK -- gold rim, like the CLAIM halo
 		local dot = tab:FindFirstChild("Badge")
 		if dot ~= nil and dot:IsA("GuiObject") then
 			dot.Position = UDim2.fromOffset(-8, -8) -- the left corner: the right one is off screen
