@@ -102,7 +102,7 @@ function CrewRig.build(parent: Instance, who: string, kits: { string }?): Rig
 
 	local props: { [string]: Model } = {}
 	local board: TextLabel? = nil
-	for _, kit in kits or {} do
+	for _, kit in kits or ({} :: { string }) do
 		local labels: { [string]: MapKit.Label }? = if kit == "PropClapper"
 			then { Board = { text = "", color = Color3.new(1, 1, 1), stroke = 0 } :: MapKit.Label }
 			else nil

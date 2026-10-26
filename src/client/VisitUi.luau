@@ -684,7 +684,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		task.defer(function()
 			local camera = workspace.CurrentCamera
 			if camera ~= nil then
-				local base = bases[index]
+				local base = bases[index :: number]
 				local eye = base * Vector3.new(0, 11, LotModels.Layout.gateZ - 9)
 				local target = base * Vector3.new(0, 4, 2)
 				camera.CFrame = CFrame.lookAt(eye, target)

@@ -697,7 +697,7 @@ local JUNGLE_DIRT = Color3.fromRGB(150, 110, 70)
 type Dressing = { kit: string, x: number, z: number, turn: number, soft: boolean?, walk: boolean?, light: boolean?, scale: number? }
 
 local function dress(kit: string, x: number, z: number, turn: number?, extra: { soft: boolean?, walk: boolean?, light: boolean?, scale: number? }?): Dressing
-	local e = extra or {}
+	local e: { soft: boolean?, walk: boolean?, light: boolean?, scale: number? } = extra or {}
 	return { kit = kit, x = x, z = z, turn = turn or 0, soft = e.soft, walk = e.walk, light = e.light, scale = e.scale }
 end
 

@@ -32,7 +32,7 @@ local PullNewsService = {}
 -- Retries a yielding call with backoff (1, 2, 4 s). Returns whether it worked.
 local function retry(label: string, fn: () -> ()): boolean
 	for attempt = 1, 4 do
-		local ok, err = pcall(fn)
+		local ok, err = pcall(fn :: () -> any)
 		if ok then
 			return true
 		end
