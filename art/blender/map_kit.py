@@ -794,9 +794,11 @@ def keeps_origin(name):
     their joint at the origin, and a few set pieces are meant to sink into the ground."""
     import backlot_kit
     import crew_kit
+    import jungle_kit
     import space_kit
 
-    return name in crew_kit.NO_LIFT or name in space_kit.NO_LIFT or name in backlot_kit.NO_LIFT
+    return (name in crew_kit.NO_LIFT or name in space_kit.NO_LIFT or name in jungle_kit.NO_LIFT
+            or name in backlot_kit.NO_LIFT)
 
 
 def main():

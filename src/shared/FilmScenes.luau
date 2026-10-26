@@ -12,8 +12,10 @@
 --                bounds across the moon in slow low-gravity leaps and plants the flag two-handed;
 --                an alien peeks from behind a foam rock and tiptoes up in stages (freezing when he
 --                half turns), taps his shoulder, they both jump, then shake hands and wave.
---   Jungle       The idol: an explorer climbs the temple steps and grabs the golden idol, a boulder
---                rolls out after him, and he dives clear just in time.
+--   Jungle       The idol: an explorer creeps up the temple steps, ducks a trap's dart, swaps the
+--                golden idol for a bag of sand, and in the silence after, the temple rumbles: a
+--                boulder rolls out, chases him down the steps and across the clearing, and he
+--                dives clear, dusts himself off and holds the idol high.
 --
 -- The loop. Each set plays a fixed cycle of slots: for each scene a rehearsal (the actors walk
 -- their marks at half pace while the director explains), then three takes. A take slot:
@@ -1290,15 +1292,23 @@ local JUNGLE_GEAR: { Gear } = {
 }
 
 local IDOL_ON_PEDESTAL = CFrame.new(24, TOP_Y + 1.6, 92.5) * CFrame.Angles(math.pi, 0, 0)
+local SANDBAG_ON_PEDESTAL = IDOL_ON_PEDESTAL -- the sandbag sits where the idol stood
 local IDOL_REACH = v(24, TOP_Y, 90.6) -- where the explorer stands to reach the idol
 local BOULDER_R = 3.2
 local DOOR_Z = 97.5 -- the boulder's middle when it rests in the doorway
 local BOULDER_STOP = 66
 local EXPLORER_PLACES = v(22, GROUND, 75)
 local GUIDE_PLACES = v(27.5, GROUND, 74)
-local GUIDE_COVER = v(8, GROUND, 66)
-local DIVE_FROM, DIVE_TO = v(24, GROUND, 78.2), v(31, GROUND, 74.5)
-local TAKE_IDOL = 5.8
+local GUIDE_COVER = v(39.5, GROUND, 70.5) -- off to the right, out of the boulder's way
+local TRAP_STEP = v(24, GROUND, 84) -- halfway up, where the dart trap goes off
+local RUN_END = v(10.5, GROUND, 70.2) -- the chase veers left off the boulder's line, toward the fallen column
+local DIVE_TO = v(7.6, GROUND, 68.6)
+local DIVE_YAW = 63
+local SWAP, SWAP_LEN = 10.0, 0.35 -- the sandbag goes on the pedestal as the idol comes off
+local DART_FROM, DART_TO, DART_AT = v(11, 12.9, 84), v(40, 12.9, 84), 5.65 -- flies across just over his ducked head
+local DART_LEN = 0.55
+local RUMBLE = 11.4
+local BOULDER_OUT, BOULDER_TOP, BOULDER_FOOT, BOULDER_STILL = 12.4, 13.6, 14.4, 16.2
 
 local function boulderCF(z: number): CFrame
 	return CFrame.new(24, stepY(z) + BOULDER_R, z) * CFrame.Angles(-(DOOR_Z - z) / BOULDER_R, 0, 0)
@@ -1307,80 +1317,133 @@ end
 -- The boulder's middle along its path: out of the doorway, over the edge, down the steps and
 -- across the clearing, slowing to a stop just short of the camera.
 local function boulderZ(a: number): number
-	if a < 6.8 then
+	if a < BOULDER_OUT then
 		return DOOR_Z
-	elseif a < 8.0 then
-		return DOOR_Z + (STEPS_TOP - DOOR_Z) * smooth(span(a, 6.8, 8.0)) ^ 0.7
-	elseif a < 9.0 then
-		return STEPS_TOP + (STEPS_FOOT - STEPS_TOP) * span(a, 8.0, 9.0)
+	elseif a < BOULDER_TOP then
+		return DOOR_Z + (STEPS_TOP - DOOR_Z) * smooth(span(a, BOULDER_OUT, BOULDER_TOP)) ^ 0.7
+	elseif a < BOULDER_FOOT then
+		return STEPS_TOP + (STEPS_FOOT - STEPS_TOP) * span(a, BOULDER_TOP, BOULDER_FOOT)
 	end
-	local u = span(a, 9.0, 10.6)
+	local u = span(a, BOULDER_FOOT, BOULDER_STILL)
 	return STEPS_FOOT + (BOULDER_STOP - STEPS_FOOT) * (1 - (1 - u) * (1 - u))
 end
 
-local EXPLORER_UP = newPlan(EXPLORER_PLACES, 180, 0.4, jungleGround)
-goBy(EXPLORER_UP, { v(24, GROUND, 77.5), IDOL_REACH }, 180, 4.4)
-local EXPLORER_RUN = newPlan(IDOL_REACH, 180, 6.3, jungleGround)
-goBy(EXPLORER_RUN, { DIVE_FROM }, 0, 8.8, 2.4)
-local GUIDE_RUN = newPlan(GUIDE_PLACES, 180, 6.6)
-goBy(GUIDE_RUN, { GUIDE_COVER }, 160, 10.2, 2.6)
+-- The explorer creeps up the steps in small steps, stops halfway to check for traps (the dart),
+-- creeps on to the idol; then turns and sprints down the steps with the boulder behind him and
+-- veers left off its line across the clearing.
+local EXPLORER_UP = newPlan(EXPLORER_PLACES, 180, 1.0, jungleGround)
+goBy(EXPLORER_UP, { v(24, GROUND, 77.5) }, 180, 2.6)
+goBy(EXPLORER_UP, { TRAP_STEP }, 180, 5.2, 0.9)
+waitUntil(EXPLORER_UP, 6.6)
+goBy(EXPLORER_UP, { IDOL_REACH }, 180, 9.0, 0.9)
+local EXPLORER_RUN = newPlan(IDOL_REACH, 180, 11.9, jungleGround)
+do
+	-- Down the steps, then a smooth curve off the boulder's line (a sharp corner at a sprint would
+	-- skid his planted foot).
+	local path = { v(24, GROUND, 82) }
+	local p0, p1, p2 = Vector3.new(24, 0, 82), Vector3.new(24, 0, 72.5), Vector3.new(RUN_END.X, 0, RUN_END.Z)
+	for i = 1, 16 do
+		local u = i / 16
+		local q = p0 * (1 - u) ^ 2 + p1 * 2 * u * (1 - u) + p2 * u * u
+		table.insert(path, v(q.X, GROUND, q.Z))
+	end
+	goBy(EXPLORER_RUN, path, nil, 15.8, 2.4)
+end
+local GUIDE_RUN = newPlan(GUIDE_PLACES, 180, 12.0)
+goBy(GUIDE_RUN, { v(33, GROUND, 72.4), GUIDE_COVER }, 90, 14.6, 2.4)
 
 local function jungleStory(a: number, frame: Frame, cut: number)
 	local poses, say, things = frame.poses, frame.say, frame.things
 
 	-- The explorer.
 	local explorer: Pose
-	if a < 8.8 then
-		-- Up the steps, the idol, then a turn and a run down, the boulder right behind.
-		explorer = if a < 6.3 then planPose(EXPLORER_UP, a) else planPose(EXPLORER_RUN, a)
-		arm(explorer, 2, 1.3, 0, window(a, 5.2, 6.3, 0.3)) -- reaching for the idol
-		arm(explorer, 2, 2.9, 0.2, window(a, 5.95, 6.9, 0.3))
-		arm(explorer, 2, 2.4, 0.2, window(a, 6.3, 9.0, 0.3))
+	if a < 15.8 then
+		explorer = if a < 11.9 then planPose(EXPLORER_UP, a) else planPose(EXPLORER_RUN, a)
+		explorer.head += 0.5 * window(a, 0.1, 1.0, 0.3) -- a nod to the guide
+		-- Creeping (eased off by 5.2, where a take may stop, so that moment is a plain pose).
+		explorer.lean += 0.22 * (window(a, 2.6, 5.2, 0.5) + window(a, 6.4, 9.2, 0.5))
+		explorer.head += 0.6 * math.sin((a - 5.25) * 6) * window(a, 5.25, 5.75, 0.2) -- checking for traps
+		local duck = window(a, DART_AT - 0.1, DART_AT + 0.7, 0.2)
+		explorer.lean += 0.8 * duck
+		explorer.bob -= 0.3 * duck
+		arm(explorer, 1, 2.5, 0.2, duck)
+		-- Weighing the sandbag against the idol, the swap, a look at the prize.
+		arm(explorer, 2, 1.2 + 0.25 * math.sin(a * 9), 0, window(a, 9.0, SWAP, 0.3))
+		arm(explorer, 2, 1.35, 0, window(a, SWAP - 0.2, SWAP + SWAP_LEN + 0.2, 0.15))
+		arm(explorer, 2, 1.5, 0.1, window(a, SWAP + SWAP_LEN, RUMBLE + 0.3, 0.3))
+		explorer.nod -= 0.2 * window(a, SWAP + SWAP_LEN, RUMBLE, 0.3)
+		explorer.nod += 0.35 * window(a, RUMBLE, 12.2, 0.2) -- up at the rumbling doorway
+		arm(explorer, 2, 2.4, 0.2, window(a, 12.2, 16.2, 0.3)) -- the idol held tight on the run
 	else
-		-- A dive to the side, face down, then up again with the idol held high.
-		local u = span(a, 8.8, 9.4)
-		explorer = pose(DIVE_FROM:Lerp(DIVE_TO, smooth(u)), turn(0, -20, smooth(u)))
-		local down = if a < 10.8 then smooth(u) else 1 - smooth(span(a, 10.8, 11.6))
+		-- A dive to the side, face down, then up again, dusting off, and the idol held high.
+		local u = span(a, 15.8, 16.4)
+		local getUp = span(a, 18.2, 19.0)
+		explorer = pose(RUN_END:Lerp(DIVE_TO, smooth(u)), turn(DIVE_YAW, 0, smooth(span(a, 19.2, 19.8))))
+		local down = if a < 18.2 then smooth(u) else 1 - smooth(getUp)
 		explorer.tilt = -down * math.pi / 2
-		explorer.at += v(0, 0.5 * math.sin(down * math.pi / 2) + (if a < 9.4 then 1.2 * math.sin(u * math.pi) else 0), 0)
+		explorer.at += v(0, 0.5 * math.sin(down * math.pi / 2) + (if a < 16.4 then 1.2 * math.sin(u * math.pi) else 0), 0)
 		arm(explorer, 1, 2.6, 0.3, down)
 		arm(explorer, 2, 2.6, 0.3, down)
-		arm(explorer, 2, 2.4, 0.2, window(a, 8.6, 9.0, 0.2))
-		arm(explorer, 2, 2.9, 0.2, window(a, 11.4, cut + 1.4, 0.4))
+		arm(explorer, 2, 2.4, 0.2, window(a, 15.6, 16.0, 0.2))
+		-- Dusting off: the free hand pats down his front.
+		local dust = window(a, 19.0, 20.2, 0.25)
+		arm(explorer, 1, 0.5 + 0.35 * math.abs(math.sin(a * 8)), -0.3, dust)
+		explorer.nod -= 0.25 * dust
+		arm(explorer, 2, 2.9, 0.2, window(a, 20.2, cut + 1.4, 0.4))
 		clap(explorer, a, window(a, cut + 1.4, cut + 3, 0.3))
 	end
-	if a < TAKE_IDOL then
+	if a < SWAP then
 		things.PropIdol = IDOL_ON_PEDESTAL
-	elseif a < TAKE_IDOL + 0.25 then
-		things.PropIdol = handOff(IDOL_ON_PEDESTAL, gripCF(explorer, "PropIdol"), a, TAKE_IDOL, 0.25)
-	elseif a < cut + 1.4 then
-		explorer.hold = "PropIdol"
+		explorer.hold = "PropSandbag"
+	elseif a < SWAP + SWAP_LEN then
+		things.PropIdol = handOff(IDOL_ON_PEDESTAL, gripCF(explorer, "PropIdol"), a, SWAP, SWAP_LEN)
+		things.PropSandbag = handOff(gripCF(explorer, "PropSandbag"), SANDBAG_ON_PEDESTAL, a, SWAP, SWAP_LEN)
 	else
-		things.PropIdol = nil
 		explorer.hold = "PropIdol"
+		things.PropSandbag = SANDBAG_ON_PEDESTAL
 	end
-	if a >= 6.0 and a < 7.2 then
-		say.Explorer = "Got it!"
-	elseif a >= 11.6 and a < 12.8 then
+	if a >= DART_AT and a < DART_AT + DART_LEN then
+		things.PropDart = CFrame.new(DART_FROM:Lerp(DART_TO, span(a, DART_AT, DART_AT + DART_LEN))) * yawCF(-90)
+	end
+	-- A second dart a beat later, over the back of his head.
+	local second = DART_AT + 0.3
+	if a >= second and a < second + DART_LEN then
+		things.PropDart2 = CFrame.new(DART_FROM:Lerp(DART_TO, span(a, second, second + DART_LEN)) + v(0, 0.7, 2)) * yawCF(-90)
+	end
+	if a >= DART_AT + 0.2 and a < DART_AT + 1.4 then
+		say.Explorer = "Whoa!"
+	elseif a >= 9.1 and a < 9.9 then
+		say.Explorer = "Hmm..."
+	elseif a >= 20.3 and a < 21.5 then
 		say.Explorer = "Ta-da!"
 	end
 	things.PropBoulder = boulderCF(boulderZ(a))
 
-	-- The guide: holds the torch, worries, shouts and runs for cover.
+	-- The guide: holds the torch, points the way, worries, shouts and runs for cover.
 	local guide = planPose(GUIDE_RUN, a)
 	guide.hold = "PropTorch"
-	arm(guide, 2, 1.9, 0, 1 - window(a, 6.5, 10.4, 0.3))
-	arm(guide, 2, 2.4, 0.3, window(a, 6.5, 10.4, 0.3))
-	guide.head += 0.4 * math.sin(a * 3) * window(a, 4.6, 6.8, 0.4)
-	local cower = window(a, 10.2, 11.9, 0.35)
+	arm(guide, 2, 1.9, 0, 1 - window(a, 0.4, 2.2, 0.3) - window(a, 12.0, 14.6, 0.3))
+	arm(guide, 2, 2.6, 0.1, window(a, 0.4, 2.2, 0.3)) -- the torch up toward the shrine
+	arm(guide, 2, 2.4, 0.3, window(a, 12.0, 14.6, 0.3))
+	guide.head += 0.4 * math.sin(a * 3) * (window(a, 2.6, 5.2, 0.4) + window(a, 6.8, 9.0, 0.4))
+	local gasp = window(a, DART_AT, DART_AT + 1.2, 0.2)
+	arm(guide, 1, 2.7, 0.4, gasp)
+	guide.lean -= 0.15 * gasp
+	local cower = window(a, 14.6, 17.4, 0.35)
 	arm(guide, 1, 2.9, -0.3, cower)
 	guide.lean += 0.25 * cower
-	local cheer = window(a, 11.8, cut + 1, 0.35)
+	local cheer = window(a, 19.4, cut + 1, 0.35)
 	arm(guide, 1, 2.8, 0.5, cheer)
 	clap(guide, a, window(a, cut + 1, cut + 3, 0.3) * 0.5)
-	if a >= 1.8 and a < 3.8 then
+	if a >= 0.4 and a < 2.2 then
+		say.Guide = "The idol... up there!"
+	elseif a >= 3.0 and a < 4.8 then
 		say.Guide = "Careful, boss..."
-	elseif a >= 6.8 and a < 8.2 then
+	elseif a >= DART_AT and a < DART_AT + 1.0 then
+		say.Guide = "Look out!"
+	elseif a >= RUMBLE and a < 12.0 then
+		say.Guide = "Uh oh..."
+	elseif a >= 12.0 and a < 13.4 then
 		say.Guide = "RUN!!!"
 	end
 	poses.Explorer, poses.Guide = explorer, guide
@@ -1389,10 +1452,10 @@ end
 local GUIDE_PUSH_SPEED = 2.6
 local PUSH_GAP = BOULDER_R + 1.2 -- the guide's feet behind the boulder's middle while he pushes
 
--- After the take the explorer carries the idol back up to its pedestal and waits aside, and the
--- guide pushes the boulder back up the steps into the doorway.
+-- After the take the explorer carries the idol back up, swaps it back for the sandbag and waits
+-- aside, and the guide pushes the boulder back up the steps into the doorway.
 local function explorerBack(endA: number, _from: Pose, t0: number, to: Mark, plan: Plan, touch: (Plan) -> ())
-	if endA >= TAKE_IDOL then
+	if endA >= SWAP then
 		go(plan, { v(27, GROUND, 78.6), IDOL_REACH }, 180)
 		plan.keys.place = plan.t
 		act(plan, 1.3, function(_u, s, q)
@@ -1407,12 +1470,13 @@ local function explorerBack(endA: number, _from: Pose, t0: number, to: Mark, pla
 end
 
 local function guideBack(endA: number, _from: Pose, t0: number, to: Mark, plan: Plan, _touch: (Plan) -> ())
-	if endA < 7.0 then
+	if endA < BOULDER_OUT then
 		go(plan, { to.at }, to.yaw)
 		return
 	end
 	local behind = BOULDER_STOP - PUSH_GAP
-	go(plan, { v(12.5, GROUND, 67.2), v(20.5, GROUND, behind - 1.2), v(24, GROUND, behind) }, 180)
+	-- Round the boulder's right side, between it and the boom, to get behind it.
+	go(plan, { v(29.4, GROUND, 68.6), v(29.4, GROUND, 63), v(24, GROUND, behind) }, 180)
 	-- The push: he walks behind the boulder all the way up to the doorway.
 	waitUntil(plan, t0 + 6)
 	plan.keys.push0 = plan.t
@@ -1424,25 +1488,31 @@ end
 
 local function jungleThings(endA: number, s: number, t0: number, frame: Frame, plans: { [string]: Plan })
 	local things = frame.things
-	-- The idol: carried up and set back on its pedestal.
+	local explorer = frame.poses.Explorer
+	things.PropDart, things.PropDart2 = nil, nil
+	-- The idol: carried up and swapped back for the sandbag on its pedestal.
 	local place = plans.Explorer.keys.place
-	if endA >= TAKE_IDOL and place ~= nil then
-		local explorer = frame.poses.Explorer
-		things.PropIdol = nil
-		if s < place + 0.5 then
+	if endA >= SWAP and place ~= nil then
+		local swap = place + 0.5
+		if s < swap then
+			things.PropIdol, things.PropSandbag = nil, SANDBAG_ON_PEDESTAL
 			explorer.hold = "PropIdol"
 			arm(explorer, 2, 2.9, 0.2, window(s, t0, place + 0.4, 0.4))
-		elseif s < place + 0.75 then
-			things.PropIdol = handOff(gripCF(explorer, "PropIdol"), IDOL_ON_PEDESTAL, s, place + 0.5, 0.25)
+		elseif s < swap + SWAP_LEN then
+			explorer.hold = nil
+			things.PropIdol = handOff(gripCF(explorer, "PropIdol"), IDOL_ON_PEDESTAL, s, swap, SWAP_LEN)
+			things.PropSandbag = handOff(SANDBAG_ON_PEDESTAL, gripCF(explorer, "PropSandbag"), s, swap, SWAP_LEN)
 		else
-			things.PropIdol = IDOL_ON_PEDESTAL
+			things.PropIdol, things.PropSandbag = IDOL_ON_PEDESTAL, nil
+			explorer.hold = "PropSandbag"
 		end
 	else
-		things.PropIdol = IDOL_ON_PEDESTAL
+		things.PropIdol, things.PropSandbag = IDOL_ON_PEDESTAL, nil
+		explorer.hold = "PropSandbag"
 	end
 	-- The boulder: rolled back up to the doorway in front of the guide.
 	local keys = plans.Guide.keys
-	if endA >= 7.0 and keys.push0 ~= nil then
+	if endA >= BOULDER_OUT and keys.push0 ~= nil then
 		local guide = frame.poses.Guide
 		local z = BOULDER_STOP
 		if s >= keys.push1 then
@@ -1466,10 +1536,10 @@ local JUNGLE_SCENES: { Scene } = {
 			Guide = { at = GUIDE_PLACES, yaw = 180 },
 		},
 		story = jungleStory,
-		cut = 12.8,
-		length = 15.8,
-		safe = { 0, 4.4 },
-		blooper = { at = 4.4, who = "Explorer" },
+		cut = 21.8,
+		length = 24.8,
+		safe = { 0, 5.2 },
+		blooper = { at = 5.2, who = "Explorer" },
 		mic = { "Explorer", "Guide" },
 		aim = v(24, 5, 80),
 		boom = { at = v(31.5, GROUND, 64.5), yaw = 0 },
@@ -1482,6 +1552,7 @@ local JUNGLE_SCENES: { Scene } = {
 			local guide = frame.poses.Guide
 			guide.hold = "PropTorch"
 			arm(guide, 2, 1.9, 0, 1)
+			frame.poses.Explorer.hold = "PropSandbag"
 		end,
 	},
 }
@@ -2157,7 +2228,7 @@ end
 FilmScenes.Sets = table.freeze({
 	Gulch = sceneSet("Gulch", { Sheriff = { "PropRevolver" }, Outlaw = { "PropRevolver" } }, {}, GULCH_GEAR, v(0, 0, 114)),
 	MoonBase = sceneSet("MoonBase", { Astronaut = { "PropFlag" } }, { "PropFlag" }, MOON_GEAR, v(0, 0, 62)),
-	Jungle = sceneSet("Jungle", { Explorer = { "PropIdol" }, Guide = { "PropTorch" } }, { "PropIdol", "PropBoulder" }, JUNGLE_GEAR, v(24, 0, 72)),
+	Jungle = sceneSet("Jungle", { Explorer = { "PropIdol", "PropSandbag" }, Guide = { "PropTorch" } }, { "PropIdol", "PropBoulder", "PropSandbag", "PropDart", "PropDart2" }, JUNGLE_GEAR, v(24, 0, 72)),
 }) :: { [string]: SetScenes }
 
 -- Where everyone is on set `id` at time `t`, after the owner's `cue` (if any).
