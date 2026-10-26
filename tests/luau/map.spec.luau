@@ -370,3 +370,88 @@ test("the park's ducks paddle on open water", function()
 	end
 	equal(ducks, #TownSets.DuckLoops, "a loop for every duck")
 end)
+
+test("the Jungle Temple's dressing keeps the crew corner and the boulder's run clear", function()
+	local FilmScenes = H.require("FilmScenes")
+	local frame = MapModels.JungleFrame
+	-- In the set's own space (FilmScenes): between the camera and the action, and the boulder's
+	-- path down the temple steps.
+	local keep = {
+		{ x0 = 8, z0 = 51, x1 = 40, z1 = 65, what = "the crew's working zone" },
+		{ x0 = 19, z0 = 65, x1 = 29, z1 = 100, what = "the boulder's run" },
+	}
+	local gear = {}
+	for _, g in FilmScenes.Sets.Jungle.gear do
+		table.insert(gear, g.at)
+	end
+	local checked = 0
+	for _, model in town:GetDescendants() do
+		-- Lune only knows WorldPivot on models that set it (every MapKit model does).
+		local ok, pivot = pcall(function()
+			return model.WorldPivot
+		end)
+		if model:IsA("Model") and ok and model:GetAttribute("FilmSet") == nil then
+			local at = frame:PointToObjectSpace(pivot.Position)
+			local isGear = false
+			for _, g in gear do
+				isGear = isGear or (math.abs(g.X - at.X) < 0.01 and math.abs(g.Z - at.Z) < 0.01)
+			end
+			local inSet = at.X > -40 and at.X < 90 and at.Z > -1 and at.Z < 130 and math.abs(at.Y) < 1
+			if inSet and not isGear and model:FindFirstChildWhichIsA("BasePart", true) then
+				checked += 1
+				for _, part in model:GetDescendants() do
+					local lo, hi
+					if part:IsA("BasePart") then
+						lo, hi = bounds(part)
+					end
+					-- Ground cover (dirt, leaves, cables) lies flat, so the crew walks over it.
+					if lo and hi.Y - frame.Position.Y > 1 then
+						local a, b = frame:PointToObjectSpace(lo), frame:PointToObjectSpace(hi)
+						local x0, x1 = math.min(a.X, b.X), math.max(a.X, b.X)
+						local z0, z1 = math.min(a.Z, b.Z), math.max(a.Z, b.Z)
+						for _, r in keep do
+							expect(x1 <= r.x0 or x0 >= r.x1 or z1 <= r.z0 or z0 >= r.z1, `{model.Name} at ({at.X}, {at.Z}) is in {r.what}`)
+						end
+					end
+				end
+			end
+		end
+	end
+	expect(checked > 50, "the set is dressed")
+end)
+
+test("Dusty Gulch's backlot dressing keeps the street, the crew and Moon Base's way clear", function()
+	local TownSets = H.require("Models/TownSets")
+	local frame = MapModels.GulchFrame
+	local function overlaps(lo: any, hi: any, r: { x0: number, z0: number, x1: number, z1: number }): boolean
+		return lo.X < r.x1 and hi.X > r.x0 and lo.Z < r.z1 and hi.Z > r.z0
+	end
+	local street = { x0 = -14, z0 = 0, x1 = 14, z1 = 148 } -- up to the painted flat closing its end
+	local pieces = 0
+	for _, model in town:GetDescendants() do
+		local kit = if model:IsA("Model") then model:GetAttribute("Kit") else nil
+		if typeof(kit) == "string" and (string.sub(kit, 1, 7) == "Backlot" or string.sub(kit, 1, 11) == "StarTrailer") then
+			local feet = frame:PointToObjectSpace(model.WorldPivot.Position)
+			if math.abs(feet.X) <= 90 and feet.Z >= -2 and feet.Z <= 162 then
+				pieces += 1
+				-- Its footprint in the Gulch's space (the frame is a half turn, so a box stays a box).
+				local lo, hi = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
+				local solid = false
+				for _, part in model:GetDescendants() do
+					if part:IsA("BasePart") and part.Name ~= "SignText" then
+						local a, b = bounds(part)
+						for _, p in { frame:PointToObjectSpace(a), frame:PointToObjectSpace(b) } do
+							lo = Vector3.new(math.min(lo.X, p.X), 0, math.min(lo.Z, p.Z))
+							hi = Vector3.new(math.max(hi.X, p.X), 0, math.max(hi.Z, p.Z))
+						end
+						solid = solid or part.CanCollide
+					end
+				end
+				expect(not overlaps(lo, hi, TownSets.GulchCrewClear), `{kit} at {feet} is in the film crew's patch`)
+				expect(not overlaps(lo, hi, TownSets.GulchMoonWay), `{kit} at {feet} blocks the way to Moon Base`)
+				expect(not (solid and overlaps(lo, hi, street)), `solid {kit} at {feet} blocks the street`)
+			end
+		end
+	end
+	expect(pieces >= 60, `only {pieces} backlot pieces in the Gulch`)
+end)
