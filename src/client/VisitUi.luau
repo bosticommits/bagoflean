@@ -273,6 +273,26 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		return workspace:GetServerTimeNow()
 	end
 
+	-- A section heading like the Quests board's: gold title, a muted note on the right, a gold rule.
+	local function heading(order: number, text: string, note: string)
+		local row = UiKit.addRow(list, order, 40)
+		UiKit.plainRow(row)
+		local title = makeTitle(row, text, UiKit.GOLD, UDim2.new(0.5, -12, 0, 28), UDim2.fromOffset(12, 4), 2)
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		local noteLabel = makeLabel(row, note, UiKit.MUTED, UDim2.new(0.5, -12, 0, 20), UDim2.new(0.5, 0, 0, 9))
+		noteLabel.TextXAlignment = Enum.TextXAlignment.Right
+		UiKit.textConstraint(noteLabel, 16)
+		local rule = Instance.new("Frame")
+		rule.Name = "Rule"
+		rule.BorderSizePixel = 0
+		rule.BackgroundColor3 = UiKit.AWARD_GOLD
+		rule.BackgroundTransparency = 0.55
+		rule.Position = UDim2.new(0, 12, 1, -4)
+		rule.Size = UDim2.new(1, -24, 0, 3)
+		rule.Parent = row
+		UiKit.corner(rule, 2)
+	end
+
 	local function build()
 		UiKit.clear(list)
 		table.clear(statusLabels)
@@ -308,12 +328,15 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		end
 
 		-- The film sets, owned first.
-		order += 1
-		local setsHeading = UiKit.addRow(list, order, 30)
-		UiKit.plainRow(setsHeading)
-		local setsText = makeTitle(setsHeading, "Film Sets", UiKit.GOLD, UDim2.new(1, -8, 1, 0), UDim2.fromOffset(4, 0), 2)
-		setsText.TextXAlignment = Enum.TextXAlignment.Left
 		local data = ownedSets()
+		local ownedCount = 0
+		for _, set in FilmSets.List do
+			if FilmSets.owns(set, data) then
+				ownedCount += 1
+			end
+		end
+		order += 1
+		heading(order, "Film Sets", `{ownedCount} of {#FilmSets.List} owned`)
 		local sets = table.clone(FilmSets.List)
 		table.sort(sets, function(a, b)
 			local aOwned, bOwned = FilmSets.owns(a, data), FilmSets.owns(b, data)
@@ -328,18 +351,18 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 			local _, _, needs = Visits.filmSetArrival(set.id, data)
 			local needSet = if needs ~= nil then FilmSets.get(needs) else nil
 			order += 1
-			local row = UiKit.addRow(list, order, 64)
+			local row = UiKit.addRow(list, order, 72)
 			if owned then
 				row.BackgroundColor3 = UiKit.ROW:Lerp(UiKit.GREEN, 0.15)
 			end
 			local title = makeTitle(row, set.name, UiKit.WHITE, UDim2.new(0.6, -14, 0, 28), UDim2.fromOffset(14, 6))
 			title.TextXAlignment = Enum.TextXAlignment.Left
 			local text = if owned then `Yours: {string.match(FilmSets.describe(set), "\n(.+)$") or ""}` else `{FilmSets.priceText(set)}  ·  x{1 + set.luck} casting Luck`
-			local line = makeLabel(row, text, if owned then UiKit.CASH_GREEN else UiKit.GOLD, UDim2.new(0.6, -14, 0, 20), UDim2.fromOffset(14, 36))
+			local line = makeLabel(row, text, if owned then UiKit.CASH_GREEN else UiKit.GOLD, UDim2.new(0.6, -14, 0, 20), UDim2.fromOffset(14, 40))
 			line.TextXAlignment = Enum.TextXAlignment.Left
-			local size, at = UDim2.new(0.36, 0, 0, 44), UDim2.new(0.62, 0, 0, 10)
+			local size, at = UDim2.new(0.36, 0, 0, 52), UDim2.new(0.62, 0, 0, 10) -- a big thumb target on phones
 			if owned and onSet == set.id then
-				makeTitle(row, "You're here", UiKit.CASH_GREEN, UDim2.new(0.36, 0, 0, 40), UDim2.new(0.62, 0, 0, 12))
+				makeTitle(row, "You're here", UiKit.CASH_GREEN, UDim2.new(0.36, 0, 0, 40), UDim2.new(0.62, 0, 0, 16))
 			elseif needSet ~= nil then
 				local locked = makeButton(row, `{string.upper(needSet.name)} FIRST`, UiKit.DISABLED, size, at)
 				UiKit.setEnabled(locked, false, UiKit.BLUE)
@@ -379,10 +402,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		end)
 
 		order += 1
-		local heading = UiKit.addRow(list, order, 30)
-		UiKit.plainRow(heading)
-		local headingText = makeTitle(heading, "Tour a studio and give it a round of applause!", UiKit.GOLD, UDim2.new(1, -8, 1, 0), UDim2.fromOffset(4, 0), 2)
-		headingText.TextXAlignment = Enum.TextXAlignment.Left
+		heading(order, "Studios", "Tour one, give it applause!")
 
 		if #others == 0 then
 			order += 1
