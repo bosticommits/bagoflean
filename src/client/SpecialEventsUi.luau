@@ -105,6 +105,8 @@ local function chat(text: string)
 	end)
 end
 
+SpecialEventsUi.chat = chat -- also used by Announcements
+
 function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 	local claimRemote = remotes:WaitForChild("EventClaim", 10)
 	local resultRemote = remotes:WaitForChild("EventResult", 10)

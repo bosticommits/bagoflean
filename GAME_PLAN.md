@@ -480,3 +480,32 @@ exciting by M3, fix the core before adding anything else.
     (library sounds), and Fish Audio announcer lines `voiceStar`, `voiceSuperstar`, `voiceLegend`,
     `voiceIcon`, `voiceSoClose` (voice "Energetic Male"; clips in `art/audio/reveal/`).
 
+
+## 22. As built (rare-pull announcements)
+- **Banner** (`src/client/Announcements.luau`, its own module): one slim strip at the top-centre, just
+  under whatever is there (it dodges `Hud`, `NextUp` and the `SpecialEvent` banner by name, so the
+  PR #75 stack move only costs the dodge). It now also shows the old plain announcements
+  (Masterpieces, sequels, festival winners); the old banner code in StudioUi is gone. Items queue (8
+  max), pop in and hold 3.5 s (plain news 5 s). 3+ waiting pulls merge into one line ("4 big pulls:
+  A (ICON), B (SUPERSTAR) +2"). It waits while the casting reveal is open and draws under it, so it
+  never covers the reveal card; it sits at the top, far from the Cast bar.
+- **Superstar and up**, this server: "AVA pulled a SUPERSTAR: Box Office King! (1 in 24,000)" in the
+  tier colour (Icon gets the rainbow edge), plus a chat line. Odds = tier odds x actors in the tier x
+  variant odds, at Luck 1. The puller gets only a chat line ("You pulled ..."): they have the reveal.
+  The server sends ids (`RarePull` remote); every client builds the text from its own Actors table.
+- **Legend and Icon go worldwide** (`src/server/PullNewsService.luau`, MessagingService topic
+  `RarePulls`). The message is `{u = UserId, a = actorId, v = variantId, t = tier, j = JobId}`, built
+  on the server; never free text. Receivers check every field (`PullNews.validate`: types, NaN, ranges,
+  lengths, known actor and variant, tier matches the actor, Legend/Icon only, not our own JobId),
+  then get the name with `GetNameFromUserIdAsync` (cached, pcall). Shown as "WORLDWIDE: ...".
+  No TextService filtering: the only text from another server is a Roblox username, which Roblox
+  already moderates; nothing a player typed is shown.
+- **Limits**: publish 1 per 10 s per server, queue of 3 (a burst keeps the newest); show at most 6
+  worldwide banners a minute, the rest dropped. Subscribe and Publish are pcall'd with 4 tries
+  (1, 2, 4 s backoff). `"GlobalPulls"` in LiveConfig's DisabledEvents turns the worldwide part off
+  live (both sending and showing).
+- **Testing in Studio**: MessagingService does not cross servers there; call
+  `PullNewsService.onMessage({ Data = { u = 1, a = <LegendId>, v = "Shiny", t = "Legend", j = "x" } })`
+  from a server eval. Lune spec: `tests/luau/pullnews.spec.luau` (validation, text, merge, limiter).
+- Verified in Studio at PC size (art/previews/announce_*_pc.jpg). The phone simulator errored, so
+  phone layout is reasoned, not seen.

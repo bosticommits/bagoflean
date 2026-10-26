@@ -101,7 +101,6 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local premiereRemote = remotes:WaitForChild("Premiere") :: RemoteEvent
 	local premiereResult = remotes:WaitForChild("PremiereResult") :: RemoteEvent
 	local studioError = remotes:WaitForChild("StudioError") :: RemoteEvent
-	local announce = remotes:WaitForChild("Announce") :: RemoteEvent
 	local useSkip = remotes:WaitForChild("UseSkip") :: RemoteEvent
 
 	-- Local aliases of ClientState, refreshed whenever it changes (see the changed handler below).
@@ -724,34 +723,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	-- Premiere night (the result poster, spotlights and stamp) ---------------------------------
 	local showPremiere = PremiereReveal.start(gui, { actorLabel = actorLabel, power = fmtPower })
 
-	-- Announcement banner ----------------------------------------------------------------------
-	local banner = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.new(0.9, 0, 0, 40), UDim2.new(0.05, 0, 0, 168))
-	banner.Name = "Banner"
-	banner.BackgroundTransparency = 0
-	banner.BackgroundColor3 = UiKit.RED
-	banner.Visible = false
-	banner.ZIndex = 20
-	corner(banner, 12)
-	UiKit.border(banner, 3, UiKit.GOLD)
-	local bannerPad = Instance.new("UIPadding")
-	bannerPad.PaddingTop = UDim.new(0, 5)
-	bannerPad.PaddingBottom = UDim.new(0, 5)
-	bannerPad.Parent = banner
-	local bannerToken = 0
-	announce.OnClientEvent:Connect(function(text)
-		if type(text) ~= "string" then
-			return
-		end
-		bannerToken += 1
-		local mine = bannerToken
-		banner.Text = text
-		banner.Visible = true
-		task.delay(5, function()
-			if bannerToken == mine then
-				banner.Visible = false
-			end
-		end)
-	end)
+	-- The announcement banner lives in Announcements.luau (one queue with the rare-pull banners).
 
 	-- Wiring -----------------------------------------------------------------------------------
 	ClientState.changed:Connect(function(kind)
