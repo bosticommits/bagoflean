@@ -6,6 +6,7 @@
 -- parts (MapKitShapes, written by the Blender script), so the map looks the same, only blockier.
 -- Words are never part of a model: signs have named spots, and `labels` letters them.
 local Build = require(script.Parent.Build)
+local HalloweenShapes = require(script.Parent.HalloweenShapes)
 local MapKitShapes = require(script.Parent.MapKitShapes)
 
 type Builder = Build.Builder
@@ -74,8 +75,10 @@ end
 function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: Options?): Model
 	local opts: Options = options or {}
 	local scale = opts.scale or 1
-	local shapes = MapKitShapes.Shapes[name]
-	local bounds = MapKitShapes.Bounds[name]
+	-- The Fright Night decor (art/blender/halloween_kit.py) has its own shapes file.
+	local kit: typeof(MapKitShapes) = if MapKitShapes.Shapes[name] ~= nil then MapKitShapes else HalloweenShapes :: any
+	local shapes = kit.Shapes[name]
+	local bounds = kit.Bounds[name]
 	assert(shapes ~= nil and bounds ~= nil, `no map kit model called {name}`)
 	local g, model = b:group(name, at)
 	-- Its pivot is its feet, so code that moves it (MapLife) knows where it stands; the preview
@@ -142,7 +145,7 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 
 	-- Sign text on the model's spots: an invisible board with the words on its front.
 	if opts.labels ~= nil then
-		local spots = MapKitShapes.Spots[name]
+		local spots = kit.Spots[name]
 		for spotName, label in opts.labels do
 			local spot = if spots ~= nil then spots[spotName] else nil
 			assert(spot ~= nil, `map kit model {name} has no spot called {spotName}`)
@@ -166,7 +169,7 @@ function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: O
 
 	-- One light per model, in the middle of its glowing spots (a lamp with three globes still
 	-- gets one light: dozens of lights cost phones frame rate for little).
-	local glow = MapKitShapes.Glow[name]
+	local glow = kit.Glow[name]
 	if opts.light ~= nil and glow ~= nil then
 		local sum = Vector3.zero
 		for _, spot in glow do
