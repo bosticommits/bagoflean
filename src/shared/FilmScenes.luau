@@ -8,8 +8,10 @@
 --                1 The showdown: the sheriff and the outlaw walk out, draw, and the outlaw falls.
 --                2 The stunt: the outlaw fires at the stunt double on the hotel balcony, who flips
 --                  off it onto the hay bales below and gets up to a thumbs up.
---   Moon Base    The first step: an astronaut climbs down from the lander, hops across the moon
---                with the flag and plants it, and an alien sneaks up behind for a surprise hello.
+--   Moon Base    The first step: an astronaut climbs down from the lander, waves to the camera,
+--                bounds across the moon in slow low-gravity leaps and plants the flag two-handed;
+--                an alien peeks from behind a foam rock and tiptoes up in stages (freezing when he
+--                half turns), taps his shoulder, they both jump, then shake hands and wave.
 --   Jungle       The idol: an explorer climbs the temple steps and grabs the golden idol, a boulder
 --                rolls out after him, and he dives clear just in time.
 --
@@ -1001,17 +1003,9 @@ local MOON: Crew = {
 	dollyBack = 0.5,
 }
 
+-- Only the crew's own gear: the moon set itself (lander, rocket, foam rock, flats and the rest) is
+-- laid out in TownSets.moonBase.
 local MOON_GEAR: { Gear } = {
-	{ kit = "SpaceBackdrop", at = v(0, 0.2, 104), yaw = 0 },
-	{ kit = "MoonRocket", at = v(38, 0, 86), yaw = 0 },
-	{ kit = "MoonLander", at = v(-8, 0.2, 76), yaw = 0 },
-	{ kit = "MoonDome", at = v(-34, 0, 88), yaw = 0 },
-	{ kit = "MoonBuggy", at = v(26, 0.2, 68), yaw = -30 },
-	{ kit = "MoonCrater", at = v(32, 0.2, 34), yaw = 0 },
-	{ kit = "MoonCrater", at = v(-24, 0.2, 58), yaw = 40 },
-	{ kit = "MoonRock", at = v(16, 0.2, 80), yaw = 20 },
-	{ kit = "MoonRock", at = v(-44, 0.2, 66), yaw = 140 },
-	{ kit = "MoonRock", at = v(36, 0.2, 50), yaw = 260 },
 	{ kit = "DirectorChair", at = v(-9.5, 0.2, 41.5), yaw = 180, label = "DIRECTOR" },
 	{ kit = "CrewDollyTrack", at = v(0, 0.2, 47), yaw = 0 },
 	{ kit = "CrewLightStand", at = v(8.2, 0.2, 53.2), yaw = 0 },
@@ -1024,22 +1018,43 @@ local LADDER_FOOT = v(-8, GROUND, 71.4)
 local FLAG_SPOT = v(-0.5, GROUND, 62)
 local FLAG_PLANTED = CFrame.new(0.9, GROUND, 61) * CFrame.Angles(math.pi, 0, 0)
 local FLAG_HOLDER = CFrame.new(-6.3, GROUND, 70.4) * CFrame.Angles(math.pi, 0, 0) -- stuck in the dust by the ladder
-local ALIEN_HIDE = v(17.5, GROUND, 84.2)
-local ALIEN_ROUND = v(24, GROUND, 79) -- round the moon rock
-local ALIEN_BEHIND = v(0.2, GROUND, 64.4)
-local GRAB, PLANT = 3.75, 7.4 -- when the astronaut takes the flag, and plants it
+local ALIEN_HIDE = v(17.5, GROUND, 84.2) -- crouched behind the foam rock (TownSets: the rock at 16, 80)
+local ALIEN_ROUND = v(21.5, GROUND, 79.5) -- round the rock's east end
+local ALIEN_MID = v(11, GROUND, 72) -- first stop, frozen while the astronaut half turns
+local ALIEN_NEAR = v(6.3, GROUND, 66.9)
+local ALIEN_BEHIND = v(3.2, GROUND, 63.5) -- behind his right shoulder, both in sight of the camera
+local GRAB, PLANT = 3.75, 10.6 -- when the astronaut takes the flag, and plants it
+local BOUNDS, BOUND_T0, BOUND_LEN = 4, 5.6, 1.0 -- the low-gravity walk: four slow bounds
+local LOOK0, LOOK1 = 13.2, 14.4 -- the astronaut's half turn ("Hm?") while the alien freezes
+local TAP, FACE_UP, JUMP, SHAKE = 17.2, 18.0, 18.4, 19.6 -- tap, turn round, both jump, handshake
+local WAVE = 21.6 -- both wave to the camera
 
-local ALIEN_SNEAK = newPlan(ALIEN_HIDE, 0, 3.6)
-goBy(ALIEN_SNEAK, { ALIEN_ROUND }, nil, 6.0)
-goBy(ALIEN_SNEAK, { ALIEN_BEHIND }, 0, 11.2, 2.2)
+-- The alien's sneak, in stages: round the rock, tiptoe to the first stop, freeze while the
+-- astronaut looks round, then tiptoe in close behind him.
+local ALIEN_SNEAK = newPlan(ALIEN_HIDE, 0, 8.4)
+goBy(ALIEN_SNEAK, { ALIEN_ROUND }, nil, 9.8, 1.2)
+goBy(ALIEN_SNEAK, { ALIEN_MID }, nil, 12.6, 1.2)
+waitUntil(ALIEN_SNEAK, 14.9)
+goBy(ALIEN_SNEAK, { ALIEN_NEAR, ALIEN_BEHIND }, nil, TAP - 0.3, 1.2)
+face(ALIEN_SNEAK, facing(ALIEN_BEHIND, FLAG_SPOT))
 
 -- A prop moving from one place to another over `length` seconds from `t0` (a hand-off).
 local function handOff(from: CFrame, to: CFrame, s: number, t0: number, length: number): CFrame
 	return from:Lerp(to, smooth(span(s, t0, t0 + length)))
 end
 
+-- One low-gravity bound at u (0..1): a crouch, a long floaty hang in the air, and a soft landing.
+-- Returns how far along the bound the body is (0..1) and how high it is.
+local function bound(u: number): (number, number)
+	local air = span(u, 0.18, 0.88)
+	local up = if air > 0 and air < 1 then math.sin(air * math.pi) ^ 0.7 else 0
+	return smooth(air), 2.2 * up
+end
+
 local function moonStory(a: number, frame: Frame, cut: number)
 	local poses, say, things = frame.poses, frame.say, frame.things
+	local walkYaw = facing(LADDER_FOOT, FLAG_SPOT)
+	local toAlien = facing(FLAG_SPOT, ALIEN_BEHIND)
 
 	-- The astronaut.
 	local astro: Pose
@@ -1055,34 +1070,54 @@ local function moonStory(a: number, frame: Frame, cut: number)
 		arm(astro, 1, 2.5 + rung * 0.3, 0, w)
 		arm(astro, 2, 2.5 - rung * 0.3, 0, w)
 		astro.legs = { 0.6 * math.max(rung, 0) * w, 0.6 * math.max(-rung, 0) * w }
-	elseif a < 3.9 then
-		-- Turns round at the foot and takes the flag from where it stands by the ladder.
-		astro = pose(LADDER_FOOT, turn(180, 0, smooth(span(a, 3.2, 3.6))))
-	elseif a < 7.0 then
-		-- Three slow, floaty moon hops.
-		local u = span(a, 3.9, 7.0)
-		local hop = math.abs(math.sin(u * math.pi * 3))
-		astro = pose(LADDER_FOOT:Lerp(FLAG_SPOT, u) + v(0, 1.8 * hop, 0), turn(0, facing(LADDER_FOOT, FLAG_SPOT), smooth(span(a, 3.9, 4.2))))
-		local w = window(a, 3.9, 7.0, 0.25)
-		arm(astro, 1, 0.5, 0.7, w)
-		astro.legs = { 0.5 * hop, 0.3 * hop }
+	elseif a < BOUND_T0 then
+		-- Turns round at the foot, takes the flag from its stand, looks round at the moon and waves
+		-- to the camera, then turns the way he will bound.
+		astro = pose(LADDER_FOOT, if a < 5.0 then turn(180, 0, smooth(span(a, 3.2, 3.6))) else turn(0, walkYaw, smooth(span(a, 5.1, 5.5))))
+		astro.head += 0.5 * math.sin(span(a, 3.9, 4.9) * math.pi * 2) * window(a, 3.9, 4.9, 0.2)
+		waveLeft(astro, a, window(a, 4.4, 5.3, 0.25))
+	elseif a < BOUND_T0 + BOUNDS * BOUND_LEN then
+		-- The low-gravity walk: four slow bounds with a long hang in the air, arms out for balance.
+		local k = math.floor((a - BOUND_T0) / BOUND_LEN)
+		local along, up = bound(span(a, BOUND_T0 + k * BOUND_LEN, BOUND_T0 + (k + 1) * BOUND_LEN))
+		local at = LADDER_FOOT:Lerp(FLAG_SPOT, (k + along) / BOUNDS)
+		astro = pose(at + v(0, up, 0), walkYaw)
+		local w = window(a, BOUND_T0, BOUND_T0 + BOUNDS * BOUND_LEN, 0.3)
+		local tuck = up / 2.2
+		arm(astro, 1, 0.6, 0.9, w)
+		astro.legs = { 0.55 * tuck, -0.35 * tuck }
+		astro.lean += 0.15 * tuck
 	else
-		astro = pose(FLAG_SPOT, if a < 12 then turn(facing(LADDER_FOOT, FLAG_SPOT), 0, smooth(span(a, 7.0, 7.3))) else turn(0, 180, smooth(span(a, 12, 12.4))))
-		arm(astro, 2, 2.6, -0.5, window(a, 7.9, 9.3, 0.3)) -- a salute
-		astro.head += -0.4 * window(a, 9.3, 12, 0.4) -- admiring the flag
-		if a >= 12.4 and a < 13.4 then
-			local u = span(a, 12.4, 13.4)
+		local yaw = turn(walkYaw, 0, smooth(span(a, 9.6, 9.9)))
+		yaw = turn(yaw, 70, window(a, LOOK0, LOOK1, 0.35)) -- "Hm?" a half turn, and back
+		yaw = turn(yaw, toAlien, smooth(span(a, FACE_UP, FACE_UP + 0.4)))
+		yaw = turn(yaw, 0, smooth(span(a, WAVE - 0.4, WAVE)))
+		astro = pose(FLAG_SPOT, yaw)
+		-- Plants the flag two-handed, salutes it, admires it.
+		local push = window(a, 9.9, PLANT + 0.35, 0.3)
+		arm(astro, 1, if a < PLANT - 0.4 then 2.9 else mix(2.9, 2.2, span(a, PLANT - 0.4, PLANT)), -0.35, push)
+		astro.lean += 0.25 * window(a, PLANT - 0.4, PLANT + 0.4, 0.3)
+		arm(astro, 2, 2.6, -0.5, window(a, 11.2, 12.5, 0.3)) -- a salute
+		astro.nod -= 0.4 * window(a, 12.6, LOOK0, 0.3) + 0.3 * window(a, LOOK1, TAP + 0.6, 0.4)
+		if a >= LOOK0 + 0.2 and a < LOOK1 - 0.1 then
+			say.Astronaut = "Hm?"
+		end
+		-- The jump of surprise, the handshake, then waving to the camera.
+		if a >= JUMP and a < JUMP + 1 then
+			local u = span(a, JUMP, JUMP + 1)
 			astro.at += v(0, 3 * math.sin(u * math.pi), 0)
 			astro.legs = { 0.4 * math.sin(u * math.pi), 0.2 * math.sin(u * math.pi) }
 		end
-		local jump = window(a, 12.2, 13.7, 0.45)
+		local jump = window(a, JUMP - 0.2, JUMP + 1.3, 0.45)
 		arm(astro, 1, 3.0, 0.5, jump)
 		arm(astro, 2, 3.0, 0.5, jump)
-		waveRight(astro, a, window(a, 13.4, cut + 0.8, 0.3))
+		local shake = window(a, SHAKE, SHAKE + 1.6, 0.35)
+		arm(astro, 2, 1.35 + 0.18 * math.sin(a * 12), 0.05, shake)
+		waveRight(astro, a, window(a, WAVE, cut + 0.8, 0.3))
 		clap(astro, a, window(a, cut + 1, cut + 3, 0.3))
 	end
 	-- The flag: in its stand by the ladder, then in his hand held high, then planted.
-	local carry = window(a, 3.62, PLANT + 0.3, 0.3)
+	local carry = window(a, 3.62, PLANT + 0.35, 0.3)
 	arm(astro, 2, if a < PLANT - 0.4 then 2.9 else mix(2.9, 2.2, span(a, PLANT - 0.4, PLANT)), 0.1, carry)
 	if a < GRAB then
 		things.PropFlag = FLAG_HOLDER
@@ -1095,29 +1130,44 @@ local function moonStory(a: number, frame: Frame, cut: number)
 	end
 	if a >= 3.6 and a < 5.4 then
 		say.Astronaut = "One small step..."
-	elseif a >= 12.4 and a < 13.6 then
+	elseif a >= JUMP and a < JUMP + 1.2 then
 		say.Astronaut = "AAH!"
+	elseif a >= SHAKE + 0.2 and a < SHAKE + 1.6 then
+		say.Astronaut = "Welcome to the Moon!"
 	end
 
-	-- The alien: hiding behind a moon rock, peeking, then sneaking up for a hello.
+	-- The alien: peeks out from behind the foam rock, sneaks up in stages (freezing mid-tiptoe when
+	-- the astronaut looks round), taps his shoulder, jumps when he jumps, and shakes his hand.
 	local alien = planPose(ALIEN_SNEAK, a)
-	alien.head += 0.6 * math.sin(a * 2) * window(a, 1.8, 3.6, 0.4)
-	local tiptoe = window(a, 3.6, 11.5, 0.4)
+	local peek = window(a, 1.8, 3.4, 0.4) + window(a, 5.8, 7.6, 0.4)
+	alien.head += 0.6 * math.sin(a * 2) * peek
+	alien.roll -= 0.35 * peek -- leaning out past the rock's edge
+	local tiptoe = window(a, 8.4, TAP - 0.2, 0.4)
 	arm(alien, 1, 1.0, 0.5, tiptoe)
 	arm(alien, 2, 1.0, 0.5, tiptoe)
-	local tap = window(a, 11.2, 12.4, 0.2)
+	local freeze = window(a, LOOK0 - 0.1, LOOK1 + 0.3, 0.2)
+	arm(alien, 1, 2.6, 0.9, freeze) -- frozen mid-tiptoe, arms up, "I'm a rock"
+	arm(alien, 2, 2.6, 0.9, freeze)
+	alien.legs[1] += 0.45 * freeze
+	local tap = window(a, TAP, FACE_UP + 0.2, 0.2)
 	arm(alien, 2, 1.5 + math.sin(a * 14) * 0.15 * tap, 0.1, tap) -- tap, tap
 	if tap > 0.5 then
-		say.Alien = "Hello!"
+		say.Alien = "Psst!"
 	end
-	if a >= 12.4 and a < 13.4 then
-		local u = span(a, 12.4, 13.4)
+	if a >= JUMP and a < JUMP + 1 then
+		local u = span(a, JUMP, JUMP + 1)
 		alien.at += v(0, 2.5 * math.sin(u * math.pi), 0)
+		say.Alien = "EEP!"
 	end
-	local jump = window(a, 12.2, 13.7, 0.45)
+	local jump = window(a, JUMP - 0.2, JUMP + 1.3, 0.45)
 	arm(alien, 1, 2.9, 0.6, jump)
 	arm(alien, 2, 2.9, 0.6, jump)
-	local wave = window(a, 13.4, cut + 0.8, 0.3)
+	arm(alien, 2, 1.35 - 0.18 * math.sin(a * 12), 0.05, window(a, SHAKE, SHAKE + 1.6, 0.35))
+	if a >= SHAKE + 1.6 and a < WAVE + 0.6 then
+		say.Alien = "Take me to your director!"
+	end
+	alien.yaw = turn(alien.yaw, 0, smooth(span(a, WAVE - 0.4, WAVE)))
+	local wave = window(a, WAVE, cut + 0.8, 0.3)
 	waveLeft(alien, a, wave)
 	waveRight(alien, a + 0.4, wave)
 	clap(alien, a, window(a, cut + 1, cut + 3, 0.3))
@@ -1180,16 +1230,16 @@ local MOON_SCENES: { Scene } = {
 			Alien = { at = ALIEN_HIDE, yaw = 0 },
 		},
 		story = moonStory,
-		cut = 14.4,
-		length = 17.6,
+		cut = 23.4,
+		length = 26.6,
 		safe = { 0, 3.6 },
 		blooper = { at = 3.6, who = "Astronaut" },
 		mic = { "Astronaut", "Alien" },
-		aim = v(-2, 3.5, 66),
+		aim = v(0, 3.5, 66),
 		boom = { at = v(-8, GROUND, 55.6), yaw = 0 },
 		notes = { at = v(-3.5, GROUND, 55.5), yaw = 180 },
 		touch = { who = "Astronaut", at = v(-7.7, GROUND, 67.6), yaw = 180, via = { v(-10.5, GROUND, 56.5) } },
-		rehearse = { Alien = { ALIEN_ROUND, v(17, GROUND, 73) } },
+		rehearse = { Alien = { ALIEN_ROUND, ALIEN_MID } },
 		reset = { Astronaut = astronautBack },
 		routes = { Alien = { ALIEN_ROUND } },
 		things = moonThings,

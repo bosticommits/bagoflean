@@ -123,6 +123,7 @@ Sounds.Music = {
 -- set with no entry, or an id of 0, stays silent; adding a set is one line here.
 Sounds.Ambience = {
 	Gulch = { id = 9112832297, volume = 0.25 }, -- placeholder: audio pass (PSE "Mountain Birds 2" stands in for wind; creaking wood still missing)
+	MoonBase = { id = 9114330786, volume = 0.25 }, -- placeholder: audio pass (PSE "Energy Field Constant" hum with beeps)
 } :: { [string]: LibrarySound }
 
 -- Player volume settings: 0..1 in steps of 1/STEPS. Saved with the player's data.
