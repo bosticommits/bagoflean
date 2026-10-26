@@ -550,7 +550,8 @@ end
 -- back. Models: art/blender/space_kit.py (the moon) and backlot_kit.py (the studio).
 
 -- The moon set (in set space). The hero spots FilmScenes plays on: the lander's porch and ladder
--- at (-8, 76), the flag at (0.9, 61) and the foam rock the alien hides behind at (16, 80).
+-- at (-8, 76), the flag at (0.9, 61) and the foam rock the alien hides behind at (16, 80); the
+-- alien's sneak (round the rock's east end, then diagonally to the flag) crosses open dust.
 local MOON_SET: { FilmScenes.Gear } = {
 	{ kit = "MoonFlatEarthrise", at = v(0, 0.2, 101), yaw = 0 },
 	{ kit = "MoonFlatStarfield", at = v(39.4, 0.2, 96.3), yaw = 15 },
@@ -574,7 +575,7 @@ local MOON_SET: { FilmScenes.Gear } = {
 	{ kit = "MoonBoulders", at = v(48, 0.2, 52), yaw = 20 },
 	{ kit = "MoonBoulders", at = v(-22, 0.2, 98), yaw = 200 },
 	{ kit = "MoonPebbles", at = v(-14, 0.2, 64), yaw = 0 },
-	{ kit = "MoonPebbles", at = v(10, 0.2, 72), yaw = 90 },
+	{ kit = "MoonPebbles", at = v(7, 0.2, 80), yaw = 90 },
 	{ kit = "MoonPebbles", at = v(26, 0.2, 86), yaw = 30 },
 	{ kit = "MoonFakeEarth", at = v(-17, 0.2, 52), yaw = 160 },
 	{ kit = "MoonPropCart", at = v(17, 0.2, 38), yaw = 90 },
@@ -615,18 +616,6 @@ local MOON_BACKLOT: { FilmScenes.Gear } = {
 	{ kit = "BacklotClump", at = v(-52, 0.2, 100), yaw = 60 },
 	{ kit = "BacklotClump", at = v(58, 0.2, 72), yaw = 120 },
 	{ kit = "BacklotClump", at = v(-8, 0.2, 26), yaw = 200 },
-}
-
--- Gear FilmScenes lists for Moon Base that the layout above replaces (its first, simpler set
--- pieces); the crew's own gear (camera, chairs, lights) still comes from FilmScenes.
-local MOON_REPLACED = {
-	SpaceBackdrop = true,
-	MoonRocket = true,
-	MoonLander = true,
-	MoonDome = true,
-	MoonBuggy = true,
-	MoonCrater = true,
-	MoonRock = true,
 }
 
 -- A run of kit model `kit` (`length` studs long along its X) from `from` to `to`, stretched to fit.
@@ -684,11 +673,7 @@ function TownSets.moonBase(b: Builder)
 
 	TownSets.filmSetGear(b, MOON_SET)
 	TownSets.filmSetGear(b, MOON_BACKLOT)
-	for _, g in FilmScenes.Sets.MoonBase.gear do
-		if not MOON_REPLACED[g.kit] then
-			TownSets.filmSetGear(b, { g })
-		end
-	end
+	TownSets.filmSetGear(b, FilmScenes.Sets.MoonBase.gear) -- the crew's own gear
 	-- Two more chairs at the video village.
 	directorChair(b, CFrame.new(-26.5, 0.2, 35.5) * yaw(180), "PRODUCER")
 	directorChair(b, CFrame.new(-21.5, 0.2, 35.5) * yaw(180), nil)
