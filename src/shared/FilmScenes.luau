@@ -1842,9 +1842,6 @@ local function crewPoses(set: SetDef, plan: SlotPlan, s: number, frame: Frame, g
 
 	-- The boom operator: the pole up over the actors while the camera rolls, resting otherwise.
 	local boom = if plans.Boom ~= nil then planPose(plans.Boom, s) else pose(scene.boom.at, facing(scene.boom.at, aim))
-	if not boom.walking and plans.Boom == nil then
-		boom.yaw = facing(boom.at, aim)
-	end
 	boom.hold = "PropBoomPole"
 	local heads = {}
 	for _, who in scene.mic do
