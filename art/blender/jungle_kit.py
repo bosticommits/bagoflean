@@ -659,11 +659,13 @@ def prop_sandbag():
 
 
 def prop_dart():
-    """A blowpipe dart from the temple's trap, flying toward -Y, centred on the origin."""
+    """A trap's dart, flying toward -Y, centred on the origin: big enough to read from the camera,
+    with a bright red and yellow feather tail."""
     return [
-        C((0, 0.1, 0), 0.05, 1.0, "Bark", rot=(90, 0, 0), seg=6),
-        K((0, -0.55, 0), 0.07, 0.0, 0.25, "Steel", rot=(90, 0, 0), seg=6),
-        K((0, 0.62, 0), 0.22, 0.05, 0.35, "Carpet", rot=(-90, 0, 0), seg=6),  # the fluff
+        C((0, 0.2, 0), 0.11, 2.0, "Bark", rot=(90, 0, 0), seg=6),
+        K((0, -1.1, 0), 0.15, 0.0, 0.5, "Steel", rot=(90, 0, 0), seg=6),
+        K((0, 1.25, 0), 0.45, 0.1, 0.7, "Carpet", rot=(-90, 0, 0), seg=6),  # the fluff
+        K((0, 1.55, 0), 0.32, 0.05, 0.45, "Gold", rot=(-90, 0, 0), seg=6),
     ]
 
 
@@ -815,6 +817,7 @@ KIT = [
     ("JungleShrineBack", jungle_shrine_back),
     ("PropSandbag", prop_sandbag),
     ("PropDart", prop_dart),
+    ("PropDart2", prop_dart),  # the second dart, a beat after the first
     ("JungleBackdrop", jungle_backdrop),
     ("JungleBackdropSide", jungle_backdrop_side),
     ("JungleSignpost", jungle_signpost),
@@ -822,7 +825,7 @@ KIT = [
 ]
 
 # Sunk into the ground: the mound is the top of a squashed blob.
-NO_LIFT = {"PropSandbag", "PropDart", "JungleMound", "JungleDirtPatch", "JungleDirtPatchSmall", "JungleDirtPatchLong"}
+NO_LIFT = {"PropSandbag", "PropDart", "PropDart2", "JungleMound", "JungleDirtPatch", "JungleDirtPatchSmall", "JungleDirtPatchLong"}
 
 LINEUPS = {
     "jungle_kit.png": (["IdolPedestal", "JungleFern", "JungleTorch", "JungleRuin", "JunglePalm", "JungleTree"], ["JungleTemple"]),

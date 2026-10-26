@@ -1255,7 +1255,7 @@ local RUN_END = v(10.5, GROUND, 70.2) -- the chase veers left off the boulder's 
 local DIVE_TO = v(7.6, GROUND, 68.6)
 local DIVE_YAW = 63
 local SWAP, SWAP_LEN = 10.0, 0.35 -- the sandbag goes on the pedestal as the idol comes off
-local DART_FROM, DART_TO, DART_AT = v(11, 11.8, 84.5), v(40, 11.8, 84.5), 5.65 -- flies across over the steps
+local DART_FROM, DART_TO, DART_AT = v(11, 12.9, 84), v(40, 12.9, 84), 5.65 -- flies across just over his ducked head
 local DART_LEN = 0.55
 local RUMBLE = 11.4
 local BOULDER_OUT, BOULDER_TOP, BOULDER_FOOT, BOULDER_STILL = 12.4, 13.6, 14.4, 16.2
@@ -1355,6 +1355,11 @@ local function jungleStory(a: number, frame: Frame, cut: number)
 	if a >= DART_AT and a < DART_AT + DART_LEN then
 		things.PropDart = CFrame.new(DART_FROM:Lerp(DART_TO, span(a, DART_AT, DART_AT + DART_LEN))) * yawCF(-90)
 	end
+	-- A second dart a beat later, over the back of his head.
+	local second = DART_AT + 0.3
+	if a >= second and a < second + DART_LEN then
+		things.PropDart2 = CFrame.new(DART_FROM:Lerp(DART_TO, span(a, second, second + DART_LEN)) + v(0, 0.7, 2)) * yawCF(-90)
+	end
 	if a >= DART_AT + 0.2 and a < DART_AT + 1.4 then
 		say.Explorer = "Whoa!"
 	elseif a >= 9.1 and a < 9.9 then
@@ -1434,7 +1439,7 @@ end
 local function jungleThings(endA: number, s: number, t0: number, frame: Frame, plans: { [string]: Plan })
 	local things = frame.things
 	local explorer = frame.poses.Explorer
-	things.PropDart = nil
+	things.PropDart, things.PropDart2 = nil, nil
 	-- The idol: carried up and swapped back for the sandbag on its pedestal.
 	local place = plans.Explorer.keys.place
 	if endA >= SWAP and place ~= nil then
@@ -2173,7 +2178,7 @@ end
 FilmScenes.Sets = table.freeze({
 	Gulch = sceneSet("Gulch", { Sheriff = { "PropRevolver" }, Outlaw = { "PropRevolver" } }, {}, GULCH_GEAR, v(0, 0, 114)),
 	MoonBase = sceneSet("MoonBase", { Astronaut = { "PropFlag" } }, { "PropFlag" }, MOON_GEAR, v(0, 0, 62)),
-	Jungle = sceneSet("Jungle", { Explorer = { "PropIdol", "PropSandbag" }, Guide = { "PropTorch" } }, { "PropIdol", "PropBoulder", "PropSandbag", "PropDart" }, JUNGLE_GEAR, v(24, 0, 72)),
+	Jungle = sceneSet("Jungle", { Explorer = { "PropIdol", "PropSandbag" }, Guide = { "PropTorch" } }, { "PropIdol", "PropBoulder", "PropSandbag", "PropDart", "PropDart2" }, JUNGLE_GEAR, v(24, 0, 72)),
 }) :: { [string]: SetScenes }
 
 -- Where everyone is on set `id` at time `t`, after the owner's `cue` (if any).
