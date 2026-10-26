@@ -20,6 +20,7 @@ local EventWorld = require(script.Parent.EventWorld)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local Sounds = require(ReplicatedStorage.Shared.Sounds)
 local Music = require(script.Parent.Music)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -381,7 +382,8 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 				Sfx.play("eventEnd")
 			end
 		end
-		Music.setEvent(state ~= nil) -- the event track, if one is set in Shared/Sounds
+		-- The event track, if one is set in Shared/Sounds (the Pumpkin Patch has its own).
+		Music.setEvent(state ~= nil, if state ~= nil and state.event.id == "PumpkinPatch" then Sounds.Music.fright else nil)
 		if state ~= nil then
 			live = state
 			local late = workspace:GetServerTimeNow() - state.starts > LATE_SECONDS

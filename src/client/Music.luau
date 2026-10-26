@@ -21,6 +21,7 @@ local currentTrack: Sounds.Track? = nil
 local lobbyIndex = 0
 local eventOn = false -- Award Night
 local specialOn = false -- a special event (set by the events code through Music.setEvent)
+local specialTrack: Sounds.Track? = nil -- that event's own track, if it has one
 local duckUntil = 0
 local playing = false -- the music is wanted (volume above 0)
 
@@ -74,7 +75,8 @@ playNext = function()
 	if not playing then
 		return
 	end
-	local event = Sounds.Music.event
+	local special = specialTrack
+	local event = if specialOn and special ~= nil and special.id ~= 0 then special else Sounds.Music.event
 	if (eventOn or specialOn) and event.id ~= 0 then
 		if currentTrack ~= event then
 			play(event, true)
@@ -96,9 +98,13 @@ playNext = function()
 end
 
 local function refresh()
-	local wasEvent = currentTrack ~= nil and currentTrack == Sounds.Music.event
-	local wantEvent = (eventOn or specialOn) and Sounds.Music.event.id ~= 0
-	if wasEvent ~= wantEvent or (playing and current == nil) then
+	local special = specialTrack
+	local want = if specialOn and special ~= nil and special.id ~= 0 then special elseif eventOn or specialOn then Sounds.Music.event else nil
+	if want ~= nil and want.id == 0 then
+		want = nil
+	end
+	local isEvent = currentTrack ~= nil and (currentTrack == Sounds.Music.event or currentTrack == special)
+	if (want ~= nil and currentTrack ~= want) or (want == nil and isEvent) or (playing and current == nil) then
 		playNext()
 	end
 end
@@ -148,10 +154,12 @@ function Music.setVolume(volume: number)
 	end
 end
 
--- For special events: true while one is on, so the event track (if set) plays.
-function Music.setEvent(active: boolean)
-	if specialOn ~= active then
+-- For special events: true while one is on, so the event track (if set) plays; `track` is the
+-- event's own track (Sounds.Music.fright), used instead when it has an id.
+function Music.setEvent(active: boolean, track: Sounds.Track?)
+	if specialOn ~= active or specialTrack ~= track then
 		specialOn = active
+		specialTrack = track
 		refresh()
 	end
 end

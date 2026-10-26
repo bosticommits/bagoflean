@@ -9,6 +9,8 @@
 --   Spotlight      a Lucky Casting boost for the owner of a random claimed studio and everyone who
 --                  visits it
 --   Golden Hour    every film shoots twice as fast (MovieService.fastForward)
+--   Pumpkin Patch  (Fright Night only) pumpkins round town pay like Cash Rain coins, and the
+--                  golden pumpkin gives a free cast like the Mystery Crate
 -- Each pickup is saved in the player's profile (eventKey, eventClaims), so rejoining or changing
 -- servers during the same event cannot pick it up twice. LiveConfig can switch events off.
 -- It also tells clients this week's Film Festival (the "Festival" attribute), and celebrates a
@@ -47,7 +49,8 @@ type Live = {
 	starts: number,
 	ends: number,
 	key: string, -- "<id>:<starts>", also saved with each player's pickups
-	spots: { Vector3 }, -- Cash Rain coins, or the Mystery Crate
+	spots: { Vector3 }, -- Cash Rain coins or pumpkins, or the Mystery Crate
+	golden: Vector3?, -- Pumpkin Patch: the golden pumpkin
 	lot: number?, -- Spotlight
 	owner: Player?,
 }
@@ -179,6 +182,9 @@ local function begin(event: SpecialEvents.Event, starts: number, ends: number): 
 		state.spots = SpecialEvents.coinSpots(starts)
 	elseif event.id == "MysteryCrate" then
 		state.spots = { SpecialEvents.crateSpot(starts) }
+	elseif event.id == "PumpkinPatch" then
+		state.spots = SpecialEvents.pumpkinSpots(starts)
+		state.golden = SpecialEvents.crateSpot(starts)
 	elseif event.id == "LuckyStar" then
 		CastingService.setEventLuck(SpecialEvents.LuckMultiplier, ends)
 	end
@@ -270,7 +276,8 @@ local function refuse(player: Player, kind: string, index: number, reason: strin
 	resultRemote:FireClient(player, kind, index, false, reason)
 end
 
--- A client touched a Cash Rain coin ("coin", its number) or reached the crate ("crate", 1).
+-- A client touched a Cash Rain coin or a pumpkin ("coin", its number), reached the crate
+-- ("crate", 1) or the golden pumpkin ("golden", 1).
 local function onClaim(player: Player, kind: any, index: any)
 	local clock = os.clock()
 	local last = lastClaim[player]
@@ -287,8 +294,12 @@ local function onClaim(player: Player, kind: any, index: any)
 		return
 	end
 	local item, radius
-	if kind == "coin" and state.event.id == "CashRain" then
+	local target = state.spots[index]
+	local golden = state.golden
+	if kind == "coin" and (state.event.id == "CashRain" or state.event.id == "PumpkinPatch") then
 		item, radius = "coin" .. index, SpecialEvents.CoinRadius
+	elseif kind == "golden" and golden ~= nil and index == 1 then
+		item, radius, target = "golden", SpecialEvents.CrateRadius, golden
 	elseif kind == "crate" and state.event.id == "MysteryCrate" then
 		if os.time() < state.starts + SpecialEvents.CrateLandSeconds then
 			return refuse(player, kind, index, "early")
@@ -301,14 +312,17 @@ local function onClaim(player: Player, kind: any, index: any)
 		return refuse(player, kind, index, "claimed")
 	end
 	local at = rootPosition(player)
-	if at == nil or not SpecialEvents.near(at, state.spots[index], radius + CLAIM_SLACK) then
+	if at == nil or not SpecialEvents.near(at, target, radius + CLAIM_SLACK) then
 		return refuse(player, kind, index, "far")
 	end
 	markClaimed(player, data, state, item)
 	if kind == "coin" then
 		local cash = SpecialEvents.coinCash(EconomyService.rate(data), data.fame)
-		EconomyService.addCash(player, cash, "Gameplay", "CashRain")
+		EconomyService.addCash(player, cash, "Gameplay", state.event.id)
 		resultRemote:FireClient(player, kind, index, true, Rewards.describe({ cash = cash }, 0))
+	elseif kind == "golden" then
+		CastingService.freeCast(player, SpecialEvents.GoldenLuckMultiplier)
+		resultRemote:FireClient(player, kind, index, true, `Golden pumpkin! Free x{SpecialEvents.GoldenLuckMultiplier} Luck cast!`)
 	else
 		CastingService.freeCast(player, SpecialEvents.CrateLuckMultiplier)
 		resultRemote:FireClient(player, kind, index, true, `Free x{SpecialEvents.CrateLuckMultiplier} Luck cast!`)
