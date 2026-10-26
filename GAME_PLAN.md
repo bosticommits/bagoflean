@@ -423,7 +423,26 @@ exciting by M3, fix the core before adding anything else.
 - **Audio**: slots `frightSting` and `frightVoice` (Fish Audio announcer "Fright Night has begun!") and
   track `Sounds.Music.fright` (falls back to the event track while its id is 0).
 
-## 20. As built (pity meter and early crazy pulls)
+## 20. As built (playtime gift ladder)
+
+- **What**: a row of seven presents (bottom right; above the jump button on touch screens, above the
+  sound button on PC) opens after 2, 5, 10, 15, 25, 40 and 60 minutes played in a session. Each shows a
+  countdown; a ready one swaps to the glowing picture with a gold halo and "OPEN!". Tapping it asks the
+  server; the present pops (scale bounce, confetti, `giftOpen` sound) and the reward floats up. A closed
+  present says when it opens. The row folds away once all seven are open.
+- **Rewards** (`src/shared/PlaytimeGifts.luau`): small and growing, the last is a free x2 Luck
+  (Lucky Casting) 15 minutes with a Skip and $300 or 15 minutes of income. See ECONOMY.md.
+- **Rules**: the server counts only time in the game (`gifts.played`, saved, schema v11). A new ladder
+  starts only after 30 minutes away and at most 3 times a UTC day; a quick rejoin or server hop carries
+  on the same ladder. Claims (`ClaimGift k`) are validated and rate-limited in RewardService; the client
+  only counts down from the server's sync (`GiftsSync`). The "Don't leave yet!" gift is unchanged.
+- **Art**: ForgeGUI present icons (closed, ready, opened; `art/ui/gift_*.png`), uploaded as decals
+  117097257889551 / 112488073936113 / 131932256497483 (images 121409647430879 / 99908336297706 /
+  101236104871779). Setting `ART.closed = 0` in `PlaytimeGiftsUi` draws the presents in code instead.
+- **Studio testing**: in Studio only, `Remotes.TestGifts:FireServer("skip", minutes)` adds play time and
+  `("reset")` starts a fresh ladder.
+
+## 21. As built (pity meter and early crazy pulls)
 - **Pity meter** for everyone: each agency counts casts since its last rare pull (Star at Open
   Casting, Superstar at the Talent Agency and Hollywood Casting, the `pity` field on
   `Actors.Agencies`), and the 400th (`Actors.PityEvery`) is that tier or better. Natural rares reset

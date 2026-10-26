@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
+local PlaytimeGifts = require(ReplicatedStorage.Shared.PlaytimeGifts)
 local ProfileStore = require(script.Parent.ProfileStore)
 
 -- A movie being filmed. Times are os.time() stamps, so filming continues while offline.
@@ -82,13 +83,15 @@ export type PlayerData = {
 	-- won (each one puts a Festival Laurel on the lot, kept through Sequel).
 	festival: { week: number, list: { Request } },
 	laurels: { Laurel },
+	-- Playtime gift ladder (PlaytimeGifts.luau): time played this ladder and the presents opened.
+	gifts: PlaytimeGifts.State,
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
 export type Carried = { key: string, id: string, scope: string }
 export type Laurel = { week: number, genre: string, season: string? }
 
-local CURRENT_VERSION = 11 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival, 11: pity + early pulls
+local CURRENT_VERSION = 12 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival, 11: playtime gifts, 12: pity + early pulls
 local RELEASE_WAIT_SECONDS = 30
 
 local TEMPLATE: PlayerData = {
@@ -127,10 +130,11 @@ local TEMPLATE: PlayerData = {
 	visits = { day = 0, toured = {}, applauded = {} },
 	hotStart = Actors.HotStartLength, -- profiles from before v9 have played already; load() sets 0 for new ones
 	pity = {}, -- old saves start every meter at 0
-	early = Actors.EarlyDone, -- profiles from before v11 have played already; load() sets 0 for new ones
+	early = Actors.EarlyDone, -- profiles from before v12 have played already; load() sets 0 for new ones
 	played = 0,
 	festival = { week = 0, list = {} },
 	laurels = {},
+	gifts = PlaytimeGifts.fresh(nil),
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -256,6 +260,7 @@ local function migrate(data: any)
 		end
 	end
 	data.laurels = laurels
+	data.gifts = PlaytimeGifts.fresh(data.gifts)
 	data.version = CURRENT_VERSION
 end
 

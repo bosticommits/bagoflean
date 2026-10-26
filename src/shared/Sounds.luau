@@ -86,6 +86,7 @@ Sounds.Slots = {
 	reward = slot("stinger"), -- a reward or code claimed
 	welcome = slot("jingle"), -- welcome back, daily reward ready, tutorial done
 	gift = slot("pop"), -- the stay gift pops up
+	giftOpen = slot("stinger", 1.3), -- a playtime gift present pops open
 	goal = slot("jingle", 1.1), -- an achievement goal reached (Goals screen)
 
 	-- Server events
