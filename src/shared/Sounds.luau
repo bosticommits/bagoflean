@@ -59,12 +59,13 @@ Sounds.Slots = {
 	drumrollLow = slot("click", 0.5), -- the second drum layer for Superstar+ and the near miss
 	revealStep = slot("indicator"),
 	revealBurst = slot("stinger", 1.2),
-	-- The announcer on the flip (Fish Audio voice lines).
-	voiceStar = slot("pop", 1.2),
-	voiceSuperstar = slot("pop", 1.1),
-	voiceLegend = slot("pop", 1),
-	voiceIcon = slot("pop", 0.9),
-	voiceSoClose = slot("low", 1.1), -- the near-miss tease lands on a lower tier
+	-- The announcer on the flip (Fish Audio voice "Energetic Male", uploaded 2026-10-26).
+	voiceStar = { id = 115516541869843, volume = 0.8, fallback = "pop", pitch = 1.2 }, -- "Star!"
+	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1 }, -- "SUPERSTAR!"
+	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1 }, -- "LEGEND!"
+	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9 }, -- "ICON!"
+	-- "Ooh, so close!": the near-miss tease lands on a lower tier.
+	voiceSoClose = { id = 81149535231196, volume = 0.8, fallback = "low", pitch = 1.1 },
 
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up
