@@ -295,6 +295,16 @@ and the chance of a Legend or Icon in week one moves no more than run-to-run noi
 to make the town feel alive and to give a reason to stay a few more minutes, not to change the
 pace.
 
+**Pumpkin Patch (Fright Night, 2026-10-26).** A sixth special event joins the deck only during
+the FrightNight festival weeks, so in season each event comes up once every six slots instead of
+five (a Cash Rain or Mystery Crate comes round a little less often). It pays 12 pumpkins at the
+Cash Rain coin value (Cash Rain has 16) plus one golden pumpkin with the Mystery Crate's free x3
+Luck cast, so one Pumpkin Patch is worth less than a Cash Rain plus a Mystery Crate. The sim's
+player grabs half the pumpkins and the golden one. `--season FrightNight` (300 runs, typical
+player): week one ends at 126,880 Cash per minute against 124,858 with no season (+1.6%, which
+includes the limited actor's extra Star); first session 1,104 against 1,076. Milestones move by a
+minute or two at most. No price, odds or payout changed.
+
 ## Directing takes (premiere Luck while filming)
 
 While a movie films, a TAKE! card pops up at each quarter of the shoot (`src/shared/Takes.luau`,
