@@ -146,9 +146,9 @@ local PURCHASE_ID_LOG = 100
 
 -- ProfileStore.Mock is isolated from every live DataStore. Always use it in Studio, including
 -- when API access is enabled, so an accidental test can never load or save the production profile.
-local playerStore = if RunService:IsStudio()
-	then ProfileStore.New("PlayerData_v1", TEMPLATE).Mock
-	else ProfileStore.New("PlayerData_v1", TEMPLATE)
+-- Mock has the same API as the live store; typed as the live store so callers see one type.
+local liveStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
+local playerStore: typeof(liveStore) = if RunService:IsStudio() then liveStore.Mock :: any else liveStore
 
 local profiles: { [Player]: any } = {}
 local releasing: { [number]: boolean } = {}
