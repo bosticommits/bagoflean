@@ -17,6 +17,7 @@ local MascotWorld = require(script.Parent.MascotWorld)
 local Blimp = require(script.Parent.Blimp)
 local MapLife = require(script.Parent.MapLife)
 local Music = require(script.Parent.Music)
+local PlaytimeGiftsUi = require(script.Parent.PlaytimeGiftsUi)
 local RebirthUi = require(script.Parent.RebirthUi)
 local RewardsUi = require(script.Parent.RewardsUi)
 local Sfx = require(script.Parent.Sfx)
@@ -78,6 +79,7 @@ if remotes ~= nil then
 	SpecialEventsUi.start(gui, remotes)
 	VisitUi.start(gui, side.visit)
 	MascotUi.start(gui, side.mascots, remotes)
+	task.spawn(PlaytimeGiftsUi.start, gui, remotes)
 else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
