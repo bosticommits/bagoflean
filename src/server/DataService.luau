@@ -77,6 +77,7 @@ export type PlayerData = {
 	-- won (each one puts a Festival Laurel on the lot, kept through Sequel).
 	festival: { week: number, list: { Request } },
 	laurels: { Laurel },
+	hudTucked: boolean, -- the top HUD stack is tucked into its pull tab (HudSettingsService)
 	-- Playtime gift ladder (PlaytimeGifts.luau): time played this ladder and the presents opened.
 	gifts: PlaytimeGifts.State,
 }
@@ -125,6 +126,7 @@ local TEMPLATE: PlayerData = {
 	hotStart = Actors.HotStartLength, -- profiles from before v9 have played already; load() sets 0 for new ones
 	festival = { week = 0, list = {} },
 	laurels = {},
+	hudTucked = false,
 	gifts = PlaytimeGifts.fresh(nil),
 }
 
@@ -159,6 +161,9 @@ local function migrate(data: any)
 	end
 	if type(data.tutorialDone) ~= "boolean" then
 		data.tutorialDone = false
+	end
+	if type(data.hudTucked) ~= "boolean" then
+		data.hudTucked = false
 	end
 	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths", "likes" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
