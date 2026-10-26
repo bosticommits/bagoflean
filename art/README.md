@@ -7,6 +7,8 @@ that look smoother; once you import them, the game uses them automatically.
 | File | What it builds |
 |---|---|
 | `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
+| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 43 mesh templates currently in the Studio place |
+| `tools/studio/rebuild_lot_meshes.luau` | Studio Command Bar script that rebuilds and verifies `ReplicatedStorage.LotMeshes` from the manifest |
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (4 sizes), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
@@ -130,6 +132,30 @@ each by name and sets the colors itself. Don't rename or merge them: each piece 
 5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
 
 Rojo only manages `ReplicatedStorage.Shared`, so it leaves the `LotMeshes` folder alone.
+
+## Rebuild the saved mesh library
+
+`src/shared/LotMeshManifest.luau` is the committed source for the 43 mesh templates currently in
+the place: the three Mystery Crate pieces, seven Halloween props and 33 Town Life pieces. It records
+each Roblox mesh asset ID, template size, appearance and physics properties, plus its group name.
+Other Blender models listed above are not in this snapshot until they have been imported into the
+place and added to the manifest.
+
+On a fresh place or another machine:
+
+1. Open the place in Studio and sync the project with Rojo so
+   `ReplicatedStorage.Shared.LotMeshManifest` exists.
+2. Open Studio's **View → Command Bar**. Copy the contents of
+   `tools/studio/rebuild_lot_meshes.luau` into the bar and run it.
+3. Wait for the success message, then check `ReplicatedStorage > LotMeshes` in Explorer. The script
+   stages all entries and checks each loaded mesh ID before it replaces the live folder. If a mesh
+   fails to load or validate, the old folder stays in place.
+4. Save the place. The replaced folder is preserved under
+   `ServerStorage > LotMeshesBackup`; keep it until the rebuilt art has been checked.
+
+The mesh assets must remain readable by the experience creator. When adding or replacing a mesh,
+update the manifest as part of the same change; the rebuild intentionally creates exactly the
+manifested library and moves any previous folder to the backup.
 
 ## Previewing without Studio
 
