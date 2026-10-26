@@ -84,6 +84,9 @@ Sounds.Slots = {
 	eventSweep = slot("sweep"), -- the Spotlight switching on, the Golden Hour sunset
 	eventPickup = slot("pop", 1.3), -- picking up a Cash Rain coin or crate
 	eventEnd = slot("sweep", 0.8), -- a special event ends
+	frightSting = slot("stinger", 0.6), -- the Pumpkin Patch starts (Fright Night): a spooky sting
+	-- Then the announcer: "Fright Night has begun! Grab the pumpkins!" (Fish Audio, uploaded 2026-10-26).
+	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6 },
 
 	-- Studio visits
 	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio
@@ -104,6 +107,8 @@ Sounds.Music = {
 		{ id = 15930255433, name = "Lobby 3", volume = 0.35 }, -- light, 1:47
 	} :: { Track },
 	event = { id = 17422163655, name = "Cloud Blitz", volume = 0.4 } :: Track, -- energetic, 2:18
+	-- The Pumpkin Patch event's spooky loop (Fright Night); with id 0 it plays the event track.
+	fright = { id = 0, name = "Pumpkin Patch", volume = 0.4 } :: Track,
 }
 
 -- Player volume settings: 0..1 in steps of 1/STEPS. Saved with the player's data.

@@ -56,6 +56,9 @@ test("rewards are real and modest", function()
 	expect(SpecialEvents.FilmSpeed > 1 and SpecialEvents.FilmSpeed <= 3, "Golden Hour speed")
 	expect(SpecialEvents.CrateLandSeconds < SpecialEvents.get("MysteryCrate").seconds / 2, "the crate lands early")
 	expect((SpecialEvents.SpotlightReward.luckMinutes or 0) > 0, "Spotlight gives Luck")
+	-- The Pumpkin Patch is worth less than a Cash Rain plus a Mystery Crate.
+	expect(SpecialEvents.PumpkinCount < SpecialEvents.CoinCount, "fewer pumpkins than coins")
+	expect(SpecialEvents.GoldenLuckMultiplier <= SpecialEvents.CrateLuckMultiplier, "golden pumpkin luck")
 	-- Cash Rain coins grow with the player: never less than the floor, then cinema income or Fame.
 	local floor = SpecialEvents.CoinCash
 	equal(SpecialEvents.coinCash(0, 0), floor, "a new player's coin")
@@ -106,10 +109,56 @@ test("every event comes up as often, never twice in a row", function()
 		previous = event
 		counts[event.id] = (counts[event.id] or 0) + 1
 	end
-	local share = SLOTS / #SpecialEvents.List
+	-- These slots are outside every season, so only the everyday events are dealt.
+	local everyday = 0
+	for _, event in SpecialEvents.List do
+		everyday += if event.season == nil then 1 else 0
+	end
+	local share = SLOTS / everyday
 	for _, event in SpecialEvents.List do
 		local n = counts[event.id] or 0
-		expect(math.abs(n - share) <= 2, `{event.id} came up {n} times, expected about {share}`)
+		local expected = if event.season == nil then share else 0
+		expect(math.abs(n - expected) <= 2, `{event.id} came up {n} times, expected about {expected}`)
+	end
+end)
+
+test("the Pumpkin Patch is dealt only in Fright Night, never twice in a row", function()
+	local patch = SpecialEvents.get("PumpkinPatch")
+	assert(patch ~= nil)
+	equal(patch.season, "FrightNight", "a Fright Night event")
+	-- Oct 5 to Nov 16 2026: two weeks before, the season's festival weeks (Oct 19 - Nov 2), and two after.
+	local from, to = 1791158400 // SLOT, 1794787200 // SLOT
+	local seasonFrom, seasonTo = 1792368000 // SLOT, 1793577600 // SLOT
+	local inSeason, previous = 0, nil
+	for slot = from, to do
+		local event = SpecialEvents.forSlot(slot)
+		assert(event ~= nil)
+		local season = slot >= seasonFrom and slot < seasonTo
+		local seasonNow = SpecialEvents.seasonAt(slot * SLOT)
+		equal(seasonNow ~= nil and seasonNow.id == "FrightNight", season, `season at slot {slot}`)
+		if event == patch then
+			expect(season, `Pumpkin Patch out of season at slot {slot}`)
+			inSeason += 1
+		end
+		expect(event ~= previous, `{event.id} twice in a row at slot {slot}`)
+		previous = event
+	end
+	local expected = (seasonTo - seasonFrom) / #SpecialEvents.List
+	expect(math.abs(inSeason - expected) <= 3, `Pumpkin Patch came up {inSeason} times in season, expected about {expected}`)
+	for slot = seasonFrom, seasonFrom + 200 do
+		local event = SpecialEvents.forSlot(slot, { PumpkinPatch = true })
+		expect(event ~= patch, "LiveConfig can switch it off")
+	end
+	-- Pumpkins sit on coin spots, the golden one on a crate spot.
+	local starts = seasonFrom * SLOT + 300
+	local pumpkins = SpecialEvents.pumpkinSpots(starts)
+	equal(#pumpkins, SpecialEvents.PumpkinCount, "pumpkin count")
+	equal(pumpkins[1], SpecialEvents.coinSpots(starts)[1], "on coin spots")
+	-- Kit names are looked up by name in LotMeshes and MapKit, so none may clash with the map kit.
+	local HalloweenShapes = H.require("Models/HalloweenShapes")
+	local MapKitShapes = H.require("Models/MapKitShapes")
+	for name in HalloweenShapes.Shapes do
+		expect(MapKitShapes.Shapes[name] == nil, `{name} is also a map kit model`)
 	end
 end)
 

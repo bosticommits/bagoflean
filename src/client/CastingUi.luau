@@ -40,7 +40,8 @@ end
 
 -- The limited actor in season right now: the one of this week's seasonal Film Festival, as the
 -- server published it (SpecialEventService's "Festival" attribute), or nil.
-local function limitedInSeason(): Actors.Actor?
+-- Also its last day for people ("Nov 1"; the festival ends the Monday after).
+local function limitedInSeason(): (Actors.Actor?, string?)
 	local raw = ReplicatedStorage:GetAttribute("Festival")
 	if type(raw) ~= "string" then
 		return nil
@@ -51,7 +52,8 @@ local function limitedInSeason(): Actors.Actor?
 	if not ok or type(data) ~= "table" or type(data.season) ~= "string" then
 		return nil
 	end
-	return Actors.limitedFor(data.season)
+	local lastDay = if type(data.ends) == "number" then os.date("!%b %d", data.ends - 1):gsub(" 0", " ") else nil
+	return Actors.limitedFor(data.season), lastDay
 end
 
 -- Index slots found: every actor-and-variant in the everyday Index (limited actors are counted on
@@ -198,6 +200,37 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	end
 	refreshHotStart()
 
+	-- In season, a gold tag over the Cast button features the limited actor and its odds; it
+	-- sits above the hot start bar when that shows, and opens the odds.
+	local limitedTag = makeButton(bar, "", UiKit.DARK, UDim2.fromOffset(340, 28), UDim2.fromOffset(0, -34))
+	limitedTag.Name = "LimitedTag"
+	limitedTag.Visible = false
+	local limitedOutline = limitedTag:FindFirstChild("Outline")
+	if limitedOutline ~= nil and limitedOutline:IsA("UIStroke") then
+		limitedOutline.Color = UiKit.GOLD
+	end
+	local limitedLabel = UiKit.makeTitle(limitedTag, "", UiKit.GOLD, UDim2.new(1, -16, 1, -6), UDim2.fromOffset(8, 3), 2)
+	limitedLabel.RichText = true
+	limitedLabel.ZIndex = limitedTag.ZIndex + 1
+	textConstraint(limitedLabel, 18)
+	local function refreshLimitedTag()
+		local limited, lastDay = limitedInSeason()
+		local tier = if limited ~= nil then Actors.getTier(limited.tier) else nil
+		local luck = player:GetAttribute("Luck") or Config.BaseLuck
+		local chances = Actors.tierChances(luck, currentAgency().minTier)
+		limitedTag.Visible = limited ~= nil and tier ~= nil and chances[tier.id] > 0
+		if limited == nil then
+			return
+		end
+		local odds = fmtOdds(Actors.limitedChance(chances, limited))
+		local untilText = if lastDay ~= nil then `, until {lastDay}` else ""
+		limitedLabel.Text = `LIMITED: {limited.name}  <font color="#FFFFFF">{odds}</font>{untilText}`
+		limitedTag.Position = UDim2.fromOffset(0, if hotBar.Visible then -68 else -34)
+	end
+	refreshLimitedTag()
+	ReplicatedStorage:GetAttributeChangedSignal("Festival"):Connect(refreshLimitedTag)
+	hotBar:GetPropertyChangedSignal("Visible"):Connect(refreshLimitedTag)
+
 	-- Odds panel (with agency selector) --------------------------------------------------------
 	local oddsPanel, oddsList, oddsHeader = UiKit.makePanel(gui, "OddsPanel", "Casting odds", 108)
 	UiKit.panelIcon(oddsPanel, oddsHeader, "dice")
@@ -218,6 +251,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		button.Activated:Connect(function()
 			agencyId = agency.id
 			refreshCastButton()
+			refreshLimitedTag()
 			buildOdds()
 		end)
 	end
@@ -269,7 +303,8 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			local outline = row:FindFirstChild("Outline") :: UIStroke
 			outline.Color = UiKit.GOLD
 			makeLabel(row, fmtOdds(Actors.limitedChance(chances, limited)), WHITE, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.4, 0))
-			makeLabel(row, `{limitedTier.name}, this season only`, UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
+			local _, lastDay = limitedInSeason()
+			makeLabel(row, if lastDay ~= nil then `{limitedTier.name}, until {lastDay}` else `{limitedTier.name}, this season only`, UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
 		end
 		local vChances = Actors.variantChances(luck)
 		for _, variant in Actors.Variants do
@@ -927,6 +962,9 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end)
 	player.AttributeChanged:Connect(function(name)
+		if name == "Luck" then
+			refreshLimitedTag()
+		end
 		if (name == "Luck" or name == "Fame") and oddsPanel.Visible then
 			buildOdds()
 		elseif name == "HotStart" then
@@ -938,6 +976,9 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		UiKit.togglePanel(collection, buildCollection)
 	end)
 	oddsButton.Activated:Connect(function()
+		UiKit.togglePanel(oddsPanel, buildOdds)
+	end)
+	limitedTag.Activated:Connect(function()
 		UiKit.togglePanel(oddsPanel, buildOdds)
 	end)
 	Screens.register("Actors", function()
