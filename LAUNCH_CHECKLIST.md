@@ -30,7 +30,8 @@ Design details live in [GAME_PLAN.md](GAME_PLAN.md); the look lives in
 The plan's rule: if casting plus a premiere is not exciting, fix that before adding more.
 
 - [ ] Playtest the first 15 minutes with 3 or more people who have not seen the game.
-      *Done when:* each one finishes the tutorial unaided and plays a second movie by choice.
+      *Done when:* each one finishes the first-film tutorial unaided, understands the optional
+      presents/pity/HUD tab/Film Sets/Visit tips, and plays a second movie by choice.
 - [ ] Tune the economy: roll costs, script prices, payouts, upgrade costs, Fame gates.
       *Done when:* a new player reaches Talent Agency in about 20 to 30 minutes and
       Hollywood Casting in a few play sessions, and nobody hits a dead end with no Cash.
