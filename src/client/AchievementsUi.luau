@@ -703,7 +703,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			goal = goalRow(boardList, 2, group.id)
 			boardGoal, boardGoalGroup = goal, group.id
 		end
-		fillGoalRow(goal, group)
+		fillGoalRow(goal :: Row, group)
 
 		local state = ClientState.rewards
 		if state ~= nil then

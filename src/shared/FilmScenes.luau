@@ -107,7 +107,7 @@ export type Frame = {
 	stick: number, -- how far the clapperboard's top is open (radians)
 	say: { [string]: string }, -- speech bubbles, by who says them
 	shot: string?, -- who fires a shot this moment (a flash at their revolver's muzzle)
-	things: { [string]: CFrame }, -- loose props and the moving camera rig (kit name: where)
+	things: { [string]: CFrame? }, -- loose props and the moving camera rig (kit name: where)
 	beat: string?, -- the latest moment with a sound (FilmScenes.BeatSounds), within half a second of it
 	beatAt: number, -- the server time of that moment (tells one beat from the next)
 	beatWho: string?, -- who makes that sound
@@ -1654,7 +1654,7 @@ local function takePlan(set: SetDef, scene: Scene, nextScene: Scene, outcome: Ou
 		local to = nextScene.places[who]
 		local p = newPlan(from.at, from.yaw, resetAt + (i - 1) * 0.7, crew.ground)
 		local custom = if scene.reset ~= nil then scene.reset[who] else nil
-		local t = if who == touch.who then touchFn else noTouch
+		local t: (Plan) -> () = if who == touch.who then touchFn else noTouch
 		if custom ~= nil then
 			custom(endA, from, resetAt, to, p, t)
 		else
@@ -2084,7 +2084,7 @@ local function frameAt(set: SetDef, t: number, cue: Cue?): Frame
 	crewPoses(set, plan, s, frame, greet, press)
 
 	-- The moment's sound, if one just happened.
-	local beats = if plan.outcome == "rehearsal"
+	local beats: { { any } } = if plan.outcome == "rehearsal"
 		then {}
 		else { { "places", QUIET, "Director" }, { "snap", SNAP, "Clapper" }, { "action", ACTION, "Director" }, { "cut", plan.cutAt, "Director" }, { "cheer", plan.cutAt + 1.0, "Director" } }
 	for _, b in beats do
