@@ -7,7 +7,7 @@ that look smoother; once you import them, the game uses them automatically.
 | File | What it builds |
 |---|---|
 | `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
-| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 314 mesh templates currently in the Studio place |
+| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 329 mesh templates currently in the Studio place |
 | `tools/studio/rebuild_lot_meshes.luau` | Studio Command Bar script that rebuilds and verifies `ReplicatedStorage.LotMeshes` from the manifest |
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (4 sizes), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
@@ -133,10 +133,25 @@ each by name and sets the colors itself. Don't rename or merge them: each piece 
 
 Rojo only manages `ReplicatedStorage.Shared`, so it leaves the `LotMeshes` folder alone.
 
+## Lot dressing kit
+
+`art/blender/lot_dressing_kit.py` builds the lot's dressing as nine meshes: `LotHedgeSide` (a side
+hedge with its three pillars), `LotHedge` (a plain run the game stretches to the back and front
+runs, so any lot size still fits), `LotGatePost`, `LotLamp`, `LotKiosk`, `LotStanchions` (both
+rows, stretched to the carpet), `LotBillboard`, `LotTrophyCase` (stretched to the trophies shown)
+and `LotPedestal`. Glows and signs stay small parts: gate lamps and number badges, lamp heads, the
+kiosk sign and topper, the billboard board (the star portrait) and spotlights, the pedestal ring.
+Invisible boxes block players at the hedges, gate posts and kiosk; the lamps, stanchions,
+billboard, case and pedestal meshes collide themselves. Run it with Blender (see its header); it
+writes `art/exports/lot_dressing_kit.fbx` and `art/previews/lot_kit_dressing.png`. Imported as
+the model `lot_dressing_kit` (asset 75446899270617) in `ReplicatedStorage > LotMeshes`. Without
+it, the part versions build. If you change the shapes, update `DRESS_MESH` in `LotModels.luau`
+from the sizes the script prints.
+
 ## Rebuild the saved mesh library
 
-`src/shared/LotMeshManifest.luau` is the committed source for the 314 mesh templates currently in
-the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces and the 271-mesh map kit
+`src/shared/LotMeshManifest.luau` is the committed source for the 329 mesh templates currently in
+the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces, the nine lot dressing meshes (`lot_dressing_kit`), six single props (`PalmTree`, `Searchlight`, `FilmCamera`, `FilmReelLogo`, `TrophyGold`, `FestivalLaurel`, each a model of that name) and the 271-mesh map kit
 (`map_kit`, asset 80189346190801). It records
 each Roblox mesh asset ID, template size, appearance and physics properties, plus its group name.
 Other Blender models listed above are not in this snapshot until they have been imported into the
