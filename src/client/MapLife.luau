@@ -1,12 +1,13 @@
 --!strict
 -- Small moving things that make the map feel alive: gulls gliding over the town and the park,
--- clouds drifting overhead, butterflies over Starlight Park's lawns and ducks paddling round the
--- pond. All Blender map kit models.
+-- clouds drifting overhead, butterflies over Starlight Park's lawns, ducks paddling round the
+-- pond and the gold star on the hill swaying. All Blender map kit models.
 --
 -- Each player moves their own copies, so it costs the server nothing: the birds, clouds and
 -- butterflies are made here; the ducks are the town's own (TownSets), moved here.
 -- About thirty models a frame, none of which collide.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 
 local Build = require(ReplicatedStorage.Shared.Models.Build)
@@ -148,6 +149,80 @@ local function ducks(town: Instance, movers: { Mover })
 	town.DescendantAdded:Connect(found)
 end
 
+local function reducedMotion(): boolean
+	local ok, value = pcall(function()
+		return (GuiService :: any).ReducedMotionEnabled
+	end)
+	return ok and value == true
+end
+
+-- The gold star on the hill rocks gently from its feet (about 3 degrees each way over 6 s), and
+-- every 8-10 s a faint glint sweeps once across its face. Kept quiet so it never pulls the eye.
+-- Moved part by part from where each arrived, like the ducks. Still when reduced motion is on.
+local SWAY, SWAY_PERIOD = math.rad(3), 6
+local GLINT_TIME, GLINT_CLEAREST = 1.4, 0.55 -- the strip never gets more solid than this
+local function hillStar(town: Instance, folder: Instance, movers: { Mover })
+	local home = MapModels.Layout.hillStar
+	-- A thin, faint neon strip just in front of the star's face, kept inside its middle.
+	local glint = Instance.new("Part")
+	glint.Name = "StarGlint"
+	glint.Size = Vector3.new(0.6, 7, 0.05)
+	glint.Material = Enum.Material.Neon
+	glint.Color = Color3.fromRGB(255, 244, 210)
+	glint.Transparency = 1
+	glint.Anchored = true
+	glint.CanCollide = false
+	glint.CanQuery = false
+	glint.CanTouch = false
+	glint.CastShadow = false
+	glint.CFrame = home
+	glint.Parent = folder
+
+	local offsets: { [BasePart]: CFrame } = {}
+	local function track(part: Instance)
+		if part:IsA("BasePart") and not offsets[part] and part:FindFirstAncestor("HillStar") then
+			offsets[part] = home:ToObjectSpace(part.CFrame)
+		end
+	end
+	for _, part in town:GetDescendants() do
+		track(part)
+	end
+	town.DescendantAdded:Connect(track)
+	town.DescendantRemoving:Connect(function(part)
+		if part:IsA("BasePart") then
+			offsets[part] = nil
+		end
+	end)
+
+	local still = false
+	table.insert(movers, function(t)
+		if reducedMotion() then
+			if not still then
+				still = true
+				glint.Transparency = 1
+				for part, offset in offsets do
+					part.CFrame = home * offset
+				end
+			end
+			return
+		end
+		still = false
+		local pose = home * CFrame.Angles(0, 0, math.sin(t / SWAY_PERIOD * TAU) * SWAY)
+		for part, offset in offsets do
+			part.CFrame = pose * offset
+		end
+		-- One glint in each 9 s window, starting up to 1 s in, so glints come 8-10 s apart.
+		local cycle = math.floor(t / 9)
+		local u = (t - cycle * 9 - noise(cycle, 9)) / GLINT_TIME
+		if u > 0 and u < 1 then
+			glint.Transparency = 1 - math.sin(u * math.pi) * (1 - GLINT_CLEAREST)
+			glint.CFrame = pose * CFrame.new(-4 + u * 8, 15, -1.5) * CFrame.Angles(0, 0, math.rad(-25))
+		else
+			glint.Transparency = 1
+		end
+	end)
+end
+
 function MapLife.start()
 	task.spawn(function()
 		local town = workspace:WaitForChild("Town", 60)
@@ -167,6 +242,7 @@ function MapLife.start()
 		clouds(folder, movers)
 		butterflies(folder, movers)
 		ducks(town, movers)
+		hillStar(town, folder, movers)
 
 		RunService.Heartbeat:Connect(function()
 			local t = os.clock()
