@@ -240,45 +240,103 @@ export type StageLook = {
 	filming: boolean,
 }
 
+-- The Blender stage (art/blender/lot_stage_kit.py): each mesh's size and where its centre sits
+-- above the stage's feet, as the kit script prints them.
+local STAGE_MESH = {
+	LotStage = { size = v(12.6, 14.45, 14.15), center = v(0.3, 7.225, -0.075) },
+	LotStageAccent = { size = v(12.6, 11.4, 13.4), center = v(0.6, 7.6, 0) },
+}
+
+local function stageMesh(b: Builder, name: string): BasePart?
+	local m = STAGE_MESH[name]
+	return Build.mesh(b, name, v(m.center.X, m.center.Y - m.size.Y / 2, m.center.Z), m.size.Y)
+end
+
+-- The meshed hangar: two meshes (the roof and side canopy tinted per lot, both grey when free)
+-- and invisible colliders. False when the meshes aren't imported, so the caller builds parts.
+local function soundStageMesh(b: Builder, look: StageLook, w: number, d: number, h: number): boolean
+	local body = stageMesh(b, "LotStage")
+	local accent = stageMesh(b, "LotStageAccent")
+	if body == nil or accent == nil then
+		if body ~= nil then
+			body:Destroy()
+		end
+		if accent ~= nil then
+			accent:Destroy()
+		end
+		return false
+	end
+	body.Color = if look.owned then Color3.new(1, 1, 1) else P.Grey
+	accent.Color = if look.owned then look.accent else P.Grey
+	for _, p in { body, accent } do
+		p.Material = Enum.Material.SmoothPlastic
+	end
+	local colliders = {
+		b:block("StageCollider", v(w + 1, 0.6, d + 1), v(0, 0.3, 0), P.Cream),
+		b:block("StageCollider", v(w + 0.4, h, d + 0.4), v(0, 0.6 + h / 2, 0), P.Cream),
+		b:cylinder("StageCollider", d + 0.4, w + 0.4, CFrame.new(0, 0.6 + h, 0) * CFrame.Angles(math.rad(90), 0, 0), P.Cream),
+	}
+	for _, p in colliders do
+		p.Transparency = 1
+		p.CastShadow = false
+		p.CanTouch = false
+	end
+	return true
+end
+
 -- A film hangar: thick walls, barrel roof, big sliding door and a number. Footprint 12 x 14.
+-- The Blender meshes when imported (signs, ON AIR and the light strip stay parts), else parts.
 function LotModels.soundStage(b: Builder, number: number, look: StageLook)
 	local wall = if look.owned then P.Cream else P.Grey
 	local trim = if look.owned then P.Burgundy else P.Steel
 	local roof = if look.owned then look.accent else P.Steel
 	local w, d, h = 11, 13, 7
-	b:block("StagePlinth", v(w + 1, 0.6, d + 1), v(0, 0.3, 0), P.Paving)
-	b:block("SoundStage", v(w, h, d), v(0, 0.6 + h / 2, 0), wall)
-	b:block("StageBase", v(w + 0.3, 1, d + 0.3), v(0, 1.1, 0), trim)
-	b:block("StageTrim", v(w + 0.4, 0.8, d + 0.4), v(0, 0.6 + h - 0.4, 0), trim)
-	b:cylinder("StageRoof", d + 0.4, w + 0.4, CFrame.new(0, 0.6 + h, 0) * CFrame.Angles(math.rad(90), 0, 0), roof)
-	-- Roof ribs.
-	for _, z in { -d / 2 + 0.2, 0, d / 2 - 0.2 } do
-		b:cylinder("StageRib", 0.5, w + 0.8, CFrame.new(0, 0.6 + h, z) * CFrame.Angles(math.rad(90), 0, 0), trim)
-	end
-	-- Big sliding door with stripes.
 	local front = -d / 2
-	b:block("StageDoorFrame", v(7.2, 6.4, 0.3), v(0, 0.6 + 3.2, front - 0.1), trim)
-	b:block("StageDoor", v(6.4, 5.8, 0.3), v(0, 0.6 + 2.9, front - 0.25), if look.owned then P.Navy else P.Steel)
-	for i = 1, 3 do
-		b:block("DoorStripe", v(6.4, 0.25, 0.1), v(0, 0.6 + i * 1.45, front - 0.45), if look.owned then P.Gold else P.Grey)
+	local meshed = soundStageMesh(b, look, w, d, h)
+	if not meshed then
+		b:block("StagePlinth", v(w + 1, 0.6, d + 1), v(0, 0.3, 0), P.Paving)
+		b:block("SoundStage", v(w, h, d), v(0, 0.6 + h / 2, 0), wall)
+		b:block("StageBase", v(w + 0.3, 1, d + 0.3), v(0, 1.1, 0), trim)
+		b:block("StageTrim", v(w + 0.4, 0.8, d + 0.4), v(0, 0.6 + h - 0.4, 0), trim)
+		b:cylinder("StageRoof", d + 0.4, w + 0.4, CFrame.new(0, 0.6 + h, 0) * CFrame.Angles(math.rad(90), 0, 0), roof)
+		-- Roof ribs.
+		for _, z in { -d / 2 + 0.2, 0, d / 2 - 0.2 } do
+			b:cylinder("StageRib", 0.5, w + 0.8, CFrame.new(0, 0.6 + h, z) * CFrame.Angles(math.rad(90), 0, 0), trim)
+		end
+		-- Big sliding door with stripes.
+		b:block("StageDoorFrame", v(7.2, 6.4, 0.3), v(0, 0.6 + 3.2, front - 0.1), trim)
+		b:block("StageDoor", v(6.4, 5.8, 0.3), v(0, 0.6 + 2.9, front - 0.25), if look.owned then P.Navy else P.Steel)
+		for i = 1, 3 do
+			b:block("DoorStripe", v(6.4, 0.25, 0.1), v(0, 0.6 + i * 1.45, front - 0.45), if look.owned then P.Gold else P.Grey)
+		end
 	end
 	-- Number plate on the roof front.
 	local plate = b:block("StageNumber", v(3.6, 3.6, 0.4), v(0, 0.6 + h + 2.3, front - 0.4), if look.owned then P.Gold else P.Grey)
 	Build.sign(plate, Enum.NormalId.Front, tostring(number), if look.owned then P.Burgundy else P.Charcoal)
-	-- Same number on the boulevard-facing side wall, big.
+	-- Same number on the boulevard-facing side wall, big (on an invisible board over the mesh).
 	for _, side in { -1, 1 } do
 		local sidePlate = b:block("StageSideNumber", v(0.2, 4, 4), v(side * (w / 2 + 0.1), 0.6 + h / 2 + 0.6, -1), wall)
+		if meshed then
+			sidePlate.Transparency = 1
+			sidePlate.CanCollide = false
+			sidePlate.CastShadow = false
+		end
 		Build.sign(sidePlate, if side > 0 then Enum.NormalId.Right else Enum.NormalId.Left, tostring(number), trim)
 	end
 	-- ON AIR light over the door: lit while a movie is filming here.
 	local onAir = b:block("OnAir", v(3.4, 1, 0.3), v(0, 0.6 + h - 0.2, front - 0.45), if look.filming then P.Carpet else P.Charcoal, if look.filming then NEON else nil)
 	Build.sign(onAir, Enum.NormalId.Front, "ON AIR", if look.filming then P.OffWhite else P.Steel)
 	if look.owned then
-		-- Rooftop lights and a side door with a little canopy.
-		lightRow(b, "RoofLight", v(-w / 2 + 1, 0.6 + h + 0.3, front - 0.3), v(w / 2 - 1, 0.6 + h + 0.3, front - 0.3), 5, 0.6, P.Light)
-		b:block("SideDoor", v(0.3, 3.4, 2), v(w / 2 + 0.15, 2.3, 3), P.Navy)
-		b:block("SideCanopy", v(1.4, 0.3, 2.8), v(w / 2 + 0.7, 4.2, 3), look.accent)
-		b:block("VentUnit", v(2, 1.2, 2), v(-2.5, 0.6 + h + 4.6, 2), P.Steel, METAL)
+		if meshed then
+			-- The rooftop bulbs as one glowing strip (the side door, canopy and vent are in the mesh).
+			b:block("RoofLight", v(9, 0.3, 0.3), v(0, 0.6 + h + 0.5, front - 0.3), P.Light, NEON)
+		else
+			-- Rooftop lights and a side door with a little canopy.
+			lightRow(b, "RoofLight", v(-w / 2 + 1, 0.6 + h + 0.3, front - 0.3), v(w / 2 - 1, 0.6 + h + 0.3, front - 0.3), 5, 0.6, P.Light)
+			b:block("SideDoor", v(0.3, 3.4, 2), v(w / 2 + 0.15, 2.3, 3), P.Navy)
+			b:block("SideCanopy", v(1.4, 0.3, 2.8), v(w / 2 + 0.7, 4.2, 3), look.accent)
+			b:block("VentUnit", v(2, 1.2, 2), v(-2.5, 0.6 + h + 4.6, 2), P.Steel, METAL)
+		end
 	end
 end
 
