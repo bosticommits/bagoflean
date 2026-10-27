@@ -1,37 +1,16 @@
 --!strict
 -- The film crew's puppets: each person on the film set is six Blender pieces from the map kit
 -- (Crew<Who>Head, Torso, Arm, Leg, from art/blender/crew_kit.py; the arm and leg are used for both
--- sides) and a prop for the right hand. CrewRig puts the pieces together and turns them at their
--- joints for a FilmScenes pose. Each piece keeps its joint at its own origin: the legs hang from
--- the hips, the arms from the shoulders, the torso stands on the hips and the head on the neck.
---
--- Body (studs, the feet at y = 0, facing -Z): hips 2 up, shoulders 1.75 above the hips and 1.2 out,
--- the neck 2.1 above the hips. A prop's grip is 1.6 down the arm from the shoulder, and it points
--- the way the arm does (or straight ahead, for a `level` prop).
+-- sides) and the props they can hold in the right hand. CrewRig puts the pieces together and turns
+-- them at their joints for a FilmScenes pose. Each piece keeps its joint at its own origin: the
+-- legs hang from the hips, the arms from the shoulders, the torso stands on the hips and the head
+-- on the neck (body sizes in FilmScenes.Body). A prop points the way the arm does, straight ahead
+-- (`level`) or at a spot (`aim`, the boom pole).
 local Build = require(script.Parent.Build)
 local FilmScenes = require(script.Parent.Parent.FilmScenes)
 local MapKit = require(script.Parent.MapKit)
 
 local CrewRig = {}
-
-local HIPS = 2
-local HIP_OUT = 0.45
-local SHOULDER = Vector3.new(1.2, 1.75, 0)
-local NECK = 2.1
-local GRIP = 1.6
--- The clapperboard's hinged top, in the grip's space: its hinge at the board's top-left corner.
-local STICK_HINGE = CFrame.new(-1.2, -0.3, -2.05) * CFrame.Angles(-math.pi / 2, 0, 0)
-local MUZZLE = CFrame.new(0, -1.5, -0.05) -- the revolver's muzzle, in the grip's space
-
-local PROPS: { [string]: { string } } = {
-	Director = { "PropMegaphone" },
-	Clapper = { "PropClapper" },
-	Sheriff = { "PropRevolver" },
-	Outlaw = { "PropRevolver" },
-	Astronaut = { "PropFlag" },
-	Explorer = { "PropIdol" },
-	Guide = { "PropTorch" },
-}
 
 export type Rig = {
 	who: string,
@@ -47,38 +26,9 @@ export type Rig = {
 }
 
 -- Where each piece goes for `pose`, with `base` the film set's space (MapModels.FilmSets[...].frame).
--- Pure CFrame math; FilmSetWorld moves the parts there and tests check it.
+-- Pure CFrame math (FilmScenes.pieces); FilmSetWorld moves the parts there and tests check it.
 function CrewRig.cframes(base: CFrame, pose: FilmScenes.Pose, stick: number): { [string]: CFrame }
-	local root = base * CFrame.new(pose.at) * CFrame.Angles(0, math.rad(pose.yaw), 0)
-	if pose.tilt ~= 0 then
-		root = root * CFrame.new(0, pose.pivot, 0) * CFrame.Angles(pose.tilt, 0, 0) * CFrame.new(0, -pose.pivot, 0)
-	end
-	local torso = root * CFrame.new(0, HIPS, 0)
-	local out: { [string]: CFrame } = {
-		Torso = torso,
-		Head = torso * CFrame.new(0, NECK, 0) * CFrame.Angles(0, pose.head, 0),
-		LegL = root * CFrame.new(-HIP_OUT, HIPS, 0) * CFrame.Angles(pose.legs[1], 0, 0),
-		LegR = root * CFrame.new(HIP_OUT, HIPS, 0) * CFrame.Angles(pose.legs[2], 0, 0),
-	}
-	-- The character's right is +X (it faces -Z); an arm swings out to its own side.
-	for i, side in { -1, 1 } do
-		local arm = pose.arms[i]
-		local shoulder = CFrame.new(SHOULDER.X * side, SHOULDER.Y, SHOULDER.Z)
-		out[if side < 0 then "ArmL" else "ArmR"] = torso * shoulder * CFrame.Angles(arm[1], 0, 0) * CFrame.Angles(0, 0, side * arm[2])
-	end
-	if pose.hold ~= nil then
-		local grip = out.ArmR * CFrame.new(0, -GRIP, 0)
-		if pose.level then
-			grip = CFrame.new(grip.Position) * root.Rotation * CFrame.Angles(math.pi / 2, 0, 0)
-		end
-		out[pose.hold] = grip
-		if pose.hold == "PropClapper" then
-			out.Stick = grip * STICK_HINGE * CFrame.Angles(0, 0, stick)
-		elseif pose.hold == "PropRevolver" then
-			out.Muzzle = grip * MUZZLE
-		end
-	end
-	return out
+	return FilmScenes.pieces(base, pose, stick)
 end
 
 local function collect(model: Model, pivot: CFrame): { { part: BasePart, offset: CFrame } }
@@ -95,8 +45,9 @@ local function collect(model: Model, pivot: CFrame): { { part: BasePart, offset:
 	return list
 end
 
--- Builds `who` (one of a set's FilmScenes cast) into `parent`, standing at the origin.
-function CrewRig.build(parent: Instance, who: string): Rig
+-- Builds `who` (one of a set's FilmScenes cast) into `parent`, standing at the origin, with the
+-- props they can hold (FilmScenes.Sets[...].props[who]).
+function CrewRig.build(parent: Instance, who: string, kits: { string }?): Rig
 	local model = Instance.new("Model")
 	model.Name = "Crew" .. who
 	local b = Build.new(model, CFrame.identity)
@@ -151,8 +102,7 @@ function CrewRig.build(parent: Instance, who: string): Rig
 
 	local props: { [string]: Model } = {}
 	local board: TextLabel? = nil
-	local kits: { string } = PROPS[who] or {}
-	for _, kit in kits do
+	for _, kit in kits or ({} :: { string }) do
 		local labels: { [string]: MapKit.Label }? = if kit == "PropClapper"
 			then { Board = { text = "", color = Color3.new(1, 1, 1), stroke = 0 } :: MapKit.Label }
 			else nil

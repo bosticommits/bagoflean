@@ -1,6 +1,21 @@
 --!strict
 -- Casting Call: the server rolls, charges Cash and grants the actor. The client only asks.
 -- Remotes carry no gameplay values from the client: Cast has no arguments, RosterRequest has none.
+--
+-- CastResult payload (server -> client), every field decided here:
+--   { ok = false, reason = "cooldown" | "loading" | "invalid" | "fame" | "cash" }
+--   { ok = true,
+--     actorId, variantId: string, isNew: boolean, count: number (copies owned now),
+--     discovered: boolean,         -- same as guarantee == "hotStart" (the "DISCOVERED!" badge)
+--     guarantee: string?,          -- the guarantee that covered this cast: "hotStart" | "pity" |
+--                                  -- "firstSuperstar" | nil. Set even when the natural roll beat it.
+--     tease: string?,              -- "nearMiss": build the reveal up like a Superstar, then land on
+--                                  -- the real result (presentation only; never a Superstar itself)
+--     pity: { agency: string, tier: string, count: number, every: number },
+--                                  -- that agency's meter AFTER this cast: `every - count` casts
+--                                  -- until a guaranteed `tier` (count 0 = just reset)
+--   }
+-- The meters are also mirrored as player attributes Pity<agencyId> (e.g. PityOpen) for the HUD.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
@@ -8,11 +23,14 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
+local PullNews = require(ReplicatedStorage.Shared.PullNews)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local LiveConfig = require(script.Parent.LiveConfig)
 local LotService = require(script.Parent.LotService)
+local PullNewsService = require(script.Parent.PullNewsService)
 local QuestTracker = require(script.Parent.QuestTracker)
 local Remotes = require(script.Parent.Remotes)
 
@@ -20,6 +38,7 @@ local random = Random.new()
 local lastCast: { [Player]: number } = {}
 local lastRosterRequest: { [Player]: number } = {}
 local lastCooldownReply: { [Player]: number } = {}
+local lastTick: { [Player]: number } = {} -- os.clock() of the last playtime count
 local COOLDOWN_REPLY_INTERVAL = 1 -- a spammer gets at most one "cooldown" answer per second
 -- A special event's casting Luck for everyone (the Lucky Star), until an os.time() stamp.
 local eventLuck, eventLuckUntil = 1, 0
@@ -80,6 +99,13 @@ function CastingService.refresh(player: Player)
 	if data ~= nil then
 		player:SetAttribute("LuckBoostUntil", data.luckBoostUntil)
 		player:SetAttribute("HotStart", data.hotStart)
+		for _, agency in Actors.Agencies do
+			player:SetAttribute("Pity" .. agency.id, data.pity[agency.id] or 0)
+		end
+		-- Seconds played, counted here (never from the client); a long stall counts at most 5 s.
+		local now = os.clock()
+		data.played += math.clamp(now - (lastTick[player] or now), 0, 5)
+		lastTick[player] = now
 	end
 end
 
@@ -105,18 +131,6 @@ function CastingService.grant(player: Player, actorId: string, variantId: string
 	return isNew, data.roster[key]
 end
 
--- A new player's casts count toward the "Discovered!" hot start (Actors.HotStart). Returns the tier
--- this cast is guaranteed, if any. Never yields.
-local function hotStartFloor(player: Player): string?
-	local data = DataService.getData(player)
-	if data == nil or data.hotStart >= Actors.HotStartLength then
-		return nil
-	end
-	data.hotStart += 1
-	player:SetAttribute("HotStart", data.hotStart)
-	return Actors.hotStartTier(data.hotStart)
-end
-
 -- The limited actor that can be cast right now: the one of this week's seasonal Film Festival
 -- (Actors.Limited), or nil in an ordinary week or while LiveConfig has festivals switched off.
 function CastingService.limitedInSeason(): Actors.Actor?
@@ -126,9 +140,16 @@ end
 
 -- Rolls an actor from `agency` at `luck`, grants it and shows the reveal. Never yields.
 local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
-	local floorTier = hotStartFloor(player)
+	local data = DataService.getData(player)
+	if data == nil then
+		return
+	end
 	local limited = CastingService.limitedInSeason()
-	local actor, variant = Actors.roll(random, luck, agency.minTier, floorTier, limited)
+	local actor, variant, guarantee, tease = Actors.castWithGuarantees(data, agency, function(floorTier)
+		return Actors.roll(random, luck, agency.minTier, floorTier, limited)
+	end, LiveConfig.switchedOff("FirstSuperstar"))
+	player:SetAttribute("HotStart", data.hotStart)
+	player:SetAttribute("Pity" .. agency.id, data.pity[agency.id])
 	local isNew, count = CastingService.grant(player, actor.id, variant.id)
 	castResult:FireClient(player, {
 		ok = true,
@@ -136,8 +157,16 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 		variantId = variant.id,
 		isNew = isNew,
 		count = count,
-		discovered = floorTier ~= nil, -- a hot start guarantee: the reveal says "DISCOVERED!"
+		discovered = guarantee == "hotStart",
+		guarantee = guarantee,
+		tease = tease,
+		pity = { agency = agency.id, tier = agency.pity, count = data.pity[agency.id], every = Actors.PityEvery },
 	})
+	if tease ~= nil then
+		Analytics.event(player, "NearMissTease", math.floor(data.played), actor.tier)
+	elseif guarantee == "firstSuperstar" then
+		Analytics.event(player, "FirstSuperstar", math.floor(data.played), actor.tier, variant.id)
+	end
 	-- Counted first, so a slow or failing lot redraw below can never lose a cast's progress.
 	QuestTracker.track(player, "cast")
 	sendRoster(player)
@@ -145,13 +174,14 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 	Analytics.onboarding(player, Analytics.Steps.FirstCast)
 	if actor.tier == "Superstar" or actor.tier == "Legend" or actor.tier == "Icon" then
 		Analytics.event(player, "RarePull", 1, actor.tier, variant.id)
+		-- World reaction for everyone: sky flash, fireworks over the lot, a shake nearby (Fx.celebrate).
+		LotService.celebrate(player, "pull", actor.tier)
 	end
-	if actor.tier == "Legend" or actor.tier == "Icon" then
-		Remotes.announce(`{player.DisplayName} cast {actor.name} ({actor.tier})!`)
-		LotService.celebrate(player, "pull")
-	elseif actor.season ~= nil then
+	-- Banner and chat line for Superstar and up; Legend and Icon go to every server too.
+	PullNewsService.onPull(player, actor.id, variant.id, actor.tier)
+	if actor.season ~= nil and not PullNews.Global[actor.tier] then
 		Analytics.event(player, "LimitedPull", 1, actor.id, variant.id)
-		if isNew then
+		if isNew and not PullNews.isBig(actor.tier) then -- a big pull already got its banner
 			Remotes.announce(`{player.DisplayName} cast the limited {actor.name}!`)
 		end
 	end
@@ -247,6 +277,7 @@ function CastingService.forget(player: Player)
 	lastCast[player] = nil
 	lastRosterRequest[player] = nil
 	lastCooldownReply[player] = nil
+	lastTick[player] = nil
 end
 
 return CastingService

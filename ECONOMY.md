@@ -15,11 +15,16 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
     python3 tools/economy_sim.py --cast-rate 1.0     # casts per second while online (default 0.35); 1.0 = the server cap, 1 / CastCooldown
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
+    python3 tools/economy_sim.py --no-pity           # without the pity meter (--pity-every N tries another length)
+    python3 tools/economy_sim.py --no-early          # without the new player's near-miss tease and first Superstar
+    python3 tools/economy_sim.py --no-gifts          # leave the playtime gift ladder out, to compare
+    python3 tools/economy_sim.py --film-sets --film-set-visit-minutes 5  # auto-buy sets; assume 5 min inside/session
 
 The sim includes Award Night, special events, daily rewards, Studio Requests, weekly quests, achievements, codes, the "don't leave yet" gift,
-Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
-than about 20 minutes of income, and rebirths as soon as it can afford one). It does not model game passes other than 2x Luck, or
-Robux cash packs. Treat it as the shape of the curve, not a promise: playtests decide.
+the playtime gift ladder, pity, the early Superstar, Lucky Casting boosts, Skip tokens and rebirths (its player saves for a rebirth once it costs less
+than about 20 minutes of income, and rebirths as soon as it can afford one). The optional `--film-sets` scenario auto-buys each permanent set as soon as
+affordable; `--film-set-visit-minutes N` assumes the player spends the first N minutes of each later session inside a set. This applies the owned set's Luck
+and models its extra box-office Cash while inside. The visit time is a sensitivity assumption, not observed player behavior; the sim approximates the service's 5-second payout cadence at a 2-second step, so a payment can land up to one step late. The simulator does not model game passes other than 2x Luck, Robux cash packs, or the planned actor-level and franchise systems. Treat it as the shape of the curve, not a promise: playtests decide.
 
 ## The curve in plain words
 
@@ -276,6 +281,80 @@ ends within 1% on Cash per minute. Casual players: first Star 7 against 15 minut
 about 4% richer on Cash per minute (the early Star's films pay a bit more all day one). Compare
 with `--no-hot-start`. No price, odds or payout changed.
 
+**Playtime gift ladder (2026-10-26).** A row of seven presents opens after 2, 5, 10, 15, 25, 40
+and 60 minutes played in a session (`src/shared/PlaytimeGifts.luau`): $25 or 1 minute of income,
+$50 or 2 minutes, a Skip, $100 or 5 minutes, x2 Luck for 5 minutes, two Comedy Indie scripts with $200
+or 10 minutes, and the big one, x2 Luck for 15 minutes (free Lucky Casting) with a Skip and $300 or 15
+minutes. Early Cash is kept as small as the "Next up" chain's for the same reason (the first minutes
+are where extra Cash shows most). Only time in the game counts. Anti-farming: a new ladder only
+starts after 30 minutes away (a quick rejoin or server hop carries on the same ladder, saved in the
+profile), and at most 3 new ladders a UTC day (after that a rejoin carries on the last one).
+Rejoining every few minutes therefore gets nothing new, and 30 minutes away buys back only the small
+first presents. The sim opens every present a session reaches (every sim session is hours apart, so
+each one starts a ladder): a typical day one reaches 4, 4 and 5 presents, later days three 15-minute
+visits (4 each); hardcore players get the full ladder in each 60-minute session.
+Typical player, 100 runs, with against `--no-gifts`: day-one milestones move by a minute at most
+(Talent Agency 27 against 28 minutes, first Star 6 either way, Sound stage 3 at 60 either way), the
+first rebirth comes at 67 instead of 73 minutes, end of day one earns about 9% more a minute
+(3,150 against 2,880, the Luck boosts and Skips mostly), and week one ends within run-to-run noise
+(117k against 122k a minute; Hollywood Casting day 5 either way, Legend 68% either way).
+Casual players (two short visits a day, never past the 15-minute present): within noise (Talent
+Agency and the first rebirth on the same day and minute; week one 32k against 35k a minute, Legend 9%
+against 12%, both run-to-run noise at 100 runs). Hardcore players (full ladder every 60-minute
+session): day one the same (first rebirth 106 against 105 minutes), week one about 5% richer (219k
+against 209k a minute), Legend 97% against 95%, Icon 20% against 14% (the free Luck boosts).
+
+**Pity meter and early crazy pulls (2026-10-26).** Two new safety nets, both in
+`Actors.castWithGuarantees` and both saved (save version 12).
+- **Pity meter.** Every agency keeps its own count of casts since its last rare pull, and the
+  400th one in a row without one is a guaranteed rare (`Actors.PityEvery = 400`). "Rare" depends
+  on the agency, because a Star is common at the better ones (at Luck 3 a Star or better is 1 in
+  214 at Open Casting, 1 in 40 at the Talent Agency, 1 in 6 at Hollywood Casting): **Star** at
+  Open Casting, **Superstar** at the Talent Agency and Hollywood Casting (Superstar is 1 in 485
+  at the Talent Agency at Luck 3, about the same as a Star at Open Casting). In words: "a Star or
+  better at least once every 400 casts here". A luckier pull resets the meter, the guarantee never
+  lowers a better roll, crate casts count for their agency, and old saves start at 0. The meters
+  are separate so cheap Open Casting casts cannot fill the Talent Agency's.
+- **Why 400.** Lengths tried (typical player, 60 runs, no early pulls), share of week-one rare
+  pulls that came from the meter: 200 gives 28%, 300 gives 17%, **400 gives 12%**, 500 gives 9%.
+  At 200 it became a main source of Superstars at the Talent Agency; at 400 it only catches unlucky
+  streaks (about 19 minutes of casting at one cast every 3 seconds, so the bar visibly fills in a
+  session or two). The first pity pull comes early on day 2 (median 71 minutes played).
+- **Early crazy pulls (new accounts only; old saves count as done).** The server counts seconds
+  played (`played` in the save). The first cast after 5 minutes that rolls a Pro or better is a
+  **near-miss tease** (the reveal builds up like a Superstar, then lands on the real result; the
+  odds do not change). The first cast after 12 minutes is a **guaranteed Superstar**, once (a
+  natural Superstar before then uses it up). The hot start (casts 3, 10, 25) is unchanged.
+
+Sim, 100 runs each, all of it against neither (`--no-pity --no-early`):
+
+| | Typical: before | Typical: after | Casual: before | Casual: after |
+|---|---|---|---|---|
+| First Star | 6 min | 6 min | 6 min | 6 min |
+| Near-miss tease | - | 6 min | - | 6 min |
+| First Superstar | day 2 (68 min) | day 1, 12 min | day 3 (59 min) | day 1, 12 min |
+| Talent Agency | 28 min | 25 min | day 2 (27 min) | day 2 (25 min) |
+| Sound stage 3 | day 2 (60 min) | day 1 (53 min) | day 3 (45 min) | day 3 (45 min) |
+| Rebirth 1 | day 2 (73 min) | day 2 (60 min) | day 3 (55 min) | day 3 (45 min) |
+| Rebirth 2 | day 3 (108 min) | day 3 (105 min) | day 5 (95 min) | day 5 (85 min) |
+| Hollywood Casting | day 5 (237 min) | day 5 (221 min) | - | - |
+| Legend in week one | 68% | 78% | 12% | 11% |
+| Cash per minute, end of day 1 | 2,880 | 4,337 (+51%) | 1,311 | 1,936 (+48%) |
+| Cash per minute, end of week 1 | 121,675 | 139,929 (+15%) | 34,853 | 47,383 (+36%) |
+| Rare pulls in week one (from pity) | 40 (0) | 51 (5) | 8 (0) | 12 (3) |
+
+Honestly: the early Superstar is the big mover. A 50-power actor at minute 12 makes day one pay
+about half as much again, which pulls the Talent Agency 3 minutes and the first rebirth about 13
+minutes of play sooner. The typical week ends about 15% richer (the pity meter alone, `--no-early`,
+lands within run-to-run noise of that, 142k), the casual week about 36% richer, mostly because the
+casual player's first Superstar moves from day 3 to day 1. Nothing breaks (no milestone moves by
+more than a session, Legend and Icon stay within noise, and the Talent Agency stays in its 20 to 30
+minute window), so nothing was retuned. If playtests say the casual curve runs too fast, the
+mitigations in order: the pity meter to 500 (9% of rares), then the first rebirth's price
+($250,000) up to about $350,000, which brings Rebirth 1 back to where it was. The first
+Superstar can also be switched off in live servers without an update: add "FirstSuperstar" to
+`DisabledEvents` in the `GameConfig` DataStore (LiveConfig; "ALL" does not include it).
+
 ## Special events
 
 Every 15 minutes one of five special events runs for 90 to 120 seconds, in every server at the
@@ -375,6 +454,47 @@ goals for later days. Moon Base's gate is inside the Gulch, so players buy the G
 Jungle Temple's gate is in Starlight Park's west fence. Standing inside is the point (watching
 the crew shoot), so the bonus follows the box office rate and stops as soon as the player leaves.
 The bonus is double on every set, so a dearer set pays off through its Luck, not its box office.
+
+## Combined-feature balance guardrails
+
+The current simulator already applies the gift rewards (including the hardcore schedule's full
+60-minute ladders), the first Superstar, pity, and special events together. “About 5% richer” for
+hardcore gifts is an observed effect of those rewards in the schedule, not a separate 5% multiplier.
+FrightNight can be stress-tested with `--season FrightNight`; that deliberately makes the whole
+simulated week a Halloween week. Film sets are opt-in because the extra box office depends on time
+spent inside them, which we do not yet know from real players.
+
+Use these as review triggers before adding more income features; they are not instructions to
+change prices automatically:
+
+| Measure | Target / trigger |
+|---|---|
+| Talent Agency, typical profile | Median 20–30 minutes played, matching the launch goal |
+| First guaranteed Superstar | First qualifying cast at or after 12 minutes; do not move the guarantee earlier |
+| First rebirth, typical profile | Usually day 2 and around 60–75 minutes played; a median below 60 minutes triggers review |
+| First rebirth, hardcore profile | Day 1, roughly 85–120 minutes played |
+| Pity's share of week-one rare pulls | Around the established 9–17% band; investigate if it becomes a main source of rares |
+| Week-one Cash/min with all current systems | Compare to the same profile and season without film-set visits; investigate a rise above 10% |
+
+The new `--film-sets` option buys each set as soon as the simulated player can afford it and adds
+its Luck. `--film-set-visit-minutes N` adds the set's extra box-office Cash for the first N minutes
+of each later session. This lets us bracket player behavior instead of assuming every player uses
+the sets. Example combined seasonal run:
+
+```
+python3 tools/economy_sim.py --runs 100 --seed 7 --season FrightNight --film-sets --film-set-visit-minutes 5
+python3 tools/economy_sim.py --runs 100 --seed 7 --season FrightNight --player hardcore --film-sets --film-set-visit-minutes 5
+```
+
+Exploratory same-seed run (20 typical, 10 hardcore; all current gifts, pity, early Superstar, and
+FrightNight events enabled): with five assumed minutes inside a set each session, typical Rebirth 1
+kept a 60-minute median (the fast 10% moved from 46 to 39 minutes, and the slow 10% from 62 to 85).
+Hardcore's median moved from 106 to 83 minutes. Typical week-one Cash/min was 147,834 without sets
+and 156,967 with them (+6.2%); hardcore was 243,364 and 256,949 (+5.6%). These small samples are
+directional only. The typical curve stays in its target range; the hardcore rebirth and income
+results are close enough to their review triggers to merit the documented 100-run comparison before
+changing odds or prices. Actor levels and franchises are not in the game or simulator yet; rerun and
+revisit these guardrails when those systems are designed, before adding their payouts.
 
 ## What to watch in playtests
 

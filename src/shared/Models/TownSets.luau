@@ -101,8 +101,9 @@ end
 -- (z -32..32, -Z toward the boulevard). Props keep to the sides (|x| >= 5.5) so the middle stays
 -- a clear walk.
 
-local function directorChair(b: Builder, at: CFrame, label: string?)
+local function directorChair(b: Builder, at: CFrame, label: string?, solid: boolean?)
 	MapKit.place(b, "DirectorChair", at, {
+		solid = solid,
 		labels = if label ~= nil then { Back = { text = label, color = P.Gold, stroke = 0 } } else nil,
 	})
 end
@@ -282,6 +283,135 @@ local function westernBuilding(b: Builder, info: WesternInfo)
 	MapKit.place(b, info.kit, CFrame.identity, { labels = { Sign = { text = info.title, color = info.color } } })
 end
 
+-- The facing (degrees, for yaw()) that turns a model's front (-Z) from (x, z) toward (tx, tz).
+local function toward(x: number, z: number, tx: number, tz: number): number
+	return math.deg(math.atan2(x - tx, z - tz))
+end
+
+-- Turned so a model's X axis runs along `delta`, its front (-Z) to the left of the way it runs.
+local function along(delta: Vector3): CFrame
+	return yaw(math.deg(math.atan2(-delta.Z, delta.X)))
+end
+
+-- A run of backlot fence (map kit BacklotFence: 12-stud sections hung with green mesh on their
+-- front) from `from` to `to`, the mesh facing to the left of the way it runs. `signs` letters a studio banner on
+-- the sections it names (1 is the first). A drift of sand at every other post (never at the run's
+-- ends, which may be a gateway) hides the ground's edge.
+local function backlotFence(b: Builder, from: Vector3, to: Vector3, signs: { [number]: string }?)
+	local delta = to - from
+	local sections = math.max(1, math.round(delta.Magnitude / 12))
+	local turn = along(delta)
+	for i = 0, sections - 1 do
+		local mid = from + delta * ((i + 0.5) / sections)
+		local text = if signs then signs[i + 1] else nil
+		MapKit.place(b, if text then "BacklotFenceSign" else "BacklotFence", CFrame.new(mid) * turn, {
+			scale = delta.Magnitude / sections / 12,
+			labels = if text then { Sign = { text = text, color = P.Burgundy, stroke = 0 } } else nil,
+		})
+		if i % 2 == 1 then
+			MapKit.place(b, "BacklotBerm", CFrame.new(from + delta * (i / sections)) * turn * yaw(if i % 4 == 1 then 8 else -10), { solid = false })
+		end
+	end
+	MapKit.place(b, "BacklotFencePost", to)
+end
+
+-- A cable run along the ground through `points`: lengths of map kit BacklotCable laid end to end,
+-- overlapping a little (and past the ends of runs shorter than a length).
+local function cableRun(b: Builder, points: { Vector3 })
+	for k = 1, #points - 1 do
+		local from, to = points[k], points[k + 1]
+		local delta = to - from
+		local pieces = math.max(1, math.ceil(delta.Magnitude / 8))
+		for i = 0, pieces - 1 do
+			local mid = from + delta * ((i + 0.5) / pieces)
+			MapKit.place(b, "BacklotCable", CFrame.new(mid) * along(delta), { solid = false })
+		end
+	end
+end
+
+-- Dusty Gulch as an open studio backlot (art/blender/backlot_kit.py), in the Gulch's space: green
+-- mesh fence round the lot (open at the town hedge and at Moon Base's gate, x = -88, z = 81),
+-- painted flats propped up behind the street's end and behind the hotel, light rigs aimed at the
+-- action with cables back to a generator, a basecamp of star trailers and a craft services tent
+-- behind the east row, and the director's video village down the street from the camera. The
+-- film crew's patch (x 3..13, z 100..130), the actors' street and the stunt landing stay clear by
+-- about 12 studs; tests/luau/map.spec.luau checks it.
+TownSets.GulchCrewClear = { x0 = -9, z0 = 88, x1 = 25, z1 = 142 }
+TownSets.GulchMoonWay = { x0 = -88, z0 = 70, x1 = -20, z1 = 92 }
+
+local function gulchBacklot(b: Builder)
+	local G = 0.1 -- the desert ground
+	local S = 0.2 -- the street
+	local W = 0.8 -- the boardwalks
+	local ACTION = v(-5, 0, 114)
+	local function aim(x: number, z: number): number
+		return toward(x, z, ACTION.X, ACTION.Z)
+	end
+
+	-- The fence, clockwise from the town hedge on the west (-X) side, leaving the way out to Moon
+	-- Base's gate open.
+	backlotFence(b, v(-85, G, 2), v(-85, G, 68), { [3] = "BACKLOT 9" })
+	MapKit.place(b, "BacklotFencePost", v(-85, G, 94))
+	backlotFence(b, v(-85, G, 94), v(-85, G, 157))
+	backlotFence(b, v(-85, G, 157), v(85, G, 157))
+	backlotFence(b, v(85, G, 157), v(85, G, 2), { [4] = "QUIET ON SET", [9] = "STUDIO PROPERTY" })
+
+	local gear: { FilmScenes.Gear } = {
+		-- Painted flats: a trail running off to the horizon closing the street's end, a desert sky
+		-- behind the hotel (it rises over the roofs behind the shot), and one by the wagon with
+		-- its bracing toward the way in.
+		{ kit = "BacklotFlatTrail", at = v(0, S, 149), yaw = 0, solid = true },
+		{ kit = "BacklotFlatDesert", at = v(-43, G, 132), yaw = -90, solid = true },
+		{ kit = "BacklotFlatDesert", at = v(-56, G, 37), yaw = 180, solid = true },
+		{ kit = "BacklotBrace", at = v(-36, G, 52), yaw = 90 },
+
+		-- Lights aimed at the showdown from the street's far end, and a fresnel down the street.
+		{ kit = "BacklotTrussTower", at = v(34, G, 141), yaw = aim(34, 141), light = true, solid = true },
+		{ kit = "BacklotScaffold", at = v(-30, G, 139), yaw = aim(-30, 139), light = true, solid = true },
+		{ kit = "BacklotCStand", at = v(-23, G, 131), yaw = aim(-23, 131) },
+		{ kit = "BacklotGroundLight", at = v(-11, S, 84), yaw = aim(-11, 84) },
+		{ kit = "BacklotCase", at = v(-12, S, 79), yaw = 15 },
+
+		-- Power: the generator behind the truss tower; the runs are below.
+		{ kit = "BacklotGenerator", at = v(52, G, 149), yaw = 90, solid = true },
+		{ kit = "BacklotCableRamp", at = v(0, S, 145), yaw = 0 },
+		{ kit = "BacklotCableCoil", at = v(44, G, 141), yaw = 30 },
+		{ kit = "BacklotCaseStack", at = v(40, G, 147), yaw = -15 },
+		{ kit = "BacklotCart", at = v(-38, G, 145), yaw = 80 },
+		{ kit = "BacklotCase", at = v(-36, G, 128), yaw = -20 },
+
+		-- The director's video village, down the street from the camera, out of the shot: the
+		-- monitors face the way in, the chairs face the monitors (and the action beyond them).
+		{ kit = "BacklotVideoVillage", at = v(9, S, 80), yaw = 0 },
+		{ kit = "DirectorChair", at = v(6.5, S, 75.5), yaw = 180 },
+		{ kit = "DirectorChair", at = v(9.5, S, 75.2), yaw = 180, label = "DIRECTOR" },
+		{ kit = "DirectorChair", at = v(12.5, S, 75.5), yaw = 180 },
+		{ kit = "BacklotScriptTable", at = v(17, W, 77), yaw = 90 },
+		{ kit = "BacklotAppleBoxes", at = v(16.5, W, 83), yaw = 20 },
+
+		-- Basecamp behind the east row: star trailers, craft services, a grip cart.
+		{ kit = "StarTrailerRed", at = v(64, G, 96), yaw = 0, solid = true },
+		{ kit = "StarTrailerBlue", at = v(64, G, 117), yaw = 0, solid = true },
+		{ kit = "DirectorChair", at = v(56, G, 92), yaw = 120 },
+		{ kit = "DirectorChair", at = v(56, G, 121), yaw = 60 },
+		{ kit = "BacklotCraftTent", at = v(46, G, 131), yaw = 90, label = "CRAFT SERVICES", solid = true },
+		{ kit = "BacklotCart", at = v(44, G, 106), yaw = 5 },
+		{ kit = "BacklotCase", at = v(42, G, 112), yaw = -25 },
+	}
+	TownSets.filmSetGear(b, gear, true)
+
+	-- Generator to the truss tower, and on across the street's end (over the ramp) to the
+	-- scaffold and down the west boardwalk to the fresnel.
+	cableRun(b, { v(48, G, 145.5), v(36, G, 142.5) })
+	cableRun(b, { v(36, G, 142.5), v(28, S, 145), v(-24, S, 145), v(-29, G, 140) })
+	cableRun(b, { v(-24, S, 145), v(-13.2, S, 137), v(-13.2, S, 87) })
+
+	-- Scrub where the set dressing meets the desert.
+	for i, at in { v(-48, G, 153), v(56, G, 140), v(72, G, 122), v(-62, G, 33), v(-30, G, 54), v(48, G, 88), v(-44, G, 150), v(-80, G, 100), v(80, G, 46) } do
+		MapKit.place(b, "BacklotClump", CFrame.new(at) * yaw(i * 61), { solid = false })
+	end
+end
+
 -- Dusty Gulch: a western film town, about 160 wide and 150 long. A welcome arch over the road in,
 -- a dusty main street with eight false-front buildings on boardwalks (saloon, bank, sheriff, hotel
 -- and more), hitching rails, barrels and crates, a corral, a covered wagon, a water tank, blocky
@@ -374,7 +504,7 @@ function TownSets.westernTown(b: Builder)
 	end
 
 	-- Cacti, boulders and mesas round the edges.
-	local cacti = { v(-34, 0, 20), v(34, 0, 22), v(-62, 0, 30), v(-30, 0, 132), v(36, 0, 140), v(70, 0, 104), v(-70, 0, 52), v(52, 0, 30) }
+	local cacti = { v(-28, 0, 16), v(34, 0, 22), v(-60, 0, 20), v(-60, 0, 148), v(36, 0, 140), v(70, 0, 104), v(-70, 0, 52), v(52, 0, 30) }
 	for i, at in cacti do
 		MapKit.place(b, "Cactus", CFrame.new(at) * yaw(i * 47), { scale = 0.8 + (i % 3) * 0.2 })
 	end
@@ -389,44 +519,415 @@ function TownSets.westernTown(b: Builder)
 	-- balcony, the director's chair, a light, and hay bales for the stunt double to land on. The
 	-- crew and the actors themselves are puppets each player's game moves (FilmScenes, FilmSetWorld).
 	TownSets.filmSetGear(b, FilmScenes.Sets.Gulch.gear)
+	gulchBacklot(b)
 end
 
--- A film set's gear (FilmScenes.Sets[...].gear), in the set's own space.
-function TownSets.filmSetGear(b: Builder, gear: { FilmScenes.Gear })
+-- A film set's gear (FilmScenes.Sets[...].gear), in the set's own space. `loose`: backlot
+-- dressing players walk through (cases, cables, stands), except pieces marked `solid`.
+function TownSets.filmSetGear(b: Builder, gear: { FilmScenes.Gear }, loose: boolean?)
 	for _, g in gear do
 		local at = CFrame.new(g.at) * yaw(g.yaw)
 		if g.kit == "DirectorChair" then
-			directorChair(b, at, g.label)
+			directorChair(b, at, g.label, if loose then g.solid == true else g.solid)
 		elseif g.kit == "JungleTemple" then
 			MapKit.place(b, g.kit, at, { hitbox = true }) -- players climb its steps
 		else
 			MapKit.place(b, g.kit, at, {
+				solid = if loose then g.solid == true else g.solid,
 				light = if g.light then { range = 16, brightness = 1.8, color = Color3.fromRGB(255, 164, 80) } else nil,
+				labels = if g.label then { Sign = { text = g.label, color = P.Gold } } else nil,
 			})
 		end
 	end
 end
 
 -- Moon Base (film set 2), in its own space (MapModels.FilmSets): the gate at the origin, the set
--- running along +Z, from x = -57 to 63. Grey moon dust with a paler track from the gate to the
--- camera; the rocket, lander, dome and backdrop are Blender models (art/blender/space_kit.py).
+-- running along +Z, from x = -57 to 63 and z = 2.5 to 112. An open studio backlot: a fenced lot of
+-- desert sand with the crew's base camp at the front (star trailers, craft services, a generator,
+-- the video village, cases and cables), and the moon set in the middle on grey dust that fades out
+-- to sand, lit from truss towers and scaffolds, with painted flats at the far end. The camera
+-- stands near the gate filming toward the flats, so everything tall keeps to the sides and the
+-- back. Models: art/blender/space_kit.py (the moon) and backlot_kit.py (the studio).
+
+-- The moon set (in set space). The hero spots FilmScenes plays on: the lander's porch and ladder
+-- at (-8, 76), the flag at (0.9, 61) and the foam rock the alien hides behind at (16, 80); the
+-- alien's sneak (round the rock's east end, then diagonally to the flag) crosses open dust.
+local MOON_SET: { FilmScenes.Gear } = {
+	{ kit = "MoonFlatEarthrise", at = v(0, 0.2, 101), yaw = 0 },
+	{ kit = "MoonFlatStarfield", at = v(39.4, 0.2, 96.3), yaw = 15 },
+	{ kit = "MoonFlatHorizon", at = v(-39.4, 0.2, 96.3), yaw = -15 },
+	{ kit = "MoonGroundRow", at = v(-8, 0.2, 98), yaw = 0 },
+	{ kit = "MoonGroundRow", at = v(14, 0.2, 97.5), yaw = 4 },
+	{ kit = "MoonLanderHero", at = v(-8, 0.2, 76), yaw = 0 },
+	{ kit = "MoonRocketPad", at = v(36, 0.2, 74), yaw = 180 },
+	{ kit = "MoonHabitat", at = v(-36, 0.2, 82), yaw = 0 },
+	{ kit = "MoonBuggyHero", at = v(24, 0.2, 54), yaw = 60 },
+	{ kit = "MoonTracks", at = v(35, 0.2, 60.5), yaw = 60 },
+	{ kit = "MoonFoamRock", at = v(16, 0.2, 80), yaw = 0 },
+	{ kit = "MoonFlagMark", at = v(0.9, 0.2, 61), yaw = 0 },
+	{ kit = "MoonFootprints", at = v(-4.2, 0.2, 66.6), yaw = 141 },
+	{ kit = "MoonCraterBig", at = v(-32, 0.2, 58), yaw = 20 },
+	{ kit = "MoonCraterMid", at = v(6, 0.2, 90), yaw = 0 },
+	{ kit = "MoonCraterSmall", at = v(-16, 0.2, 92), yaw = 40 },
+	{ kit = "MoonCraterSmall", at = v(30, 0.2, 40), yaw = 0 },
+	{ kit = "MoonRegolith", at = v(20, 0.2, 90), yaw = 30 },
+	{ kit = "MoonRegolith", at = v(-20, 0.2, 70), yaw = -20 },
+	{ kit = "MoonBoulders", at = v(48, 0.2, 52), yaw = 20 },
+	{ kit = "MoonBoulders", at = v(-22, 0.2, 98), yaw = 200 },
+	{ kit = "MoonPebbles", at = v(-14, 0.2, 64), yaw = 0 },
+	{ kit = "MoonPebbles", at = v(7, 0.2, 80), yaw = 90 },
+	{ kit = "MoonPebbles", at = v(26, 0.2, 86), yaw = 30 },
+	{ kit = "MoonFakeEarth", at = v(-17, 0.2, 52), yaw = 160 },
+	{ kit = "MoonPropCart", at = v(17, 0.2, 38), yaw = 90 },
+}
+
+-- The studio round it: lights, base camp and crew gear (in set space).
+local MOON_BACKLOT: { FilmScenes.Gear } = {
+	-- Lights: truss towers and scaffolds round the sides aimed at the action, a fresnel and flags.
+	{ kit = "BacklotTrussTower", at = v(54, 0.2, 46), yaw = 112 },
+	{ kit = "BacklotTrussTower", at = v(-52, 0.2, 50), yaw = -109 },
+	{ kit = "BacklotScaffold", at = v(36, 0.2, 98), yaw = 50 },
+	{ kit = "BacklotScaffold", at = v(-24, 0.2, 104), yaw = -30 },
+	{ kit = "BacklotGroundLight", at = v(-18, 0.2, 62), yaw = -95 },
+	{ kit = "BacklotCStand", at = v(-14, 0.2, 56), yaw = 200 },
+	{ kit = "BacklotCStand", at = v(26, 0.2, 70), yaw = 120 },
+	-- Base camp, east (+x): two star trailers and the generator.
+	{ kit = "StarTrailerRed", at = v(52, 0.2, 14), yaw = 0 },
+	{ kit = "StarTrailerBlue", at = v(52, 0.2, 31), yaw = 0 },
+	{ kit = "PatioTable", at = v(43, 0.2, 22), yaw = 0 },
+	{ kit = "BacklotGenerator", at = v(34, 0.2, 10), yaw = 90 },
+	{ kit = "BacklotCart", at = v(30, 0.2, 26), yaw = 70 },
+	{ kit = "BacklotCableCoil", at = v(26, 0.2, 14), yaw = 0 },
+	-- Base camp, west (-x): craft services, the video village, cases.
+	{ kit = "BacklotCraftTent", at = v(-46, 0.2, 16), yaw = -90 },
+	{ kit = "BacklotScriptTable", at = v(-38, 0.2, 26), yaw = -60 },
+	{ kit = "BacklotVideoVillage", at = v(-24, 0.2, 40), yaw = 0 },
+	{ kit = "BacklotCaseStack", at = v(-44, 0.2, 34), yaw = -80 },
+	{ kit = "BacklotCase", at = v(-37, 0.2, 38), yaw = 20 },
+	{ kit = "BacklotCase", at = v(-32, 0.2, 12), yaw = -10 },
+	{ kit = "BacklotAppleBoxes", at = v(-14, 0.2, 36), yaw = 30 },
+	{ kit = "BacklotAppleBoxes", at = v(10, 0.2, 34), yaw = -20 },
+	{ kit = "BacklotCaseStack", at = v(44, 0.2, 64), yaw = 100 },
+	-- Desert scatter in the sand round the edges.
+	{ kit = "BacklotBerm", at = v(-50, 0.2, 76), yaw = 80 },
+	{ kit = "BacklotBerm", at = v(56, 0.2, 88), yaw = -70 },
+	{ kit = "BacklotBerm", at = v(-20, 0.2, 18), yaw = 10 },
+	{ kit = "BacklotClump", at = v(16, 0.2, 18), yaw = 0 },
+	{ kit = "BacklotClump", at = v(-52, 0.2, 100), yaw = 60 },
+	{ kit = "BacklotClump", at = v(58, 0.2, 72), yaw = 120 },
+	{ kit = "BacklotClump", at = v(-8, 0.2, 26), yaw = 200 },
+}
+
+-- A run of kit model `kit` (`length` studs long along its X) from `from` to `to`, stretched to fit.
+local function run(b: Builder, kit: string, length: number, from: Vector3, to: Vector3)
+	local delta = to - from
+	local sections = math.max(1, math.round(delta.Magnitude / length))
+	-- Turned by hand rather than with CFrame.lookAt, which the test runner's CFrame gets backwards.
+	local turn = CFrame.Angles(0, math.atan2(-delta.X, -delta.Z), 0) * CFrame.Angles(0, math.pi / 2, 0)
+	for i = 0, sections - 1 do
+		MapKit.place(b, kit, CFrame.new(from + delta * ((i + 0.5) / sections)) * turn, {
+			scale = delta.Magnitude / sections / length,
+			solid = kit ~= "BacklotCable",
+		})
+	end
+end
+
 function TownSets.moonBase(b: Builder)
+	-- The ground: grey moon dust in overlapping rounds round the action, each ringed by two paler
+	-- rounds that fade it into the desert sand, so the set has no hard edge.
 	local dust = Color3.fromRGB(201, 204, 210)
-	b:block("MoonGround", v(124, 0.2, 116), v(3, 0.1, 56), dust, Enum.Material.Sand)
-	b:block("MoonTrack", v(10, 0.2, 38), v(0, 0.12, 19), dust:Lerp(Color3.new(1, 1, 1), 0.35), Enum.Material.Sand)
-	TownSets.filmSetGear(b, FilmScenes.Sets.MoonBase.gear)
+	local tones = { dust, Color3.fromRGB(213, 201, 183), Color3.fromRGB(224, 199, 156) }
+	local rounds = { -- { x, z, radius }
+		{ 0, 74, 26 }, { -26, 82, 20 }, { 26, 80, 20 }, { -32, 60, 14 }, { 30, 62, 14 },
+		{ 0, 92, 13 }, { -22, 93, 11 }, { 22, 93, 11 }, { 40, 86, 12 }, { -42, 88, 12 },
+	}
+	for k = 3, 1, -1 do
+		for _, r in rounds do
+			b:cylinder("MoonDust", 0.1, 2 * (r[3] + (k - 1) * 5), v(r[1], 0.04 + (4 - k) * 0.03, r[2]), tones[k], Enum.Material.Sand)
+		end
+	end
+	-- The way in from the gate to the camera: packed dirt.
+	b:block("MoonTrack", v(10, 0.1, 36), v(0, 0.06, 20), DUST, Enum.Material.Sand)
+
+	-- The lot's fence, with the gate in the middle of the front.
+	local x0, x1, z0, z1 = -56, 62, 2.5, 111
+	run(b, "BacklotFence", 12, v(-11, 0, z0), v(x0, 0, z0))
+	run(b, "BacklotFence", 12, v(x1, 0, z0), v(11, 0, z0))
+	run(b, "BacklotFence", 12, v(x0, 0, z0), v(x0, 0, z1))
+	run(b, "BacklotFence", 12, v(x0, 0, z1), v(x1, 0, z1))
+	run(b, "BacklotFence", 12, v(x1, 0, z1), v(x1, 0, z0))
+	for _, at in { v(x0, 0, z0), v(x0, 0, z1), v(x1, 0, z1), v(x1, 0, z0) } do
+		MapKit.place(b, "BacklotFencePost", at)
+	end
+	local quiet: MapKit.Label = { text = "QUIET ON SET", color = P.Burgundy, stroke = 0 }
+	MapKit.place(b, "BacklotFenceSign", CFrame.new(x1 - 0.5, 0, 56) * yaw(90), { labels = { Sign = quiet } })
+	MapKit.place(b, "BacklotFenceSign", CFrame.new(x0 + 0.5, 0, 26) * yaw(-90), { labels = { Sign = quiet } })
+
+	-- Cables from the generator: along the front past the gate path (over a ramp) to the video
+	-- village, and up the east side to the truss tower.
+	run(b, "BacklotCable", 8, v(30, 0.2, 10), v(4, 0.2, 10))
+	MapKit.place(b, "BacklotCableRamp", CFrame.new(0, 0.2, 10) * yaw(0))
+	run(b, "BacklotCable", 8, v(-4, 0.2, 10), v(-24, 0.2, 10))
+	run(b, "BacklotCable", 8, v(-24, 0.2, 10), v(-24, 0.2, 34))
+	run(b, "BacklotCable", 8, v(36, 0.2, 14), v(50, 0.2, 40))
+
+	TownSets.filmSetGear(b, MOON_SET)
+	TownSets.filmSetGear(b, MOON_BACKLOT)
+	TownSets.filmSetGear(b, FilmScenes.Sets.MoonBase.gear) -- the crew's own gear
+	-- Two more chairs at the video village.
+	directorChair(b, CFrame.new(-26.5, 0.2, 35.5) * yaw(180), "PRODUCER")
+	directorChair(b, CFrame.new(-21.5, 0.2, 35.5) * yaw(180), nil)
 end
 
 -- The Jungle Temple (film set 3), in its own space: the gate at the origin, the set running along
--- +Z, from x = -36 to 84. Jungle floor with a dirt path to a clearing in front of the temple
--- (art/blender/jungle_kit.py).
+-- +Z, from x = -36 to 84 and z = 0 to 126 (MapModels.FilmSets). An open backlot: a chain-link fence
+-- round the lot, the star trailers and craft services by the dirt road in, the director's village
+-- and the camera in the clearing, and the themed set beyond: the temple (FilmScenes gear) with
+-- ruins, fake rocks, a river and a bridge, lit from truss towers and scaffolds and backed by
+-- painted flats whose wooden bracing shows from behind. Models: art/blender/jungle_kit.py and
+-- backlot_kit.py.
+--
+-- Kept clear for the scene (src/shared/FilmScenes.luau): the camera and crew corner (x 8 to 40,
+-- z 40 to 66), the boulder's run down the steps to z = 66 (x 18 to 30) and the explorer's dive
+-- to (31, 74.5).
+local JUNGLE_DIRT = Color3.fromRGB(150, 110, 70)
+
+-- One piece of the Jungle Temple's dressing: kit model, where (x, z on the set's ground), facing.
+-- `soft` pieces (ground cover, cables) don't collide; `walk` ones are walked on (hitbox).
+type Dressing = { kit: string, x: number, z: number, turn: number, soft: boolean?, walk: boolean?, light: boolean?, scale: number? }
+
+local function dress(kit: string, x: number, z: number, turn: number?, extra: { soft: boolean?, walk: boolean?, light: boolean?, scale: number? }?): Dressing
+	local e: { soft: boolean?, walk: boolean?, light: boolean?, scale: number? } = extra or {}
+	return { kit = kit, x = x, z = z, turn = turn or 0, soft = e.soft, walk = e.walk, light = e.light, scale = e.scale }
+end
+
+local SOFT = { soft = true }
+local LIT = { light = true }
+
+local JUNGLE_DRESSING: { Dressing } = {
+	-- Worn dirt: the road in from the gate and the clearing in front of the temple, overlapping
+	-- ragged patches so neither ends in a straight line.
+	dress("JungleDirtPatchLong", 0, 9, 92, SOFT),
+	dress("JungleDirtPatchLong", 1, 27, 86, SOFT),
+	dress("JungleDirtPatchSmall", -2, 40, 30, SOFT),
+	dress("JungleDirtPatch", 8, 50, 10, SOFT),
+	dress("JungleDirtPatch", 26, 48, -8, SOFT),
+	dress("JungleDirtPatch", 42, 54, 25, SOFT),
+	dress("JungleDirtPatch", 12, 64, -20, SOFT),
+	dress("JungleDirtPatch", 32, 64, 15, SOFT),
+	dress("JungleDirtPatch", 20, 76, 0, SOFT),
+	dress("JungleDirtPatchLong", 24, 70, 90, SOFT),
+	dress("JungleDirtPatchSmall", 4, 78, 40, SOFT),
+	dress("JungleDirtPatchSmall", 44, 74, -30, SOFT),
+	dress("JungleDirtPatchSmall", 50, 44, 60, SOFT),
+	dress("JungleDirtPatchSmall", -4, 56, 10, SOFT),
+	-- The back of the shrine on top of the temple is a plywood flat, like the rest of the set.
+	-- The road in: two star trailers (doors toward the road), craft services across from them.
+	dress("StarTrailerRed", -22, 9, 180),
+	dress("StarTrailerBlue", -22, 26, 180),
+	dress("PatioTable", -12, 17.5),
+	dress("BacklotGenerator", -31, 52),
+	dress("BacklotScriptTable", 19, 27, 90),
+	dress("BacklotAppleBoxes", 13, 9, 30),
+	dress("BacklotCaseStack", 30, 8, -90),
+	-- The director's village beside the camera, out of the crew's way.
+	dress("BacklotVideoVillage", 1, 54, 180),
+	dress("BacklotCart", 44, 46, -90),
+	dress("BacklotCase", 44, 40.5, 10),
+	dress("BacklotAppleBoxes", 36, 42, -15),
+	dress("BacklotCableCoil", 6, 45, 20, SOFT),
+	-- Lights: truss towers and scaffolds aimed at the temple steps, a scrim beside the action.
+	dress("BacklotTrussTower", -14, 48, -130, LIT),
+	dress("BacklotTrussTower", 62, 48, 130, LIT),
+	dress("BacklotScaffold", -9, 70, -110, LIT),
+	dress("BacklotScaffold", 58, 68, 110, LIT),
+	dress("BacklotScrim", 47, 70, 150),
+	dress("BacklotCStand", 4, 68, -150),
+	dress("BacklotGroundLight", 24, 118, 180), -- behind the temple, lighting the backdrop
+	dress("BacklotCaseStack", -20, 54, 90),
+	dress("BacklotCase", 68, 54, -20),
+	-- Cable runs from the generator along the edge of the clearing, a crossover where they cross
+	-- the road, and risers to the towers.
+	dress("BacklotCable", -26, 42, 0, SOFT),
+	dress("BacklotCable", -18, 42, 0, SOFT),
+	dress("BacklotCable", -10, 42, 0, SOFT),
+	dress("BacklotCableRamp", -3, 42, 0, SOFT),
+	dress("BacklotCableRamp", 3, 42, 0, SOFT),
+	dress("BacklotCable", 10, 42, 0, SOFT),
+	dress("BacklotCable", 18, 42, 0, SOFT),
+	dress("BacklotCable", 26, 42, 0, SOFT),
+	dress("BacklotCable", 34, 42, 0, SOFT),
+	dress("BacklotCable", 42, 42, 0, SOFT),
+	dress("BacklotCable", 50, 42, 0, SOFT),
+	dress("BacklotCable", 58, 42, 0, SOFT),
+	dress("BacklotCable", 62, 45, 90, SOFT),
+	dress("BacklotCable", -14, 45, 90, SOFT),
+	dress("BacklotCable", -12, 56, 90, SOFT),
+	dress("BacklotCable", -12, 64, 90, SOFT),
+
+	-- The themed set. Backdrop flats behind the temple, bracing toward the back fence.
+	dress("JungleBackdrop", 24, 115.5),
+	dress("JungleBackdropSide", -10, 111, -25),
+	dress("JungleBackdropSide", 58, 111, 25),
+	-- Fake rock walls either side of the temple, plywood backs showing behind.
+	dress("JungleFakeCliff", -6, 104, -10),
+	dress("JungleFakeRock", 49, 106, 15),
+	dress("JungleFakeRock", 72, 104, 30),
+	-- The river: out from behind the left flat, past a plank bridge, bending off under the fence.
+	dress("JungleRiver", -26, 94, 90, SOFT),
+	dress("JungleRiverBend", -38, 82, 180, SOFT),
+	dress("JungleBridge", -26, 97, 90, { walk = true }),
+	-- Ruins round the clearing.
+	dress("JungleStoneHead", 58, 79, -25),
+	dress("JungleColumnFallen", -12, 60, 25),
+	dress("JungleArch", 48, 30, -15),
+	dress("JungleVines", -2, 94, 90),
+	dress("JungleVines", 50, 94, -90),
+	dress("JungleRuin", 66, 84, 40),
+	-- Plants on the set.
+	dress("JungleBanana", -16, 78, 20),
+	dress("JungleBanana", 68, 74, 200),
+	dress("JungleBigLeaf", 4, 76, 0, SOFT),
+	dress("JungleBigLeaf", 45, 79, 60, SOFT),
+	dress("JungleBigLeaf", -20, 104, 90, SOFT),
+	dress("JungleBush", 42, 100, 0),
+	dress("JungleBush", 6, 100, 120),
+	dress("JungleBush", -30, 76, 40),
+	dress("JungleFlowers", 12, 73, 0, SOFT),
+	dress("JungleFlowers", 38, 70, 90, SOFT),
+	dress("JungleFlowers", -18, 88, 30, SOFT),
+	dress("JungleFlowers", 60, 90, 0, SOFT),
+	dress("JungleRoots", -8, 90, 0, SOFT),
+	dress("JungleRoots", 56, 98, 140, SOFT),
+	dress("JungleLeafLitter", 10, 86, 0, SOFT),
+	dress("JungleLeafLitter", 40, 88, 50, SOFT),
+	dress("JungleLeafLitter", -4, 70, 20, SOFT),
+	dress("JungleLeafLitter", 54, 62, 80, SOFT),
+	-- Leaves blown over the edges of the worn clearing and road, so they don't end in straight lines.
+	dress("JungleLeafLitter", 0.5, 47, 90, SOFT),
+	dress("JungleLeafLitter", 47.5, 52, 100, SOFT),
+	dress("JungleLeafLitter", 47, 80, 70, SOFT),
+	dress("JungleLeafLitter", 1, 82, 120, SOFT),
+	dress("JungleLeafLitter", 30, 44.5, 0, SOFT),
+
+	-- The edges: mossy mounds, ferns and leaves along the fence so the lot fades into the woods.
+	dress("JungleMound", -31, 6, 10),
+	dress("JungleMound", -32, 62, 80),
+	dress("JungleMound", 79, 8, -20),
+	dress("JungleMound", 80, 30, 90),
+	dress("JungleMound", 79, 92, 70),
+	dress("JungleMound", 80, 116, 0),
+	dress("JungleMound", -31, 118, 30),
+	dress("JungleFern", -32, 44, 10),
+	dress("JungleFern", -31, 100, 60),
+	dress("JungleFern", 80, 52, 0),
+	dress("JungleFern", 79, 78, 30),
+	dress("JungleFern", 8, 4, 80),
+	dress("JungleFern", -12, 4, 20),
+	dress("JungleBush", 30, 3, 0),
+	dress("JungleBush", 60, 4, 50),
+	dress("JungleBigLeaf", 72, 18, 40, SOFT),
+	dress("JungleLeafLitter", -12, 37, 0, SOFT),
+	dress("JungleLeafLitter", 11, 34, 70, SOFT),
+	dress("JungleLeafLitter", 66, 22, 30, SOFT),
+	dress("JungleLeafLitter", -28, 86, 10, SOFT),
+	dress("JunglePalm", 76, 10, 250),
+	dress("JungleTree", -29, 120, 70),
+	dress("JungleTree", 77, 121, 160),
+	dress("JungleBanana", -30, 110, 10),
+	dress("JungleBigLeaf", 76, 108, 30, SOFT),
+	dress("JungleBush", -24, 122, 0),
+	dress("JungleFern", 70, 122, 50),
+	dress("JungleBigLeaf", -31, 30, 120, SOFT),
+	dress("JungleBush", -30, 38, 0),
+	dress("JungleBanana", 78, 40, 300),
+	dress("JungleFern", 74, 30, 0),
+	dress("JungleBigLeaf", 78, 62, 200, SOFT),
+	dress("JunglePalm", 40, 6, 80),
+	-- The woods outside the fence.
+	dress("JungleTree", -44, 18, 30),
+	dress("JungleTree", -46, 60, 140),
+	dress("JungleTree", -44, 104, 250),
+	dress("JungleTree", 92, 26, 80),
+	dress("JungleTree", 94, 72, 200),
+	dress("JungleTree", 92, 112, 10),
+	dress("JungleTree", 0, 136, 100),
+	dress("JungleTree", 46, 138, 300),
+	dress("JunglePalm", -42, 40, 30),
+	dress("JunglePalm", -42, 84, 160),
+	dress("JunglePalm", 90, 50, 290),
+	dress("JunglePalm", 90, 94, 20),
+	dress("JunglePalm", 24, 134, 0),
+	dress("JunglePalm", 72, 134, 120),
+	dress("JungleMound", -42, 120, 40),
+	dress("JungleMound", 90, 128, 0),
+}
+
+-- A run of backlot chain-link fence (12-stud sections, overlapping a little to fit the length)
+-- from `from` to `to`, its green mesh facing `inward` degrees.
+local function backlotFence(b: Builder, from: Vector3, to: Vector3, inward: number, signs: { [number]: string }?)
+	local delta = to - from
+	local sections = math.ceil(delta.Magnitude / 12)
+	for i = 1, sections do
+		local mid = from + delta * ((i - 0.5) / sections)
+		local text = signs and signs[i]
+		MapKit.place(b, if text then "BacklotFenceSign" else "BacklotFence", CFrame.new(mid) * yaw(inward), {
+			labels = if text then { Sign = { text = text, color = P.Navy, stroke = 0 } } else nil,
+		})
+	end
+end
+
 function TownSets.jungleTemple(b: Builder)
-	local floor = Color3.fromRGB(74, 122, 52)
-	local dirt = Color3.fromRGB(150, 110, 70)
-	b:block("JungleGround", v(124, 0.2, 126), v(24, 0.1, 61), floor, Enum.Material.Grass)
-	b:block("JunglePath", v(12, 0.2, 46), v(0, 0.12, 22), dirt, Enum.Material.Ground)
-	b:block("JungleClearing", v(48, 0.2, 42), v(24, 0.12, 65), dirt, Enum.Material.Ground)
+	-- The lot's ground is the same green as the woods round it, so it has no edge; the dirt road
+	-- and the clearing are ragged worn patches on it (in JUNGLE_DRESSING).
+	b:block("JungleGround", v(124, 0.2, 126), v(24, 0.1, 61), P.Green, GRASS)
 	TownSets.filmSetGear(b, FilmScenes.Sets.Jungle.gear)
+
+	-- The fence: down both sides and across the back, with studio banners by the way in.
+	backlotFence(b, v(-35.5, 0.2, 0), v(-35.5, 0.2, 125.5), -90, { [2] = "STAGE 3: JUNGLE" })
+	backlotFence(b, v(83.5, 0.2, 0), v(83.5, 0.2, 125.5), 90, { [2] = "QUIET! FILMING" })
+	backlotFence(b, v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), 0)
+	for _, at in { v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), v(-35.5, 0.2, 0), v(83.5, 0.2, 0) } do
+		MapKit.place(b, "BacklotFencePost", at)
+	end
+
+	for _, d in JUNGLE_DRESSING do
+		MapKit.place(b, d.kit, CFrame.new(d.x, 0.2, d.z) * yaw(d.turn), {
+			solid = if d.soft then false else nil,
+			hitbox = d.walk,
+			scale = d.scale,
+			light = if d.light then { range = 18, brightness = 1.6, color = Color3.fromRGB(255, 236, 200) } else nil,
+		})
+	end
+	-- The back of the shrine on top of the temple is a plywood flat, like the rest of the set.
+	MapKit.place(b, "JungleShrineBack", v(24, 16.2, 101))
+	-- Jungle undergrowth along the outside of the fence and canopy trees behind it (past the play
+	-- area, so nobody walks into it), cycling through the plants so no two neighbours match.
+	local plants = { "JungleFern", "JungleBigLeaf", "JungleBush", "JungleMound", "JungleBanana", "JungleFern", "JungleBush" }
+	local function undergrowth(from: Vector3, to: Vector3, out: Vector3, seed: number)
+		local n = math.floor((to - from).Magnitude / 7)
+		for i = 0, n do
+			local k = (i * 3 + seed) % #plants + 1
+			local wobble = ((i * 37 + seed * 11) % 5) - 2
+			local at = from:Lerp(to, i / n) + out * (4 + wobble * 0.8)
+			MapKit.place(b, plants[k], CFrame.new(at) * yaw(i * 67 + seed * 23), { solid = false })
+			if i % 2 == 0 then
+				local tree = if (i + seed) % 4 == 0 then "JunglePalm" else "JungleTree"
+				MapKit.place(b, tree, CFrame.new(at + out * (10 + wobble * 2)) * yaw(i * 41), { far = true, scale = 0.9 + (i % 3) * 0.15 })
+			end
+		end
+	end
+	undergrowth(v(-35.5, 0.2, 44), v(-35.5, 0.2, 126), v(-1, 0, 0), 1) -- nearer the gate is a studio lot
+	undergrowth(v(83.5, 0.2, 2), v(83.5, 0.2, 126), v(1, 0, 0), 2)
+	undergrowth(v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), v(0, 0, 1), 3)
+
+	MapKit.place(b, "BacklotCraftTent", CFrame.new(19, 0.2, 16) * yaw(90), {
+		labels = { Sign = { text = "CRAFT SERVICES", color = P.Burgundy, stroke = 0 } },
+	})
+	directorChair(b, CFrame.new(-12, 0.2, 15.5) * yaw(180), nil)
+	directorChair(b, CFrame.new(-12, 0.2, 19.5), nil)
+	directorChair(b, CFrame.new(7, 0.2, 49) * yaw(180), "PRODUCER")
+	directorChair(b, CFrame.new(9.6, 0.2, 49) * yaw(180), nil)
 end
 
 -- Starlight Park ---------------------------------------------------------------------------------
@@ -554,6 +1055,16 @@ function TownSets.park(b: Builder)
 	end
 	for _, info in { { at = v(-16, 0, 38), size = v(10, 0, 6) }, { at = v(16, 0, 38), size = v(10, 0, 6) }, { at = v(-13, 0, 62), size = v(8, 0, 6) }, { at = v(16, 0, 62), size = v(10, 0, 6) }, { at = v(40, 0, 60), size = v(14, 0, 6) } } do
 		TownSets.flowerBed(b:sub(info.at), info.size)
+	end
+
+	-- The way to the Jungle Temple film set: a dirt trail from the cross path's west end to the
+	-- gap in the west fence, a jungle arch over the gap, and signposts pointing the way from the
+	-- fountain plaza and the end of the cross path.
+	b:block("JungleTrail", v(66, 0.2, 10), v(-73, 0.1, 44), JUNGLE_DIRT, Enum.Material.Ground)
+	local jungle: MapKit.Label = { text = "JUNGLE TEMPLE", color = P.Gold, stroke = 4 }
+	MapKit.place(b, "JungleGateArch", CFrame.new(-106, 0, 40) * yaw(-90), { labels = { Sign = jungle } })
+	for _, at in { v(-17, 0, 44), v(-41, 0, 57.5) } do
+		MapKit.place(b, "JungleSignpost", at, { labels = { Sign = { text = "JUNGLE", color = P.OffWhite, stroke = 3 } } })
 	end
 
 	-- A low ranch fence along the two sides.

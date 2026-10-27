@@ -7,6 +7,7 @@
 -- and every live server stops accepting that code, or running that event, within a minute.
 -- { "ALL" } switches every special event off; an empty list {} turns them all back on.
 -- "FilmFestival" in DisabledEvents switches the weekly Film Festival off (its goals and laurels).
+-- "GlobalPulls" switches the cross-server Legend/Icon news off (sending and showing).
 -- A failed read keeps the last list.
 local DataStoreService = game:GetService("DataStoreService")
 
@@ -48,6 +49,12 @@ end
 -- Whether special event `id` (SpecialEvents.List) is switched off, by name or by "ALL".
 function LiveConfig.eventDisabled(id: string): boolean
 	return disabledEvents.ALL == true or disabledEvents[string.upper(id)] == true
+end
+
+-- Whether `id` is listed by name in DisabledEvents ("ALL" does not count). Used for switches that
+-- are not special events, e.g. "FirstSuperstar" turns off the new player's guaranteed Superstar.
+function LiveConfig.switchedOff(id: string): boolean
+	return disabledEvents[string.upper(id)] == true
 end
 
 function LiveConfig.start()

@@ -3,7 +3,8 @@
 
 Reads the tuning numbers straight from src/shared/*.luau (so it always simulates what the game
 ships), plays a simple "sensible player" through a week of sessions, and prints when each
-milestone happens. It mirrors the server math in Movies, Actors, Upgrades and EconomyService.
+milestone happens. It mirrors the server math in Movies, Actors, Upgrades, FilmSets, and
+EconomyService.
 
     python3 tools/economy_sim.py                 # typical player, 300 runs
     python3 tools/economy_sim.py --player casual
@@ -12,12 +13,15 @@ milestone happens. It mirrors the server math in Movies, Actors, Upgrades and Ec
     python3 tools/economy_sim.py --no-rebirth        # the player never rebirths
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
+    python3 tools/economy_sim.py --no-pity           # without the pity meter (--pity-every N tries another length)
+    python3 tools/economy_sim.py --no-early          # without the new player's near-miss tease and first Superstar
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
     python3 tools/economy_sim.py --no-festival       # the same week without the Film Festival's goals
     python3 tools/economy_sim.py --season FrightNight  # every week a seasonal festival with its limited actor
     python3 tools/economy_sim.py --no-takes          # the player ignores the TAKE! cards (to compare)
     python3 tools/economy_sim.py --mascots cash      # the player keeps its best Cash mascot out
+    python3 tools/economy_sim.py --film-sets --film-set-visit-minutes 5  # buy sets and spend 5 min/session inside
 
 The player model is deliberately plain: it collects, claps, premieres as soon as a film is
 ready, buys the cheapest useful upgrade it can afford, picks the best script and cast it owns,
@@ -131,6 +135,10 @@ def load_tuning() -> dict:
     takes_text = (SHARED / "Takes.luau").read_text()
     take_luck = {k: _num(v) for k, v in re.findall(r"(Perfect|Good|Miss) = ([\d.]+)", re.search(r"Takes\.Luck = table\.freeze\(\{([^}]*)\}", takes_text).group(1))}
     mascots_text = (SHARED / "Mascots.luau").read_text()
+    gifts_text = (SHARED / "PlaytimeGifts.luau").read_text()
+    film_sets_text = (SHARED / "FilmSets.luau").read_text()
+    film_set_caps_text = re.search(r"FilmSets.Caps = table.freeze\(\{([^}]*)\}\)", film_sets_text).group(1)
+    film_set_caps = {key: _num(value) for key, value in re.findall(r"(luck|boxOffice) = ([\d.]+)", film_set_caps_text)}
 
     return {
         "config": config,
@@ -143,7 +151,14 @@ def load_tuning() -> dict:
         "award_period": _num(re.search(r"Events.AwardNightPeriod = ([^\n]+)", events_text).group(1)),
         "award_length": _num(re.search(r"Events.AwardNightLength = ([^\n]+)", events_text).group(1)),
         "daily": [_reward(line) for line in _block(rewards_text, "Rewards.Daily").splitlines() if "{" in line],
+        # Playtime gift ladder: (minutes, reward) per present, plus its away and daily-cap rules.
+        "gifts": [(_num(m.group(1)), _reward(m.group(2))) for m in re.finditer(r"\{ minutes = (\d+), reward = (.*) \},", gifts_text)],
+        "gift_away": _num(re.search(r"PlaytimeGifts.AwayMinutes = (\d+)", gifts_text).group(1)),
+        "gift_ladders": int(_num(re.search(r"PlaytimeGifts.LaddersPerDay = (\d+)", gifts_text).group(1))),
         "stay_gift": _reward(re.search(r"Rewards.StayGift = (\{[^\n]*\})", rewards_text).group(1)),
+        "film_sets": _rows(_block(film_sets_text, "FilmSets.List")),
+        "film_set_pay_every": _num(re.search(r"FilmSets.PayEvery = ([^\n]+)", film_sets_text).group(1)),
+        "film_set_caps": film_set_caps,
         "requests": [_reward(line.split("reward =")[1]) for line in _block(rewards_text, "Rewards.Requests").splitlines()
                      if "reward =" in line],
         "weekly": [
@@ -178,6 +193,11 @@ def load_tuning() -> dict:
         "variants": _rows(_block(actors_text, "Actors.Variants")),
         "agencies": _rows(_block(actors_text, "Actors.Agencies")),
         "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
+        # Pity meter and early crazy pulls (Actors.castWithGuarantees)
+        "pity_every": _num(re.search(r"Actors\.PityEvery = ([^\n-]+)", actors_text).group(1)),
+        "tease_after": _num(re.search(r"Actors\.TeaseAfter = ([^\n-]+)", actors_text).group(1)),
+        "tease_min": re.search(r'Actors\.TeaseMinTier = "(\w+)"', actors_text).group(1),
+        "first_superstar_after": _num(re.search(r"Actors\.FirstSuperstarAfter = ([^\n-]+)", actors_text).group(1)),
         "upgrades": {u["id"]: u for u in upgrades},
         # Mascots.List: (id, Cash price, buff kind, amount)
         "mascots": [
@@ -390,9 +410,14 @@ UPGRADE_ORDER = ["Stages", "Cinema", "Luck", "Offline", "Clap"]
 # Set by --mascots. Players here never swap, so the warm-up after equipping does not come up.
 MASCOTS = "none"
 FESTIVAL = True  # the Film Festival's goals, finished with the weekly quests (--no-festival)
+GIFTS = True  # the playtime gift ladder (--no-gifts)
 # A season id (SpecialEvents.Seasons) to make every week that seasonal festival (--season): its
 # limited actor (Actors.Limited) joins its tier's casting pool, and winning the festival gives one.
 SEASON: str | None = None
+EARLY = True  # the near-miss tease and first guaranteed Superstar for new players (--no-early)
+PITY_EVERY: float | None = None  # override Actors.PityEvery (--pity-every; --no-pity sets 0)
+FILM_SETS = False  # auto-buy sets when affordable (--film-sets)
+FILM_SET_VISIT_MINUTES = 0.0  # time spent inside an owned set each online session
 
 
 class Player:
@@ -430,6 +455,8 @@ class Player:
         self.achievements = True
         self.weekly_on = True
         self.festival_on = FESTIVAL
+        # Playtime gift ladder state, as PlaytimeGifts.luau keeps it (played seconds, opened count).
+        self.gift_played, self.gift_open, self.gift_seen, self.gift_day, self.gift_ladders = 0.0, 0, None, 0, 0
         self.limited = next((a for a in game.t["limited"] if a["season"] == SEASON), None) if SEASON else None
         self.weekly_day = 4
         self.counts = {"cast": 0, "premiere": 0, "hit": 0, "clap": 0, "script": 0, "collect": 0}
@@ -443,7 +470,13 @@ class Player:
         self.rebirths = 0
         self.rebirth_enabled = True
         self.mascots_owned: set[str] = set()
+        self.film_sets_owned: set[str] = set()
+        self.film_set_elapsed = 0.0
+        self.film_set_earned = 0.0
+        self.film_set_inside = False
         self.hot_start = 0  # casts counted toward the "Discovered!" hot start; a new player starts at 0
+        self.pity: dict[str, int] = {}  # casts since the agency's pity tier, per agency
+        self.early = 0  # 0 new, 1 near-miss tease shown, 2 first Superstar done
         self.takes_on = True
 
     # stats
@@ -453,8 +486,10 @@ class Player:
     def luck(self) -> float:
         c = self.g.c
         tiers = sum(1 for r in self.rewards if r.startswith("tier:"))
+        film_set_luck = min(self.g.t["film_set_caps"]["luck"], max(
+            (s["luck"] for s in self.g.t["film_sets"] if s["id"] in self.film_sets_owned), default=0))
         return (c["BaseLuck"] + c["LuckStep"] * self.level("Luck") + c["TierRewardLuck"] * tiers
-                + self.g.t["rebirth"]["LuckStep"] * self.rebirths)
+                + self.g.t["rebirth"]["LuckStep"] * self.rebirths + film_set_luck)
 
     # rebirth (Rebirth.luau and RebirthService)
     def cash_mult(self) -> float:
@@ -482,6 +517,20 @@ class Player:
             self.cash -= price
             self.mascots_owned.add(mascot_id)
             self.mark(f"Mascot {mascot_id}")
+
+    def buy_film_sets(self):
+        """Optional scenario: buy each permanent Cash-priced set as soon as affordable."""
+        if not FILM_SETS or self.saving_for_rebirth() is not None:
+            return
+        for film_set in self.g.t["film_sets"]:
+            if film_set["id"] in self.film_sets_owned:
+                continue
+            if film_set["price"] > self.cash:
+                return  # keep the same list order as the gates: Gulch, Moon Base, Jungle
+            self.accrue()
+            self.cash -= film_set["price"]
+            self.film_sets_owned.add(film_set["id"])
+            self.mark(f"Film set {film_set['id']}")
 
     def rebirth_cost(self) -> float | None:
         r = self.g.t["rebirth"]
@@ -544,6 +593,10 @@ class Player:
         royalties = sum(p * c["RoyaltyRate"] for p in self.cinema)
         base = c["CinemaIncomePerSecond"] + royalties * (1 + c["CinemaStep"] * self.level("Cinema"))
         return base * (1 + self.mascot_boost("boxOffice"))
+
+    def film_set_bonus(self) -> float:
+        return min(self.g.t["film_set_caps"]["boxOffice"], max(
+            (s["boxOffice"] for s in self.g.t["film_sets"] if s["id"] in self.film_sets_owned), default=0))
 
     def mark(self, name: str):
         self.events.setdefault(name, self.now)
@@ -875,7 +928,8 @@ class Player:
         films = 0.0
         for film in self.films:
             films += film["length"]["base"] * film["power"] * luck_mult / film["length"]["seconds"]
-        return self.rate() + films * self.cash_mult()
+        film_set_rate = self.rate() * self.film_set_bonus() if self.film_set_inside else 0
+        return self.rate() + film_set_rate + films * self.cash_mult()
 
     def cast(self, dt: float):
         self.cast_credit = min(self.cast_credit + self.cast_rate * dt, 3)
@@ -906,12 +960,36 @@ class Player:
             self.roll(agency, self.cast_luck())
 
     def roll(self, agency: dict, luck: float):
-        floor_tier = None
-        hot = self.g.t["hot_start"]
+        """Actors.castWithGuarantees: the best of the hot start, pity and first-Superstar floors."""
+        t, rank = self.g.t, self.g.tier_index
+        floor_tier, why = None, None
+        def offer(tier, reason):
+            nonlocal floor_tier, why
+            if tier is not None and (floor_tier is None or rank[tier] > rank[floor_tier]):
+                floor_tier, why = tier, reason
+        hot = t["hot_start"]
         if hot and self.hot_start < max(hot):
             self.hot_start += 1
-            floor_tier = hot.get(self.hot_start)
+            offer(hot.get(self.hot_start), "hotStart")
+        count = self.pity.get(agency["id"], 0) + 1
+        if t["pity_every"] and count >= t["pity_every"]:
+            offer(agency["pity"], "pity")
+        if t["early"] and self.early < 2 and self.played >= t["first_superstar_after"]:
+            offer("Superstar", "firstSuperstar")
         actor_id, variant = self.g.roll_actor(self.rng, luck, int(agency["minTier"]), floor_tier, self.limited)
+        got = rank[self.g.actor[actor_id]["tier"]]
+        self.pity[agency["id"]] = 0 if got >= rank[agency["pity"]] else count
+        if got >= rank[agency["pity"]]:
+            self.counts["rare"] = self.counts.get("rare", 0) + 1  # pulls of the agency's pity tier or better
+        if why in ("pity", "firstSuperstar"):
+            self.counts[why] = self.counts.get(why, 0) + 1
+            self.mark(f"First {why} pull")
+        if t["early"] and self.early < 2:
+            if got >= rank["Superstar"]:
+                self.early = 2
+            elif self.early == 0 and self.played >= t["tease_after"] and got >= rank[t["tease_min"]]:
+                self.early = 1
+                self.mark("Superstar near-miss tease")
         key = f"{actor_id}:{variant}"
         self.roster[key] = self.roster.get(key, 0) + 1
         self.index.add(key)
@@ -974,9 +1052,27 @@ class Player:
         # day's requests, ten minutes into the session, not at its very start.
         weekly_at = requests_at if first_today and day % 7 == self.weekly_day % 7 and self.weekly_on else None
         last_collect = self.now
+        gifts = self.g.t["gifts"] if GIFTS else []
+        if gifts:  # PlaytimeGifts.begin
+            if day != self.gift_day:
+                self.gift_day, self.gift_ladders = day, 0
+            away = self.gift_seen is None or self.now - self.gift_seen >= self.g.t["gift_away"] * M
+            if away and self.gift_ladders < self.g.t["gift_ladders"]:
+                self.gift_played, self.gift_open = 0.0, 0
+                self.gift_ladders += 1
+        visit_until = self.now + min(seconds, FILM_SET_VISIT_MINUTES * M) if self.film_sets_owned else self.now
         while self.now < end:
             self.now += step
+            self.film_set_inside = bool(self.film_sets_owned) and self.now <= visit_until
             self.played += step
+            if gifts:
+                self.gift_played += step
+                # Presents are opened as they get ready (in order, they open at rising times).
+                while self.gift_open < len(gifts) and self.gift_played >= gifts[self.gift_open][0] * M:
+                    self.grant(gifts[self.gift_open][1])
+                    self.gift_open += 1
+                    if self.gift_open == len(gifts):
+                        self.mark("Full gift ladder")
             mark = int(self.played // M)
             if mark in CURVE_MINUTES and mark not in self.curve:
                 self.curve[mark] = self.snapshot()
@@ -1001,22 +1097,44 @@ class Player:
             self.try_rebirth()
             self.buy_mascots()
             self.buy_upgrades()
+            self.buy_film_sets()
+            self.film_set_inside = bool(self.film_sets_owned) and self.now <= visit_until
+            if self.film_set_inside:
+                # FilmSetService pays current rate * boxOffice * PayEvery each interval while
+                # inside. Keep the service's timer and per-payout floor rather than smoothing it.
+                self.film_set_elapsed += step
+                while self.film_set_elapsed >= self.g.t["film_set_pay_every"]:
+                    self.film_set_elapsed -= self.g.t["film_set_pay_every"]
+                    payout = math.floor(self.rate() * self.film_set_bonus() * self.g.t["film_set_pay_every"])
+                    if payout:
+                        self.cash += payout
+                        self.earned_total += payout
+                        self.film_set_earned += payout
+            else:
+                # FilmSetService resets its timer when the player is no longer inside.
+                self.film_set_elapsed = 0.0
             remaining = end - self.now
             self.start_films(None if remaining > 180 else remaining + offline_after)
             self.cast(step)
         if last_today and seconds >= self.g.c["StayGiftMinSeconds"]:
             self.grant(self.g.t["stay_gift"])
+        self.gift_seen = self.now
         self.collect()
         self.buy_upgrades()
         self.start_films(offline_after)
+        self.film_set_elapsed = 0.0
+        self.film_set_inside = False
         self.now = end + offline_after
 
     def snapshot(self) -> dict:
-        return {"cash/min": self.income_per_second() * 60, "cinema/min": self.rate() * 60, "fame": self.fame, "luck": self.luck(),
+        set_cash_per_minute = self.film_set_earned / max(1, self.played / M)
+        return {"cash/min": self.income_per_second() * 60 + set_cash_per_minute,
+                "cinema/min": self.rate() * 60, "set cash/min": set_cash_per_minute,
+                "fame": self.fame, "luck": self.luck(),
                 "index": len(self.everyday_index()),
                 "reward %": 100 * self.reward_earned / max(1, self.earned_total),
                 "offline %": 100 * self.offline_earned / max(1, self.earned_total), "stages": self.stage_count, "premieres": self.premieres,
-                "rebirths": self.rebirths}
+                "rebirths": self.rebirths, "rare pulls": self.counts.get("rare", 0), "from pity": self.counts.get("pity", 0)}
 
 
 # --- Schedules ----------------------------------------------------------------------------------
@@ -1096,8 +1214,9 @@ def run(tuning: dict, kind: str, runs: int, seed: int, luck_pass: bool = False, 
     last_of_day = {}
     for label, _, _ in sched:
         last_of_day[label.split()[1]] = label
-    checkpoints = {"day 1 session 1": "end of first session", last_of_day["1"]: "end of day 1",
-                   last_of_day["3"]: "end of day 3"}
+    checkpoints = {"day 1 session 1": "end of first session", last_of_day["1"]: "end of day 1"}
+    if "3" in last_of_day:
+        checkpoints[last_of_day["3"]] = "end of day 3"
     for week in range(1, days // 7 + 1):
         checkpoints[last_of_day[str(week * 7)]] = f"end of week {week}"
     for r in range(runs):
@@ -1129,13 +1248,20 @@ def report(kind: str, runs: int, seed: int, luck_pass: bool = False, days: int =
     tuning = load_tuning()
     if not hot_start:
         tuning["hot_start"] = {}
+    tuning["early"] = EARLY
+    if PITY_EVERY is not None:
+        tuning["pity_every"] = PITY_EVERY  # 0 = no pity meter
     game, sched, events, snaps, runs = run(tuning, kind, runs, seed, luck_pass, days, rebirth, achievements, specials, weekly,
                                            weekly_day, takes)
     owns = " with the 2x Luck pass" if luck_pass else ""
     never = ", never rebirths" if not rebirth else ""
     without = ", no special events" if not specials else ""
     without += ", no hot start" if not hot_start else ""
+    without += ", no early Superstar" if not EARLY else ""
+    without += f", pity every {tuning['pity_every']:.0f}" if tuning["pity_every"] else ", no pity meter"
     without += ", ignores TAKE! cards" if not takes else ""
+    if FILM_SETS:
+        without += f", buys film sets, visits {FILM_SET_VISIT_MINUTES:g} min/session"
     print(f"# Movie Mogul economy sim: {kind} player{owns}{never}{without}, {runs} runs\n")
     total_played = sum(on for _, on, _ in sched)
     print(f"Schedule: {total_played / 60:.1f} h played over {days} days.\n")
@@ -1189,13 +1315,33 @@ if __name__ == "__main__":
     parser.add_argument("--cast-rate", type=float, default=CAST_RATE,
                         help="casts per second while online (default 0.35; the server cap is 1 / Config.CastCooldown, 1.0 now)")
     parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
+    parser.add_argument("--no-pity", action="store_true", help="switch the pity meter off (to compare)")
+    parser.add_argument("--pity-every", type=int, default=None, help="try another pity meter length than Actors.PityEvery")
+    parser.add_argument("--no-early", action="store_true", help="leave the new player's tease and first guaranteed Superstar out (to compare)")
+    parser.add_argument("--no-gifts", action="store_true", help="leave the playtime gift ladder out (to compare)")
     parser.add_argument("--no-takes", action="store_true", help="the player ignores the TAKE! cards (to compare)")
     parser.add_argument("--mascots", default="none", choices=["none", "cash", "luck", "speed", "boxOffice"],
                         help="the kind of mascot buff the player keeps out (default: none)")
+    parser.add_argument("--film-sets", action="store_true", help="auto-buy permanent film sets when affordable")
+    parser.add_argument("--film-set-visit-minutes", type=float, default=0,
+                        help="minutes per online session spent inside an owned set (requires --film-sets)")
     args = parser.parse_args()
+    if args.runs < 1:
+        parser.error("--runs must be at least 1")
+    if args.days < 1:
+        parser.error("--days must be at least 1")
+    if not math.isfinite(args.film_set_visit_minutes) or args.film_set_visit_minutes < 0:
+        parser.error("--film-set-visit-minutes must be a finite number zero or greater")
+    if args.film_set_visit_minutes and not args.film_sets:
+        parser.error("--film-set-visit-minutes requires --film-sets")
     CAST_RATE = args.cast_rate
     MASCOTS = args.mascots
+    FILM_SETS = args.film_sets
+    FILM_SET_VISIT_MINUTES = args.film_set_visit_minutes
     FESTIVAL = not args.no_festival
+    GIFTS = not args.no_gifts
     SEASON = args.season
+    EARLY = not args.no_early
+    PITY_EVERY = 0 if args.no_pity else args.pity_every
     report(args.player, args.runs, args.seed, args.luck_pass, args.days, not args.no_rebirth, not args.no_achievements,
            not args.no_events, not args.no_weekly, args.weekly_day, not args.no_hot_start, not args.no_takes)

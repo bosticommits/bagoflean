@@ -175,8 +175,10 @@ exciting by M3, fix the core before adding anything else.
   (+2 h per level), Luck (+0.1 per level), Clapperboard (+0.5 s per tap per level, 2 s to 4 s).
   Prices grow about 4 to 8 times per level so the last levels land around the end of week one.
 - **Cinema** keeps 10 movies; when full, the lowest-earning one is dropped.
-- **Tutorial**: about a minute. New players start with $100, and their first Short Film takes
-  15 seconds. Steps complete from real game state, so returning players skip what they have done.
+- **Tutorial**: the guided first-film path takes about a minute; after the first collection, a
+  short optional feature tour points out presents, guarantees, the HUD tab, Film Sets and Visit.
+  New players start with $100, and their first Short Film takes 15 seconds. Steps complete from
+  real game state, so returning players skip what they have done.
   It is hosted by Director Lucien Vale, an original character: new players meet him on a curtain
   intro screen, his lines stay at the top of the screen (panels open below them), a yellow line
   under them says what to do, and yellow arrows point at the real button and at the plaza stand
@@ -422,3 +424,106 @@ exciting by M3, fix the core before adding anything else.
   row says "until Nov 1" too. Odds and prices unchanged; not sold.
 - **Audio**: slots `frightSting` and `frightVoice` (Fish Audio announcer "Fright Night has begun!") and
   track `Sounds.Music.fright` ("Bouncing Halloween" from Roblox's licensed APM library; the sting is still a pitched library stinger).
+
+## 20. As built (playtime gift ladder)
+
+- **What**: a row of seven presents (bottom right; above the jump button on touch screens, above the
+  sound button on PC) opens after 2, 5, 10, 15, 25, 40 and 60 minutes played in a session. Each shows a
+  countdown; a ready one swaps to the glowing picture with a gold halo and "OPEN!". Tapping it asks the
+  server; the present pops (scale bounce, confetti, `giftOpen` sound) and the reward floats up. A closed
+  present says when it opens. The row folds away once all seven are open.
+- **Rewards** (`src/shared/PlaytimeGifts.luau`): small and growing, the last is a free x2 Luck
+  (Lucky Casting) 15 minutes with a Skip and $300 or 15 minutes of income. See ECONOMY.md.
+- **Rules**: the server counts only time in the game (`gifts.played`, saved, schema v11). A new ladder
+  starts only after 30 minutes away and at most 3 times a UTC day; a quick rejoin or server hop carries
+  on the same ladder. Claims (`ClaimGift k`) are validated and rate-limited in RewardService; the client
+  only counts down from the server's sync (`GiftsSync`). The "Don't leave yet!" gift is unchanged.
+- **Art**: ForgeGUI present icons (closed, ready, opened; `art/ui/gift_*.png`), uploaded as decals
+  117097257889551 / 112488073936113 / 131932256497483 (images 121409647430879 / 99908336297706 /
+  101236104871779). Setting `ART.closed = 0` in `PlaytimeGiftsUi` draws the presents in code instead.
+- **Studio testing**: in Studio only, `Remotes.TestGifts:FireServer("skip", minutes)` adds play time and
+  `("reset")` starts a fresh ladder.
+
+## 21. As built (pity meter and early crazy pulls)
+- **Pity meter** for everyone: each agency counts casts since its last rare pull (Star at Open
+  Casting, Superstar at the Talent Agency and Hollywood Casting, the `pity` field on
+  `Actors.Agencies`), and the 400th (`Actors.PityEvery`) is that tier or better. Natural rares reset
+  it; crate casts count. Saved as `pity` (by agency id). Tuning in ECONOMY.md.
+- **Early crazy pulls** for new accounts (old saves count as done, `early = 2`): a Superstar
+  near-miss tease on the first Pro-or-better cast after 5 minutes played, and one guaranteed
+  Superstar on the first cast after 12 minutes. Playtime is counted by the server in
+  `CastingService.refresh` (`played`, seconds). Analytics: `NearMissTease`, `FirstSuperstar`.
+- **One rule function**, `Actors.castWithGuarantees`, applies the hot start, pity and first
+  Superstar (the best floor wins, a better roll is kept) and is covered by `tests/luau/pity.spec.luau`.
+- **HUD**: the hot start bar over the Cast button is now the guarantee meter: it counts down to
+  whichever guarantee is sooner, the hot start step or the chosen agency's pity ("STAR GUARANTEED
+  IN 37 CASTS"). The odds panel has one line on the pity rule.
+- **CastResult payload** for the reveal: `guarantee` ("hotStart" | "pity" | "firstSuperstar" | nil),
+  `tease` ("nearMiss" | nil) and `pity` ({ agency, tier, count, every } after the cast), next to the
+  old fields; documented at the top of `src/server/CastingService.luau`.
+- **Reveal presentation** (`CastingUi`, timing rule in `src/shared/Reveal.luau`, spec
+  `tests/luau/reveal.spec.luau`): the card glows one rarity after another while two spotlights sweep,
+  a drumroll speeds up and the card shakes, then it flips to the result. Build-up: Newcomer/Rising
+  0.45 s (about 1 s with the flip), Pro 0.8 s, Star 1.7 s, Superstar 2.7 s, Legend 3.8 s, Icon 4.4 s.
+  Tap anywhere (or A, B, Space, Enter) skips the build-up, never the result.
+  - **Fake-out** (client only): 1 in 4 Pro pulls and 1 in 6 Star-and-up pulls glow Common, then burst
+    into the real tier. The rule: the build-up never glows better than the real tier and always ends
+    on it (tested).
+  - **Near miss** (`tease = "nearMiss"`): climbs to Superstar gold with a second drum layer, then lands
+    on the real tier with a gold "So close! Superstar soon!" note and the announcer's "Ooh, so close!".
+  - **Guarantee note** (gold, top of the card): PITY GUARANTEE!, DISCOVERED! (hot start), YOUR FIRST
+    SUPERSTAR!. The corner tag now only says NEW! / LIMITED! / xN.
+  - **World reaction** on Superstar and up (first Superstar included): CastingService fires the
+    existing `Celebrate` remote to everyone as (lot, "pull", tier, UserId); every client gets a sky flash
+    (a temporary ColorCorrection), fireworks in the tier color over the lot (3/4/5 bursts, low particle
+    counts, cleaned up by Debris) and a small camera shake within 80 studs. The puller's own client holds
+    it until its card flips. Legend and Icon still get the server announcement.
+  - **Sounds**: slots `drumroll`, `drumrollLow`, `revealStep` (pitched up per tier), `revealBurst`
+    (library sounds), and Fish Audio announcer lines `voiceStar`, `voiceSuperstar`, `voiceLegend`,
+    `voiceIcon`, `voiceSoClose` (voice "Energetic Male"; clips in `art/audio/reveal/`).
+
+
+## 22. As built (rare-pull announcements)
+- **Banner** (`src/client/Announcements.luau`, its own module): one slim strip at the top-centre, just
+  under whatever is there (it dodges `Hud`, `NextUp` and the `SpecialEvent` banner by name, so the
+  PR #75 stack move only costs the dodge). It now also shows the old plain announcements
+  (Masterpieces, sequels, festival winners); the old banner code in StudioUi is gone. Items queue (8
+  max), pop in and hold 3.5 s (plain news 5 s). 3+ waiting pulls merge into one line ("4 big pulls:
+  A (ICON), B (SUPERSTAR) +2"). It waits while the casting reveal is open and draws under it, so it
+  never covers the reveal card; it sits at the top, far from the Cast bar.
+- **Superstar and up**, this server: "AVA pulled a SUPERSTAR: Box Office King! (1 in 24,000)" in the
+  tier colour (Icon gets the rainbow edge), plus a chat line. Odds = tier odds x actors in the tier x
+  variant odds, at Luck 1. The puller gets only a chat line ("You pulled ..."): they have the reveal.
+  The server sends ids (`RarePull` remote); every client builds the text from its own Actors table.
+- **Legend and Icon go worldwide** (`src/server/PullNewsService.luau`, MessagingService topic
+  `RarePulls`). The message is `{u = UserId, a = actorId, v = variantId, t = tier, j = JobId}`, built
+  on the server; never free text. Receivers check every field (`PullNews.validate`: types, NaN, ranges,
+  lengths, known actor and variant, tier matches the actor, Legend/Icon only, not our own JobId),
+  then get the name with `GetNameFromUserIdAsync` (cached, pcall). Shown as "WORLDWIDE: ...".
+  No TextService filtering: the only text from another server is a Roblox username, which Roblox
+  already moderates; nothing a player typed is shown.
+- **Limits**: publish 1 per 10 s per server, queue of 3 (a burst keeps the newest); show at most 6
+  worldwide banners a minute, the rest dropped. Subscribe and Publish are pcall'd with 4 tries
+  (1, 2, 4 s backoff). `"GlobalPulls"` in LiveConfig's DisabledEvents turns the worldwide part off
+  live (both sending and showing).
+- **Testing in Studio**: MessagingService does not cross servers there; call
+  `PullNewsService.onMessage({ Data = { u = 1, a = <LegendId>, v = "Shiny", t = "Legend", j = "x" } })`
+  from a server eval. Lune spec: `tests/luau/pullnews.spec.luau` (validation, text, merge, limiter).
+- Verified in Studio at PC size (art/previews/announce_*_pc.jpg). The phone simulator errored, so
+  phone layout is reasoned, not seen.
+
+## 23. As built (first-ten-minute analytics)
+- `Analytics.onboarding` emits `FTUEStepWithin10Minutes` once per first-time onboarding milestone
+  reached within 600 seconds of server-counted active play. Custom field 1 names the milestone and
+  the event value records cumulative active play seconds. This supplements (and does not replace)
+  the full onboarding funnel; no save fields or client remotes were added.
+- Creator Hub verification is still required after publishing. See `LAUNCH_CHECKLIST.md` for the
+  dashboard steps and the native D1/D7 retention and purchase-conversion views.
+
+## 24. As built (tutorial feature tour)
+- After the first box-office collection, Director Lucien gives a brief, skippable tour of the
+  playtime presents, casting guarantee bar and pity rules, the HUD tuck/purple tab, and Visit's
+  Film Sets and studio list. The existing arrow guide follows the current tip, highlighting one
+  real control at a time. The main first-film path and its completion condition are unchanged.
+- Studio and phone layout checks are still pending; see the first-15-minute playtest in
+  `LAUNCH_CHECKLIST.md`.

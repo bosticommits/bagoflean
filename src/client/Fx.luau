@@ -3,7 +3,9 @@
 -- Everything here is client-only presentation. It uses built-in textures (rbxasset://) so it needs
 -- no uploaded art, and every effect cleans itself up through Debris.
 local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Actors = require(game:GetService("ReplicatedStorage").Shared.Actors)
@@ -91,6 +93,16 @@ function Fx.castReveal(tierId: string, variantId: string)
 	local rank = tierIndex(tierId) -- 1 Newcomer .. 7 Icon
 	local tier = Actors.getTier(tierId)
 	local color = if tier ~= nil then tier.color else Color3.new(1, 1, 1)
+	-- The announcer calls Star and up.
+	if rank == 4 then
+		Sfx.play("voiceStar")
+	elseif rank == 5 then
+		Sfx.play("voiceSuperstar")
+	elseif rank == 6 then
+		Sfx.play("voiceLegend")
+	elseif rank == 7 then
+		Sfx.play("voiceIcon")
+	end
 	if rank <= 2 then
 		Sfx.play("revealCommon")
 	elseif rank <= 4 then
@@ -159,9 +171,44 @@ local function emitter(parent: Instance, texture: string, colors: { Color3 }, sp
 	return e
 end
 
+-- A small camera shake that fades out (render step after the camera, so the default camera keeps
+-- control). A newer shake replaces an older one.
+local shakeUntil, shakeStrength = 0, 0
+function Fx.shake(strength: number, seconds: number)
+	local now = os.clock()
+	local wasShaking = now < shakeUntil
+	shakeUntil, shakeStrength = now + seconds, strength
+	if wasShaking then
+		return
+	end
+	RunService:BindToRenderStep("FxShake", Enum.RenderPriority.Camera.Value + 1, function()
+		local left = shakeUntil - os.clock()
+		local camera = workspace.CurrentCamera
+		if left <= 0 or camera == nil then
+			RunService:UnbindFromRenderStep("FxShake")
+			return
+		end
+		local a = math.rad(shakeStrength) * math.min(left / 0.3, 1)
+		camera.CFrame *= CFrame.Angles(random:NextNumber(-a, a), random:NextNumber(-a, a), 0)
+	end)
+end
+
+-- The sky lights up in a color for a moment (a temporary color correction, so it never fights
+-- the day/night lighting).
+function Fx.skyFlash(color: Color3, strength: number)
+	local cc = Instance.new("ColorCorrectionEffect")
+	cc.Name = "FxSkyFlash"
+	cc.TintColor = Color3.new(1, 1, 1):Lerp(color, 0.5)
+	cc.Brightness = strength
+	cc.Parent = Lighting
+	TweenService:Create(cc, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Brightness = 0, TintColor = Color3.new(1, 1, 1) }):Play()
+	Debris:AddItem(cc, 1.3)
+end
+
 -- Red-carpet celebration over a lot, seen by everyone on the server.
--- "masterpiece": fireworks and confetti for ~6 s. "pull": a shorter sparkle burst.
-function Fx.celebrate(lotIndex: number, kind: string)
+-- "masterpiece": fireworks and confetti for ~6 s. "pull" (Superstar and up, `tierId` given): a
+-- sky flash, fireworks in the tier color (more for rarer tiers) and a small shake within 80 studs.
+function Fx.celebrate(lotIndex: number, kind: string, tierId: string?)
 	local lots = workspace:FindFirstChild("Lots")
 	local lot = if lots ~= nil then lots:FindFirstChild("Lot" .. lotIndex) else nil
 	local cinema = if lot ~= nil then lot:FindFirstChild("Cinema") else nil
@@ -180,7 +227,18 @@ function Fx.celebrate(lotIndex: number, kind: string)
 	anchor.Parent = workspace
 
 	local masterpiece = kind == "masterpiece"
-	local confetti = emitter(anchor, CONFETTI_TEXTURE, CONFETTI_COLORS, NumberRange.new(25, 45), NumberRange.new(2.5, 4), 0.6)
+	local tier = if tierId ~= nil then Actors.getTier(tierId) else nil
+	local rank = if tierId ~= nil then tierIndex(tierId) else 6
+	if kind == "pull" then
+		local color = if tier ~= nil then tier.color else Color3.fromRGB(255, 220, 140)
+		Fx.skyFlash(color, 0.15 + (rank - 5) * 0.05)
+		local character = Players.LocalPlayer.Character
+		local root = if character ~= nil then character:FindFirstChild("HumanoidRootPart") else nil
+		if root ~= nil and root:IsA("BasePart") and (root.Position - anchor.Position).Magnitude <= 80 then
+			Fx.shake(0.4 + (rank - 5) * 0.2, 0.6)
+		end
+	end
+	local confetti = emitter(anchor, CONFETTI_TEXTURE, if tier ~= nil then { tier.color, Color3.new(1, 1, 1) } else CONFETTI_COLORS, NumberRange.new(25, 45), NumberRange.new(2.5, 4), 0.6)
 	local sparkles = emitter(anchor, SPARKLE_TEXTURE, { Color3.fromRGB(255, 230, 140), Color3.new(1, 1, 1) }, NumberRange.new(10, 30), NumberRange.new(1, 2), 2)
 	sparkles.LightEmission = 1
 	local light = Instance.new("PointLight")
@@ -190,7 +248,8 @@ function Fx.celebrate(lotIndex: number, kind: string)
 	light.Parent = anchor
 	TweenService:Create(light, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Brightness = if masterpiece then 6 else 3 }):Play()
 
-	local bursts = if masterpiece then 9 else 3
+	-- Low counts: this plays on every phone on the server. Superstar 3 bursts, Legend 4, Icon 5.
+	local bursts = if masterpiece then 9 else math.max(rank - 2, 3)
 	task.spawn(function()
 		for _ = 1, bursts do
 			if anchor.Parent == nil then
@@ -204,16 +263,51 @@ function Fx.celebrate(lotIndex: number, kind: string)
 	Debris:AddItem(anchor, bursts * 0.6 + 4.5)
 end
 
+-- The casting reveal holds the world reaction to our own pull until its card flips.
+local holdingOwnPull = false
+local pendingOwnPull: { lotIndex: number, kind: string, tier: string? }? = nil
+function Fx.holdOwnPull()
+	holdingOwnPull = true
+	pendingOwnPull = nil
+end
+function Fx.releaseOwnPull()
+	holdingOwnPull = false
+	local pending = pendingOwnPull
+	pendingOwnPull = nil
+	if pending ~= nil then
+		Fx.celebrate(pending.lotIndex, pending.kind, pending.tier)
+	end
+end
+
+-- A burst of paper confetti at `at` in the world (a film set's clean take).
+function Fx.confettiAt(at: Vector3, count: number)
+	local anchor = Instance.new("Attachment")
+	anchor.Name = "ConfettiFx"
+	anchor.WorldPosition = at
+	anchor.Parent = workspace.Terrain
+	local confetti = emitter(anchor, CONFETTI_TEXTURE, CONFETTI_COLORS, NumberRange.new(18, 32), NumberRange.new(2, 3.2), 0.5)
+	confetti.EmissionDirection = Enum.NormalId.Top
+	confetti:Emit(count)
+	Debris:AddItem(anchor, 4)
+end
+
 function Fx.start(remotes: Instance)
 	local celebrateRemote = remotes:WaitForChild("Celebrate", 10)
 	if celebrateRemote == nil or not celebrateRemote:IsA("RemoteEvent") then
 		warn("[Fx] Celebrate remote never arrived")
 		return
 	end
-	celebrateRemote.OnClientEvent:Connect(function(lotIndex, kind)
-		if type(lotIndex) == "number" and type(kind) == "string" then
-			Fx.celebrate(lotIndex, kind)
+	celebrateRemote.OnClientEvent:Connect(function(lotIndex, kind, tierId, userId)
+		if type(lotIndex) ~= "number" or type(kind) ~= "string" then
+			return
 		end
+		local tier = if type(tierId) == "string" then tierId else nil
+		if userId == Players.LocalPlayer.UserId and holdingOwnPull then
+			-- Our own big pull: wait for the reveal's flip (Fx.releaseOwnPull).
+			pendingOwnPull = { lotIndex = lotIndex, kind = kind, tier = tier }
+			return
+		end
+		Fx.celebrate(lotIndex, kind, tier)
 	end)
 end
 
