@@ -47,6 +47,7 @@ gui.ResetOnSpawn = false
 -- Sibling ordering: a panel's children always draw above the panel itself, whatever their ZIndex.
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 gui.Parent = playerGui
 
 Sfx.start()

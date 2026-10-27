@@ -171,7 +171,42 @@ asset 100325620206746). New models use the shared helpers in `art/blender/mmkit.
 the name the code looks for (see `art/README.md`). Code-built models call `Build.mesh` and fall
 back to their part version until the mesh is there.
 
-## 13. References
+## 13. Phone performance and layout checks
+
+### Performance baseline
+
+The per-prop triangle limit above is not a whole-scene performance budget. These starting ceilings
+are authoring guardrails, not measured results. Record the real low-end phone baseline in Studio
+before treating them as approved budgets.
+
+| Area | Triangle ceiling | Visible BasePart ceiling | Baseline |
+| --- | ---: | ---: | --- |
+| One upgraded lot | 12,000 | 180 | Pending phone capture |
+| Town core and six lot approaches | 35,000 | 500 | Pending phone capture |
+| One film set with active crew | 18,000 | 220 | Pending phone capture |
+| Town plus six full lots and three crews | 100,000 | 1,000 | Pending phone capture |
+
+Profile the published launch build on the lowest supported phone with six fully upgraded lots,
+three active crews, and town life running. Record device, resolution, graphics quality, streaming
+settings, a 60-second warmed-up MicroProfiler capture, frame time, memory, visible instances, and
+the heaviest render/physics/script tasks. Repeat with crews and town life paused to separate their
+cost. Inspect streaming from several distances and verify that far scenery has lower detail or is
+streamed out. `default.project.json` does not configure Workspace streaming, so check the published
+place setting directly. If a starting ceiling is exceeded or the target frame time is missed, reduce
+detail/instances before increasing the ceiling. Save the capture summary under
+`references/performance/`.
+
+### Phone layout verification
+
+`MovieMogulUI` uses `CoreUISafeInsets`; all offsets are relative to that safe area. The shared
+breakpoints and touch-control clearances live in `src/shared/PhoneLayout.luau` and are used by the
+side menu, casting bar, gift row, and speaker button. Do not subtract notch or top-bar insets again.
+The rules checks cover custom viewport sizes 844×390, 390×844 and 1024×768. Then verify portrait
+and landscape on a real phone, including safe-area edges, thumbstick, jump control, HUD, pity bar,
+gift row and speaker button. Simulator viewports check sizing only; they do not confirm a real
+device's safe area or touch behavior.
+
+## 14. References
 
 Put screenshots in `references/` with a short note in the filename, e.g.
 `references/lot-layout-like-this.png` or `references/ui-colors-not-this.png`.

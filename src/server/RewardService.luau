@@ -39,8 +39,17 @@ local RewardService = {}
 -- Applies a reward to the player's data and returns what it gave, as text. Never yields, so
 -- ShopService can run it inside a receipt grant. Call afterGrant once the grant is settled.
 function RewardService.apply(player: Player, data: DataService.PlayerData, reward: Rewards.Reward, tx: string, sku: string): string
-	local text = Rewards.describe(reward, EconomyService.rate(data))
-	local cash = Rewards.cashAmount(reward, EconomyService.rate(data))
+	local appliedReward = reward
+	if sku == "PlaytimeGift" or sku == "StayGift" then
+		local multiplier = LiveConfig.number("GiftCashMultiplier")
+		if multiplier ~= 1 then
+			appliedReward = table.clone(reward)
+			appliedReward.cash = math.floor((reward.cash or 0) * multiplier)
+			appliedReward.cashMinutes = math.floor((reward.cashMinutes or 0) * multiplier)
+		end
+	end
+	local text = Rewards.describe(appliedReward, EconomyService.rate(data))
+	local cash = Rewards.cashAmount(appliedReward, EconomyService.rate(data))
 	if cash > 0 then
 		EconomyService.addCash(player, cash, tx, sku)
 	end

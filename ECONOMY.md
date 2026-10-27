@@ -1,5 +1,14 @@
 # Hollywood RNG economy
 
+## Live numeric controls
+
+`GameConfig.Numbers` supports temporary server-side overrides for casting Luck, playtime gift Cash,
+special-event Cash payouts, and event scheduling weights. Defaults are all `1`; casting, gift, and
+event payout multipliers are bounded to `0.5–2`, and event weights to `0–5`. Unknown keys,
+non-finite values, and values outside those ranges are ignored. The checked-in economy simulation
+models shipped defaults, not live overrides: remove a temporary key or restore it to `1` and rerun
+the simulator before treating that setting as a permanent balance change.
+
 This is the progression curve the numbers in `src/shared/` are tuned to, and how to check it.
 Every number below comes from `tools/economy_sim.py`, which reads the Luau files directly and
 plays a simple, sensible player through a week. Run it after changing any price, payout or odds:

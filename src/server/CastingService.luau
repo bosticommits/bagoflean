@@ -68,6 +68,7 @@ function CastingService.castLuck(player: Player): number
 	end
 	local now = os.time()
 	local luck = Upgrades.luck(data)
+	luck *= LiveConfig.number("CastingLuckMultiplier")
 	if data.passes.Luck2x then
 		luck *= Config.PassLuckMultiplier
 	end
