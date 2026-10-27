@@ -90,6 +90,22 @@ game:GetService("DataStoreService"):GetDataStore("GameConfig"):SetAsync("Disable
 ```
 `{ "ALL" }` switches every special event off, and `{}` turns them all back on, within a minute.
 
+Live numeric overrides use the `Numbers` key. Only the names and ranges in
+`src/shared/LiveConfigNumbers.luau` are accepted; unknown names and out-of-range, non-finite or
+non-number values are ignored. For example:
+
+```lua
+game:GetService("DataStoreService"):GetDataStore("GameConfig"):SetAsync("Numbers", {
+	CastingLuckMultiplier = 1.1,
+	GiftCashMultiplier = 1.25,
+	EventCoinMultiplier = 0.9,
+	EventWeight_CashRain = 1.5,
+})
+```
+
+Overrides refresh within a minute on live servers. Remove a key or set the `Numbers` table to `{}`
+to return it to its default. Odds still use the same server Luck value shown in the casting screen.
+
 ### Before you publish
 
 Run this in Studio's command bar and make sure it prints no `DUPLICATE` lines. A duplicated

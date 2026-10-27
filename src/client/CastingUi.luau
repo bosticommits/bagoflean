@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local PhoneLayout = require(ReplicatedStorage.Shared.PhoneLayout)
 local Reveal = require(ReplicatedStorage.Shared.Reveal)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
@@ -100,15 +101,11 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	barScale.Parent = bar
 
 	-- Portrait touch screens: sit above the thumbstick and jump button.
-	local TOUCH_PORTRAIT_LIFT = 130
 	UiKit.onViewportChanged(function()
 		local viewport = UiKit.viewport()
-		barScale.Scale = if UiKit.isCompact() then 0.82 else 1
-		if UserInputService.TouchEnabled and viewport.X < viewport.Y then
-			bar.Position = UDim2.new(0.5, 0, 1, -TOUCH_PORTRAIT_LIFT)
-		else
-			bar.Position = UDim2.new(0.5, 0, 1, -14)
-		end
+		local profile = PhoneLayout.profile(viewport.X, viewport.Y, UserInputService.TouchEnabled)
+		barScale.Scale = if profile.compact then 0.82 else 1
+		bar.Position = UDim2.new(0.5, 0, 1, -profile.castBottomInset)
 	end)
 
 	local castButton = makeButton(bar, "", UiKit.GREEN, UDim2.fromOffset(240, 84), UDim2.fromOffset(0, 2))

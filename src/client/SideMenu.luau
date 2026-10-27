@@ -10,8 +10,10 @@
 -- right, on touch screens) and "MenuRight" (the right edge of the menu and wallet, which panels keep
 -- clear of when there is room).
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiKit = require(script.Parent.UiKit)
+local PhoneLayout = require(ReplicatedStorage.Shared.PhoneLayout)
 
 local SideMenu = {}
 
@@ -70,8 +72,9 @@ function SideMenu.start(gui: ScreenGui): Buttons
 		if area.X < 1 or area.Y < 1 then
 			area = UiKit.viewport()
 		end
-		local grow = math.clamp(area.Y / 880, 1, 1.25)
-		local walletSize = math.clamp(area.Y / 880, if area.Y < 500 then 0.8 else 1, 1.25)
+		local profile = PhoneLayout.profile(area.X, area.Y, UserInputService.TouchEnabled)
+		local grow = profile.menuGrow
+		local walletSize = profile.walletScale
 		walletScale.Scale = walletSize
 		local top = 8
 		local size, hudTop

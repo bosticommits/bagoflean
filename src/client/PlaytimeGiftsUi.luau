@@ -12,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local PlaytimeGifts = require(ReplicatedStorage.Shared.PlaytimeGifts)
+local PhoneLayout = require(ReplicatedStorage.Shared.PhoneLayout)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -92,14 +93,10 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 	layout.Parent = row
 
 	local function place()
-		local compact = UiKit.isCompact()
-		rowScale.Scale = if compact then 0.8 else 1
-		if UserInputService.TouchEnabled then
-			-- Roblox's jump button: 70 px with its top 90 px up on small screens, 120 px / 210 px on big ones.
-			row.Position = UDim2.new(1, -12, 1, if math.min(UiKit.viewport().X, UiKit.viewport().Y) <= 500 then -100 else -220)
-		else
-			row.Position = UDim2.new(1, -16, 1, -76) -- above the 48 px sound button
-		end
+		local viewport = UiKit.viewport()
+		local profile = PhoneLayout.profile(viewport.X, viewport.Y, UserInputService.TouchEnabled)
+		rowScale.Scale = profile.giftScale
+		row.Position = UDim2.new(1, if UserInputService.TouchEnabled then -12 else -16, 1, -profile.giftBottomInset)
 	end
 	UiKit.onViewportChanged(place)
 
