@@ -99,7 +99,7 @@ local LINES = {
 	collect = "Your cinema is earning now. Let's collect your box office.",
 	finale = {
 		"Excellent work, producer. Your first film is complete; this studio is yours to grow.",
-		"Free presents unlock as you play. The first arrives after 2 minutes; this row shows the timer.",
+		"Free presents unlock as you play. The first arrives after 2 minutes; the present shows the timer.",
 		"The bar above CAST tracks your next guarantee. Casting Odds explains pity for each agency.",
 		"Tap the X beside Box Office to tuck the HUD away; the purple trophy tab brings it back.",
 		"Visit shows Film Sets and other studios. Preview a set's Luck bonus or jump to its gate.",
@@ -1417,9 +1417,11 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local ui: { GuiObject } = {}
 		local world: { WorldTarget } = {}
 		if lineIndex == 2 then
+			-- Touch screens show one present button instead of the row (PlaytimeGiftsUi).
+			local button = gui:FindFirstChild("PlaytimeGiftsButton")
 			local row = gui:FindFirstChild("PlaytimeGifts")
 			local gift = if row ~= nil then row:FindFirstChild("Gift1") else nil
-			local present = findGui(gift, "Present")
+			local present = if button ~= nil and button:IsA("GuiObject") and button.Visible then button else findGui(gift, "Present")
 			if present ~= nil then
 				table.insert(ui, present)
 			end
