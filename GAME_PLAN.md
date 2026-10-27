@@ -175,8 +175,10 @@ exciting by M3, fix the core before adding anything else.
   (+2 h per level), Luck (+0.1 per level), Clapperboard (+0.5 s per tap per level, 2 s to 4 s).
   Prices grow about 4 to 8 times per level so the last levels land around the end of week one.
 - **Cinema** keeps 10 movies; when full, the lowest-earning one is dropped.
-- **Tutorial**: about a minute. New players start with $100, and their first Short Film takes
-  15 seconds. Steps complete from real game state, so returning players skip what they have done.
+- **Tutorial**: the guided first-film path takes about a minute; after the first collection, a
+  short optional feature tour points out presents, guarantees, the HUD tab, Film Sets and Visit.
+  New players start with $100, and their first Short Film takes 15 seconds. Steps complete from
+  real game state, so returning players skip what they have done.
   It is hosted by Director Lucien Vale, an original character: new players meet him on a curtain
   intro screen, his lines stay at the top of the screen (panels open below them), a yellow line
   under them says what to do, and yellow arrows point at the real button and at the plaza stand
@@ -517,3 +519,11 @@ exciting by M3, fix the core before adding anything else.
   the full onboarding funnel; no save fields or client remotes were added.
 - Creator Hub verification is still required after publishing. See `LAUNCH_CHECKLIST.md` for the
   dashboard steps and the native D1/D7 retention and purchase-conversion views.
+
+## 24. As built (tutorial feature tour)
+- After the first box-office collection, Director Lucien gives a brief, skippable tour of the
+  playtime presents, casting guarantee bar and pity rules, the HUD tuck/purple tab, and Visit's
+  Film Sets and studio list. The existing arrow guide follows the current tip, highlighting one
+  real control at a time. The main first-film path and its completion condition are unchanged.
+- Studio and phone layout checks are still pending; see the first-15-minute playtest in
+  `LAUNCH_CHECKLIST.md`.

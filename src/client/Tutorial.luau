@@ -98,8 +98,11 @@ local LINES = {
 	ready = { "The audience is waiting. Let's see what they think." },
 	collect = "Your cinema is earning now. Let's collect your box office.",
 	finale = {
-		"Excellent work, producer. Finished films keep earning royalties while you're away.",
-		"Make another movie, discover more actors, and grow this lot into a studio everyone remembers.",
+		"Excellent work, producer. Your first film is complete; this studio is yours to grow.",
+		"Free presents unlock as you play. The first arrives after 2 minutes; this row shows the timer.",
+		"The bar above CAST tracks your next guarantee. Casting Odds explains pity for each agency.",
+		"Tap the X beside Box Office to tuck the HUD away; the purple trophy tab brings it back.",
+		"Visit shows Film Sets and other studios. Preview a set's Luck bonus or jump to its gate.",
 	},
 }
 
@@ -121,7 +124,7 @@ local INSTRUCTIONS = {
 	filming = "Tap CLAP to speed up filming. When the stage says Ready, press PREMIERE.",
 	ready = "Your film is Ready. Press PREMIERE!",
 	collect = "Follow the yellow guide to the gold collection pad on your lot and step on it.",
-	finale = "Your next step is yours. Visit Movies, Upgrades, Casting Odds, or the Talent Index around town.",
+	finale = "These are optional tips. Skip any time, or explore when you're ready.",
 }
 
 -- A place in the world to guide the player to. "primary" gets the arrow, glow, the chevron trail
@@ -1401,7 +1404,47 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	-- Driver ----------------------------------------------------------------------------------------
 	local currentStep = 0
 	local finaleEndsAt: number? = nil
+	local finaleGuideLine = 0
 	local renderConnection: RBXScriptConnection? = nil
+
+	-- The final feature tour follows its dialogue, so only one real control is highlighted at a
+	-- time. The existing guide hides arrows for controls that are not visible on this device/state.
+	local function updateFinaleGuide()
+		if not finale or finaleGuideLine == lineIndex then
+			return
+		end
+		finaleGuideLine = lineIndex
+		local ui: { GuiObject } = {}
+		local world: { WorldTarget } = {}
+		if lineIndex == 2 then
+			local row = gui:FindFirstChild("PlaytimeGifts")
+			local gift = if row ~= nil then row:FindFirstChild("Gift1") else nil
+			local present = findGui(gift, "Present")
+			if present ~= nil then
+				table.insert(ui, present)
+			end
+		elseif lineIndex == 3 then
+			local bar = findGui(gui:FindFirstChild("CastingBar"), "HotStart")
+			if bar ~= nil then
+				table.insert(ui, bar)
+			end
+			local odds = standTarget("Odds", "CASTING ODDS", "secondary")
+			if odds ~= nil then
+				table.insert(world, odds)
+			end
+		elseif lineIndex == 4 then
+			local tuck = findGui(gui:FindFirstChild("Hud"), "Tuck")
+			if tuck ~= nil then
+				table.insert(ui, tuck)
+			end
+		elseif lineIndex == 5 then
+			local visit = sideButton("VisitButton")
+			if visit ~= nil then
+				table.insert(ui, visit)
+			end
+		end
+		syncGuides(ui, world)
+	end
 
 	local function teardown()
 		active = false
@@ -1445,14 +1488,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		playLines(LINES.finale)
 		setInstruction(INSTRUCTIONS.finale, nil)
 		tipText = nil
-		local world = {}
-		for _, screen in { "Studio", "Upgrades", "Odds", "Actors" } do
-			local stand = standTarget(screen, "", "secondary")
-			if stand ~= nil then
-				table.insert(world, stand)
-			end
-		end
-		syncGuides({}, world)
+		finaleGuideLine = 0
+		updateFinaleGuide()
 		layout()
 	end
 
@@ -1512,6 +1549,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Every frame: the typewriter, the line timer, the moving arrows, the finale's end.
 	local function onRender(dt: number)
+		updateFinaleGuide()
 		if not revealShowing() then
 			if typing then
 				typed += dt * CHARS_PER_SECOND
