@@ -97,7 +97,7 @@ end
 -- Returns the marquee label.
 function LotLook.cinema(parent: Instance, base: CFrame, level: number, accent: Color3): TextLabel
 	local b = Build.new(parent, at(base, Vector3.new(0, 1, L.cinemaFront)))
-	return LotModels.cinema(b, LotModels.cinemaTier(level), accent)
+	return LotModels.cinema(b, level, accent)
 end
 
 function LotLook.office(parent: Instance, base: CFrame, level: number, accent: Color3)

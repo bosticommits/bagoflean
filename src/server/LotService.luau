@@ -262,7 +262,8 @@ local function render(lot: Lot)
 	end)
 
 	local cinemaLevel = if progress ~= nil then progress.cinema else 0
-	section(lot, "CinemaBuilding", tostring(LotLook.cinemaTier(cinemaLevel)), function(model)
+	-- Keyed by level: each Cinema Size level has its own look.
+	section(lot, "CinemaBuilding", tostring(cinemaLevel), function(model)
 		lot.marquee = LotLook.cinema(model, lot.base, cinemaLevel, lot.color)
 	end)
 	local marquee = lot.marquee
