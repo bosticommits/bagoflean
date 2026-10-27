@@ -252,7 +252,8 @@ local function stageMesh(b: Builder, name: string): BasePart?
 	return Build.mesh(b, name, v(m.center.X, m.center.Y - m.size.Y / 2, m.center.Z), m.size.Y)
 end
 
--- The meshed hangar: two meshes (the roof and side canopy tinted per lot, both grey when free)
+-- The meshed hangar: two meshes (the roof and side canopy tinted per lot; grey and steel when
+-- free, like the part build)
 -- and invisible colliders. False when the meshes aren't imported, so the caller builds parts.
 local function soundStageMesh(b: Builder, look: StageLook, w: number, d: number, h: number): boolean
 	local body = stageMesh(b, "LotStage")
@@ -267,7 +268,7 @@ local function soundStageMesh(b: Builder, look: StageLook, w: number, d: number,
 		return false
 	end
 	body.Color = if look.owned then Color3.new(1, 1, 1) else P.Grey
-	accent.Color = if look.owned then look.accent else P.Grey
+	accent.Color = if look.owned then look.accent else P.Steel
 	for _, p in { body, accent } do
 		p.Material = Enum.Material.SmoothPlastic
 	end
