@@ -30,7 +30,8 @@ Design details live in [GAME_PLAN.md](GAME_PLAN.md); the look lives in
 The plan's rule: if casting plus a premiere is not exciting, fix that before adding more.
 
 - [ ] Playtest the first 15 minutes with 3 or more people who have not seen the game.
-      *Done when:* each one finishes the tutorial unaided and plays a second movie by choice.
+      *Done when:* each one finishes the first-film tutorial unaided, understands the optional
+      presents/pity/HUD tab/Film Sets/Visit tips, and plays a second movie by choice.
 - [ ] Tune the economy: roll costs, script prices, payouts, upgrade costs, Fame gates.
       *Done when:* a new player reaches Talent Agency in about 20 to 30 minutes and
       Hollywood Casting in a few play sessions, and nobody hits a dead end with no Cash.
@@ -114,8 +115,13 @@ reach everything.
       memory does not keep climbing over a 30-minute session.
 - [ ] No errors in the output during a full play session. *Done when:* a clean log is saved.
 - [ ] Duplicate-script check from the README. *Done when:* it prints no `DUPLICATE` lines.
-- [ ] Analytics (events are built; check they arrive): tutorial steps, first roll, first premiere, day-1 return, purchases.
-      *Done when:* events show up in the Creator Dashboard.
+- [ ] Analytics (events are built; check they arrive): onboarding steps, first-10-minute milestones,
+      first roll, first premiere, day-1/day-7 return, and purchases.
+      *Done when:* the published experience's events appear in Creator Hub > Analytics > View Events.
+      The `FTUEStepWithin10Minutes` custom event uses field 1 for the milestone name and its value
+      for cumulative active play seconds; compare each milestone's event count with `Joined` to see
+      first-10-minute progression. Use the Retention dashboard for D1/D7 cohorts and the Monetization
+      dashboard for purchase conversion. Studio sessions do not send analytics events.
 - [ ] Private test with 10 to 20 players for a few days. *Done when:* their top problems
       are fixed.
 

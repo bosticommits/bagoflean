@@ -128,8 +128,9 @@ Sounds.Music = {
 		{ id = 15930255433, name = "Lobby 3", volume = 0.35 }, -- light, 1:47
 	} :: { Track },
 	event = { id = 17422163655, name = "Cloud Blitz", volume = 0.4 } :: Track, -- energetic, 2:18
-	-- The Pumpkin Patch event's spooky loop (Fright Night); with id 0 it plays the event track.
-	fright = { id = 0, name = "Pumpkin Patch", volume = 0.4 } :: Track,
+	-- The Pumpkin Patch event's track (Fright Night); with id 0 it plays the event track. Roblox's
+	-- licensed music library (APMOfficial, verified, free), checked 2026-10-26.
+	fright = { id = 1836009584, name = "Bouncing Halloween", volume = 0.4 } :: Track, -- playful spooky, 1:29
 }
 
 -- Film set ambience: a quiet loop heard only up close on each set (FilmSetWorld), by set id. A

@@ -175,8 +175,10 @@ exciting by M3, fix the core before adding anything else.
   (+2 h per level), Luck (+0.1 per level), Clapperboard (+0.5 s per tap per level, 2 s to 4 s).
   Prices grow about 4 to 8 times per level so the last levels land around the end of week one.
 - **Cinema** keeps 10 movies; when full, the lowest-earning one is dropped.
-- **Tutorial**: about a minute. New players start with $100, and their first Short Film takes
-  15 seconds. Steps complete from real game state, so returning players skip what they have done.
+- **Tutorial**: the guided first-film path takes about a minute; after the first collection, a
+  short optional feature tour points out presents, guarantees, the HUD tab, Film Sets and Visit.
+  New players start with $100, and their first Short Film takes 15 seconds. Steps complete from
+  real game state, so returning players skip what they have done.
   It is hosted by Director Lucien Vale, an original character: new players meet him on a curtain
   intro screen, his lines stay at the top of the screen (panels open below them), a yellow line
   under them says what to do, and yellow arrows point at the real button and at the plaza stand
@@ -421,7 +423,7 @@ exciting by M3, fix the core before adding anything else.
   Phantom  1 in N, until Nov 1" (live odds for the chosen agency and Luck; tap opens the odds). The odds
   row says "until Nov 1" too. Odds and prices unchanged; not sold.
 - **Audio**: slots `frightSting` and `frightVoice` (Fish Audio announcer "Fright Night has begun!") and
-  track `Sounds.Music.fright` (falls back to the event track while its id is 0).
+  track `Sounds.Music.fright` ("Bouncing Halloween" from Roblox's licensed APM library; the sting is still a pitched library stinger).
 
 ## 20. As built (playtime gift ladder)
 
@@ -509,3 +511,19 @@ exciting by M3, fix the core before adding anything else.
   from a server eval. Lune spec: `tests/luau/pullnews.spec.luau` (validation, text, merge, limiter).
 - Verified in Studio at PC size (art/previews/announce_*_pc.jpg). The phone simulator errored, so
   phone layout is reasoned, not seen.
+
+## 23. As built (first-ten-minute analytics)
+- `Analytics.onboarding` emits `FTUEStepWithin10Minutes` once per first-time onboarding milestone
+  reached within 600 seconds of server-counted active play. Custom field 1 names the milestone and
+  the event value records cumulative active play seconds. This supplements (and does not replace)
+  the full onboarding funnel; no save fields or client remotes were added.
+- Creator Hub verification is still required after publishing. See `LAUNCH_CHECKLIST.md` for the
+  dashboard steps and the native D1/D7 retention and purchase-conversion views.
+
+## 24. As built (tutorial feature tour)
+- After the first box-office collection, Director Lucien gives a brief, skippable tour of the
+  playtime presents, casting guarantee bar and pity rules, the HUD tuck/purple tab, and Visit's
+  Film Sets and studio list. The existing arrow guide follows the current tip, highlighting one
+  real control at a time. The main first-film path and its completion condition are unchanged.
+- Studio and phone layout checks are still pending; see the first-15-minute playtest in
+  `LAUNCH_CHECKLIST.md`.
