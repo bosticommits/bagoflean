@@ -157,29 +157,26 @@ local function reducedMotion(): boolean
 end
 
 -- The gold star on the hill rocks gently from its feet (about 3 degrees each way over 6 s), and
--- every 8-10 s a faint light sweeps once across its face. Kept quiet so it never pulls the eye.
+-- every 8-10 s a faint glint sweeps once across its face. Kept quiet so it never pulls the eye.
 -- Moved part by part from where each arrived, like the ducks. Still when reduced motion is on.
 local SWAY, SWAY_PERIOD = math.rad(3), 6
-local GLINT_TIME, GLINT_BRIGHTNESS = 1.4, 1.2
+local GLINT_TIME, GLINT_CLEAREST = 1.4, 0.55 -- the strip never gets more solid than this
 local function hillStar(town: Instance, folder: Instance, movers: { Mover })
 	local home = MapModels.Layout.hillStar
-	local holder = Instance.new("Part")
-	holder.Name = "StarGlint"
-	holder.Size = Vector3.new(0.2, 0.2, 0.2)
-	holder.Transparency = 1
-	holder.Anchored = true
-	holder.CanCollide = false
-	holder.CanQuery = false
-	holder.CanTouch = false
-	holder.CastShadow = false
-	holder.CFrame = home
-	holder.Parent = folder
-	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(255, 240, 200)
-	light.Range = 7
-	light.Brightness = 0
-	light.Shadows = false
-	light.Parent = holder
+	-- A thin, faint neon strip just in front of the star's face, kept inside its middle.
+	local glint = Instance.new("Part")
+	glint.Name = "StarGlint"
+	glint.Size = Vector3.new(0.6, 7, 0.05)
+	glint.Material = Enum.Material.Neon
+	glint.Color = Color3.fromRGB(255, 244, 210)
+	glint.Transparency = 1
+	glint.Anchored = true
+	glint.CanCollide = false
+	glint.CanQuery = false
+	glint.CanTouch = false
+	glint.CastShadow = false
+	glint.CFrame = home
+	glint.Parent = folder
 
 	local offsets: { [BasePart]: CFrame } = {}
 	local function track(part: Instance)
@@ -202,7 +199,7 @@ local function hillStar(town: Instance, folder: Instance, movers: { Mover })
 		if reducedMotion() then
 			if not still then
 				still = true
-				light.Brightness = 0
+				glint.Transparency = 1
 				for part, offset in offsets do
 					part.CFrame = home * offset
 				end
@@ -214,14 +211,14 @@ local function hillStar(town: Instance, folder: Instance, movers: { Mover })
 		for part, offset in offsets do
 			part.CFrame = pose * offset
 		end
-		-- One glint in each 9 s window, at a fixed spot in it, so glints come 8-10 s apart.
+		-- One glint in each 9 s window, starting up to 1 s in, so glints come 8-10 s apart.
 		local cycle = math.floor(t / 9)
 		local u = (t - cycle * 9 - noise(cycle, 9)) / GLINT_TIME
 		if u > 0 and u < 1 then
-			light.Brightness = math.sin(u * math.pi) * GLINT_BRIGHTNESS
-			holder.CFrame = pose * CFrame.new(-11 + u * 22, 15 + (u - 0.5) * 6, -2.5)
+			glint.Transparency = 1 - math.sin(u * math.pi) * (1 - GLINT_CLEAREST)
+			glint.CFrame = pose * CFrame.new(-4 + u * 8, 15, -1.5) * CFrame.Angles(0, 0, math.rad(-25))
 		else
-			light.Brightness = 0
+			glint.Transparency = 1
 		end
 	end)
 end
