@@ -181,10 +181,10 @@ before treating them as approved budgets.
 
 | Area | Triangle ceiling | Visible BasePart ceiling | Baseline |
 | --- | ---: | ---: | --- |
-| One upgraded lot | 12,000 | 180 | Pending phone capture |
-| Town core and six lot approaches | 35,000 | 500 | Pending phone capture |
-| One film set with active crew | 18,000 | 220 | Pending phone capture |
-| Town plus six full lots and three crews | 100,000 | 1,000 | Pending phone capture |
+| One upgraded lot | 12,000 | 180 | Studio: 545 parts, 0 meshes; phone pending |
+| Town core and six lot approaches | 35,000 | 500 | Studio: 4,058 parts in `Town` (1,877 meshes); phone pending |
+| One film set with active crew | 18,000 | 220 | Studio: crew 56-73 parts (set counted in Town); phone pending |
+| Town plus six full lots and three crews | 100,000 | 1,000 | Studio: 8,014 parts; 173k triangles in view at spawn; phone pending |
 
 Profile the published launch build on the lowest supported phone with six fully upgraded lots,
 three active crews, and town life running. Record device, resolution, graphics quality, streaming
@@ -194,7 +194,8 @@ cost. Inspect streaming from several distances and verify that far scenery has l
 streamed out. `default.project.json` does not configure Workspace streaming, so check the published
 place setting directly. If a starting ceiling is exceeded or the target frame time is missed, reduce
 detail/instances before increasing the ceiling. Save the capture summary under
-`references/performance/`.
+`references/performance/`. The Studio baseline (counts only, no phone timings) is
+`references/performance/2026-10-27-studio-baseline.md`.
 
 ### Phone layout verification
 
