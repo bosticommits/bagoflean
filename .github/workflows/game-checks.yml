@@ -5,9 +5,9 @@ name: Game checks
 on:
   push:
     branches: [main]
-    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "AGENTS.md", "CLAUDE.md"]
+    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "tools/**", "**/*.md"]
   pull_request:
-    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "AGENTS.md", "CLAUDE.md"]
+    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "tools/**", "**/*.md"]
 
 permissions:
   contents: read
