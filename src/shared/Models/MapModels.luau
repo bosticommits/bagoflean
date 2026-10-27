@@ -50,8 +50,9 @@ MapModels.Layout = table.freeze({
 	fenceZ = 127,
 	-- Players appear on the plaza looking past the fountain at the Shop and Rewards stands.
 	spawn = CFrame.new(0, 0.65, -15) * CFrame.Angles(0, math.pi, 0),
-	-- Gold star sign on the big hill behind lots 4-6.
-	hillStar = Vector3.new(0, 44, 306),
+	-- Gold star sign standing on the crest of the big green hill behind the park (MapModels.Hills),
+	-- facing -Z toward the park and spawn. Its feet; MapLife sways it from here.
+	hillStar = CFrame.new(0, 59.5, 368),
 	-- The boulevard runs out through the hedge at both ends: west to the Grand Premiere Theatre
 	-- (its bottom step), east through the Studio Gate.
 	endGap = 14,
@@ -530,9 +531,8 @@ local function hills(b: Builder)
 		local feet = hill.at - v(0, hill.size / 2, 0)
 		MapKit.place(b, "Hill" .. hill.kit, CFrame.new(feet) * CFrame.Angles(0, hill.size, 0), { scale = hill.size / 100, far = true })
 	end
-	-- The landmark: a giant gold star sign on the big hill, leaning back into the slope (the kit
-	-- model stands upright with the star's middle 15 up).
-	MapKit.place(b, "HillStar", CFrame.new(Lay.hillStar) * CFrame.Angles(math.rad(30), 0, 0) * CFrame.new(0, -15, 0), { far = true })
+	-- The landmark: a giant gold star sign standing upright on the big hill's crest.
+	MapKit.place(b, "HillStar", Lay.hillStar, { far = true })
 end
 
 -- Big sound stages and the water towers outside the hedge.
