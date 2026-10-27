@@ -83,8 +83,36 @@ local function fameOf(player: Player): number?
 	return fame
 end
 
+-- The game's creator stays off the board (they can give themselves Fame with a dev code).
+local function isCreator(userId: number): boolean
+	return game.CreatorType == Enum.CreatorType.User and userId > 0 and userId == game.CreatorId
+end
+
+-- Drops the creator's old entry once per server; retried on the next save round if it fails.
+local creatorRemoved = false
+local function removeCreator(ordered: OrderedDataStore)
+	if creatorRemoved then
+		return
+	end
+	local ok, err = pcall(function()
+		ordered:RemoveAsync(tostring(game.CreatorId))
+	end)
+	if ok then
+		creatorRemoved = true
+	else
+		note(err)
+	end
+end
+
 -- Studio test players have UserIds of 0 or below; they show on the board but are never saved.
 local function save(player: Player)
+	if isCreator(player.UserId) then
+		local ordered = getStore()
+		if ordered ~= nil then
+			removeCreator(ordered)
+		end
+		return
+	end
 	-- When the player is leaving, their profile may already be released: use the last Fame seen.
 	local fame = fameOf(player) or knownFame[player]
 	if fame == nil or fame <= 0 or player.UserId <= 0 or lastSaved[player] == fame then
@@ -146,7 +174,7 @@ local function fetch()
 		local list: { TopStudios.Entry } = {}
 		for _, item in pages:GetCurrentPage() do
 			local userId = tonumber(item.key)
-			if userId ~= nil and type(item.value) == "number" then
+			if userId ~= nil and type(item.value) == "number" and not isCreator(userId) then
 				table.insert(list, { userId = userId, fame = item.value })
 			end
 		end
@@ -243,7 +271,7 @@ local function draw()
 	local live: { TopStudios.Entry } = {}
 	for _, player in Players:GetPlayers() do
 		local fame = fameOf(player)
-		if fame ~= nil then
+		if fame ~= nil and not isCreator(player.UserId) then
 			names[player.UserId] = player.DisplayName
 			table.insert(live, { userId = player.UserId, fame = fame })
 		end
