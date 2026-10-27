@@ -115,8 +115,13 @@ reach everything.
       memory does not keep climbing over a 30-minute session.
 - [ ] No errors in the output during a full play session. *Done when:* a clean log is saved.
 - [ ] Duplicate-script check from the README. *Done when:* it prints no `DUPLICATE` lines.
-- [ ] Analytics (events are built; check they arrive): tutorial steps, first roll, first premiere, day-1 return, purchases.
-      *Done when:* events show up in the Creator Dashboard.
+- [ ] Analytics (events are built; check they arrive): onboarding steps, first-10-minute milestones,
+      first roll, first premiere, day-1/day-7 return, and purchases.
+      *Done when:* the published experience's events appear in Creator Hub > Analytics > View Events.
+      The `FTUEStepWithin10Minutes` custom event uses field 1 for the milestone name and its value
+      for cumulative active play seconds; compare each milestone's event count with `Joined` to see
+      first-10-minute progression. Use the Retention dashboard for D1/D7 cohorts and the Monetization
+      dashboard for purchase conversion. Studio sessions do not send analytics events.
 - [ ] Private test with 10 to 20 players for a few days. *Done when:* their top problems
       are fixed.
 
