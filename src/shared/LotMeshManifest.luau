@@ -95,6 +95,25 @@ local meshes = {
 	mesh("TownVendorLeg", "TownLifeKit", 106112739386473, { 0.86, 2, 1.22 }, TOWN_LIFE),
 	mesh("TownVendorTorso", "TownLifeKit", 140272451223697, { 1.84, 2.12, 1.105 }, TOWN_LIFE),
 
+	-- lot_dressing_kit.fbx (asset 75446899270617): the lot dressing, art/blender/lot_dressing_kit.py.
+	mesh("LotBillboard", "lot_dressing_kit", 75302773228575, { 14, 29.75, 3.15 }, STANDARD),
+	mesh("LotGatePost", "lot_dressing_kit", 83188732515978, { 3.5, 10.1, 3.5 }, STANDARD),
+	mesh("LotHedge", "lot_dressing_kit", 131950499854382, { 27.299999, 3.18, 2 }, STANDARD),
+	mesh("LotHedgeSide", "lot_dressing_kit", 104425637520823, { 2.8, 5.3, 57.000004 }, STANDARD),
+	mesh("LotKiosk", "lot_dressing_kit", 134437099243638, { 4.1, 5.4, 3.8 }, STANDARD),
+	mesh("LotLamp", "lot_dressing_kit", 124354976426564, { 1.6, 11.799999, 1.6 }, STANDARD),
+	mesh("LotPedestal", "lot_dressing_kit", 111895208693196, { 6.2, 1.636, 6.2 }, STANDARD),
+	mesh("LotStanchions", "lot_dressing_kit", 76112748672177, { 8.4, 2.625, 15.799999 }, STANDARD),
+	mesh("LotTrophyCase", "lot_dressing_kit", 134974458626735, { 9.7, 1.8, 2.6 }, STANDARD),
+
+	-- Single Blender props (art/blender/<script>.py), each imported as a model of its own name.
+	mesh("FestivalLaurel", "FestivalLaurel", 119975877000135, { 2.861875, 3.15, 1.852363 }, STANDARD),
+	mesh("FilmCamera", "FilmCamera", 75184958822082, { 3.048076, 7.529201, 4.405 }, STANDARD),
+	mesh("FilmReelLogo", "FilmReelLogo", 104022853740076, { 6.45, 7.5, 1.6 }, STANDARD),
+	mesh("PalmTree", "PalmTree", 74644931289509, { 13.331223, 15.506111, 13.523639 }, STANDARD),
+	mesh("Searchlight", "Searchlight", 118870821681028, { 2.6, 4.441514, 2.815595 }, STANDARD),
+	mesh("TrophyGold", "TrophyGold", 134204785814120, { 1.4, 2, 1.107143 }, STANDARD),
+
 	mesh("ApartmentsButter", "map_kit", 92482573260774, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),
 	mesh("ApartmentsLilac", "map_kit", 87174407964047, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),
 	mesh("ApartmentsPink", "map_kit", 121683995489471, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),
@@ -368,7 +387,7 @@ local meshes = {
 	mesh("WesternSheriff", "map_kit", 119245023266892, { 19.800001, 19.875, 20.299999 }, MAP_KIT),
 }
 
-assert(#meshes == 314, "LotMeshManifest must contain exactly 314 templates")
+assert(#meshes == 329, "LotMeshManifest must contain exactly 329 templates")
 
 return table.freeze({
 	version = 1,

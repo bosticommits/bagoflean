@@ -63,6 +63,44 @@ local function lightRow(b: Builder, name: string, from: Vector3, to: Vector3, co
 	end
 end
 
+-- The Blender dressing (art/blender/lot_dressing_kit.py): each mesh's size and where its centre
+-- sits above the piece's feet, as the kit script prints them.
+local DRESS_MESH = {
+	LotHedgeSide = { size = v(2.8, 5.3, 57), center = v(0, 2.65, 0) },
+	LotHedge = { size = v(27.3, 3.18, 2), center = v(0, 1.59, 0) },
+	LotGatePost = { size = v(3.5, 10.1, 3.5), center = v(0, 5.05, 0) },
+	LotLamp = { size = v(1.6, 11.8, 1.6), center = v(0, 5.9, 0) },
+	LotKiosk = { size = v(4.1, 5.4, 3.8), center = v(0, 2.7, 0) },
+	LotStanchions = { size = v(8.4, 2.625, 15.8), center = v(0, 1.313, 0) },
+	LotBillboard = { size = v(14, 29.75, 3.15), center = v(0, 14.875, -0.275) },
+	LotTrophyCase = { size = v(9.7, 1.8, 2.6), center = v(0, 0.9, 0) },
+	LotPedestal = { size = v(6.2, 1.636, 6.2), center = v(0, 0.818, 0) },
+}
+-- Lengths the kit models them at (the game stretches them to fit): side hedge pillar to pillar,
+-- a plain hedge run, the stanchion rows (and their half spacing), the five-trophy case, the
+-- billboard's post lift.
+local KIT_SIDE, KIT_HEDGE, KIT_STAN_LEN, KIT_STAN_X, KIT_CASE_W, KIT_LIFT = 54.2, 27.1, 15, 3.8, 9.5, 8
+
+-- A dressing mesh standing at `at`, stretched per axis by `stretch`; nil if it isn't imported.
+local function dressMesh(b: Builder, name: string, at: Vector3, stretch: Vector3?): BasePart?
+	local m = DRESS_MESH[name]
+	local p = Build.mesh(b, name, at, m.size.Y)
+	if p ~= nil then
+		local s = stretch or Vector3.one
+		p.Size = m.size * s * b.scale
+		p.CFrame = b:at(at + m.center * s)
+	end
+	return p
+end
+
+-- An invisible box that blocks players where a (non-colliding) mesh stands.
+local function collider(b: Builder, size: Vector3, at: Vector3)
+	local p = b:block("Collider", size, at, P.Cream)
+	p.Transparency = 1
+	p.CastShadow = false
+	p.CanTouch = false
+end
+
 -- Ground ----------------------------------------------------------------------------------------
 
 -- Grass plot with a paved yard and the red carpet up the middle. Top surface is at y = 1.
@@ -81,16 +119,42 @@ end
 function LotModels.hedges(b: Builder, size: number, gateGap: number)
 	local half = size / 2 - 0.9
 	local h = 2.6
+	local frontLength = half - gateGap / 2
+	-- Blender meshes when imported: the two side hedges (pillars included) and three plain runs,
+	-- each stretched to its length; invisible boxes do the blocking.
+	local runs = {
+		dressMesh(b, "LotHedgeSide", v(-half, 1, 0), v(1, 1, (size - 1.8) / KIT_SIDE)),
+		dressMesh(b, "LotHedgeSide", v(half, 1, 0), v(1, 1, (size - 1.8) / KIT_SIDE)),
+		dressMesh(b, "LotHedge", v(0, 1, half), v((size - 1.8) / KIT_HEDGE, 1, 1)),
+		dressMesh(b, "LotHedge", v(-(gateGap / 2 + frontLength / 2), 1, -half), v(frontLength / KIT_HEDGE, 1, 1)),
+		dressMesh(b, "LotHedge", v(gateGap / 2 + frontLength / 2, 1, -half), v(frontLength / KIT_HEDGE, 1, 1)),
+	}
+	local meshed = true
+	for i = 1, 5 do
+		meshed = meshed and runs[i] ~= nil
+	end
+	for i = 1, 5 do
+		local p = runs[i]
+		if not meshed and p ~= nil then
+			p:Destroy()
+		end
+	end
 	local function hedge(cx: number, cz: number, lx: number, lz: number)
+		if meshed then
+			collider(b, v(lx, h + 0.5, lz), v(cx, 1 + (h + 0.5) / 2, cz))
+			return
+		end
 		b:block("Hedge", v(lx, h, lz), v(cx, 1 + h / 2, cz), P.DarkGreen, Enum.Material.Grass)
 		b:block("HedgeTop", v(lx + 0.2, 0.5, lz + 0.2), v(cx, 1 + h + 0.25, cz), P.Green, Enum.Material.Grass)
 	end
 	hedge(-half, 0, 1.8, size - 1.8)
 	hedge(half, 0, 1.8, size - 1.8)
 	hedge(0, half, size - 1.8, 1.8)
-	local frontLength = half - gateGap / 2
 	hedge(-(gateGap / 2 + frontLength / 2), -half, frontLength, 1.8)
 	hedge(gateGap / 2 + frontLength / 2, -half, frontLength, 1.8)
+	if meshed then
+		return
+	end
 	for _, x in { -half, half } do
 		for _, z in { -half, 0, half } do
 			b:block("Pillar", v(2.4, 4.2, 2.4), v(x, 3.1, z), P.Cream)
@@ -104,9 +168,13 @@ end
 function LotModels.gate(b: Builder, gap: number, lotNumber: number)
 	local x = gap / 2 + 1.2
 	for _, side in { -1, 1 } do
-		b:block("GateBase", v(3.4, 2, 3.4), v(side * x, 1, 0), P.Burgundy)
-		b:block("GatePost", v(2.6, 7, 2.6), v(side * x, 5.5, 0), P.Cream)
-		b:block("GateCap", v(3.2, 0.8, 3.2), v(side * x, 9.4, 0), P.Burgundy)
+		if dressMesh(b, "LotGatePost", v(side * x, 0, 0)) then
+			collider(b, v(3.4, 9.8, 3.4), v(side * x, 4.9, 0))
+		else
+			b:block("GateBase", v(3.4, 2, 3.4), v(side * x, 1, 0), P.Burgundy)
+			b:block("GatePost", v(2.6, 7, 2.6), v(side * x, 5.5, 0), P.Cream)
+			b:block("GateCap", v(3.2, 0.8, 3.2), v(side * x, 9.4, 0), P.Burgundy)
+		end
 		b:ball("GateLamp", 1.8, v(side * x, 10.6, 0), P.Light, NEON)
 		local badge = b:block("GateBadge", v(2, 2, 0.4), v(side * x, 6, -1.4), P.Gold)
 		Build.sign(badge, Enum.NormalId.Front, tostring(lotNumber), P.Burgundy)
@@ -147,9 +215,15 @@ end
 
 function LotModels.lamp(b: Builder, height: number?): BasePart
 	local h = height or 9
-	b:block("LampBase", v(1.4, 1, 1.4), v(0, 0.5, 0), P.Charcoal, METAL)
-	b:cylinder("LampPole", h, 0.5, v(0, h / 2, 0), P.Charcoal, METAL)
-	b:block("LampCap", v(1.6, 0.4, 1.6), v(0, h + 2.1, 0), P.Charcoal, METAL)
+	-- The Blender lamp (modelled 9 tall) collides itself: a thin post needs no separate box.
+	local post = if h == 9 then dressMesh(b, "LotLamp", Vector3.zero) else nil
+	if post ~= nil then
+		post.CanCollide = true
+	else
+		b:block("LampBase", v(1.4, 1, 1.4), v(0, 0.5, 0), P.Charcoal, METAL)
+		b:cylinder("LampPole", h, 0.5, v(0, h / 2, 0), P.Charcoal, METAL)
+		b:block("LampCap", v(1.6, 0.4, 1.6), v(0, h + 2.1, 0), P.Charcoal, METAL)
+	end
 	local head = b:block("LampHead", v(1.2, 1.6, 1.2), v(0, h + 1.1, 0), P.Light, NEON)
 	local light = Instance.new("PointLight")
 	light.Range = 18
@@ -202,12 +276,16 @@ end
 
 -- Small booth beside the collect pad.
 function LotModels.ticketKiosk(b: Builder)
-	b:block("KioskBase", v(3.6, 1, 3), v(0, 0.5, 0), P.Burgundy)
-	b:block("KioskBody", v(3.2, 3, 2.6), v(0, 2.5, 0), P.Cream)
-	b:block("KioskWindow", v(2.2, 1.4, 0.2), v(0, 2.8, -1.3), P.Glass, GLASS)
-	b:block("KioskCounter", v(2.6, 0.2, 0.6), v(0, 2.1, -1.5), P.Wood)
-	b:wedge("KioskRoof", v(4, 1.2, 1.8), CFrame.new(0, 4.6, -0.9), P.Carpet)
-	b:wedge("KioskRoofBack", v(4, 1.2, 1.8), CFrame.new(0, 4.6, 0.9) * CFrame.Angles(0, math.pi, 0), P.Carpet)
+	if dressMesh(b, "LotKiosk", Vector3.zero) then
+		collider(b, v(3.6, 5.2, 3), v(0, 2.6, 0))
+	else
+		b:block("KioskBase", v(3.6, 1, 3), v(0, 0.5, 0), P.Burgundy)
+		b:block("KioskBody", v(3.2, 3, 2.6), v(0, 2.5, 0), P.Cream)
+		b:block("KioskWindow", v(2.2, 1.4, 0.2), v(0, 2.8, -1.3), P.Glass, GLASS)
+		b:block("KioskCounter", v(2.6, 0.2, 0.6), v(0, 2.1, -1.5), P.Wood)
+		b:wedge("KioskRoof", v(4, 1.2, 1.8), CFrame.new(0, 4.6, -0.9), P.Carpet)
+		b:wedge("KioskRoofBack", v(4, 1.2, 1.8), CFrame.new(0, 4.6, 0.9) * CFrame.Angles(0, math.pi, 0), P.Carpet)
+	end
 	b:ball("KioskTopper", 0.9, v(0, 5.5, 0), P.Gold, NEON)
 	local plate = b:block("KioskSign", v(3, 0.8, 0.2), v(0, 3.65, -1.35), P.Navy)
 	Build.sign(plate, Enum.NormalId.Front, "BOX OFFICE", P.Gold)
@@ -215,6 +293,12 @@ end
 
 -- Gold stanchions with velvet ropes along the carpet.
 function LotModels.stanchions(b: Builder, fromZ: number, toZ: number, x: number)
+	-- Blender: both rows in one mesh, stretched to the carpet; it collides like the old posts.
+	local rows = dressMesh(b, "LotStanchions", v(0, 0, (fromZ + toZ) / 2), v(x / KIT_STAN_X, 1, math.abs(toZ - fromZ) / KIT_STAN_LEN))
+	if rows ~= nil then
+		rows.CanCollide = true
+		return
+	end
 	local count = math.max(2, math.floor((toZ - fromZ) / 5) + 1)
 	for _, side in { -x, x } do
 		local prev: Vector3? = nil
@@ -476,16 +560,24 @@ end
 -- Tall billboard on two posts. Returns the board (put a SurfaceGui on its Front face).
 function LotModels.billboard(root: Builder, lift: number?): BasePart
 	local up = lift or 0
-	for _, x in { -4.5, 4.5 } do
-		root:block("BillboardFoot", v(1.8, 1, 1.8), v(x, 0.5, 0.4), P.Charcoal)
-		root:block("BillboardPost", v(0.9, 12 + up, 0.9), v(x, 7 + up / 2, 0.4), P.Steel, METAL)
-	end
 	local b = root:sub(v(0, up, 0))
-	b:block("Catwalk", v(13, 0.3, 1.6), v(0, 10.9, -0.6), P.Steel, METAL)
-	b:block("BillboardBack", v(14, 9, 0.6), v(0, 15.5, 0.4), P.Burgundy)
+	-- The Blender frame (modelled on the lot's lift) collides itself; board and spots stay parts.
+	local frame = if up == KIT_LIFT then dressMesh(root, "LotBillboard", Vector3.zero) else nil
+	if frame ~= nil then
+		frame.CanCollide = true
+	else
+		for _, x in { -4.5, 4.5 } do
+			root:block("BillboardFoot", v(1.8, 1, 1.8), v(x, 0.5, 0.4), P.Charcoal)
+			root:block("BillboardPost", v(0.9, 12 + up, 0.9), v(x, 7 + up / 2, 0.4), P.Steel, METAL)
+		end
+		b:block("Catwalk", v(13, 0.3, 1.6), v(0, 10.9, -0.6), P.Steel, METAL)
+		b:block("BillboardBack", v(14, 9, 0.6), v(0, 15.5, 0.4), P.Burgundy)
+	end
 	local board = b:block("Billboard", v(13, 8, 0.4), v(0, 15.5, 0), P.Navy)
 	for _, x in { -4, 4 } do
-		b:block("SpotArm", v(0.3, 0.3, 2), v(x, 20.3, -0.8), P.Charcoal, METAL)
+		if frame == nil then
+			b:block("SpotArm", v(0.3, 0.3, 2), v(x, 20.3, -0.8), P.Charcoal, METAL)
+		end
 		b:block("Spot", v(1.2, 0.8, 0.8), v(x, 20.3, -1.9), P.Light, NEON)
 	end
 	return board
@@ -510,8 +602,15 @@ end
 -- Glass-topped trophy cabinet. Shows up to `shown` trophies.
 function LotModels.trophyCase(b: Builder, shown: number)
 	local w = 2 + shown * 1.5
-	b:block("CaseBase", v(w, 1.6, 2.4), v(0, 0.8, 0), P.Wood)
-	b:block("CaseTrim", v(w + 0.2, 0.3, 2.6), v(0, 1.65, 0), P.Burgundy)
+	-- The Blender cabinet, stretched to the width; named CaseBase like the part (LotLook finds it).
+	local case = dressMesh(b, "LotTrophyCase", Vector3.zero, v(w / KIT_CASE_W, 1, 1))
+	if case ~= nil then
+		case.Name = "CaseBase"
+		case.CanCollide = true
+	else
+		b:block("CaseBase", v(w, 1.6, 2.4), v(0, 0.8, 0), P.Wood)
+		b:block("CaseTrim", v(w + 0.2, 0.3, 2.6), v(0, 1.65, 0), P.Burgundy)
+	end
 	for i = 1, shown do
 		LotModels.trophy(b:sub(v(-w / 2 + 1 + (i - 1) * 1.5 + 0.75, 1.8, 0)))
 	end
@@ -557,9 +656,14 @@ end
 
 -- Round pedestal for the lot's top star. `glow` is the rarity color. Top surface at y = 1.6.
 function LotModels.pedestal(b: Builder, glow: Color3, rare: boolean): BasePart
-	b:cylinder("PedestalBase", 0.6, 6, v(0, 0.3, 0), P.Burgundy)
+	local stand = dressMesh(b, "LotPedestal", Vector3.zero)
+	if stand ~= nil then
+		stand.CanCollide = true
+	else
+		b:cylinder("PedestalBase", 0.6, 6, v(0, 0.3, 0), P.Burgundy)
+		b:cylinder("PedestalTop", 0.6, 5, v(0, 1.3, 0), P.Cream)
+	end
 	local ring = b:cylinder("PedestalRing", 0.4, 5.6, v(0, 0.8, 0), glow, NEON)
-	b:cylinder("PedestalTop", 0.6, 5, v(0, 1.3, 0), P.Cream)
 	if rare then
 		local light = Instance.new("PointLight")
 		light.Color = glow
