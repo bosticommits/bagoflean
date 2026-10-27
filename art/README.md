@@ -139,7 +139,7 @@ Rojo only manages `ReplicatedStorage.Shared`, so it leaves the `LotMeshes` folde
 look, two meshes. `LotStage` is the hangar with its baked colors; `LotStageAccent` (the barrel
 roof and side canopy) is white, and the game tints it with the lot's color. A free lot's stage
 uses the same meshes tinted grey (steel roof). The number plates, ON AIR and the light strip stay small parts;
-invisible boxes do the collisions. Imported as the model `lot_stage_kit` (asset 114573434970872)
+invisible boxes do the collisions. Imported as the model `lot_stage_kit` (asset 90871466415628)
 in `ReplicatedStorage > LotMeshes`. Without it, `LotModels.soundStage` builds the part version.
 If you change the shapes, update `STAGE_MESH` in `LotModels.luau` from the sizes the script prints.
 
