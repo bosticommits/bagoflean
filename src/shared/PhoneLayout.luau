@@ -9,6 +9,7 @@ export type Profile = {
 	walletScale: number,
 	giftScale: number,
 	giftBottomInset: number,
+	jumpTop: number,
 	soundSize: number,
 	soundTopInset: number,
 	castBottomInset: number,
@@ -22,9 +23,11 @@ function PhoneLayout.profile(width: number, height: number, touch: boolean): Pro
 		menuGrow = math.clamp(height / 880, 1, 1.25),
 		walletScale = math.clamp(height / 880, if height < 500 then 0.8 else 1, 1.25),
 		giftScale = if compact then 0.8 else 1,
-		-- The gifts sit above Roblox's jump control. On landscape phones it must also
-		-- remain above the bottom controls; portrait gets a larger reserved band.
-		giftBottomInset = if touch and width < height then 218 elseif touch then (if shortSide <= 500 then 100 else 220) else 76,
+		-- PC: the gift row sits above the 48 px sound button. Touch screens show one present
+		-- button by the HUD pull tab instead (PlaytimeGiftsUi), placed from jumpTop.
+		giftBottomInset = 76,
+		-- Top of Roblox's jump button: 90 px up on small screens, 210 px once the short side is over 500 px.
+		jumpTop = if shortSide <= 500 then 90 else 210,
 		soundSize = if touch then (if compact then 34 else 40) else 48,
 		soundTopInset = if touch then (if compact then 66 else 86) else 0,
 		castBottomInset = if touch and width < height then 130 else 14,

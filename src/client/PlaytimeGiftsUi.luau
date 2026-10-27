@@ -4,9 +4,10 @@
 -- it, and the present pops with confetti and the reward floats up. The row folds away once all
 -- seven are open. The server owns the clock: this only counts down from its last sync.
 --
--- Placement: on touch screens it sits just above the jump button, so it never covers the
--- thumbstick (bottom left), the CAST bar (bottom centre) or the top HUD; on PC it sits above the
--- sound button.
+-- Placement: on PC the row sits above the sound button. Touch screens have no room for seven
+-- presents beside the CAST banners and the HUD pull tab, so there one present button (the next
+-- gift's countdown, or how many are ready) sits left of the tab above the jump button, and tapping
+-- it opens the full row above the tab for a few seconds.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -23,6 +24,11 @@ local PlaytimeGiftsUi = {}
 local ART = { closed = 121409647430879, ready = 99908336297706, opened = 101236104871779 }
 
 local SLOT, BIG, GAP, LABEL = 44, 52, 4, 16
+local MINI = 48
+local ROW_OPEN_SECONDS = 6
+-- The HUD pull tab (Hud.luau): 64 px tall, 62 px showing at the right edge, centred at most 44 px
+-- below the middle and kept 8 px above the jump button. Mirrored here to keep clear of it.
+local TAB_SHOWN, TAB_HEIGHT, TAB_Y_TOUCH = 62, 64, 44
 local COUNT = #PlaytimeGifts.Ladder
 local CONFETTI = { UiKit.GOLD, UiKit.CLOSE_RED, UiKit.BLUE, UiKit.GREEN, UiKit.PURPLE, UiKit.WHITE }
 
@@ -92,11 +98,36 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = row
 
+	local touch = UserInputService.TouchEnabled
+	-- Touch screens: the one present button that stands in for the row.
+	local mini = Instance.new("ImageButton")
+	mini.Name = "PlaytimeGiftsButton"
+	mini.AnchorPoint = Vector2.new(1, 1)
+	mini.BackgroundTransparency = 1
+	mini.Image = "rbxassetid://" .. ART.closed
+	mini.ScaleType = Enum.ScaleType.Fit
+	mini.Size = UDim2.fromOffset(MINI, MINI)
+	mini.Visible = false
+	mini.ZIndex = 5
+	mini.Parent = gui
+	local miniHalo = UiKit.halo(mini, 10, 2)
+	miniHalo.Visible = false
+	local miniLabel = UiKit.makeTitle(mini, "", UiKit.WHITE, UDim2.new(1, 16, 0, LABEL), UDim2.new(0, -8, 1, 0), 1.5)
+	miniLabel.ZIndex = 8
+	UiKit.textConstraint(miniLabel, 15)
+
 	local function place()
-		local viewport = UiKit.viewport()
-		local profile = PhoneLayout.profile(viewport.X, viewport.Y, UserInputService.TouchEnabled)
+		local view = UiKit.viewport()
+		local profile = PhoneLayout.profile(view.X, view.Y, touch)
 		rowScale.Scale = profile.giftScale
-		row.Position = UDim2.new(1, if UserInputService.TouchEnabled then -12 else -16, 1, -profile.giftBottomInset)
+		if touch then
+			local height = if gui.AbsoluteSize.Y > 0 then gui.AbsoluteSize.Y else view.Y
+			local tabCentre = height / 2 + math.min(TAB_Y_TOUCH, height / 2 - profile.jumpTop - 8 - TAB_HEIGHT / 2)
+			mini.Position = UDim2.new(1, -(TAB_SHOWN + 12), 1, -(profile.jumpTop + 10 + LABEL))
+			row.Position = UDim2.new(1, -12, 0, tabCentre - TAB_HEIGHT / 2 - 8)
+		else
+			row.Position = UDim2.new(1, -16, 1, -profile.giftBottomInset)
+		end
 	end
 	UiKit.onViewportChanged(place)
 
@@ -271,6 +302,30 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 		end)
 	end
 
+	local function refreshMini(now: number)
+		local ready, nextLeft = 0, nil :: number?
+		for k, gift in PlaytimeGifts.Ladder do
+			if not claimed[k] then
+				local left = gift.minutes * 60 + 1 - now
+				if left <= 0 then
+					ready += 1
+				elseif nextLeft == nil then
+					nextLeft = left
+				end
+			end
+		end
+		mini.Image = "rbxassetid://" .. (if ready > 0 then ART.ready else ART.closed)
+		miniHalo.Visible = ready > 0
+		UiKit.badge(mini, if ready > 1 then tostring(ready) else nil)
+		if ready > 0 then
+			miniLabel.Text = "OPEN!"
+			miniLabel.TextColor3 = UiKit.CASH_GREEN
+		elseif nextLeft ~= nil then
+			miniLabel.Text = clock(nextLeft - 1)
+			miniLabel.TextColor3 = UiKit.WHITE
+		end
+	end
+
 	local function refresh()
 		local now = played + (os.clock() - syncedAt)
 		local open = 0
@@ -287,10 +342,37 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 				slot.label.TextColor3 = UiKit.WHITE
 			end
 		end
+		if touch then
+			refreshMini(now)
+		end
 		return open
 	end
 
 	local folding = false
+	local active = false -- some presents still to open
+	local expanded = false -- touch: the full row is open
+	local openToken = 0
+	local function show()
+		row.Visible = active and (not touch or expanded)
+		mini.Visible = touch and active and not expanded
+	end
+	-- Touch: opens the row above the pull tab, and folds it back after a few quiet seconds.
+	local function expand()
+		expanded = true
+		openToken += 1
+		local token = openToken
+		show()
+		task.delay(ROW_OPEN_SECONDS, function()
+			if token == openToken and expanded then
+				expanded = false
+				show()
+			end
+		end)
+	end
+	mini.Activated:Connect(function()
+		Sfx.play("click")
+		expand()
+	end)
 	sync.OnClientEvent:Connect(function(payload: any)
 		if type(payload) ~= "table" or type(payload.played) ~= "number" or type(payload.claimed) ~= "table" then
 			return
@@ -299,13 +381,18 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 		local opened = payload.opened
 		if type(opened) == "number" and slots[opened] ~= nil then
 			popOpen(opened, if type(payload.text) == "string" then payload.text else nil)
+			if touch and expanded then
+				expand() -- keep the row open a little longer after a claim
+			end
 		end
 		local open = refresh()
 		if open < COUNT then
 			folding = false
-			row.Visible = true
-			rowScale.Scale = if UiKit.isCompact() then 0.8 else 1
-		elseif row.Visible and not folding then
+			active = true
+			show()
+			place() -- restores the scale after a fold
+		elseif not folding and (row.Visible or mini.Visible) then
+			mini.Visible = false
 			-- All seven open: fold the row away once the last pop has played.
 			folding = true
 			task.delay(2.5, function()
@@ -313,6 +400,7 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 					local fold = TweenService:Create(rowScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), { Scale = 0 })
 					fold.Completed:Once(function()
 						if folding then
+							active = false
 							row.Visible = false
 						end
 					end)
@@ -325,7 +413,7 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 
 	task.spawn(function()
 		while gui.Parent ~= nil do
-			if row.Visible then
+			if active then
 				refresh()
 			end
 			task.wait(0.5)
