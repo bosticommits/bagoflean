@@ -366,9 +366,23 @@ local meshes = {
 	mesh("WesternPostOffice", "map_kit", 134642874217073, { 19.800001, 18.875002, 20.299999 }, MAP_KIT),
 	mesh("WesternSaloon", "map_kit", 101875343525953, { 21.800001, 24.875, 21.450001 }, MAP_KIT),
 	mesh("WesternSheriff", "map_kit", 119245023266892, { 19.800001, 19.875, 20.299999 }, MAP_KIT),
+
+	-- lot_office_kit.fbx (asset 77336967160126): the lot office, one look per Offline Earnings level.
+	mesh("LotOffice0", "lot_office_kit", 87610425359120, { 10.3, 6.81, 6.78 }, STANDARD),
+	mesh("LotOffice0Accent", "lot_office_kit", 115505978327285, { 9.1, 2.85, 6.65 }, STANDARD),
+	mesh("LotOffice1", "lot_office_kit", 82248637625790, { 9.9, 10.7, 11.51 }, STANDARD),
+	mesh("LotOffice1Accent", "lot_office_kit", 120717428542246, { 9.2, 5.775, 2 }, STANDARD),
+	mesh("LotOffice2", "lot_office_kit", 136077988092217, { 9.9, 14.2, 11.51 }, STANDARD),
+	mesh("LotOffice2Accent", "lot_office_kit", 120717428542246, { 9.2, 5.775, 2 }, STANDARD),
+	mesh("LotOffice3", "lot_office_kit", 94419634830112, { 9.9, 18.4, 11.51 }, STANDARD),
+	mesh("LotOffice3Accent", "lot_office_kit", 91472929910168, { 9.2, 9.975, 2 }, STANDARD),
+	mesh("LotOffice4", "lot_office_kit", 89678088552127, { 9.9, 22.6, 11.51 }, STANDARD),
+	mesh("LotOffice4Accent", "lot_office_kit", 132714425735180, { 9.2, 14.175, 2 }, STANDARD),
+	mesh("LotOffice5", "lot_office_kit", 88522071164792, { 9.9, 23.8, 11.51 }, STANDARD),
+	mesh("LotOffice5Accent", "lot_office_kit", 77112502648695, { 9.2, 18.375, 2 }, STANDARD),
 }
 
-assert(#meshes == 314, "LotMeshManifest must contain exactly 314 templates")
+assert(#meshes == 326, "LotMeshManifest must contain exactly 326 templates")
 
 return table.freeze({
 	version = 1,

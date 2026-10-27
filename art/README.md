@@ -7,7 +7,7 @@ that look smoother; once you import them, the game uses them automatically.
 | File | What it builds |
 |---|---|
 | `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
-| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 314 mesh templates currently in the Studio place |
+| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 326 mesh templates currently in the Studio place |
 | `tools/studio/rebuild_lot_meshes.luau` | Studio Command Bar script that rebuilds and verifies `ReplicatedStorage.LotMeshes` from the manifest |
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (4 sizes), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
@@ -26,7 +26,7 @@ How the lot grows:
 
 - **Sound stages**: one per owned stage, grey while the lot is free. A red ON AIR light turns on while a movie films there, and a film camera stands outside each one.
 - **Cinema**: Cinema Size levels 0-1 small, 2-3 adds a CINEMA blade sign, 4-5 adds columns and side wings, 6 adds a gold dome and searchlights.
-- **Office**: Offline Earnings level 0 is a star trailer, 1-2 a two-floor office, 3-4 a glass tower, 5 adds the gold film reel logo on the roof.
+- **Office**: one look per Offline Earnings level (Blender `lot_office_kit`): 0 is a star trailer, 1-2 a two-floor office (2 adds a roof unit and antenna), 3-5 a glass tower of 3, 4 and 5 floors, 5 adds the gold film reel logo on the roof. Without the meshes the parts version shows the same levels.
 - **Top star**: the owner's rarest actor stands on a pedestal by the red carpet (glowing for Star and up) and appears as a portrait on the billboard.
 - **Festival Laurels**: each Film Festival the owner wins puts a gold laurel (the Blender `FestivalLaurel` once imported) on a stand between the trophy case and the top star, on a plinth lit in that festival's color. The newest three show.
 
@@ -86,6 +86,18 @@ lit Blender renders of the town from fixed spots (aerial, theatre, gate, each ba
 `art/preview/map_shots.py` the same way as the store art (see below); it draws the kit models with
 their real Blender meshes, as players see them once `map_kit.fbx` is imported.
 
+## Lot office kit
+
+`art/blender/lot_office_kit.py` builds the office as `LotOffice0`..`LotOffice5` (one per Offline
+Earnings level) plus `LotOffice<N>Accent`, the white trailer stripe and awning, entrance canopy and
+roof stripe the game tints with the lot's color. The trailer's door star, the antenna light and an
+invisible hitbox stay parts, placed from the table the script writes into `LotModels.luau` between
+the `lot_office_kit` markers; the level-5 film reel is still the `FilmReelLogo` mesh. Run it with
+Blender (see its header); it writes `art/exports/lot_office_kit.fbx` and
+`art/previews/lot_kit_office.png`. Import or upload the FBX as one model named `lot_office_kit`
+inside `ReplicatedStorage > LotMeshes` (asset 77336967160126), MeshParts white SmoothPlastic, and
+add the meshes to `LotMeshManifest.luau`. Until then the part-built office shows.
+
 ## Importing the Blender models into Studio
 
 Do this once. Until you do, the game shows the part-built versions, so nothing breaks.
@@ -135,9 +147,9 @@ Rojo only manages `ReplicatedStorage.Shared`, so it leaves the `LotMeshes` folde
 
 ## Rebuild the saved mesh library
 
-`src/shared/LotMeshManifest.luau` is the committed source for the 314 mesh templates currently in
+`src/shared/LotMeshManifest.luau` is the committed source for the 326 mesh templates currently in
 the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces and the 271-mesh map kit
-(`map_kit`, asset 80189346190801). It records
+(`map_kit`, asset 80189346190801), plus the 12-mesh lot office kit (`lot_office_kit`, asset 77336967160126). It records
 each Roblox mesh asset ID, template size, appearance and physics properties, plus its group name.
 Other Blender models listed above are not in this snapshot until they have been imported into the
 place and added to the manifest.
