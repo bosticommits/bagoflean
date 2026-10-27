@@ -125,6 +125,14 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 			local tabCentre = height / 2 + math.min(TAB_Y_TOUCH, height / 2 - profile.jumpTop - 8 - TAB_HEIGHT / 2)
 			mini.Position = UDim2.new(1, -(TAB_SHOWN + 12), 1, -(profile.jumpTop + 10 + LABEL))
 			row.Position = UDim2.new(1, -12, 0, tabCentre - TAB_HEIGHT / 2 - 8)
+			-- Narrow phones: shrink the open row so it ends right of the HUD's tuck X (Hud.luau).
+			local tuck = gui:FindFirstChild("Tuck", true)
+			if tuck ~= nil and tuck:IsA("GuiObject") then
+				local room = gui.AbsolutePosition.X + gui.AbsoluteSize.X - 12 - (tuck.AbsolutePosition.X + tuck.AbsoluteSize.X) - 6
+				if room > 0 then
+					rowScale.Scale = math.min(rowScale.Scale, math.max(0.5, room / row.Size.X.Offset))
+				end
+			end
 		else
 			row.Position = UDim2.new(1, -16, 1, -profile.giftBottomInset)
 		end
@@ -359,6 +367,7 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 	-- Touch: opens the row above the pull tab, and folds it back after a few quiet seconds.
 	local function expand()
 		expanded = true
+		place() -- the HUD may have moved since
 		openToken += 1
 		local token = openToken
 		show()
