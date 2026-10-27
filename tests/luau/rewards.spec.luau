@@ -243,3 +243,25 @@ test("readyQuests finds finished, unclaimed quests and every carried one", funct
 	expect(ready["carried:daily:3:Cast10"] and not ready["carried:x"], "carried quests, unknown ids left out")
 	expect(next(Rewards.readyQuests({})) == nil, "an empty or partial payload has nothing ready")
 end)
+
+test("reward Fame is capped at MaxFame", function()
+	equal(Rewards.MaxFame, Movies.MaxPayout, "cap matches Movies.MaxPayout")
+	equal(Rewards.addFame(100, 500_000), 500_100, "adds normally")
+	equal(Rewards.addFame(Rewards.MaxFame - 10, 500_000), Rewards.MaxFame, "capped")
+	equal(Rewards.addFame(Rewards.MaxFame, 1), Rewards.MaxFame, "stays at the cap")
+	expect(string.find(Rewards.describe({ fame = 500_000 }, 0), "500,000 Fame", 1, true) ~= nil, "describes Fame")
+end)
+
+test("dev codes work only for the creator, and repeat", function()
+	local dev = { dev = true }
+	local now = 1000
+	equal(Rewards.codeRefusal(dev, false, false, false, now), "Invalid code", "non-creator refused")
+	equal(Rewards.codeRefusal(dev, false, false, false, now), Rewards.codeRefusal(nil, false, false, false, now), "same as an unknown code")
+	equal(Rewards.codeRefusal(dev, false, true, false, now), nil, "creator can redeem")
+	equal(Rewards.codeRefusal(dev, true, true, false, now), nil, "creator can redeem again")
+	equal(Rewards.codeRefusal(dev, true, true, true, now), "That code has expired", "LiveConfig can switch it off")
+	local public = {}
+	equal(Rewards.codeRefusal(public, false, false, false, now), nil, "public code works for anyone")
+	equal(Rewards.codeRefusal(public, true, true, false, now), "You already used that code", "public code is once only")
+	equal(Rewards.codeRefusal({ expires = now }, false, false, false, now), "That code has expired", "expired")
+end)

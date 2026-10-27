@@ -28,6 +28,7 @@ export type Reward = {
 	script: { genre: string, length: string, count: number }?,
 	luckMinutes: number?, -- Lucky Casting boost (x2 casting Luck), stacks in time
 	skips: number?, -- Skip Filming tokens
+	fame: number?, -- Fame, capped at Rewards.MaxFame
 }
 
 export type Product = {
