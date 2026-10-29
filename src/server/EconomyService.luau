@@ -75,6 +75,9 @@ function EconomyService.addCash(player: Player, amount: number, tx: string?, sku
 	if whole <= 0 then
 		return false
 	end
+	if Config.RobloxGroupId ~= 0 and player:IsInGroup(Config.RobloxGroupId) and tx == "Gameplay" then
+		whole = math.floor(whole * (1 + Config.GroupCashBonus))
+	end
 	data.cash = math.min(data.cash + whole, MAX_CASH)
 	DataService.markDirty(player)
 	Analytics.economy(player, true, whole, data.cash, tx or "Gameplay", sku or "Other")

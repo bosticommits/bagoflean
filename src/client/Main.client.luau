@@ -10,6 +10,7 @@ local AreaMood = require(script.Parent.AreaMood)
 local CastingUi = require(script.Parent.CastingUi)
 local ClientState = require(script.Parent.ClientState)
 local FilmSetWorld = require(script.Parent.FilmSetWorld)
+local GamepadNavigation = require(script.Parent.GamepadNavigation)
 local HalloweenWorld = require(script.Parent.HalloweenWorld)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
@@ -50,6 +51,7 @@ gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 gui.Parent = playerGui
 
+GamepadNavigation.start(gui)
 Sfx.start()
 Music.start()
 Blimp.start()
