@@ -153,7 +153,7 @@ from the sizes the script prints.
 `film_camera.py`, `trophy_gold.py`, `festival_laurel.py` and `palm_tree.py` are the low-triangle
 remakes (same shapes and colors): FilmCamera 290 triangles (was 844), TrophyGold 248 (604),
 FestivalLaurel 386 (1,196), PalmTree 412 (1,084). Each script asserts its budget (300, 250, 400,
-450), so a change that goes over fails the build. Old vs new: `art/previews/lighter_props.png`.
+450), so a change that goes over fails the build. Old vs new: `art/previews/lighter_props.png`; in Studio: `art/previews/lighter_props_lot_studio.jpg`, `lighter_props_map_studio.jpg`.
 They replaced the older meshes in `ReplicatedStorage > LotMeshes` under the same names (models
 FilmCamera 77852003238264, TrophyGold 116029839516908, FestivalLaurel 90769287557264, PalmTree
 73385326474755); the old models are kept in `ServerStorage > LotMeshesBackup`.
