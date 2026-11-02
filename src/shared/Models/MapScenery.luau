@@ -61,7 +61,7 @@ local KEEP_CLEAR: { Walkways.Rect } = {
 	Walkways.rect(202, -56, 234, -24), -- east water tower
 	Walkways.rect(228, -40, 292, 40), -- east sound stage
 	Walkways.rect(196, 14, 212, 30), -- guard booth
-	Walkways.rect(-40, 270, 40, 342), -- the gold star on the hill
+	Walkways.rect(-40, 332, 40, 404), -- the gold star on the hill
 	Walkways.rect(-110, 126, 110, 258), -- Starlight Park (it has its own trees)
 	Walkways.rect(-40, -290, 40, -126), -- Dusty Gulch's street and buildings
 	Walkways.rect(-75, -213, -36, -170), -- corral

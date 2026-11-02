@@ -455,3 +455,16 @@ test("Dusty Gulch's backlot dressing keeps the street, the crew and Moon Base's 
 	end
 	expect(pieces >= 60, `only {pieces} backlot pieces in the Gulch`)
 end)
+
+test("the gold star stands upright on the green hill's crest, facing the town", function()
+	local star = Lay.hillStar
+	local at = star.Position
+	local ground = MapScenery.groundAt(MapModels.Hills, at.X, at.Z)
+	expect(star.UpVector.Y > 0.999, "the star leans")
+	expect(star.LookVector.Z < -0.999, "the star doesn't face the town (-Z)")
+	-- Feet just into the ground (the hill is low-poly, a little under its sphere), never half-sunk.
+	expect(at.Y <= ground and at.Y > ground - 1.5, `star feet at {at.Y}, ground at {ground}`)
+	for _, d in { Vector3.new(8, 0, 0), Vector3.new(0, 0, 8), Vector3.new(0, 0, -8) } do
+		expect(MapScenery.groundAt(MapModels.Hills, at.X + d.X, at.Z + d.Z) <= ground, "the star isn't on the crest")
+	end
+end)
