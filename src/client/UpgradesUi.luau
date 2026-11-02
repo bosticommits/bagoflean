@@ -231,7 +231,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	local screen = Instance.new("Frame")
 	screen.Name = "UpgradeTree"
 	screen.BackgroundColor3 = Color3.fromRGB(8, 10, 22)
-	screen.BackgroundTransparency = 0.12
+	screen.BackgroundTransparency = 0.04
 	screen.BorderSizePixel = 0
 	screen.Size = UDim2.fromScale(1, 1)
 	screen.Visible = false
@@ -244,8 +244,8 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	vignette.Rotation = 90
 	vignette.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(0.3, 0.2),
-		NumberSequenceKeypoint.new(0.7, 0.2),
+		NumberSequenceKeypoint.new(0.3, 0.1),
+		NumberSequenceKeypoint.new(0.7, 0.1),
 		NumberSequenceKeypoint.new(1, 0),
 	})
 	vignette.Parent = screen
@@ -262,10 +262,17 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	board.ZIndex = 1
 	board.Parent = screen
 
+	-- Where a ray's name sits: past its last hex, further out on the near-horizontal rays so the
+	-- wide text clears the hex.
+	local function labelOffset(upgrade: Upgrades.Upgrade): (number, number)
+		local cosine = math.abs(math.cos(math.rad(UpgradeTree.ANGLES[upgrade.id] or 90)))
+		return UpgradeTree.offset(upgrade.id, upgrade.maxLevel + 0.7 + 0.6 * cosine)
+	end
+
 	-- Board size: every hex and ray label, plus PAD all round. START sits at (startX, startY).
 	local minX, maxX, minY, maxY = -START_R, START_R, -START_R, START_R
 	for _, upgrade in Upgrades.List do
-		local x, y = UpgradeTree.offset(upgrade.id, upgrade.maxLevel + 0.7)
+		local x, y = labelOffset(upgrade)
 		minX, maxX = math.min(minX, x - 100), math.max(maxX, x + 100)
 		minY, maxY = math.min(minY, y - 40), math.max(maxY, y + 40)
 	end
@@ -600,7 +607,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 				end
 			end)
 		end
-		local lx, ly = UpgradeTree.offset(upgrade.id, upgrade.maxLevel + 0.7)
+		local lx, ly = labelOffset(upgrade)
 		local label = makeTitle(content, string.upper(RAY_NAMES[upgrade.id]), RAY_COLORS[upgrade.id], UDim2.fromOffset(200, 26), UDim2.fromOffset(startX + lx - 100, startY + ly - 13), 3)
 		label.Name = "RayLabel"
 		label.ZIndex = 4
