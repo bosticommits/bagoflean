@@ -3,7 +3,6 @@
 -- Handles pcalls, session caching, and prevents redundant web API calls.
 local BadgeService = game:GetService("BadgeService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Badges = require(ReplicatedStorage.Shared.Badges)
 
