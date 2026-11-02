@@ -33,9 +33,10 @@ local GUIDE = Color3.fromRGB(255, 222, 26)
 local HINT_BLUE = Color3.fromRGB(110, 190, 255)
 local CURTAIN = Color3.fromRGB(122, 18, 36)
 
--- The chevron trail on the ground (studs). Each chevron is two arms meeting at a tip that points
--- at the target, tipped up off the ground so it reads from behind the player, with a slightly
--- bigger dark copy behind for the outline. They flow along the path at TRAIL_SPEED, TRAIL_SPACING apart.
+-- The chevron trail on the ground (studs). Each chevron is two see-through neon arms lying flat,
+-- meeting at a tip that points at the target. They flow along the path at TRAIL_SPEED,
+-- TRAIL_SPACING apart, and a wave runs through them from the player toward the target, each
+-- chevron popping a little bigger and brighter as it passes.
 local TRAIL_SPACING = 4.5
 local TRAIL_SPEED = 6
 local TRAIL_START = 3.5 -- the first chevron's distance ahead of the player
@@ -43,27 +44,26 @@ local TRAIL_END = 2.5 -- the last one stops this far short of the target
 local TRAIL_FADE = 2 -- chevrons fade in and out over this distance at each end
 local CHEVRON_ARM = 3.2
 local CHEVRON_ANGLE = math.rad(40) -- each arm's angle off the path
-local CHEVRON_LEAN = math.rad(50) -- tip raised off the ground, toward the target
-local LEAN = CFrame.Angles(CHEVRON_LEAN, 0, 0)
-local CHEVRON_LIFT = math.cos(CHEVRON_ANGLE) * CHEVRON_ARM / 2 * math.sin(CHEVRON_LEAN) + 0.2
-type ChevronArm = { offset: CFrame, size: Vector3, ink: boolean }
+local CHEVRON_LIFT = 0.2
+local CHEVRON_SEE = 0.35 -- the arms' resting transparency
+local WAVE_SPEED = 24 -- studs per second
+local WAVE_GAP = 30 -- studs between waves
+local WAVE_WIDTH = 6 -- how far behind its front a wave fades out
+local WAVE_GROW = 0.25 -- extra scale at the wave's front
+local WAVE_GLOW = 0.3 -- transparency taken off at the wave's front
+type ChevronArm = { offset: CFrame, size: Vector3 }
 local CHEVRON_ARMS: { ChevronArm } = {}
 do
 	-- In the chevron's own frame -Z points at the target. Each arm's centre sits beside the path,
 	-- turned so the two meet at the tip, and nudged toward the tip so they close it off.
-	local thick, depth, rim = 0.8, 0.25, 0.42
-	for _, ink in { true, false } do
-		for _, side in { 1, -1 } do
-			local turn = side * CHEVRON_ANGLE
-			local along = CFrame.Angles(0, turn, 0)
-			local centre = Vector3.new(side * math.sin(CHEVRON_ANGLE) * CHEVRON_ARM / 2, if ink then -0.1 else 0.02, 0)
-			local grow = if ink then rim else 0
-			table.insert(CHEVRON_ARMS, {
-				offset = CFrame.new(centre) * along * CFrame.new(0, 0, -thick * 0.3),
-				size = Vector3.new(thick + grow, depth, CHEVRON_ARM + thick * 0.6 + grow),
-				ink = ink,
-			})
-		end
+	local thick, depth = 0.8, 0.25
+	for _, side in { 1, -1 } do
+		local along = CFrame.Angles(0, side * CHEVRON_ANGLE, 0)
+		local centre = Vector3.new(side * math.sin(CHEVRON_ANGLE) * CHEVRON_ARM / 2, 0, 0)
+		table.insert(CHEVRON_ARMS, {
+			offset = CFrame.new(centre) * along * CFrame.new(0, 0, -thick * 0.3),
+			size = Vector3.new(thick, depth, CHEVRON_ARM + thick * 0.6),
+		})
 	end
 end
 
@@ -678,7 +678,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Guides --------------------------------------------------------------------------------------
 	type UiGuide = { target: GuiObject, arrow: Frame, cleanup: () -> () }
-	type Trail = { folder: Folder, parts: { BasePart }, fades: { number } }
+	type Trail = { folder: Folder, parts: { BasePart }, fades: { number }, scales: { number } }
 	type WorldGuide = { target: WorldTarget, cleanup: () -> (), trail: Trail?, edge: Frame? }
 	local uiGuides: { UiGuide } = {}
 	local worldGuides: { WorldGuide } = {}
@@ -800,7 +800,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 
 		if target.kind == "primary" then
-			-- A trail of outlined yellow chevrons along the ground from the player to the target,
+			-- A trail of see-through yellow chevrons along the ground from the player to the target,
 			-- flowing toward it (animateGuides places them each frame).
 			local folder = Instance.new("Folder")
 			folder.Name = "TutorialTrail"
@@ -808,22 +808,23 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			for _ = 1, trailCount() do
 				for _, arm in CHEVRON_ARMS do
 					local part = Instance.new("Part")
-					part.Name = if arm.ink then "ChevronOutline" else "Chevron"
+					part.Name = "Chevron"
 					part.Anchored = true
 					part.CanCollide = false
 					part.CanQuery = false
 					part.CanTouch = false
 					part.CastShadow = false
 					part.Locked = true
-					part.Material = Enum.Material.SmoothPlastic
-					part.Color = if arm.ink then UiKit.INK else GUIDE
+					part.Material = Enum.Material.Neon
+					part.Color = GUIDE
 					part.Size = arm.size
 					part.Transparency = 1
 					part.Parent = folder
 					table.insert(parts, part)
 				end
 			end
-			guide.trail = { folder = folder, parts = parts, fades = table.create(#parts // #CHEVRON_ARMS, 1) }
+			local count = #parts // #CHEVRON_ARMS
+			guide.trail = { folder = folder, parts = parts, fades = table.create(count, 1), scales = table.create(count, 1) }
 			table.insert(made, folder)
 			-- An arrow at the edge of the screen while the target is out of view.
 			local edge = makeArrow(gui, if compact() then 48 else 64, 9)
@@ -964,23 +965,38 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local phase = (clock * TRAIL_SPEED) % TRAIL_SPACING
 		-- The chevrons' right-hand side, so each one's front (-Z) faces along the path.
 		local side = Vector3.new(toward.X, 0, toward.Z).Unit:Cross(Vector3.yAxis)
+		local still = reducedMotion()
 		for index = 1, #trail.fades do
 			local along = TRAIL_START + phase + (index - 1) * TRAIL_SPACING
 			local room = distance - TRAIL_END - along
 			local fade = if room < 0 then 1 else 1 - math.min(1, (along - TRAIL_START) / TRAIL_FADE, room / TRAIL_FADE)
+			-- How far the latest wave front has passed this chevron, so 0 means it is right on it.
+			local behind = (clock * WAVE_SPEED - along) % WAVE_GAP
+			local pop = if still then 0 else math.max(0, 1 - behind / WAVE_WIDTH)
+			local look = math.max(fade, CHEVRON_SEE - WAVE_GLOW * pop)
+			local scale = 1 + WAVE_GROW * pop
 			local first = (index - 1) * arms
-			if math.abs(trail.fades[index] - fade) > 0.02 then
-				trail.fades[index] = fade
+			local resize = math.abs(trail.scales[index] - scale) > 0.01
+			if resize then
+				trail.scales[index] = scale
+			end
+			if math.abs(trail.fades[index] - look) > 0.02 or resize then
+				trail.fades[index] = look
 				for arm = 1, arms do
-					trail.parts[first + arm].Transparency = fade
+					local part = trail.parts[first + arm]
+					part.Transparency = look
+					if resize then
+						part.Size = CHEVRON_ARMS[arm].size * Vector3.new(scale, 1, scale)
+					end
 				end
 			end
 			if fade < 1 then
 				local at = fromFeet + toward * along + Vector3.new(0, CHEVRON_LIFT, 0)
-				local frame = CFrame.fromMatrix(at, side, Vector3.yAxis) * LEAN
+				local frame = CFrame.fromMatrix(at, side, Vector3.yAxis)
 				for arm = 1, arms do
+					local offset = CHEVRON_ARMS[arm].offset
 					table.insert(trailParts, trail.parts[first + arm])
-					table.insert(trailFrames, frame * CHEVRON_ARMS[arm].offset)
+					table.insert(trailFrames, frame * CFrame.new(offset.Position * scale) * offset.Rotation)
 				end
 			end
 		end
