@@ -8,10 +8,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shop = require(ReplicatedStorage.Shared.Shop)
 
-export type Code = { reward: Shop.Reward, expires: number? }
+-- `dev` codes work only for the game's creator (a user-owned game) and can be used again and again;
+-- anyone else is told "Invalid code" (RewardService).
+export type Code = { reward: Shop.Reward, expires: number?, dev: boolean? }
 
 return table.freeze({
 	PREMIERE = { reward = { cash = 500, cashMinutes = 15 } },
 	LIGHTSCAMERA = { reward = { luckMinutes = 10 } },
+	DIRECTORSCUT = { reward = { cash = 9_900_000, fame = 500_000 }, dev = true },
 	ACTION = { reward = { script = { genre = "Action", length = "Indie", count = 2 } } },
 } :: { [string]: Code })

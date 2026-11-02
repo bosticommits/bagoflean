@@ -285,6 +285,27 @@ local function comma(n: number): string
 	return (formatted:gsub("^,", ""))
 end
 
+Rewards.MaxFame = 1e12 -- matches Movies.MaxPayout
+
+function Rewards.addFame(current: number, amount: number): number
+	return math.min(current + amount, Rewards.MaxFame)
+end
+
+-- Why a code can't be redeemed, or nil if it can. A `dev` code only exists for the game's creator:
+-- everyone else gets the same answer as an unknown code, so it never leaks. Dev codes repeat.
+function Rewards.codeRefusal(entry: { dev: boolean?, expires: number? }?, used: boolean, isCreator: boolean, disabled: boolean, now: number): string?
+	if entry == nil or (entry.dev and not isCreator) then
+		return "Invalid code"
+	end
+	if (entry.expires ~= nil and now >= entry.expires) or disabled then
+		return "That code has expired"
+	end
+	if used and not entry.dev then
+		return "You already used that code"
+	end
+	return nil
+end
+
 -- Short text for the UI and for "you got" messages.
 function Rewards.describe(reward: Reward, ratePerSecond: number): string
 	local parts: { string } = {}
@@ -301,6 +322,9 @@ function Rewards.describe(reward: Reward, ratePerSecond: number): string
 	end
 	if reward.skips ~= nil then
 		table.insert(parts, `{reward.skips} Skip Filming`)
+	end
+	if reward.fame ~= nil then
+		table.insert(parts, `{comma(reward.fame)} Fame`)
 	end
 	return table.concat(parts, " + ")
 end
