@@ -680,8 +680,9 @@ function TownSets.moonBase(b: Builder)
 end
 
 -- The Jungle Temple (film set 3), in its own space: the gate at the origin, the set running along
--- +Z, from x = -36 to 84 and z = 0 to 126 (MapModels.FilmSets). An open backlot: a chain-link fence
--- round the lot, the star trailers and craft services by the dirt road in, the director's village
+-- +Z, from x = -36 to 84 and z = 0 to 126 (MapModels.FilmSets), and in front of it (z = -52 to 0,
+-- toward the park) a belt of jungle with a winding trail to the gate. An open backlot: a chain-link
+-- fence all round the lot, the star trailers and craft services by the dirt road in, the director's village
 -- and the camera in the clearing, and the themed set beyond: the temple (FilmScenes gear) with
 -- ruins, fake rocks, a river and a bridge, lit from truss towers and scaffolds and backed by
 -- painted flats whose wooden bracing shows from behind. Models: art/blender/jungle_kit.py and
@@ -844,8 +845,7 @@ local JUNGLE_DRESSING: { Dressing } = {
 	dress("JungleFern", 74, 30, 0),
 	dress("JungleBigLeaf", 78, 62, 200, SOFT),
 	dress("JunglePalm", 40, 6, 80),
-	-- The woods outside the fence.
-	dress("JungleTree", -44, 18, 30),
+	-- The woods outside the fence (none on the town side near the gate: the hedge is right there).
 	dress("JungleTree", -46, 60, 140),
 	dress("JungleTree", -44, 104, 250),
 	dress("JungleTree", 92, 26, 80),
@@ -877,16 +877,74 @@ local function backlotFence(b: Builder, from: Vector3, to: Vector3, inward: numb
 	end
 end
 
+-- The jungle trail from the gap in the park's west fence (z = -52) to the gate, winding through
+-- the belt between them (MapModels' corridor, x -10 to 10): packed dirt, round at every bend.
+local JUNGLE_GREEN = Color3.fromRGB(46, 112, 56)
+local TRAIL = { v(0, 0, -53), v(0, 0, -46), v(-5, 0, -36), v(5, 0, -23), v(0, 0, -12), v(0, 0, 1) }
+local TRAIL_WIDTH = 6
+
+-- The belt: the trail, plants pressing in on its bends, and a thicket of jungle plants either side
+-- with canopy trees over them, so the park and the set can't see each other.
+local function jungleBelt(b: Builder)
+	for i = 1, #TRAIL - 1 do
+		local from, to = TRAIL[i], TRAIL[i + 1]
+		local delta = to - from
+		local at = CFrame.new((from + to) / 2 + v(0, 0.2, 0)) * yaw(math.deg(math.atan2(delta.X, delta.Z)))
+		b:block("JungleTrail", v(TRAIL_WIDTH, 0.2, delta.Magnitude), at, JUNGLE_DIRT, Enum.Material.Ground)
+		b:cylinder("JungleTrail", 0.2, TRAIL_WIDTH, to + v(0, 0.2, 0), JUNGLE_DIRT, Enum.Material.Ground)
+	end
+	for _, d in {
+		dress("JungleFern", 7, -36, 20, SOFT), -- outside the bends, so the trail winds
+		dress("JungleBigLeaf", -7, -23, 140, SOFT),
+		dress("JungleFern", 6, -11, 80, SOFT),
+		dress("JungleLeafLitter", -4, -44, 30, SOFT),
+		dress("JungleLeafLitter", 3, -30, 110, SOFT),
+		dress("JungleLeafLitter", -3, -17, 60, SOFT),
+		dress("JungleDirtPatchSmall", 1, -5, 20, SOFT),
+		dress("JungleDirtPatchSmall", -1, -49, 70, SOFT),
+	} do
+		MapKit.place(b, d.kit, CFrame.new(d.x, 0.2, d.z) * yaw(d.turn), { solid = false })
+	end
+	MapKit.place(b, "JungleSignpost", CFrame.new(-8, 0.2, -30) * yaw(90), {
+		labels = { Sign = { text = "TEMPLE", color = P.OffWhite, stroke = 3 } },
+	})
+	-- The thicket, in rows across the belt, clear of the trail's corridor. Past the play area, so
+	-- nothing collides.
+	local plants = { "JungleBanana", "JungleFern", "JungleBush", "JungleBigLeaf", "JungleMound", "JungleFern" }
+	local litter = { "JungleLeafLitter", "JungleDirtPatchSmall", "JungleLeafLitter", "JungleDirtPatch" }
+	local i = 0
+	for z = -45, -5, 10 do
+		for x = -30, 80, 10 do
+			if math.abs(x) > 12 then
+				i += 1
+				local wobble = ((i * 37) % 7) - 3
+				local at = v(x + wobble, 0.2, z - wobble * 0.6)
+				MapKit.place(b, plants[i % #plants + 1], CFrame.new(at) * yaw(i * 67), { solid = false })
+				MapKit.place(b, litter[i % #litter + 1], CFrame.new(at + v(3, 0, 2)) * yaw(i * 41), { solid = false })
+				if (i + z // 10) % 2 == 0 and z > -45 then -- canopy trees keep back from the park's fence
+					local tree = if i % 3 == 0 then "JunglePalm" else "JungleTree"
+					MapKit.place(b, tree, CFrame.new(at + v(0, 0, 3)) * yaw(i * 53), { far = true, scale = 0.9 + (i % 3) * 0.15 })
+				end
+			end
+		end
+	end
+end
+
 function TownSets.jungleTemple(b: Builder)
-	-- The lot's ground is the same green as the woods round it, so it has no edge; the dirt road
-	-- and the clearing are ragged worn patches on it (in JUNGLE_DRESSING).
-	b:block("JungleGround", v(124, 0.2, 126), v(24, 0.1, 61), P.Green, GRASS)
+	-- Darker jungle ground under the lot and the belt of jungle in front of it, out to the park's
+	-- west fence (z = -52); the dirt road and the clearing are ragged worn patches on it (in
+	-- JUNGLE_DRESSING). Its edges run under the undergrowth and the park's ranch fence.
+	b:block("JungleGround", v(128, 0.2, 184), v(28, 0.1, 42), JUNGLE_GREEN, GRASS)
 	TownSets.filmSetGear(b, FilmScenes.Sets.Jungle.gear)
 
-	-- The fence: down both sides and across the back, with studio banners by the way in.
+	-- The fence all round: down both sides, across the back, and along the front either side of
+	-- the gate, with studio banners by the way in.
 	backlotFence(b, v(-35.5, 0.2, 0), v(-35.5, 0.2, 125.5), -90, { [2] = "STAGE 3: JUNGLE" })
 	backlotFence(b, v(83.5, 0.2, 0), v(83.5, 0.2, 125.5), 90, { [2] = "QUIET! FILMING" })
 	backlotFence(b, v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), 0)
+	backlotFence(b, v(-35.5, 0.2, 0), v(-11, 0.2, 0), 180)
+	backlotFence(b, v(11, 0.2, 0), v(83.5, 0.2, 0), 180)
+	jungleBelt(b)
 	for _, at in { v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), v(-35.5, 0.2, 0), v(83.5, 0.2, 0) } do
 		MapKit.place(b, "BacklotFencePost", at)
 	end
@@ -1059,7 +1117,8 @@ function TownSets.park(b: Builder)
 
 	-- The way to the Jungle Temple film set: a dirt trail from the cross path's west end to the
 	-- gap in the west fence, a jungle arch over the gap, and signposts pointing the way from the
-	-- fountain plaza and the end of the cross path.
+	-- fountain plaza and the end of the cross path. Past the arch the jungle's own trail winds on
+	-- through a belt of jungle to the set's gate, 50 studs west (TownSets.jungleTemple).
 	b:block("JungleTrail", v(66, 0.2, 10), v(-73, 0.1, 44), JUNGLE_DIRT, Enum.Material.Ground)
 	local jungle: MapKit.Label = { text = "JUNGLE TEMPLE", color = P.Gold, stroke = 4 }
 	MapKit.place(b, "JungleGateArch", CFrame.new(-106, 0, 40) * yaw(-90), { labels = { Sign = jungle } })

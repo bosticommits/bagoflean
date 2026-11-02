@@ -284,7 +284,7 @@ test("players can't walk off the map: walls close every way out", function()
 	equal(open, 0, "edge cells with no wall")
 	-- The whole map is one piece: spawn reaches the park, the Gulch, the theatre and the gate road.
 	local e = Lay.fenceZ + 1
-	for _, place in { { 0, e + 100 }, { 0, -e - 145 }, { Lay.theatreX - 2, 0 }, { 160, 0 }, { 120, 110 } } do
+	for _, place in { { 0, e + 100 }, { 0, -e - 145 }, { Lay.theatreX - 2, 0 }, { 160, 0 }, { 120, 110 }, { -130, 168 }, { -220, 190 } } do
 		expect(seen[`{math.round(place[1] / step)},{math.round(place[2] / step)}`] == true, `can't reach {place[1]}, {place[2]}`)
 	end
 end)
@@ -369,6 +369,20 @@ test("the park's ducks paddle on open water", function()
 		end
 	end
 	equal(ducks, #TownSets.DuckLoops, "a loop for every duck")
+end)
+
+test("the jungle keeps to itself: no jungle plant in the town or the park", function()
+	local hx, hz = Lay.fenceX + 2, Lay.fenceZ + 2 -- the town hedge, with its thickness
+	local plants = 0
+	for _, model in town:GetDescendants() do
+		if model:IsA("Model") and string.sub(model.Name, 1, 6) == "Jungle" and model.Name ~= "JungleGateArch" and model.Name ~= "JungleSignpost" then
+			plants += 1
+			local p = model.WorldPivot.Position
+			expect(not (math.abs(p.X) < hx and math.abs(p.Z) < hz), `{model.Name} at {p} is inside the town hedge`)
+			expect(not (p.X > -106 and p.Z > Lay.fenceZ), `{model.Name} at {p} is in Starlight Park`)
+		end
+	end
+	expect(plants > 100, `only {plants} jungle pieces`)
 end)
 
 test("the Jungle Temple's dressing keeps the crew corner and the boulder's run clear", function()

@@ -91,9 +91,10 @@ export type FilmSetInfo = {
 -- Moon Base: out in the desert east of Dusty Gulch, its gate on the Gulch's east edge (so players
 -- reach it through the Gulch), the set running toward world +X.
 MapModels.MoonFrame = CFrame.new(88, 0, -209) * CFrame.Angles(0, math.pi / 2, 0)
--- The Jungle Temple: in the woods west of Starlight Park, its gate in the park's west fence, the
--- set running toward world -X.
-MapModels.JungleFrame = CFrame.new(-108, 0, 168) * CFrame.Angles(0, -math.pi / 2, 0)
+-- The Jungle Temple: deep in the woods west of Starlight Park, the set running toward world -X. Like
+-- Moon Base behind the Gulch, it has its own space: a belt of jungle 50 studs wide between the
+-- park's west fence (x = -108) and its gate, crossed by its own winding trail (TownSets.jungleTemple).
+MapModels.JungleFrame = CFrame.new(-158, 0, 168) * CFrame.Angles(0, -math.pi / 2, 0)
 
 local function filmSet(id: string, frame: CFrame, wallWidth: number, wallX: number, area: Walkways.Rect, spot: Vector3): FilmSetInfo
 	local centre = FilmScenes.Sets[id].centre
@@ -107,7 +108,7 @@ end
 MapModels.FilmSets = table.freeze({
 	filmSet("Gulch", MapModels.GulchFrame, 172, 0, Walkways.rect(-86, -(Lay.fenceZ + 1) - 158, 86, -(Lay.fenceZ + 4)), Vector3.new(2, 3.4, 90)),
 	filmSet("MoonBase", MapModels.MoonFrame, 124, 3, Walkways.rect(90.5, -272, 200, -152), Vector3.new(0, 3.4, 24)),
-	filmSet("Jungle", MapModels.JungleFrame, 124, 24, Walkways.rect(-232, 132, -110.5, 252), Vector3.new(2, 3.4, 36)),
+	filmSet("Jungle", MapModels.JungleFrame, 124, 24, Walkways.rect(-282, 132, -160.5, 252), Vector3.new(2, 3.4, 36)),
 } :: { FilmSetInfo })
 
 -- The lawns along each lot's front, either side of its gate (x from, x to).
@@ -777,6 +778,8 @@ local function walkAreas(): { Walkways.Rect }
 	} do
 		table.insert(areas, R(r.x0, e + r.z0, r.x1, e + r.z1))
 	end
+	-- The jungle trail from the park's west fence to the Jungle Temple's gate (TownSets.jungleTemple).
+	table.insert(areas, R(-158, 160, -108, 176))
 	-- Dusty Gulch (TownSets.westernTown, turned to run toward -Z): the street and boardwalks.
 	table.insert(areas, R(-20, -e - 150, 20, -e))
 	return areas
@@ -798,7 +801,8 @@ local function playAreas(): { Walkways.Rect }
 		R(-108, fz, 108, fz + 128), -- Starlight Park, to its ranch fences and the movie screen
 		R(-86, -fz - 158, 86, -fz), -- Dusty Gulch and its desert edges
 		R(86, -272, 200, -152), -- Moon Base, past the Gulch's east edge
-		R(-232, 132, -108, 252), -- the Jungle Temple, past the park's west fence
+		R(-282, 132, -158, 252), -- the Jungle Temple, out in the woods west of the park
+		R(-158, 158, -108, 178), -- the jungle trail to it, from the gap in the park's west fence
 	}
 end
 

@@ -53,7 +53,8 @@ MapScenery.Mountains = table.freeze(mountainRing())
 
 -- Big things already standing outside the walkways that scenery must leave room round
 -- (the theatre, the backlot sound stages and water towers, the gate booth, the gold star, the
--- park's pond and screen, Dusty Gulch's corral, wagon and water tank). World x0, z0, x1, z1.
+-- park's pond and screen, the jungle's own plants, Dusty Gulch's corral, wagon and water tank).
+-- World x0, z0, x1, z1.
 local KEEP_CLEAR: { Walkways.Rect } = {
 	Walkways.rect(-244, -32, -206, 32), -- theatre
 	Walkways.rect(-262, -85, -192, -12), -- west sound stage
@@ -63,6 +64,7 @@ local KEEP_CLEAR: { Walkways.Rect } = {
 	Walkways.rect(196, 14, 212, 30), -- guard booth
 	Walkways.rect(-40, 332, 40, 404), -- the gold star on the hill
 	Walkways.rect(-110, 126, 110, 258), -- Starlight Park (it has its own trees)
+	Walkways.rect(-300, 128, -108, 272), -- the Jungle Temple and its belt (ringed by jungle plants)
 	Walkways.rect(-40, -290, 40, -126), -- Dusty Gulch's street and buildings
 	Walkways.rect(-75, -213, -36, -170), -- corral
 	Walkways.rect(36, -200, 64, -172), -- wagon
