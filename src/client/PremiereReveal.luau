@@ -222,14 +222,14 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	batchFrame.ZIndex = 14
 	batchFrame.Visible = false
 	batchFrame.Parent = safe
-	local batchTitle = UiKit.makeTitle(batchFrame, "MORE PREMIERES TONIGHT", UiKit.GOLD, UDim2.fromScale(0.9, 0.1), UDim2.fromScale(0.05, 0.09), 3)
+	local batchTitle = UiKit.makeTitle(batchFrame, "MORE PREMIERES TONIGHT", UiKit.GOLD, UDim2.fromScale(0.9, 0.1), UDim2.fromScale(0.05, 0.05), 3)
 	batchTitle.ZIndex = 14
 	UiKit.textConstraint(batchTitle, 40)
 	local cardRow = Instance.new("Frame")
 	cardRow.Name = "Cards"
 	cardRow.BackgroundTransparency = 1
-	cardRow.Position = UDim2.fromScale(0.03, 0.21)
-	cardRow.Size = UDim2.fromScale(0.94, 0.34)
+	cardRow.Position = UDim2.fromScale(0.03, 0.17)
+	cardRow.Size = UDim2.fromScale(0.94, 0.36)
 	cardRow.ZIndex = 14
 	cardRow.Parent = batchFrame
 	local cardLayout = Instance.new("UIListLayout")
@@ -242,8 +242,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	totalBox.Name = "Total"
 	totalBox.BackgroundColor3 = UiKit.PANEL
 	totalBox.AnchorPoint = Vector2.new(0.5, 0)
-	totalBox.Position = UDim2.fromScale(0.5, 0.58)
-	totalBox.Size = UDim2.fromScale(0.8, 0.22)
+	totalBox.Position = UDim2.fromScale(0.5, 0.57)
+	totalBox.Size = UDim2.fromScale(0.8, 0.2)
 	totalBox.ZIndex = 14
 	totalBox.Visible = false
 	totalBox.Parent = batchFrame
@@ -263,7 +263,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	totalFame.Name = "Fame"
 	totalFame.ZIndex = 15
 	UiKit.textConstraint(totalFame, 20)
-	local totalContinue = UiKit.makeButton(batchFrame, "Continue", UiKit.GREEN, UDim2.fromScale(0.4, 0.09), UDim2.fromScale(0.3, 0.84))
+	local totalContinue = UiKit.makeButton(batchFrame, "Continue", UiKit.GREEN, UDim2.fromScale(0.4, 0.1), UDim2.fromScale(0.3, 0.8))
 	totalContinue.Name = "Continue"
 	totalContinue.ZIndex = 15
 	totalContinue.Visible = false
@@ -1052,10 +1052,10 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 		totalBox.Visible = false
 		totalContinue.Visible = false
 		batchTitle.Visible = #tail.rest > 0
-		local view = UiKit.viewport()
+		local room = safe.AbsoluteSize
 		local shown = math.min(#tail.rest, PremiereNight.QUICK_CARDS)
-		local cardW = math.min(view.Y * 0.34 * 0.72, (view.X * 0.9 - 12 * shown) / math.max(shown + 1, 4))
-		local size = Vector2.new(cardW, cardW / 0.72)
+		local cardH = math.min(room.Y * 0.34, (room.X * 0.9 - 12 * shown) / math.max(shown + 1, 4) / 0.72)
+		local size = Vector2.new(cardH * 0.72, cardH)
 		task.spawn(function()
 			local function pause(seconds: number): boolean
 				if not quickSkip then
