@@ -613,7 +613,7 @@ local function start()
 			local frameOf = frames(person, person.pose(person, t))
 			for name, list in person.pieces do
 				local at = frameOf[name]
-				if at ~= nil then
+				if at then
 					for _, item in list do
 						table.insert(parts, item.part)
 						table.insert(cframes, at * item.offset)
@@ -638,7 +638,9 @@ function TownLife.start()
 		if Workspace:WaitForChild("Town", 60) == nil then
 			return
 		end
-		local ok, err = pcall(start)
+		local ok, err = pcall(function()
+			start()
+		end)
 		if not ok then
 			warn(`[TownLife] {err}`)
 		end

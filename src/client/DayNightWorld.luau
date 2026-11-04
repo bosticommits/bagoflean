@@ -51,12 +51,12 @@ function DayNightWorld.start()
 	local lights: { [Light]: number } = {}
 	local beams: { [BasePart]: CFrame } = {}
 	local function found(item: Instance)
-		if item:IsA("PointLight") or item:IsA("SpotLight") or item:IsA("SurfaceLight") then
+		if item:IsA("Light") then
 			if lights[item] == nil then
 				lights[item] = item.Brightness
 				item.Brightness = item.Brightness * lerpNumber(LIGHT_DAY, LIGHT_NIGHT, darkness)
 			end
-		elseif item.Name == "SearchlightBeam" and item:IsA("BasePart") and beams[item] == nil then
+		elseif item.Name == "SearchlightBeam" and item:IsA("BasePart") and not beams[item] then
 			beams[item] = item.CFrame
 		end
 	end
