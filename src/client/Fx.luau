@@ -55,14 +55,23 @@ function Fx.flash(color: Color3, strength: number)
 	Debris:AddItem(frame, 0.7)
 end
 
--- Paper confetti falling from the top of the screen. `count` scales with how special the moment is.
-function Fx.confetti(count: number, colors: { Color3 }?)
+-- Paper confetti falling from the top of the screen. `count` scales with how special the moment is; `tickets` makes golden tickets.
+function Fx.confetti(count: number, colors: { Color3 }?, tickets: boolean?)
 	local palette = colors or CONFETTI_COLORS
 	local gui = overlay()
 	for _ = 1, count do
 		local piece = Instance.new("Frame")
 		local size = random:NextInteger(6, 12)
-		piece.Size = UDim2.fromOffset(size, size * 1.6)
+		-- Golden tickets are wide, with a darker stripe.
+		piece.Size = if tickets then UDim2.fromOffset(size * 2.2, size * 1.3) else UDim2.fromOffset(size, size * 1.6)
+		if tickets then
+			local stripe = Instance.new("Frame")
+			stripe.Size = UDim2.fromScale(0.12, 1)
+			stripe.Position = UDim2.fromScale(0.7, 0)
+			stripe.BackgroundColor3 = Color3.fromRGB(170, 110, 20)
+			stripe.BorderSizePixel = 0
+			stripe.Parent = piece
+		end
 		piece.AnchorPoint = Vector2.new(0.5, 0.5)
 		piece.Position = UDim2.new(random:NextNumber(0.1, 0.9), 0, 0, -20)
 		piece.Rotation = random:NextNumber(0, 360)

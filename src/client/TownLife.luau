@@ -121,7 +121,10 @@ local function newPerson(who: string, hold: string?, pose: (person: Person, t: n
 	pieces.LegR = piece(model, `Town{who}Leg`)
 	local flash = nil
 	if hold ~= nil then
-		local labels = if signText ~= nil then { Sign = { text = signText, color = Color3.fromRGB(26, 34, 74), stroke = 0 } } else nil
+		local labels: { [string]: MapKit.Label }? = nil
+		if signText ~= nil then
+			labels = { Sign = { text = signText, color = Color3.fromRGB(26, 34, 74), stroke = 0 } }
+		end
 		pieces[hold], flash = piece(model, hold, hold == "PaparazziCamera", labels)
 	end
 	slots += 1
