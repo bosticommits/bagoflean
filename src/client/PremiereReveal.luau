@@ -42,6 +42,7 @@ local PremiereReveal = {}
 export type Format = {
 	actorLabel: (key: string) -> string,
 	power: (power: number) -> string,
+	quick: () -> boolean, -- the "Quick premieres" setting: the card only, no red-carpet show
 }
 
 local random = Random.new()
@@ -59,7 +60,7 @@ local function round(object: GuiObject, radius: UDim)
 end
 
 -- Builds the overlay once (hidden) and returns the function that shows a PremiereResult on it.
-function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> ()
+function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) -> (), (results: { any }) -> ())
 	-- The tutorial looks for "PremiereReveal" to wait while it shows.
 	local overlay = Instance.new("Frame")
 	overlay.Name = "PremiereReveal"
@@ -182,6 +183,60 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	skipPill.Visible = false
 	UiKit.corner(skipPill, 14)
 	UiKit.textConstraint(skipPill, 16)
+
+	-- PREMIERE ALL: the other films flip over as quick cards, then tonight's total.
+	local batchFrame = Instance.new("Frame")
+	batchFrame.Name = "Batch"
+	batchFrame.BackgroundTransparency = 1
+	batchFrame.Size = UDim2.fromScale(1, 1)
+	batchFrame.ZIndex = 14
+	batchFrame.Visible = false
+	batchFrame.Parent = overlay
+	local batchTitle = UiKit.makeTitle(batchFrame, "MORE PREMIERES TONIGHT", UiKit.GOLD, UDim2.fromScale(0.9, 0.1), UDim2.fromScale(0.05, 0.09), 3)
+	batchTitle.ZIndex = 14
+	UiKit.textConstraint(batchTitle, 40)
+	local cardRow = Instance.new("Frame")
+	cardRow.Name = "Cards"
+	cardRow.BackgroundTransparency = 1
+	cardRow.Position = UDim2.fromScale(0.03, 0.21)
+	cardRow.Size = UDim2.fromScale(0.94, 0.34)
+	cardRow.ZIndex = 14
+	cardRow.Parent = batchFrame
+	local cardLayout = Instance.new("UIListLayout")
+	cardLayout.FillDirection = Enum.FillDirection.Horizontal
+	cardLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	cardLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	cardLayout.Padding = UDim.new(0, 12)
+	cardLayout.Parent = cardRow
+	local totalBox = Instance.new("Frame")
+	totalBox.Name = "Total"
+	totalBox.BackgroundColor3 = UiKit.PANEL
+	totalBox.AnchorPoint = Vector2.new(0.5, 0)
+	totalBox.Position = UDim2.fromScale(0.5, 0.58)
+	totalBox.Size = UDim2.fromScale(0.8, 0.22)
+	totalBox.ZIndex = 14
+	totalBox.Visible = false
+	totalBox.Parent = batchFrame
+	UiKit.corner(totalBox, 18)
+	UiKit.border(totalBox, 5, UiKit.GOLD)
+	local totalLimit = Instance.new("UISizeConstraint")
+	totalLimit.MaxSize = Vector2.new(620, 220)
+	totalLimit.Parent = totalBox
+	local totalHead = UiKit.makeTitle(totalBox, "TONIGHT'S BOX OFFICE", UiKit.GOLD, UDim2.fromScale(0.9, 0.24), UDim2.fromScale(0.05, 0.06), 2)
+	totalHead.ZIndex = 15
+	UiKit.textConstraint(totalHead, 26)
+	local totalPayout = UiKit.makeTitle(totalBox, "+$0", UiKit.CASH_GREEN, UDim2.fromScale(0.9, 0.4), UDim2.fromScale(0.05, 0.3), 3)
+	totalPayout.Name = "Payout"
+	totalPayout.ZIndex = 15
+	UiKit.textConstraint(totalPayout, 56)
+	local totalFame = UiKit.makeLabel(totalBox, "", UiKit.GOLD, UDim2.fromScale(0.9, 0.2), UDim2.fromScale(0.05, 0.74))
+	totalFame.Name = "Fame"
+	totalFame.ZIndex = 15
+	UiKit.textConstraint(totalFame, 20)
+	local totalContinue = UiKit.makeButton(batchFrame, "Continue", UiKit.GREEN, UDim2.fromScale(0.4, 0.09), UDim2.fromScale(0.3, 0.84))
+	totalContinue.Name = "Continue"
+	totalContinue.ZIndex = 15
+	totalContinue.Visible = false
 
 	-- Sunburst: slow-turning rays behind the poster for good results (ZIndex 1, under the poster).
 	local burst = Instance.new("CanvasGroup")
@@ -603,18 +658,21 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	local startedAt = 0
 	local finishCounts: (() -> ())? = nil
 	local currentFirst = false
-	local pending: { { result: any, first: boolean } } = {}
+	local currentTail: { rest: { any }, all: { any } }? = nil -- PREMIERE ALL: what follows the last full show
+	local quickSkip = false
+	local pending: { { result: any, first: boolean, tail: { rest: { any }, all: { any } }? } } = {}
 
 	local function setPhase(name: string)
 		phase = name
-		local card3 = name ~= "show"
+		local onCard = name == "card"
 		for _, beam in beams do
-			beam.Visible = card3
+			beam.Visible = onCard
 		end
 		for _, edge in { overlay:FindFirstChild("VignetteLeft"), overlay:FindFirstChild("VignetteRight") } do
-			(edge :: GuiObject).Visible = card3
+			(edge :: GuiObject).Visible = name ~= "show"
 		end
-		stage.Visible = card3
+		stage.Visible = onCard
+		batchFrame.Visible = name == "quick"
 		skipPill.Visible = false
 		tapCatcher.Visible = true
 	end
@@ -824,8 +882,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		local hasBonus = bonusLabel.Text ~= ""
 		fameLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.665 else 0.615)
 		unlockLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.73 else 0.68)
-		unlockLabel.Text = if #unlocked > 0 then `NEW: {table.concat(unlocked, ", ")} unlocked!` else ""
-		if #unlocked > 0 then
+		unlockLabel.Text = if #unlocked > 0 then `NEW: {table.concat(unlocked, ", ")} unlocked!` elseif result.poster == true then "Cult poster added to your Collection!" else ""
+		if #unlocked > 0 or result.poster == true then
 			task.delay(0.6, function()
 				if premiereToken == mine and overlay.Visible then
 					-- One pop, not UiKit.pulse: the card is reused, so a looping pulse would pile up.
@@ -847,7 +905,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		end
 		setPhase("card")
 		overlay.BackgroundTransparency = 1
-		tween(overlay, 0.35, { BackgroundTransparency = if drumroll then 0.18 else DIM })
+		tween(overlay, 0.35, { BackgroundTransparency = if showRan then DIM else 0.18 })
 		stamp.Visible = false
 		waitingLabel.Visible = drumroll
 		for _, part in resultParts do
@@ -871,7 +929,122 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		end
 	end
 
-	local function begin(result: any, first: boolean)
+	local function quickCard(r: any, size: Vector2): Frame
+		local res = Movies.getResult(r.result)
+		local color = if res ~= nil then res.color else UiKit.BLUE
+		local genreColor = UiKit.GENRE_COLORS[if type(r.genre) == "string" then r.genre else ""] or UiKit.BLUE
+		local holder = Instance.new("Frame")
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.fromOffset(size.X, size.Y)
+		holder.ZIndex = 14
+		holder.Parent = cardRow
+		local card = Instance.new("Frame")
+		card.AnchorPoint = Vector2.new(0.5, 0.5)
+		card.Position = UDim2.fromScale(0.5, 0.5)
+		card.Size = UDim2.fromScale(0, 1)
+		card.BackgroundColor3 = UiKit.CREAM
+		card.ZIndex = 14
+		card.Parent = holder
+		UiKit.corner(card, 12)
+		UiKit.border(card, 4, color)
+		local block = Instance.new("Frame")
+		block.BackgroundColor3 = genreColor
+		block.Position = UDim2.fromScale(0.07, 0.05)
+		block.Size = UDim2.fromScale(0.86, 0.4)
+		block.ZIndex = 15
+		block.Parent = card
+		UiKit.corner(block, 8)
+		local title = UiKit.makeTitle(block, if type(r.title) == "string" then r.title else "", WHITE, UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1), 1.5)
+		title.ZIndex = 16
+		title.TextWrapped = true
+		UiKit.textConstraint(title, 20)
+		local pill = UiKit.makeTitle(card, PremiereNight.stampText(r.result), WHITE, UDim2.fromScale(0.72, 0.14), UDim2.fromScale(0.14, 0.5), 1.5)
+		pill.BackgroundTransparency = 0
+		pill.BackgroundColor3 = color
+		pill.ZIndex = 16
+		UiKit.corner(pill, 10)
+		UiKit.textConstraint(pill, 18)
+		local pay = UiKit.makeTitle(card, `+${Hud.comma(if type(r.payout) == "number" then r.payout else 0)}`, UiKit.GOLD, UDim2.fromScale(0.9, 0.16), UDim2.fromScale(0.05, 0.66), 2)
+		pay.ZIndex = 16
+		UiKit.textConstraint(pay, 24)
+		local stars = PremiereNight.review(r.result, random:NextNumber())
+		local starLine = UiKit.makeLabel(card, "", UiKit.GOLD, UDim2.fromScale(0.9, 0.12), UDim2.fromScale(0.05, 0.84))
+		starLine.RichText = true
+		starLine.Text = `<font color="#F5B82E">{string.rep("\u{2605}", stars)}</font><font color="#BDB29A">{string.rep("\u{2605}", 5 - stars)}</font>`
+		starLine.ZIndex = 16
+		UiKit.textConstraint(starLine, 18)
+		return card
+	end
+
+	-- Shows the other films as quick cards (worst to best), then tonight's box office total.
+	-- The camera stays on the theatre.
+	local function quickScreen(tail: { rest: { any }, all: { any } }, mine: number)
+		setPhase("quick")
+		stopEffects()
+		quickSkip = false
+		finishCounts = nil
+		overlay.BackgroundTransparency = 1
+		tween(overlay, 0.35, { BackgroundTransparency = DIM })
+		for _, child in cardRow:GetChildren() do
+			if child:IsA("Frame") then
+				child:Destroy()
+			end
+		end
+		totalBox.Visible = false
+		totalContinue.Visible = false
+		batchTitle.Visible = #tail.rest > 0
+		local view = UiKit.viewport()
+		local shown = math.min(#tail.rest, PremiereNight.QUICK_CARDS)
+		local cardW = math.min(view.Y * 0.34 * 0.72, (view.X * 0.9 - 12 * shown) / math.max(shown + 1, 4))
+		local size = Vector2.new(cardW, cardW / 0.72)
+		task.spawn(function()
+			local function pause(seconds: number): boolean
+				if not quickSkip then
+					task.wait(seconds)
+				end
+				return premiereToken == mine
+			end
+			if not pause(0.4) then
+				return
+			end
+			for index = 1, shown do
+				local card = quickCard(tail.rest[index], size)
+				Sfx.play("showFlip", 1 + index * 0.05)
+				if quickSkip then
+					card.Size = UDim2.fromScale(1, 1)
+				else
+					tween(card, 0.3, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
+				end
+				if not pause(PremiereNight.QUICK_SECONDS) then
+					return
+				end
+			end
+			if #tail.rest > shown then
+				local more = UiKit.makeTitle(cardRow, `+{#tail.rest - shown} more`, UiKit.GOLD, UDim2.fromOffset(size.X, size.Y * 0.4))
+				more.ZIndex = 14
+			end
+			if not pause(0.5) then
+				return
+			end
+			-- Tonight's total.
+			local payout, fame, awards = PremiereNight.total(tail.all)
+			totalBox.Visible = true
+			batchTitle.Visible = false
+			Sfx.play("showTotal")
+			Sfx.play("lucienTotal")
+			totalFame.Text = `+{Hud.comma(fame)} Fame` .. (if awards > 0 then `  -  Award Night x{Config.AwardNightPayoutMultiplier} on {awards} film{if awards == 1 then "" else "s"}` else "")
+			finishCounts = nil
+			countUp(totalPayout, payout, 1.2, mine)
+			task.delay(0.6, function()
+				if premiereToken == mine then
+					totalContinue.Visible = true
+					UiKit.pulse(totalContinue, 1.06)
+				end
+			end)
+		end)
+	end
+
+	local function begin(result: any, first: boolean, tail: { rest: { any }, all: { any } }?)
 		local res = Movies.getResult(result.result)
 		if res == nil then
 			busy = false
@@ -882,6 +1055,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		local mine = premiereToken
 		current = result
 		currentFirst = first
+		currentTail = tail
+		continueButton.Text = if tail ~= nil and #tail.all > 1 then "Next" else "Continue"
 		finishCounts = nil
 		showRan = false
 		stopEffects()
@@ -941,6 +1116,11 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 				skipPill.Visible = true
 			end
 		end)
+		if format.quick() then
+			-- "Quick premieres": the card straight away.
+			startCard(result, mine, false)
+			return
+		end
 		task.spawn(function()
 			local ok = PremiereShow.play(result, res, first, {
 				card = function()
@@ -975,19 +1155,24 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 				finishCounts()
 				finishCounts = nil
 			end
+		elseif phase == "quick" then
+			if totalBox.Visible and finishCounts ~= nil then
+				finishCounts()
+				finishCounts = nil
+			else
+				quickSkip = true
+			end
 		end
 	end)
 
-	continueButton.Activated:Connect(function()
-		if phase ~= "card" then
-			return
-		end
+	-- Ends the premiere: the card goes, the camera glides home, then the next queued result plays.
+	local function leave()
 		premiereToken += 1
 		finishCounts = nil
 		stopEffects()
-		-- The card goes at once; the camera glides home behind the clear film frame.
 		phase = "leaving"
 		stage.Visible = false
+		batchFrame.Visible = false
 		for _, beam in beams do
 			beam.Visible = false
 		end
@@ -998,7 +1183,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			busy = false
 			local nextUp = table.remove(pending, 1)
 			if nextUp ~= nil then
-				task.delay(0.4, begin, nextUp.result, nextUp.first)
+				task.delay(0.4, begin, nextUp.result, nextUp.first, nextUp.tail)
 			end
 		end
 		if showRan then
@@ -1006,23 +1191,73 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		else
 			close()
 		end
+	end
+
+	continueButton.Activated:Connect(function()
+		if phase ~= "card" then
+			return
+		end
+		local tail = currentTail
+		if tail ~= nil and #tail.all > 1 then
+			-- PREMIERE ALL: the other films and the total come next, with the camera still on the theatre.
+			currentTail = nil
+			quickScreen(tail, premiereToken)
+		else
+			leave()
+		end
+	end)
+	totalContinue.Activated:Connect(function()
+		if phase == "quick" then
+			leave()
+		end
 	end)
 
-	return function(result: any)
-		if Movies.getResult(result.result) == nil then
+	local function enqueue(result: any, first: boolean, tail: { rest: { any }, all: { any } }?)
+		if busy then
+			if #pending < 20 then
+				table.insert(pending, { result = result, first = first, tail = tail })
+			end
+		else
+			begin(result, first, tail)
+		end
+	end
+
+	local function show(result: any)
+		if type(result) ~= "table" or Movies.getResult(result.result) == nil then
 			return
 		end
 		-- Read before the sync that follows this result adds the new trophy.
 		local studio = ClientState.studio
-		local first = result.result == "Masterpiece" and (studio == nil or (studio.trophies or 0) == 0)
-		if busy then
-			if #pending < 20 then
-				table.insert(pending, { result = result, first = first })
+		enqueue(result, result.result == "Masterpiece" and (studio == nil or (studio.trophies or 0) == 0), nil)
+	end
+
+	-- PREMIERE ALL: the plan is PremiereNight.plan (every Masterpiece, else the biggest, gets a full
+	-- show; the rest are quick cards worst to best), with tonight's total after the last full show.
+	local function showBatch(results: { any })
+		local list = {}
+		for _, r in results do
+			if type(r) == "table" and Movies.getResult(r.result) ~= nil and #list < 20 then
+				table.insert(list, r)
 			end
+		end
+		if #list == 0 then
 			return
 		end
-		begin(result, first)
+		if #list == 1 then
+			show(list[1])
+			return
+		end
+		local full, rest = PremiereNight.plan(list)
+		local studio = ClientState.studio
+		local firstMasterpiece = studio == nil or (studio.trophies or 0) == 0
+		for index, r in full do
+			local tail = if index == #full then { rest = rest, all = list } else nil
+			local first = r.result == "Masterpiece" and firstMasterpiece and index == 1
+			enqueue(r, first, tail)
+		end
 	end
+
+	return show, showBatch
 end
 
 return PremiereReveal

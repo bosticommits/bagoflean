@@ -100,6 +100,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local clapRemote = remotes:WaitForChild("Clap") :: RemoteEvent
 	local premiereRemote = remotes:WaitForChild("Premiere") :: RemoteEvent
 	local premiereResult = remotes:WaitForChild("PremiereResult") :: RemoteEvent
+	local premiereAllRemote = remotes:WaitForChild("PremiereAll") :: RemoteEvent
+	local premiereBatch = remotes:WaitForChild("PremiereBatch") :: RemoteEvent
+	local quickRemote = remotes:WaitForChild("QuickPremieres", 15) :: RemoteEvent?
 	local studioError = remotes:WaitForChild("StudioError") :: RemoteEvent
 	local useSkip = remotes:WaitForChild("UseSkip") :: RemoteEvent
 
@@ -152,6 +155,22 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	-- Stage rows that need a live countdown: updated in place so buttons are not rebuilt each tick.
 	local timers: { { stage: number, time: TextLabel, fill: Frame, button: TextButton, skip: TextButton, takes: TextLabel, ready: boolean } } = {}
+	-- The PREMIERE ALL button and the Quick premieres switch (the top row of the Stages tab).
+	local controls: { all: TextButton?, quick: TextButton? } = {}
+	local function readyCount(): number
+		local ready = 0
+		if state ~= nil then
+			for _, film in state.films do
+				if film.endTime - serverNow() <= 0 then
+					ready += 1
+				end
+			end
+		end
+		return ready
+	end
+	local function quickOn(): boolean
+		return player:GetAttribute("QuickPremieres") == true
+	end
 	-- Stage the player wanted to skip when they had no token: used as soon as a bought one arrives.
 	local pendingSkipStage: number? = nil
 
@@ -169,7 +188,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		if state == nil then
 			return "loading"
 		end
-		local parts = { tab, tostring(stageCount()) }
+		local parts = { tab, tostring(stageCount()), tostring(state.tutorialDone) }
 		for stage = 1, Config.StageLimit do
 			local film = filmAt(stage)
 			table.insert(parts, if film ~= nil then film.title .. film.startTime else "-")
@@ -179,6 +198,32 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	local function renderStages()
 		local order = 0
+		-- Once the tutorial is done: PREMIERE ALL (when 2+ films are finished) and the Quick premieres switch.
+		if state.tutorialDone then
+			local row = UiKit.addRow(list, 0, 56)
+			row.Name = "PremiereControls"
+			local all = makeButton(row, "PREMIERE ALL", UiKit.GREEN, UDim2.new(0.56, 0, 0, 42), UDim2.new(0, 8, 0.5, -21))
+			all.Name = "PremiereAll"
+			controls.all = all
+			all.Activated:Connect(function()
+				if readyCount() >= 2 then
+					premiereAllRemote:FireServer()
+				else
+					UiKit.toast(gui, "PREMIERE ALL needs 2 or more finished films")
+				end
+			end)
+			local quick = makeButton(row, "", UiKit.NAVY, UDim2.new(0.38, -12, 0, 42), UDim2.new(0.62, 0, 0.5, -21))
+			quick.Name = "QuickPremieres"
+			controls.quick = quick
+			quick.Activated:Connect(function()
+				local want = not quickOn()
+				player:SetAttribute("QuickPremieres", want)
+				if quickRemote ~= nil then
+					quickRemote:FireServer(want)
+				end
+				quick.Text = if want then "Quick: ON" else "Quick: OFF"
+			end)
+		end
 		for stage = 1, Config.StageLimit do
 			order += 1
 			-- A film still on a stage a rebirth closed keeps its row until it premieres.
@@ -358,6 +403,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	render = function()
 		UiKit.clear(list)
 		table.clear(timers)
+		controls.all, controls.quick = nil, nil
 		for name, button in tabButtons do
 			UiKit.styleTab(button, name == tab)
 		end
@@ -721,7 +767,13 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end)
 
 	-- Premiere night (the result poster, spotlights and stamp) ---------------------------------
-	local showPremiere = PremiereReveal.start(gui, { actorLabel = actorLabel, power = fmtPower })
+	local showPremiere, showBatch = PremiereReveal.start(gui, {
+		actorLabel = actorLabel,
+		power = fmtPower,
+		quick = function()
+			return player:GetAttribute("QuickPremieres") == true
+		end,
+	})
 
 	-- The announcement banner lives in Announcements.luau (one queue with the rare-pull banners).
 
@@ -767,6 +819,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	premiereResult.OnClientEvent:Connect(function(result)
 		if type(result) == "table" then
 			showPremiere(result)
+		end
+	end)
+
+	premiereBatch.OnClientEvent:Connect(function(results)
+		if type(results) == "table" then
+			showBatch(results)
 		end
 	end)
 
@@ -824,6 +882,15 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				entry.button.BackgroundColor3 = UiKit.RED
 			end
 			entry.ready = ready
+		end
+		local all, quick = controls.all, controls.quick
+		if all ~= nil then
+			local ready = readyCount()
+			all.Text = `PREMIERE ALL ({ready})`
+			UiKit.setEnabled(all, ready >= 2, UiKit.GREEN)
+		end
+		if quick ~= nil then
+			quick.Text = if quickOn() then "Quick: ON" else "Quick: OFF"
 		end
 		if needsRender then
 			render()
