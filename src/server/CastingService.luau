@@ -26,6 +26,7 @@ local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local PullNews = require(ReplicatedStorage.Shared.PullNews)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
+local BadgeService = require(script.Parent.BadgeService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local LiveConfig = require(script.Parent.LiveConfig)
@@ -173,6 +174,11 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 	sendRoster(player)
 	LotService.refresh(player) -- the billboard may have a new top star
 	Analytics.onboarding(player, Analytics.Steps.FirstCast)
+	if actor.tier == "Star" then
+		BadgeService.award(player, "StarDiscovered")
+	elseif actor.tier == "Icon" then
+		BadgeService.award(player, "IconDiscovered")
+	end
 	if actor.tier == "Superstar" or actor.tier == "Legend" or actor.tier == "Icon" then
 		Analytics.event(player, "RarePull", 1, actor.tier, variant.id)
 		-- World reaction for everyone: sky flash, fireworks over the lot, a shake nearby (Fx.celebrate).
