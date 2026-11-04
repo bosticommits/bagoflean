@@ -76,10 +76,10 @@ local function clouds(folder: Instance, movers: { Mover })
 	end
 end
 
--- Butterflies flitting over the park's lawns, each round its own patch.
+-- Butterflies flitting over the park's lawns, each round its own patch (clear of the jungle trail).
 local BUTTERFLY_SPOTS = {
 	Vector3.new(-25, 0, 30), Vector3.new(24, 0, 34), Vector3.new(-32, 0, 68), Vector3.new(32, 0, 70),
-	Vector3.new(80, 0, 55), Vector3.new(-88, 0, 40), Vector3.new(30, 0, 100), Vector3.new(-40, 0, 104),
+	Vector3.new(80, 0, 55), Vector3.new(-84, 0, 66), Vector3.new(30, 0, 100), Vector3.new(-40, 0, 104),
 }
 
 local function butterflies(folder: Instance, movers: { Mover })
