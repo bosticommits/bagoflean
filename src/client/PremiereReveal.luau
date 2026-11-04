@@ -60,11 +60,7 @@ local function round(object: GuiObject, radius: UDim)
 end
 
 -- Builds the overlay once (hidden) and returns the function that shows a PremiereResult on it.
-<<<<<<< HEAD
 function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) -> (), (results: { any }) -> ())
-	-- The tutorial looks for "PremiereReveal" to wait while it shows.
-=======
-function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> ()
 	-- Two screens of their own, so the film frame truly covers the whole display (notch and top bar
 	-- included) while everything you read or tap stays inside the safe area:
 	--   PremiereRevealBackdrop: no insets; the dim, spotlights, cinema bars and the tap catcher.
@@ -87,7 +83,6 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	safeGui.Parent = playerGui
 
 	-- The tutorial looks for "PremiereReveal" (in the backdrop) to wait while it shows.
->>>>>>> claude/premiere-show
 	local overlay = Instance.new("Frame")
 	overlay.Name = "PremiereReveal"
 	overlay.Size = UDim2.fromScale(1, 1)
