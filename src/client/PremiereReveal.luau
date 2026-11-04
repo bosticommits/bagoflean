@@ -267,6 +267,9 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	totalContinue.Name = "Continue"
 	totalContinue.ZIndex = 15
 	totalContinue.Visible = false
+	local continueLimit = Instance.new("UISizeConstraint")
+	continueLimit.MaxSize = Vector2.new(340, 64)
+	continueLimit.Parent = totalContinue
 
 	-- Sunburst: slow-turning rays behind the poster for good results (ZIndex 1, under the poster).
 	local burst = Instance.new("CanvasGroup")
