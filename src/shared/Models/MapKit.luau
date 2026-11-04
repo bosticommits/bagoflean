@@ -7,6 +7,7 @@
 -- Words are never part of a model: signs have named spots, and `labels` letters them.
 local Build = require(script.Parent.Build)
 local HalloweenShapes = require(script.Parent.HalloweenShapes)
+local LucienShapes = require(script.Parent.LucienShapes)
 local MapKitShapes = require(script.Parent.MapKitShapes)
 local PremiereShapes = require(script.Parent.PremiereShapes)
 local TownLifeShapes = require(script.Parent.TownLifeShapes)
@@ -73,7 +74,7 @@ local function partFor(shape: MapKitShapes.Shape, b: Builder, scale: number, lit
 end
 
 -- The shapes file that has model `name`: the Fright Night decor (art/blender/halloween_kit.py),
--- the townsfolk (townlife_kit.py) and the premiere show (premiere_kit.py) have their own.
+-- the townsfolk (townlife_kit.py), the premiere show (premiere_kit.py) and Lucien (lucien.py) have their own.
 local function kitFor(name: string): typeof(MapKitShapes)
 	if MapKitShapes.Shapes[name] ~= nil then
 		return MapKitShapes
@@ -81,6 +82,8 @@ local function kitFor(name: string): typeof(MapKitShapes)
 		return TownLifeShapes :: any
 	elseif PremiereShapes.Shapes[name] ~= nil then
 		return PremiereShapes :: any
+	elseif LucienShapes.Shapes[name] ~= nil then
+		return LucienShapes :: any
 	end
 	return HalloweenShapes :: any
 end

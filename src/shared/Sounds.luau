@@ -14,7 +14,9 @@
 local Sounds = {}
 
 export type LibrarySound = { id: number, volume: number }
-export type Slot = { id: number, volume: number, fallback: string, pitch: number? }
+-- `voice`: a spoken line (one at a time, ducks the other sounds; slots named "lucien..." are voices
+-- too). `delay`: seconds to wait before it starts, e.g. so a voice follows the sting's hit.
+export type Slot = { id: number, volume: number, fallback: string, pitch: number?, voice: boolean?, delay: number? }
 export type Track = { id: number, name: string, volume: number }
 
 Sounds.Library = {
@@ -106,6 +108,17 @@ Sounds.Slots = {
 	FilmCut = { id = 133550941117464, volume = 0.8, fallback = "low", pitch = 0.85 }, -- the director's "Cut!"
 	FilmPlaces = { id = 109213125841224, volume = 0.8, fallback = "indicator" }, -- "Places everyone!" when the owner walks in
 	FilmApplause = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- a clean take (PSE "Applause Tight 4"; FilmSetWorld plays ~3 s of it)
+
+	-- The intro (IntroScene, StageScene): the curtains part, the logo's fanfare, the marquee
+	-- slamming down, the dice landing, and Director Lucien Vale's three lines (Fish Audio voice
+	-- "Adrian", uploaded 2026-11-04, in moderation when added; the words are in IntroScene.LINES).
+	introCurtain = slot("whoosh", 0.7),
+	introFanfare = slot("jingle"),
+	introSlam = slot("stinger", 0.8),
+	introDice = slot("pop", 0.9),
+	introLucien1 = { id = 99675269991476, volume = 0.9, fallback = "indicator", voice = true }, -- "Ah, there you are! Welcome to Hollywood, my friend!" (~4.0 s)
+	introLucien2 = { id = 118510096941046, volume = 0.9, fallback = "indicator", voice = true }, -- "I'm Director Lucien Vale! Fifty years in film, and I still love a fresh face!" (~5.7 s)
+	introLucien3 = { id = 96119902230250, volume = 0.9, fallback = "indicator", voice = true }, -- "This studio is yours now. Let's make your very first picture!" (~4.7 s)
 
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed
