@@ -498,7 +498,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	local function layout()
 		local tall = UiKit.viewport().X < UiKit.viewport().Y
 		stageLimit.MaxSize = if tall then Vector2.new(520, 820) else Vector2.new(860, 540)
-		local size = stage.AbsoluteSize
+		-- AbsoluteSize includes the stage's UIScale (the push and the thump): lay out in its own units, or the card overshoots.
+		local size = stage.AbsoluteSize / stageScale.Scale
 		if size.X < 1 or size.Y < 1 then
 			return
 		end
