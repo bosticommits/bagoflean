@@ -880,7 +880,7 @@ end
 -- The jungle trail from the gap in the park's west fence (z = -52) to the gate, winding through
 -- the belt between them (MapModels' corridor, x -10 to 10): packed dirt, round at every bend.
 local JUNGLE_GREEN = Color3.fromRGB(46, 112, 56)
-local TRAIL = { v(0, 0, -53), v(0, 0, -46), v(-5, 0, -36), v(5, 0, -23), v(0, 0, -12), v(0, 0, 1) }
+local TRAIL = { v(4, 0, -53), v(4, 0, -46), v(-5, 0, -36), v(5, 0, -23), v(0, 0, -12), v(0, 0, 1) }
 local TRAIL_WIDTH = 6
 
 -- The belt: the trail, plants pressing in on its bends, and a thicket of jungle plants either side
@@ -944,7 +944,7 @@ function TownSets.jungleTemple(b: Builder)
 	-- scaled to fill its slot (the mesh is 13.2 long), so none enters the gate or another piece.
 	for _, run in { { -10.6, -35.5 }, { 10.6, 83.5 } } do
 		local len = run[2] - run[1]
-		local n = math.max(1, math.floor(math.abs(len) / 13.2))
+		local n = math.max(1, math.round(math.abs(len) / 13.2))
 		local step = len / n
 		for k = 0, n - 1 do
 			MapKit.place(b, "BacklotFence", CFrame.new(run[1] + step * (k + 0.5), 0.2, 0) * yaw(180), { scale = math.abs(step) / 13.2 })
