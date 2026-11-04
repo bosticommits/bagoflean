@@ -91,11 +91,12 @@ local function noCollide(model: Instance)
 end
 
 -- One piece of a person: a kit model placed at the origin, kept as its parts and their offsets.
-local function piece(model: Model, kitName: string, light: boolean?): (Piece, PointLight?)
+local function piece(model: Model, kitName: string, light: boolean?, labels: { [string]: MapKit.Label }?): (Piece, PointLight?)
 	local b = Build.new(model, CFrame.identity)
 	local kit = MapKit.place(b, kitName, CFrame.identity, {
 		solid = false,
 		light = if light then { range = 18, brightness = 0, color = Color3.new(1, 1, 1) } else nil,
+		labels = labels,
 	})
 	noCollide(kit)
 	local out: Piece = {}
@@ -107,7 +108,8 @@ local function piece(model: Model, kitName: string, light: boolean?): (Piece, Po
 	return out, kit:FindFirstChildWhichIsA("PointLight", true)
 end
 
-local function newPerson(who: string, hold: string?, pose: (person: Person, t: number) -> Pose): Person
+-- `signText` letters a FanSignBlank; `solo` people are moved by the caller (the premiere show), not by the town's loop.
+local function newPerson(who: string, hold: string?, pose: (person: Person, t: number) -> Pose, signText: string?, solo: boolean?): Person
 	local model = Instance.new("Model")
 	model.Name = "Town" .. who
 	local pieces: { [string]: Piece } = {}
@@ -119,7 +121,8 @@ local function newPerson(who: string, hold: string?, pose: (person: Person, t: n
 	pieces.LegR = piece(model, `Town{who}Leg`)
 	local flash = nil
 	if hold ~= nil then
-		pieces[hold], flash = piece(model, hold, hold == "PaparazziCamera")
+		local labels = if signText ~= nil then { Sign = { text = signText, color = Color3.fromRGB(26, 34, 74), stroke = 0 } } else nil
+		pieces[hold], flash = piece(model, hold, hold == "PaparazziCamera", labels)
 	end
 	slots += 1
 	local person: Person = {
@@ -138,7 +141,9 @@ local function newPerson(who: string, hold: string?, pose: (person: Person, t: n
 		nextFlash = 0,
 		data = {},
 	}
-	table.insert(people, person)
+	if not solo then
+		table.insert(people, person)
+	end
 	return person
 end
 
@@ -159,8 +164,8 @@ local function frames(person: Person, pose: Pose): { [string]: CFrame }
 			* CFrame.Angles(0, 0, side * arm[2])
 	end
 	local hold = person.hold
-	if hold == "FanSign" then
-		out.FanSign = out.ArmR * CFrame.new(0, -GRIP, 0)
+	if hold ~= nil and string.sub(hold, 1, 7) == "FanSign" then
+		out[hold] = out.ArmR * CFrame.new(0, -GRIP, 0)
 	elseif hold == "PaparazziCamera" then
 		out.PaparazziCamera = torso * CFrame.new(0, 2.05, -1.45)
 	elseif hold == "Guitar" then
@@ -457,6 +462,32 @@ local function start()
 			Workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 		end
 	end)
+end
+
+-- The rig for the premiere show (PremiereShow): a person the caller poses and moves itself.
+export type Figure = Person
+export type FigurePose = Pose
+TownLife.pose = pose
+
+function TownLife.figure(who: string, hold: string?, signText: string?): Person
+	local person = newPerson(who, hold, function()
+		return pose(CFrame.identity)
+	end, signText, true)
+	return person
+end
+
+-- Adds the parts of `person` in `p` to the lists a BulkMoveTo takes.
+function TownLife.collect(person: Person, p: Pose, parts: { BasePart }, cframes: { CFrame })
+	local frameOf = frames(person, p)
+	for name, list in person.pieces do
+		local at = frameOf[name]
+		if at then
+			for _, item in list do
+				table.insert(parts, item.part)
+				table.insert(cframes, at * item.offset)
+			end
+		end
+	end
 end
 
 function TownLife.start()
