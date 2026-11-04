@@ -173,8 +173,9 @@ function Music.duck(seconds: number)
 	end
 	TweenService:Create(sound, TweenInfo.new(0.2), { Volume = level() }):Play()
 	task.delay(seconds, function()
-		if current == sound and os.clock() >= duckUntil then
-			TweenService:Create(sound, TweenInfo.new(FADE), { Volume = level() }):Play()
+		local now = current -- whichever song is playing when the dip ends
+		if now ~= nil and os.clock() >= duckUntil then
+			TweenService:Create(now, TweenInfo.new(FADE), { Volume = level() }):Play()
 		end
 	end)
 end

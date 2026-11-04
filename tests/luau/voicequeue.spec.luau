@@ -11,7 +11,7 @@ end)
 test("a second line waits for the first to finish", function()
 	local q = VoiceQueue.new()
 	VoiceQueue.schedule(q, "a", 10, 0, 2) -- talks until 12
-	equal(VoiceQueue.schedule(q, "b", 10.5, 0, 1), 12 + VoiceQueue.GAP)
+	equal(VoiceQueue.schedule(q, "b", 11, 0, 1), 12 + VoiceQueue.GAP)
 end)
 
 test("a line that follows a finished one is not held back", function()
@@ -31,8 +31,16 @@ test("a line that would start too late is dropped and does not block the queue",
 	local q = VoiceQueue.new()
 	VoiceQueue.schedule(q, "a", 10, 0, 6) -- talks until 16
 	equal(VoiceQueue.schedule(q, "b", 11, 0, 1), nil)
-	equal(VoiceQueue.schedule(q, "c", 14, 0, 1), 16 + VoiceQueue.GAP) -- waited 2.15 s
+	equal(VoiceQueue.schedule(q, "c", 15, 0, 1), 16 + VoiceQueue.GAP) -- waited 1.15 s
 	equal(q.asked.b, nil)
+end)
+
+test("reset clears the queue and the repeat memory", function()
+	local q = VoiceQueue.new()
+	VoiceQueue.schedule(q, "a", 10, 0, 6)
+	VoiceQueue.reset(q)
+	equal(VoiceQueue.schedule(q, "a", 10.5, 0.4, 1), 10.9) -- not a repeat, not queued behind the old line
+	equal(q.busyUntil, 11.9)
 end)
 
 test("voice slots are marked and their delays are sane", function()

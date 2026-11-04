@@ -18,6 +18,8 @@ local voiceGroup: SoundGroup? = nil -- voices get their own group, so ducking th
 local userVolume = Sounds.DEFAULT_SFX
 local duckUntil = 0
 local voiceState = VoiceQueue.new()
+local voiceGen = 0 -- bumped by cutVoice, so lines still waiting for their delay are dropped
+local voiceNow: Sound? = nil -- the voice line playing now
 local templates: { [number]: Sound? } = {} -- by asset id, shared by every slot that uses it
 local lastPlayed: { [string]: number } = {}
 
@@ -78,7 +80,8 @@ function Sfx.setVolume(volume: number)
 	userVolume = volume
 	local sfxGroup, voices = group, voiceGroup
 	if sfxGroup ~= nil and voices ~= nil then
-		sfxGroup.Volume = volume * (if os.clock() < duckUntil then DUCK_TO else 1)
+		-- A 0 s tween replaces any dip/restore tween still running on the group.
+		TweenService:Create(sfxGroup, TweenInfo.new(0), { Volume = volume * (if os.clock() < duckUntil then DUCK_TO else 1) }):Play()
 		voices.Volume = volume
 	end
 end
@@ -105,11 +108,13 @@ local function launch(base: Sound, sfxGroup: SoundGroup, volume: number, speed: 
 	local sound = base:Clone()
 	sound.Volume = volume
 	sound.PlaybackSpeed = speed
+	local holder: Instance = sfxGroup
 	if voice and voices ~= nil then
 		sound.SoundGroup = voices
+		holder = voices
+		voiceNow = sound
 		duck(seconds + 0.3)
 	end
-	local holder: Instance = sfxGroup
 	if at ~= nil then
 		local attachment = Instance.new("Attachment")
 		attachment.Name = "SfxAt"
@@ -126,8 +131,11 @@ local function launch(base: Sound, sfxGroup: SoundGroup, volume: number, speed: 
 		if sound.Parent ~= nil then
 			sound:Destroy()
 		end
-		if holder ~= sfxGroup and holder.Parent ~= nil then
+		if holder ~= sfxGroup and holder ~= voices and holder.Parent ~= nil then
 			holder:Destroy()
+		end
+		if voiceNow == sound then
+			voiceNow = nil
 		end
 	end
 	sound.Ended:Once(done)
@@ -177,9 +185,34 @@ local function playSlot(name: string, pitch: number?, at: Vector3?, range: numbe
 		wait = start - now
 	end
 	if wait > 0.01 then
-		task.delay(wait, launch, base, sfxGroup, volume, speed, voice, seconds, at, range, length)
+		local gen = voiceGen
+		task.delay(wait, function()
+			if not voice or gen == voiceGen then
+				launch(base, sfxGroup, volume, speed, voice, seconds, at, range, length)
+			end
+		end)
 	else
 		launch(base, sfxGroup, volume, speed, voice, seconds, at, range, length)
+	end
+end
+
+-- A big moment (a premiere result) cuts the chatter off: the voice line playing fades out over
+-- 0.15 s, lines still waiting are dropped, and the SFX come back up. Lines after this start fresh.
+function Sfx.cutVoice()
+	voiceGen += 1
+	VoiceQueue.reset(voiceState)
+	local sound = voiceNow
+	voiceNow = nil
+	if sound ~= nil and sound.Parent ~= nil then
+		TweenService:Create(sound, TweenInfo.new(0.15), { Volume = 0 }):Play()
+		task.delay(0.15, function()
+			sound:Destroy()
+		end)
+	end
+	duckUntil = 0
+	local sfxGroup = group
+	if sfxGroup ~= nil then
+		TweenService:Create(sfxGroup, TweenInfo.new(0.15), { Volume = userVolume }):Play()
 	end
 end
 

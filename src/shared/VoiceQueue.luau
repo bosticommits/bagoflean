@@ -6,13 +6,19 @@
 local VoiceQueue = {}
 
 VoiceQueue.REPEAT_GAP = 2 -- the same line again within this many seconds is dropped
-VoiceQueue.MAX_WAIT = 3 -- a line that would start later than this after being asked for is dropped
+VoiceQueue.MAX_WAIT = 1.5 -- a line that would start later than this after being asked for is dropped
 VoiceQueue.GAP = 0.15 -- the pause left between two lines
 
 export type State = { busyUntil: number, asked: { [string]: number } }
 
 function VoiceQueue.new(): State
 	return { busyUntil = 0, asked = {} }
+end
+
+-- Forgets everything: the next line starts on its own delay (a result cuts the old chatter off).
+function VoiceQueue.reset(state: State)
+	state.busyUntil = 0
+	table.clear(state.asked)
 end
 
 -- `delay` is the slot's own wait (e.g. to let a sting land first), `duration` the clip length.

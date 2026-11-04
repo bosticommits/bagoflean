@@ -89,7 +89,8 @@ local function tierIndex(tierId: string): number
 end
 
 -- Casting reveal: the rarer the tier and variant, the bigger the moment.
-function Fx.castReveal(tierId: string, variantId: string)
+-- `nearMiss`: the "Ooh, so close!" tease follows, so Lucien's rare-pull line is skipped.
+function Fx.castReveal(tierId: string, variantId: string, nearMiss: boolean?)
 	local rank = tierIndex(tierId) -- 1 Newcomer .. 7 Icon
 	local tier = Actors.getTier(tierId)
 	local color = if tier ~= nil then tier.color else Color3.new(1, 1, 1)
@@ -107,7 +108,9 @@ function Fx.castReveal(tierId: string, variantId: string)
 		Sfx.play("revealCommon")
 	elseif rank <= 4 then
 		Sfx.play("revealRare")
-		Sfx.play("lucienRarePull")
+		if not nearMiss then
+			Sfx.play("lucienRarePull")
+		end
 		Fx.confetti(20 + rank * 5, { color, Color3.new(1, 1, 1) })
 	else
 		-- Superstar and up: a deeper sting; Legend and Icon also get the big fanfare over dipped music.
@@ -116,7 +119,7 @@ function Fx.castReveal(tierId: string, variantId: string)
 			Music.duck(4)
 			Sfx.play("revealLegend")
 			if rank == 7 then
-				Sfx.play("lucienLegendPull") -- the announcer already shouts "LEGEND!" on rank 6
+				Sfx.play("lucienLegendPull") -- Icon only: the announcer already shouts "LEGEND!" on rank 6
 			end
 		end
 		Fx.flash(color, 0.5)
@@ -131,6 +134,7 @@ end
 
 -- Premiere result: a flop gets a sad whistle, a Masterpiece gets everything.
 function Fx.premiere(resultId: string, color: Color3)
+	Sfx.cutVoice() -- the result beats whatever line is still talking
 	if resultId == "Flop" then
 		Sfx.play("premiereFlop")
 		Sfx.play("lucienFlop")
