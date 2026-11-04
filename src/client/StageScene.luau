@@ -26,6 +26,7 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
@@ -106,9 +107,43 @@ export type Scene = typeof(setmetatable(
 		_onSkip: (() -> ())?,
 		_voice: Sound?,
 		_connections: { RBXScriptConnection },
+		_restoreHud: () -> (),
 	},
 	StageScene
 ))
+
+-- Hides the game HUD while the stage plays: every other ScreenGui under the player's PlayerGui
+-- that is on (the HUD, side buttons, timers, gift timers) and Roblox's own leaderboard, backpack
+-- and chat. Returns a function that puts back exactly what was on. Fx's confetti (order 20) and
+-- the stage's own guis stay. shortcut: a ScreenGui added mid-intro is not hidden; fine for ~30 s.
+local function hideHud(stageGui: ScreenGui): () -> ()
+	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	local hidden: { ScreenGui } = {}
+	for _, child in playerGui:GetChildren() do
+		if child:IsA("ScreenGui") and child ~= stageGui and child.Enabled and child.DisplayOrder < stageGui.DisplayOrder then
+			child.Enabled = false
+			table.insert(hidden, child)
+		end
+	end
+	local core: { [Enum.CoreGuiType]: boolean } = {}
+	for _, kind in { Enum.CoreGuiType.PlayerList, Enum.CoreGuiType.Backpack, Enum.CoreGuiType.Chat } do
+		local ok, was = pcall(StarterGui.GetCoreGuiEnabled, StarterGui, kind)
+		if ok and was then
+			core[kind] = true
+			pcall(StarterGui.SetCoreGuiEnabled, StarterGui, kind, false)
+		end
+	end
+	return function()
+		for _, gui in hidden do
+			if gui.Parent ~= nil then
+				gui.Enabled = true
+			end
+		end
+		for kind in core do
+			pcall(StarterGui.SetCoreGuiEnabled, StarterGui, kind, true)
+		end
+	end
+end
 
 local function reducedMotion(): boolean
 	local ok, value = pcall(function()
@@ -262,6 +297,8 @@ function StageScene.new(): Scene
 	local view = Instance.new("ViewportFrame")
 	view.Name = "Lucien"
 	view.BackgroundTransparency = 1
+	view.BorderSizePixel = 0
+	view.BackgroundColor3 = BACKDROP_BOTTOM -- never a pale box if it ever shows
 	view.AnchorPoint = Vector2.new(0.5, 1)
 	view.Position = UDim2.fromScale(0.5, FLOOR_Y + 0.06)
 	view.Size = UDim2.fromScale(1, FLOOR_Y)
@@ -418,6 +455,7 @@ function StageScene.new(): Scene
 		_onSkip = nil,
 		_voice = nil,
 		_connections = {},
+		_restoreHud = hideHud(art),
 	}, StageScene)
 
 	tap.Activated:Connect(function()
@@ -480,9 +518,10 @@ function StageScene._layout(self: Scene)
 	-- Dialogue: Figma 760 x 137 at the bottom middle, the button to its right.
 	local buttonW, buttonH = math.floor(229 * k), math.floor(72 * k)
 	local gap = math.floor(16 * k)
-	local boxW = math.min(math.floor(760 * k), safe.X - buttonW - gap * 3)
-	local boxH = math.floor(137 * k)
-	local boxCentre = (safe.X - buttonW - gap) / 2
+	local narrow = safe.X < 700 -- phone portrait: the box takes the full width, the button sits above it
+	local boxW = if narrow then safe.X - gap * 2 else math.min(math.floor(760 * k), safe.X - buttonW - gap * 3)
+	local boxH = math.floor((if narrow then 170 else 137) * k)
+	local boxCentre = if narrow then safe.X / 2 else (safe.X - buttonW - gap) / 2
 	if boxCentre - boxW / 2 < gap then
 		boxCentre = gap + boxW / 2
 	end
@@ -498,7 +537,7 @@ function StageScene._layout(self: Scene)
 	self._hint.Size = UDim2.fromOffset(math.floor(24 * k), math.floor(24 * k))
 	self._hint.TextSize = math.floor(20 * k)
 	self._button.Size = UDim2.fromOffset(buttonW, buttonH)
-	self._button.Position = UDim2.new(1, -gap, 1, -math.floor(48 * k))
+	self._button.Position = UDim2.new(1, -gap, 1, -(if narrow then boxH + math.floor(28 * k) else math.floor(48 * k)))
 	UiKit.textConstraint(self._button, math.floor(34 * k))
 	self._skip.Size = UDim2.fromOffset(math.floor(96 * k), math.floor(44 * k))
 	self._skip.Position = UDim2.new(1, -math.floor(24 * k), 0, valanceH - math.max(0, area.Y - safe.Y) / 2 - math.floor(6 * k))
@@ -555,7 +594,11 @@ end
 function StageScene.spotlights(self: Scene)
 	for _, pivot in self._cones do
 		local side = pivot:GetAttribute("Side") :: number
-		pivot.Visible = true
+		-- Without the cone art the fallback is a plain pale rectangle, so there is no cone at all.
+		local cone = pivot:FindFirstChild("Cone")
+		if cone ~= nil and cone:IsA("ImageLabel") then
+			pivot.Visible = true
+		end
 		-- Figma: each cone leans 27 degrees in toward the middle.
 		local rest = side * 27
 		if self._still then
@@ -815,6 +858,7 @@ function StageScene.close(self: Scene)
 		return
 	end
 	self._alive = false
+	self._restoreHud()
 	local voice = self._voice
 	if voice ~= nil then
 		voice:Stop()
