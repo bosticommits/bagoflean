@@ -9,6 +9,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local Posters = require(ReplicatedStorage.Shared.Posters)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local Takes = require(ReplicatedStorage.Shared.Takes)
 local Unlocks = require(ReplicatedStorage.Shared.Unlocks)
@@ -31,6 +32,8 @@ local clapRemote = Remotes.get("Clap")
 local premiereRemote = Remotes.get("Premiere")
 local studioSync = Remotes.get("StudioSync")
 local premiereResult = Remotes.get("PremiereResult")
+local premiereAllRemote = Remotes.get("PremiereAll")
+local premiereBatch = Remotes.get("PremiereBatch")
 local studioError = Remotes.get("StudioError")
 local tutorialDone = Remotes.get("TutorialDone")
 local useSkip = Remotes.get("UseSkip")
@@ -98,6 +101,7 @@ local function snapshot(player: Player): { [string]: any }?
 		upgrades = data.upgrades,
 		rewards = data.rewards,
 		trophies = data.trophies,
+		posters = data.posters,
 		tutorialDone = data.tutorialDone,
 		rebirths = data.rebirths,
 	}
@@ -314,33 +318,13 @@ local function onClap(player: Player, stage: any)
 	QuestTracker.track(player, "clap")
 end
 
-local function onPremiere(player: Player, stage: any)
-	if not allow(player, "premiere", Config.ActionCooldown) then
-		return
-	end
-	local data = DataService.getData(player)
-	if data == nil then
-		studioError:FireClient(player, "loading")
-		return
-	end
-	if not isInt(stage, 1, Config.StageLimit) then
-		studioError:FireClient(player, "invalid")
-		return
-	end
-	local film, filmIndex = findFilm(data, stage)
-	if film == nil or filmIndex == nil then
-		studioError:FireClient(player, "none")
-		return
-	end
-	repairEndTime(film, os.time())
-	if film.endTime > os.time() then
-		studioError:FireClient(player, "notready")
-		return
-	end
+-- Rolls and settles one finished film: pays it, banks Fame, moves it to the cinema and does the
+-- bookkeeping (quests, analytics, visitors, the Masterpiece banner). Returns the PremiereResult
+-- the client shows, or nil if the film's length is corrupt. The caller sends it and then syncs.
+local function settle(player: Player, data: DataService.PlayerData, film: DataService.Film, filmIndex: number): { [string]: any }?
 	local length = Movies.getLength(film.length)
 	if length == nil then
-		studioError:FireClient(player, "invalid")
-		return
+		return nil
 	end
 
 	-- Roll and settle with no yield, so the film cannot be premiered twice.
@@ -389,7 +373,7 @@ local function onPremiere(player: Player, stage: any)
 	end
 	EconomyService.addCash(player, payout, "Gameplay", "Premiere")
 
-	premiereResult:FireClient(player, {
+	local out = {
 		title = film.title,
 		genre = film.genre,
 		length = film.length,
@@ -404,12 +388,14 @@ local function onPremiere(player: Player, stage: any)
 		directed = directed, -- premiere Luck the takes added
 		takes = Takes.count(film.takes),
 		unlocked = unlocked, -- what this premiere's Fame just opened (see Unlocks)
-	})
+	}
 	if result.id == "Masterpiece" then
 		data.trophies += 1
 	end
-	MovieService.sync(player)
-	LotService.refresh(player)
+	-- A Cult Classic earns a collectible poster for the Collection.
+	if result.id == "Cult" and Posters.add(data.posters, { title = film.title, genre = film.genre, cast = film.cast, time = os.time() }) then
+		out.poster = true
+	end
 	Analytics.onboarding(player, Analytics.Steps.FirstPremiere)
 	Analytics.event(player, "Premiere", 1, result.id, film.length)
 	QuestTracker.track(player, "premiere")
@@ -423,6 +409,84 @@ local function onPremiere(player: Player, stage: any)
 		Remotes.announce(`{player.DisplayName}'s "{film.title}" is a MASTERPIECE!`)
 		LotService.celebrate(player, "masterpiece")
 	end
+	return out
+end
+
+local function onPremiere(player: Player, stage: any)
+	if not allow(player, "premiere", Config.ActionCooldown) then
+		return
+	end
+	local data = DataService.getData(player)
+	if data == nil then
+		studioError:FireClient(player, "loading")
+		return
+	end
+	if not isInt(stage, 1, Config.StageLimit) then
+		studioError:FireClient(player, "invalid")
+		return
+	end
+	local film, filmIndex = findFilm(data, stage)
+	if film == nil or filmIndex == nil then
+		studioError:FireClient(player, "none")
+		return
+	end
+	repairEndTime(film, os.time())
+	if film.endTime > os.time() then
+		studioError:FireClient(player, "notready")
+		return
+	end
+	local out = settle(player, data, film, filmIndex)
+	if out == nil then
+		studioError:FireClient(player, "invalid")
+		return
+	end
+	premiereResult:FireClient(player, out)
+	MovieService.sync(player)
+	LotService.refresh(player)
+end
+
+-- PREMIERE ALL: every finished film at once, worst stage first. One PremiereBatch carries the
+-- results (the same tables as PremiereResult), so the client can plan the show; the checks and the
+-- cooldown are the single premiere's.
+local function onPremiereAll(player: Player)
+	if not allow(player, "premiere", Config.ActionCooldown) then
+		return
+	end
+	local data = DataService.getData(player)
+	if data == nil then
+		studioError:FireClient(player, "loading")
+		return
+	end
+	local now = os.time()
+	local stages: { number } = {}
+	for _, film in data.films do
+		repairEndTime(film, now)
+		if film.endTime <= now then
+			table.insert(stages, film.stage)
+		end
+	end
+	if #stages == 0 then
+		studioError:FireClient(player, "none")
+		return
+	end
+	table.sort(stages)
+	local results = {}
+	for _, stage in stages do
+		local film, filmIndex = findFilm(data, stage)
+		if film ~= nil and filmIndex ~= nil then
+			local out = settle(player, data, film, filmIndex)
+			if out ~= nil then
+				table.insert(results, out)
+			end
+		end
+	end
+	if #results == 0 then
+		studioError:FireClient(player, "invalid")
+		return
+	end
+	premiereBatch:FireClient(player, results)
+	MovieService.sync(player)
+	LotService.refresh(player)
 end
 
 -- The client finished or skipped the tutorial. No arguments, idempotent.
@@ -567,6 +631,7 @@ function MovieService.start()
 	startFilm.OnServerEvent:Connect(onStartFilm)
 	clapRemote.OnServerEvent:Connect(onClap)
 	premiereRemote.OnServerEvent:Connect(onPremiere)
+	premiereAllRemote.OnServerEvent:Connect(onPremiereAll)
 	tutorialDone.OnServerEvent:Connect(onTutorialDone)
 	useSkip.OnServerEvent:Connect(onUseSkip)
 	takeStart.OnServerEvent:Connect(onTakeStart)
