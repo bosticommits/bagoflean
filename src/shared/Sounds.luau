@@ -70,12 +70,30 @@ Sounds.Slots = {
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up
 	premiereDrumroll = slot("whoosh", 0.8), -- "The reviews are in..."
-	premiereFlop = slot("low"),
-	premiereHit = slot("pop"),
-	premiereBig = slot("stinger"), -- Blockbuster and Cult Classic
-	premiereMasterpiece = slot("jingle"), -- the music dips under it
-	premiereFlash = slot("clap", 1.6), -- camera flashes on premiere night
+	-- The result stings (premiere audio picked 2026-11-04: Roblox's licensed APM and Pro Sound
+	-- Effects libraries, plus one public sad trombone). Each is 8 s or less: Sfx cuts longer ones.
+	premiereFlop = { id = 190705984, volume = 0.6, fallback = "low" }, -- "Sad-Trombone": wah-wah-wahhh
+	premiereHit = { id = 1839997962, volume = 0.6, fallback = "pop" }, -- "Right Answer" (Juice Music, GAME SHOW TOOLKIT)
+	premiereBig = { id = 1839997821, volume = 0.65, fallback = "stinger" }, -- Blockbuster: "Rising Bumper 2" (GAME SHOW TOOLKIT)
+	premiereCult = { id = 1846887865, volume = 0.6, fallback = "stinger", pitch = 0.9 }, -- "Mystery Sting 10": eerie choir (Sonoton)
+	premiereMasterpiece = { id = 1845298676, volume = 0.75, fallback = "jingle" }, -- "1812 Fanfare" horn calls (Soho FANFARES); music dips under it
+	premiereFlash = { id = 9113678227, volume = 0.45, fallback = "clap", pitch = 1.1 }, -- camera flashes: "Camera Shutter 1" (PSE)
 	premiereStamp = slot("clap", 0.6), -- the result stamp lands on the poster
+	-- The red-carpet show at the Grand Premiere Theatre (PremiereShow). Long ones are loops or
+	-- beds the show cuts to length.
+	showDrumroll = { id = 1842251033, volume = 0.55, fallback = "clap", pitch = 0.6 }, -- "Snare Drum Roll" (KPM): the build-up
+	showHeartbeat = { id = 1839998022, volume = 0.7, fallback = "low", pitch = 0.6 }, -- "Heartbeat" (GAME SHOW TOOLKIT): the hush
+	showCheer = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- applause (PSE "Applause Tight 4")
+	showCheerWild = { id = 9112766203, volume = 0.55, fallback = "clap" }, -- cheers, whistles, chanting (PSE "Crowd Cheer And Applause 2")
+	-- The crowd's friendly "awww" on a Flop: four Fish Audio voices layered (uploaded 2026-11-04).
+	showAww = { id = 99187295696445, volume = 0.7, fallback = "low", pitch = 0.8 },
+	showRain = { id = 9112852671, volume = 0.45, fallback = "sweep", pitch = 0.6 }, -- Flop drizzle (PSE "Rain Continuous Drizzle 2")
+	showFireworks = { id = 9112780898, volume = 0.6, fallback = "pop", pitch = 0.7 }, -- pops and whistles (PSE "Fireworks Sparse 2")
+	showCoins = { id = 9113849445, volume = 0.5, fallback = "pop", pitch = 1.5 }, -- the coin burst (PSE "Coins Or Keys Jingle 5")
+	showTotal = { id = 1839997894, volume = 0.6, fallback = "jingle" }, -- tonight's total: "Organ Ta Da" (GAME SHOW TOOLKIT)
+	showFlip = slot("whoosh", 1.4), -- the marquee board flips over
+	showGlide = slot("whoosh", 0.7), -- the camera glides to the theatre and back
+	showStar = slot("indicator", 1.2), -- each critic star fills (the show raises the pitch per star)
 	-- Direct the scene (TakeUi): the TAKE! card pops up, then the verdict on CUT!
 	takePop = slot("pop", 1.1),
 	takePerfect = slot("stinger", 1.15),
@@ -118,6 +136,10 @@ Sounds.Slots = {
 	lucienPremiere = { id = 105795421068430, volume = 0.9, fallback = "whoosh" }, -- "Let's see what the critics say..."
 	lucienFlop = { id = 98265469775608, volume = 0.9, fallback = "low" }, -- "Oof... a flop!"
 	lucienBlockbuster = { id = 127361279847230, volume = 0.9, fallback = "stinger" }, -- "BLOCKBUSTER!"
+	lucienHit = { id = 102072339047901, volume = 0.9, fallback = "pop" }, -- "A hit! The audience loves it!"
+	lucienCult = { id = 80231962225282, volume = 0.9, fallback = "stinger" }, -- "A cult classic... they'll be quoting this one for years!"
+	lucienMasterpiece = { id = 113254789405013, volume = 0.9, fallback = "jingle" }, -- "A MASTERPIECE! Hollywood will never forget tonight!"
+	lucienTotal = { id = 134834345543231, volume = 0.9, fallback = "jingle" }, -- "What a night at the box office!"
 	lucienRebirth = { id = 94420324004466, volume = 0.9, fallback = "jingle" }, -- "A fresh start!"
 	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger" }, -- "Heads up, Hollywood! A special event just started!"
 	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)
