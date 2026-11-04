@@ -342,6 +342,9 @@ local function rank(tierId: string): number
 	return table.find(Actors.Tiers, tierById[tierId]) or 0
 end
 
+-- Position of a tier in Actors.Tiers (1 = Newcomer); 0 for an unknown id.
+Actors.tierRank = rank
+
 -- One cast with every guarantee applied: the hot start, the agency's pity meter and the first
 -- Superstar. `roll(floorTier)` does the real roll (Actors.roll) with the best floor in force, so a
 -- luckier roll always keeps its tier. Updates `save` and returns the actor, the variant, which

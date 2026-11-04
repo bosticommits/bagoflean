@@ -13,7 +13,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
-local BadgeService = require(script.Parent.BadgeService)
+local BadgeAwards = require(script.Parent.BadgeAwards)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local Remotes = require(script.Parent.Remotes)
@@ -88,6 +88,7 @@ function MascotService.start()
 			if mascot == nil or not Mascots.owns(mascot, data) then
 				return
 			end
+			BadgeAwards.award(player, "MascotOwner") -- existing owners get the badge too
 		end
 		equip(player, data, id)
 	end)
@@ -107,7 +108,7 @@ function MascotService.start()
 		end
 		own(data, mascot)
 		equip(player, data, mascot.id)
-		BadgeService.award(player, "MascotOwner")
+		BadgeAwards.award(player, "MascotOwner")
 		MascotService.refresh(player)
 	end)
 end
@@ -129,6 +130,7 @@ function MascotService.afterBought(player: Player, mascot: Mascots.Mascot, resul
 	local data: any = DataService.getData(player)
 	if data ~= nil and result == "mascot" then
 		equip(player, data, mascot.id)
+		BadgeAwards.award(player, "MascotOwner")
 	end
 	MascotService.refresh(player)
 end
