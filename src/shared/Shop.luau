@@ -41,17 +41,17 @@ export type Product = {
 }
 
 Shop.Passes = {
-	{ key = "Luck2x", id = 0, name = "2x Luck", description = "Double casting Luck, forever", randomItems = true },
-	{ key = "AutoCollect", id = 0, name = "Auto-Collect", description = "Box office cash comes to you" },
-	{ key = "ExtraStage", id = 0, name = "+1 Sound Stage", description = "Film one more movie at once" },
-	{ key = "FastFilming", id = 0, name = "Faster Filming", description = "Every movie films 25% faster" },
+	{ key = "Luck2x", id = 2058624083, name = "2x Luck", description = "Double casting Luck, forever", randomItems = true },
+	{ key = "AutoCollect", id = 2058156082, name = "Auto-Collect", description = "Box office cash comes to you" },
+	{ key = "ExtraStage", id = 2057682079, name = "+1 Sound Stage", description = "Film one more movie at once" },
+	{ key = "FastFilming", id = 2061100781, name = "Faster Filming", description = "Every movie films 25% faster" },
 	{ key = "VIP", id = 0, name = "VIP", description = "Gold VIP tag, chat tag and a starred marquee" },
 } :: { Pass }
 
 Shop.Products = {
 	{
 		key = "LuckyCasting",
-		id = 0,
+		id = 3723666459,
 		name = "Lucky Casting",
 		description = "x2 casting Luck for 15 minutes",
 		reward = { luckMinutes = 15 },
@@ -59,14 +59,14 @@ Shop.Products = {
 	},
 	{
 		key = "SkipFilming",
-		id = 0,
+		id = 3723666557,
 		name = "Skip Filming",
 		description = "Finish one movie instantly",
 		reward = { skips = 1 },
 	},
 	{
 		key = "CashSmall",
-		id = 0,
+		id = 3723666635,
 		name = "Box Office Bag",
 		description = "30 minutes of box office cash",
 		reward = { cash = 5000, cashMinutes = 30 },
@@ -74,7 +74,7 @@ Shop.Products = {
 	},
 	{
 		key = "CashLarge",
-		id = 0,
+		id = 3723666724,
 		name = "Box Office Vault",
 		description = "4 hours of box office cash",
 		reward = { cash = 50000, cashMinutes = 240 },
