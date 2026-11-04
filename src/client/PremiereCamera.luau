@@ -24,14 +24,18 @@ local restoredEvent = Instance.new("BindableEvent")
 -- Fires after every restore that actually gave the camera back (death and respawn included).
 PremiereCamera.restored = restoredEvent.Event
 
+local controlObject: any = nil -- found once, so restore() never waits on PlayerScripts
+
 local function controls(on: boolean)
 	pcall(function()
-		local module = require(Players.LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 2) :: ModuleScript) :: any
-		local c = module:GetControls()
+		if controlObject == nil then
+			local module = require(Players.LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 2) :: ModuleScript) :: any
+			controlObject = module:GetControls()
+		end
 		if on then
-			c:Enable()
+			controlObject:Enable()
 		else
-			c:Disable()
+			controlObject:Disable()
 		end
 	end)
 end

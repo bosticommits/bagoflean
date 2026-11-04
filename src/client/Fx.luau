@@ -137,7 +137,8 @@ function Fx.castReveal(tierId: string, variantId: string)
 end
 
 -- Premiere result: a flop gets a sad whistle, a Masterpiece gets everything.
-function Fx.premiere(resultId: string, color: Color3)
+function Fx.premiere(resultId: string, color: Color3, lite: boolean?)
+	local thin = if lite then 0.5 else 1
 	if resultId == "Flop" then
 		Sfx.play("premiereFlop")
 		Sfx.play("lucienFlop")
@@ -148,18 +149,18 @@ function Fx.premiere(resultId: string, color: Color3)
 		Sfx.play("premiereBig")
 		Sfx.play("lucienBlockbuster")
 		Fx.flash(Color3.new(1, 1, 1), 0.35)
-		Fx.confetti(70, { color, Color3.new(1, 1, 1) })
+		Fx.confetti(70 * thin, { color, Color3.new(1, 1, 1) })
 	elseif resultId == "Cult" then
 		Sfx.play("premiereCult")
 		Sfx.play("lucienCult")
 		Fx.flash(color, 0.35)
-		Fx.confetti(90, { color, Color3.fromRGB(255, 205, 70) })
+		Fx.confetti(90 * thin, { color, Color3.fromRGB(255, 205, 70) })
 	else
 		Music.duck(4)
 		Sfx.play("premiereMasterpiece")
 		Sfx.play("lucienMasterpiece")
 		Fx.flash(color, 0.6)
-		Fx.confetti(200)
+		Fx.confetti(200 * thin)
 	end
 end
 
