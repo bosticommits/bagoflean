@@ -72,6 +72,30 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	overlay.ZIndex = 12
 	overlay.Parent = gui
 
+	-- The overlay covers the whole screen, under the top bar and any notch too (the game's UI lives
+	-- inside the core safe area). Everything you read or tap sits in `safe`, which is exactly that
+	-- safe area, so nothing hides behind Roblox's own buttons.
+	local safe = Instance.new("Frame")
+	safe.Name = "Safe"
+	safe.BackgroundTransparency = 1
+	safe.Size = UDim2.fromScale(1, 1)
+	safe.ZIndex = 12
+	safe.Parent = overlay
+	local function fit()
+		local view = UiKit.viewport()
+		local pos, size = gui.AbsolutePosition, gui.AbsoluteSize
+		local left, top = pos.X, pos.Y
+		local right, bottom = math.max(0, view.X - (pos.X + size.X)), math.max(0, view.Y - (pos.Y + size.Y))
+		overlay.Position = UDim2.fromOffset(-left, -top)
+		overlay.Size = UDim2.new(1, left + right, 1, top + bottom)
+		safe.Position = UDim2.fromOffset(left, top)
+		safe.Size = UDim2.new(1, -(left + right), 1, -(top + bottom))
+	end
+	fit()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	gui:GetPropertyChangedSignal("AbsolutePosition"):Connect(fit)
+	UiKit.onViewportChanged(fit)
+
 	-- Tapping anywhere during the drumroll skips to the result.
 	local tapCatcher = Instance.new("TextButton")
 	tapCatcher.Name = "Skip"
@@ -167,7 +191,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	stage.Size = UDim2.fromScale(0.94, 0.84)
 	stage.BackgroundTransparency = 1
 	stage.ZIndex = 13
-	stage.Parent = overlay
+	stage.Parent = safe
 	local stageLimit = Instance.new("UISizeConstraint")
 	stageLimit.Parent = stage
 	local stageScale = Instance.new("UIScale")
@@ -180,6 +204,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	skipPill.BackgroundTransparency = 0.45
 	skipPill.BackgroundColor3 = Color3.new(0, 0, 0)
 	skipPill.Visible = false
+	skipPill.Parent = safe
 	UiKit.corner(skipPill, 14)
 	UiKit.textConstraint(skipPill, 16)
 
