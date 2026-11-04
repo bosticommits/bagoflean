@@ -284,7 +284,7 @@ local function busStop(stop: CFrame, looks: { string })
 	local spots = {
 		{ at = CFrame.new(-3.0, 0, 0.7), seated = true },
 		{ at = CFrame.new(-1.0, 0, 0.7), seated = true },
-		{ at = CFrame.new(2.6, 0, -0.6) * CFrame.Angles(0, math.rad(-30), 0), seated = false },
+		{ at = CFrame.new(7.6, 0, -1.2) * CFrame.Angles(0, math.rad(-30), 0), seated = false },
 	}
 	for i, spot in spots do
 		local person = newPerson(looks[i], nil, function(self, t)
