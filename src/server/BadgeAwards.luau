@@ -1,26 +1,22 @@
 --!strict
--- BadgeService wrapper to award official Roblox badges safely.
+-- BadgeAwards: wrapper around Roblox's BadgeService to award official Roblox badges safely.
 -- Handles pcalls, session caching, and prevents redundant web API calls.
 local BadgeService = game:GetService("BadgeService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Badges = require(ReplicatedStorage.Shared.Badges)
 
-local PlayerBadgeService = {}
+local BadgeAwards = {}
 
 -- In-memory cache of badges awarded during this server session: [UserId]: { [badgeId]: true }
 local awardedCache: { [number]: { [number]: boolean } } = {}
 
-function PlayerBadgeService.init(player: Player)
-	awardedCache[player.UserId] = {}
-end
-
-function PlayerBadgeService.cleanup(player: Player)
+function BadgeAwards.cleanup(player: Player)
 	awardedCache[player.UserId] = nil
 end
 
 -- Awards a badge by key if defined and not yet awarded
-function PlayerBadgeService.award(player: Player, badgeKey: string)
+function BadgeAwards.award(player: Player, badgeKey: string)
 	local badgeDef = Badges.List[badgeKey]
 	if badgeDef == nil or badgeDef.id == 0 then
 		return
@@ -37,6 +33,14 @@ function PlayerBadgeService.award(player: Player, badgeKey: string)
 		return
 	end
 
+	-- Marked before the async calls so two quick triggers make one web call; cleared only if the award itself fails.
+	awardedCache[userId][badgeId] = true
+	local function giveUp()
+		if awardedCache[userId] ~= nil then
+			awardedCache[userId][badgeId] = nil
+		end
+	end
+
 	-- In Studio, BadgeService:AwardBadge can fail if security permissions or testing modes aren't enabled; protect with pcall
 	task.spawn(function()
 		local hasBadge = false
@@ -45,29 +49,23 @@ function PlayerBadgeService.award(player: Player, badgeKey: string)
 		end)
 
 		if not checkOk then
-			warn(`[BadgeService] UserHasBadgeAsync failed for {player.Name}: {checkErr}`)
+			warn(`[BadgeAwards] UserHasBadgeAsync failed for {player.Name}: {checkErr}`) -- stays cached: not retried on every trigger
 			return
 		end
 
 		if hasBadge then
-			if awardedCache[userId] ~= nil then
-				awardedCache[userId][badgeId] = true
-			end
 			return
 		end
 
-		local awardOk, awardErr = pcall(function()
-			BadgeService:AwardBadge(userId, badgeId)
+		local awardOk, awarded = pcall(function()
+			return BadgeService:AwardBadge(userId, badgeId)
 		end)
 
-		if awardOk then
-			if awardedCache[userId] ~= nil then
-				awardedCache[userId][badgeId] = true
-			end
-		else
-			warn(`[BadgeService] Failed to award badge '{badgeDef.name}' ({badgeId}) to {player.Name}: {awardErr}`)
+		if not awardOk or awarded == false then -- AwardBadge returns false when Roblox refuses it
+			giveUp()
+			warn(`[BadgeAwards] Failed to award badge '{badgeDef.name}' ({badgeId}) to {player.Name}: {awarded}`)
 		end
 	end)
 end
 
-return PlayerBadgeService
+return BadgeAwards

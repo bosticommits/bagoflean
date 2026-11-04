@@ -63,6 +63,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	overlay.Visible = false
 	overlay.ZIndex = 12
 	overlay.Parent = gui
+	UiKit.watchOverlay(overlay)
 
 	-- Tapping anywhere during the drumroll skips to the result.
 	local tapCatcher = Instance.new("TextButton")

@@ -690,6 +690,32 @@ function UiKit.closePanels()
 	end
 end
 
+-- True while any exclusive panel or screen is showing.
+function UiKit.anyPanelOpen(): boolean
+	for _, panel in exclusivePanels do
+		if panel.Visible then
+			return true
+		end
+	end
+	return false
+end
+
+-- Full-screen reveals (premiere, casting, take card) register here so gamepad B leaves them alone.
+local overlays: { Frame } = {}
+
+function UiKit.watchOverlay(frame: Frame)
+	table.insert(overlays, frame)
+end
+
+function UiKit.overlayOpen(): boolean
+	for _, frame in overlays do
+		if frame.Visible then
+			return true
+		end
+	end
+	return false
+end
+
 -- Opens `panel` (building it first) and closes the other panels; opens nothing if it was open.
 function UiKit.togglePanel(panel: Frame, build: () -> ())
 	local willOpen = not panel.Visible
