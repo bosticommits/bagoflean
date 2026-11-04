@@ -107,6 +107,7 @@ function Fx.castReveal(tierId: string, variantId: string)
 		Sfx.play("revealCommon")
 	elseif rank <= 4 then
 		Sfx.play("revealRare")
+		Sfx.play("lucienRarePull")
 		Fx.confetti(20 + rank * 5, { color, Color3.new(1, 1, 1) })
 	else
 		-- Superstar and up: a deeper sting; Legend and Icon also get the big fanfare over dipped music.
@@ -114,6 +115,7 @@ function Fx.castReveal(tierId: string, variantId: string)
 		if rank >= 6 then
 			Music.duck(4)
 			Sfx.play("revealLegend")
+			Sfx.play("lucienLegendPull")
 		end
 		Fx.flash(color, 0.5)
 		Fx.confetti(70 + rank * 10)
@@ -129,20 +131,24 @@ end
 function Fx.premiere(resultId: string, color: Color3)
 	if resultId == "Flop" then
 		Sfx.play("premiereFlop")
+		Sfx.play("lucienFlop")
 	elseif resultId == "Hit" then
 		Sfx.play("premiereHit")
+		Sfx.play("lucienHit")
 	elseif resultId == "Blockbuster" then
 		Sfx.play("premiereBig")
+		Sfx.play("lucienBlockbuster")
 		Fx.flash(Color3.new(1, 1, 1), 0.35)
 		Fx.confetti(70, { color, Color3.new(1, 1, 1) })
 	elseif resultId == "Cult" then
-		Sfx.play("premiereBig")
+		Sfx.play("premiereCult")
+		Sfx.play("lucienCult")
 		Fx.flash(color, 0.35)
 		Fx.confetti(90, { color, Color3.fromRGB(255, 205, 70) })
 	else
 		Music.duck(4)
-		Sfx.play("premiereBig")
 		Sfx.play("premiereMasterpiece")
+		Sfx.play("lucienMasterpiece")
 		Fx.flash(color, 0.6)
 		Fx.confetti(200)
 	end
