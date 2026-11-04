@@ -911,7 +911,6 @@ local function jungleBelt(b: Builder)
 	-- The thicket, in rows across the belt, clear of the trail's corridor. Past the play area, so
 	-- nothing collides.
 	local plants = { "JungleBanana", "JungleFern", "JungleBush", "JungleBigLeaf", "JungleMound", "JungleFern" }
-	local litter = { "JungleLeafLitter", "JungleDirtPatchSmall", "JungleLeafLitter", "JungleDirtPatch" }
 	local i = 0
 	for z = -45, -5, 10 do
 		for x = -30, 80, 10 do
@@ -919,8 +918,7 @@ local function jungleBelt(b: Builder)
 				i += 1
 				local wobble = ((i * 37) % 7) - 3
 				local at = v(x + wobble, 0.2, z - wobble * 0.6)
-				MapKit.place(b, plants[i % #plants + 1], CFrame.new(at) * yaw(i * 67), { solid = false })
-				MapKit.place(b, litter[i % #litter + 1], CFrame.new(at + v(3, 0, 2)) * yaw(i * 41), { solid = false })
+				MapKit.place(b, plants[i % #plants + 1], CFrame.new(at) * yaw(i * 67), { far = true, solid = false })
 				if (i + z // 10) % 2 == 0 and z > -45 then -- canopy trees keep back from the park's fence
 					local tree = if i % 3 == 0 then "JunglePalm" else "JungleTree"
 					MapKit.place(b, tree, CFrame.new(at + v(0, 0, 3)) * yaw(i * 53), { far = true, scale = 0.9 + (i % 3) * 0.15 })
@@ -934,7 +932,7 @@ function TownSets.jungleTemple(b: Builder)
 	-- Darker jungle ground under the lot and the belt of jungle in front of it, out to the park's
 	-- west fence (z = -52); the dirt road and the clearing are ragged worn patches on it (in
 	-- JUNGLE_DRESSING). Its edges run under the undergrowth and the park's ranch fence.
-	b:block("JungleGround", v(128, 0.2, 184), v(28, 0.1, 42), JUNGLE_GREEN, GRASS)
+	b:block("JungleGround", v(128, 0.2, 186), v(28, 0.1, 41), JUNGLE_GREEN, GRASS)
 	TownSets.filmSetGear(b, FilmScenes.Sets.Jungle.gear)
 
 	-- The fence all round: down both sides, across the back, and along the front either side of
@@ -942,8 +940,16 @@ function TownSets.jungleTemple(b: Builder)
 	backlotFence(b, v(-35.5, 0.2, 0), v(-35.5, 0.2, 125.5), -90, { [2] = "STAGE 3: JUNGLE" })
 	backlotFence(b, v(83.5, 0.2, 0), v(83.5, 0.2, 125.5), 90, { [2] = "QUIET! FILMING" })
 	backlotFence(b, v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), 0)
-	backlotFence(b, v(-35.5, 0.2, 0), v(-11, 0.2, 0), 180)
-	backlotFence(b, v(11, 0.2, 0), v(83.5, 0.2, 0), 180)
+	-- Front runs start at the gate's edge (+-10.6) and round the piece count down, each piece
+	-- scaled to fill its slot (the mesh is 13.2 long), so none enters the gate or another piece.
+	for _, run in { { -10.6, -35.5 }, { 10.6, 83.5 } } do
+		local len = run[2] - run[1]
+		local n = math.max(1, math.floor(math.abs(len) / 13.2))
+		local step = len / n
+		for k = 0, n - 1 do
+			MapKit.place(b, "BacklotFence", CFrame.new(run[1] + step * (k + 0.5), 0.2, 0) * yaw(180), { scale = math.abs(step) / 13.2 })
+		end
+	end
 	jungleBelt(b)
 	for _, at in { v(-35.5, 0.2, 125.5), v(83.5, 0.2, 125.5), v(-35.5, 0.2, 0), v(83.5, 0.2, 0) } do
 		MapKit.place(b, "BacklotFencePost", at)
