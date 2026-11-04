@@ -541,6 +541,7 @@ local function timeline(r: Run, mine: number, jump: boolean)
 		-- Glide (or cut) to the establishing shot.
 		local est = shot(s, 19, 24)
 		local glide = PremiereNight.glideSeconds(r.dist)
+		Sfx.play("lucienPremiere") -- the host's line starts as the camera sets off
 		if glide == nil then
 			irisTo(0, 0.25)
 			if not sleep(r, mine, 0.3) then
@@ -576,7 +577,6 @@ local function timeline(r: Run, mine: number, jump: boolean)
 		r.startedAt = os.clock()
 		Music.duck(show.build + show.hush + 4)
 		Sfx.play("showDrumroll", nil, show.build)
-		Sfx.play("lucienPremiere")
 		PremiereCamera.move(shot(s, 11, 5.5, 2.5), fov(s, 55), show.build, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 		flashLoop(r, mine, show.build)
 		if r.result.awardNight then
