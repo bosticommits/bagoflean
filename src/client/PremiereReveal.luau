@@ -4,7 +4,10 @@
 -- poster in the result's color. Beside it, the payout counts up, then Fame and any unlock.
 -- How big each result feels is in PremiereNight (shared). Client-only presentation: everything is
 -- plain frames and tweens (no particles), and the only pictures are the cast portraits and the
--- result icon, so it stays light on phones. A tap during "The reviews are in..." skips to the stamp.
+-- result icon, so it stays light on phones. The red-carpet show (PremiereShow) plays first with this
+-- overlay as a clear film frame (letterbox and a skip pill); then the poster, stamp and card come
+-- up over it. Taps: none for the first second, then one skips to the result and card, then one
+-- finishes the count-ups. Results that arrive during a premiere wait their turn.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -13,9 +16,11 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local PremiereNight = require(ReplicatedStorage.Shared.PremiereNight)
+local ClientState = require(script.Parent.ClientState)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local PremiereShow = require(script.Parent.PremiereShow)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
 
@@ -28,6 +33,9 @@ local BEAM_SWING = 23 -- degrees either side of straight up
 local RESULT_SPIN_RPM = 12
 local LETTERBOX = 0.06 -- height of each cinema bar, as a fraction of the screen
 local RAY_COUNT = 12
+local STAR_EMPTY = Color3.fromRGB(70, 78, 110)
+local GOLDS = { Color3.fromRGB(245, 184, 46), Color3.fromRGB(255, 226, 140), Color3.new(1, 1, 1) }
+local DIM = 0.6 -- the overlay's transparency over the box office card after the show
 
 local PremiereReveal = {}
 
@@ -164,6 +172,16 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	stageLimit.Parent = stage
 	local stageScale = Instance.new("UIScale")
 	stageScale.Parent = stage
+
+	-- During the red-carpet show: a pill that says a tap skips (it shows once taps count).
+	local skipPill = UiKit.makeLabel(overlay, "Tap to skip", WHITE, UDim2.fromScale(0.22, 0.05), UDim2.fromScale(0.39, 0.9))
+	skipPill.Name = "SkipPill"
+	skipPill.ZIndex = 14
+	skipPill.BackgroundTransparency = 0.45
+	skipPill.BackgroundColor3 = Color3.new(0, 0, 0)
+	skipPill.Visible = false
+	UiKit.corner(skipPill, 14)
+	UiKit.textConstraint(skipPill, 16)
 
 	-- Sunburst: slow-turning rays behind the poster for good results (ZIndex 1, under the poster).
 	local burst = Instance.new("CanvasGroup")
@@ -373,15 +391,15 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		UiKit.textConstraint(label, maxSize)
 		return label
 	end
-	local header = cardText(0.04, 0.085, UiKit.GOLD, 22)
+	local header = cardText(0.03, 0.07, UiKit.GOLD, 22)
 	header.Name = "Header"
 	header.Text = "PREMIERE NIGHT"
 	local resultArt = Instance.new("Frame")
 	resultArt.Name = "ResultArt"
 	resultArt.BackgroundTransparency = 1
 	resultArt.AnchorPoint = Vector2.new(0.5, 0)
-	resultArt.Position = UDim2.fromScale(0.5, 0.13)
-	resultArt.Size = UDim2.fromScale(0.5, 0.25)
+	resultArt.Position = UDim2.fromScale(0.5, 0.1)
+	resultArt.Size = UDim2.fromScale(0.5, 0.19)
 	resultArt.ZIndex = 15
 	resultArt.Parent = card
 	local resultAspect = Instance.new("UIAspectRatioConstraint")
@@ -389,21 +407,56 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	local waitingLabel = cardText(0.2, 0.12, WHITE, 30)
 	waitingLabel.Name = "Waiting"
 	waitingLabel.Text = "The reviews are in..."
-	local payoutLabel = cardText(0.39, 0.15, UiKit.CASH_GREEN, 48, 3)
+	-- The critic's review: five stars that fill one by one, her line and who she is.
+	local starRow = Instance.new("Frame")
+	starRow.Name = "Stars"
+	starRow.BackgroundTransparency = 1
+	starRow.AnchorPoint = Vector2.new(0.5, 0)
+	starRow.Position = UDim2.fromScale(0.5, 0.3)
+	starRow.Size = UDim2.fromScale(0.7, 0.075)
+	starRow.ZIndex = 14
+	starRow.Parent = card
+	local starLayout = Instance.new("UIListLayout")
+	starLayout.FillDirection = Enum.FillDirection.Horizontal
+	starLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	starLayout.Padding = UDim.new(0.02, 0)
+	starLayout.Parent = starRow
+	local starLabels: { TextLabel } = {}
+	local starScales: { UIScale } = {}
+	for index = 1, 5 do
+		local star = UiKit.makeTitle(starRow, "\u{2605}", STAR_EMPTY, UDim2.fromScale(0.15, 1), nil, 2)
+		star.Name = "Star" .. index
+		star.ZIndex = 14
+		UiKit.textConstraint(star, 40)
+		local pop = Instance.new("UIScale")
+		pop.Parent = star
+		table.insert(starLabels, star)
+		table.insert(starScales, pop)
+	end
+	local criticLabel = UiKit.makeLabel(card, "", UiKit.CREAM, UDim2.fromScale(0.9, 0.075), UDim2.fromScale(0.05, 0.38))
+	criticLabel.Name = "CriticLine"
+	criticLabel.ZIndex = 14
+	criticLabel.TextWrapped = true
+	UiKit.textConstraint(criticLabel, 16)
+	local attribLabel = UiKit.makeLabel(card, "", UiKit.MUTED, UDim2.fromScale(0.9, 0.04), UDim2.fromScale(0.05, 0.455))
+	attribLabel.Name = "CriticName"
+	attribLabel.ZIndex = 14
+	UiKit.textConstraint(attribLabel, 12)
+	local payoutLabel = cardText(0.5, 0.11, UiKit.CASH_GREEN, 48, 3)
 	payoutLabel.Name = "Payout"
-	local bonusLabel = cardText(0.54, 0.065, UiKit.GOLD, 18, 2)
+	local bonusLabel = cardText(0.615, 0.05, UiKit.GOLD, 18, 2)
 	bonusLabel.Name = "Bonus"
-	local fameLabel = cardText(0.615, 0.075, UiKit.GOLD, 22)
+	local fameLabel = cardText(0.665, 0.06, UiKit.GOLD, 22)
 	fameLabel.Name = "Fame"
 	-- "NEW: Talent Agency": what this premiere's Fame just opened. Empty on most premieres.
-	local unlockLabel = cardText(0.7, 0.075, UiKit.GOLD, 20)
+	local unlockLabel = cardText(0.73, 0.06, UiKit.GOLD, 20)
 	unlockLabel.Name = "Unlocked"
 	local unlockScale = Instance.new("UIScale")
 	unlockScale.Parent = unlockLabel
-	local continueButton = UiKit.makeButton(card, "Continue", UiKit.GREEN, UDim2.fromScale(0.6, 0.14), UDim2.fromScale(0.2, 0.81))
+	local continueButton = UiKit.makeButton(card, "Continue", UiKit.GREEN, UDim2.fromScale(0.6, 0.13), UDim2.fromScale(0.2, 0.84))
 	continueButton.Name = "Continue"
 	continueButton.ZIndex = 14
-	local resultParts: { GuiObject } = { resultArt, payoutLabel, bonusLabel, fameLabel, unlockLabel, continueButton }
+	local resultParts: { GuiObject } = { resultArt, starRow, criticLabel, attribLabel, payoutLabel, bonusLabel, fameLabel, unlockLabel, continueButton }
 
 	-- Layout: poster beside the card on wide screens, above it on tall ones. Sizes are worked out
 	-- in pixels from the stage so the poster keeps its shape and the stamp sits on it.
@@ -417,7 +470,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		local gap = math.max(10, math.floor(size.X * 0.03))
 		local posterH: number, posterW: number
 		if tall then
-			posterH = size.Y * 0.56
+			posterH = size.Y * 0.46
 			posterW = math.min(posterH * POSTER_ASPECT, size.X)
 			posterH = posterW / POSTER_ASPECT
 			poster.Position = UDim2.fromOffset((size.X - posterW) / 2, 0)
@@ -542,27 +595,72 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		end
 	end
 
-	continueButton.Activated:Connect(function()
-		premiereToken += 1
-		overlay.Visible = false
-		stopEffects()
-	end)
+	-- Phase: "show" is the red-carpet show (the overlay is a clear film frame), "card" the poster,
+	-- stamp and box office card. `finishCounts` jumps the count-ups and stars to their end.
+	local phase = "idle"
+	local busy = false
+	local showRan = false
+	local startedAt = 0
+	local finishCounts: (() -> ())? = nil
+	local currentFirst = false
+	local pending: { { result: any, first: boolean } } = {}
+
+	local function setPhase(name: string)
+		phase = name
+		local card3 = name ~= "show"
+		for _, beam in beams do
+			beam.Visible = card3
+		end
+		for _, edge in { overlay:FindFirstChild("VignetteLeft"), overlay:FindFirstChild("VignetteRight") } do
+			(edge :: GuiObject).Visible = card3
+		end
+		stage.Visible = card3
+		skipPill.Visible = false
+		tapCatcher.Visible = true
+	end
 
 	local function countUp(label: TextLabel, to: number, seconds: number, mine: number)
 		local start = os.clock()
+		local nextTick = 0
+		local done = false
 		local connection: RBXScriptConnection
+		local function finish()
+			if done then
+				return
+			end
+			done = true
+			connection:Disconnect()
+			label.Text = `+${Hud.comma(to)}`
+			if to > 0 and premiereToken == mine then
+				-- The coin burst: a jingle and gold paper.
+				Sfx.play("showCoins")
+				Fx.confetti(45, GOLDS)
+			end
+		end
 		connection = RunService.RenderStepped:Connect(function()
-			local t = math.clamp((os.clock() - start) / seconds, 0, 1)
 			if premiereToken ~= mine then
+				done = true
 				connection:Disconnect()
 				return
 			end
+			local now = os.clock()
+			local t = math.clamp((now - start) / seconds, 0, 1)
 			local eased = 1 - (1 - t) ^ 3
 			label.Text = `+${Hud.comma(math.floor(to * eased + 0.5))}`
 			if t >= 1 then
-				connection:Disconnect()
+				finish()
+			elseif now >= nextTick then
+				nextTick = now + 1 / 12 -- at most 12 ticks a second, rising
+				Sfx.play("coin", 1 + 0.5 * t)
 			end
 		end)
+		local previous = finishCounts
+		finishCounts = function()
+			if previous ~= nil then
+				previous()
+			end
+			finish()
+		end
 	end
 
 	local function reveal(result: any, mine: number)
@@ -669,9 +767,42 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 			part.Visible = true
 		end
 		stopResultSpin = Icon3D.spin(Icon3D.outlined(resultArt, style.icon), RESULT_SPIN_RPM)
+		header.Text = if currentFirst then "YOUR FIRST MASTERPIECE!" else "PREMIERE NIGHT"
+		if currentFirst and not showRan then
+			Fx.confetti(120, GOLDS, true)
+		end
+		-- The critic: stars fill one by one, then the cash counts up.
+		finishCounts = nil
+		local stars, line = PremiereNight.review(res.id, random:NextNumber())
+		criticLabel.Text = `"{line}"`
+		attribLabel.Text = `- {PremiereNight.CRITIC}`
+		for index, star in starLabels do
+			star.TextColor3 = STAR_EMPTY
+			if index <= stars then
+				task.delay(0.25 + (index - 1) * 0.12, function()
+					if premiereToken == mine and star.TextColor3 == STAR_EMPTY then
+						star.TextColor3 = UiKit.GOLD
+						starScales[index].Scale = 1.5
+						tween(starScales[index], 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
+						Sfx.play("showStar", 1 + (index - 1) * 0.12)
+					end
+				end)
+			end
+		end
 		local payout = if type(result.payout) == "number" then result.payout else 0
 		payoutLabel.Text = "+$0"
 		countUp(payoutLabel, payout, if big then 0.9 else 0.6, mine)
+		local previous = finishCounts
+		finishCounts = function()
+			if previous ~= nil then
+				previous()
+			end
+			for index, star in starLabels do
+				if index <= stars then
+					star.TextColor3 = UiKit.GOLD
+				end
+			end
+		end
 		bonusLabel.Text = PremiereNight.bonusLine(
 			if type(result.genreBonus) == "number" then result.genreBonus else nil,
 			if result.awardNight then Config.AwardNightPayoutMultiplier else nil,
@@ -691,8 +822,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		end
 		-- No bonus line on most premieres: pull Fame and the unlock up so no gap sits under the payout.
 		local hasBonus = bonusLabel.Text ~= ""
-		fameLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.615 else 0.55)
-		unlockLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.7 else 0.64)
+		fameLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.665 else 0.615)
+		unlockLabel.Position = UDim2.fromScale(0.05, if hasBonus then 0.73 else 0.68)
 		unlockLabel.Text = if #unlocked > 0 then `NEW: {table.concat(unlocked, ", ")} unlocked!` else ""
 		if #unlocked > 0 then
 			task.delay(0.6, function()
@@ -707,26 +838,59 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	end
 
 	local current: any = nil
-	tapCatcher.Activated:Connect(function()
-		if current ~= nil and overlay.Visible then
-			reveal(current, premiereToken)
-		end
-	end)
 
-	return function(result: any)
-		local res = Movies.getResult(result.result)
-		if res == nil then
+	-- The card phase: the poster rises in, the stamp slams and the box office card counts up.
+	-- `drumroll` is the old "The reviews are in..." wait, used when there is no 3D show.
+	local function startCard(result: any, mine: number, drumroll: boolean)
+		if premiereToken ~= mine or phase == "card" then
 			return
 		end
+		setPhase("card")
+		overlay.BackgroundTransparency = 1
+		tween(overlay, 0.35, { BackgroundTransparency = if drumroll then 0.18 else DIM })
+		stamp.Visible = false
+		waitingLabel.Visible = drumroll
+		for _, part in resultParts do
+			part.Visible = false
+		end
+		cardEdge.Color = UiKit.FAINT
+		sweep(1, BEAM_WARM, true)
+		local home = poster.Position
+		poster.Position = home + UDim2.fromOffset(0, 40)
+		-- Not kept with the spotlight tweens: the reveal cancels those, and this must always finish.
+		tween(poster, 0.55, { Position = home }, Enum.EasingStyle.Quint)
+		if drumroll then
+			Sfx.play("premiereDrumroll")
+			Sfx.play("lucienPremiere")
+			flashes(PremiereNight.DRUMROLL_FLASHES, PremiereNight.DRUMROLL_SECONDS * 0.8, mine)
+			task.delay(PremiereNight.DRUMROLL_SECONDS, function()
+				reveal(result, mine)
+			end)
+		else
+			reveal(result, mine)
+		end
+	end
+
+	local function begin(result: any, first: boolean)
+		local res = Movies.getResult(result.result)
+		if res == nil then
+			busy = false
+			return
+		end
+		busy = true
 		premiereToken += 1
 		local mine = premiereToken
 		current = result
+		currentFirst = first
+		finishCounts = nil
+		showRan = false
 		stopEffects()
 		tapCatcher:SetAttribute("Revealed", nil)
 		overlay.Visible = true
+		overlay.BackgroundTransparency = 1
 		layout()
 
-		-- The poster: genre colors, the cast, the title and the billing.
+		-- The poster: genre colors, the cast, the title and the billing (hidden until the card phase).
 		local genre = if type(result.genre) == "string" then result.genre else ""
 		local genreColor = UiKit.GENRE_COLORS[genre] or UiKit.BLUE
 		poster.BackgroundColor3 = genreColor:Lerp(UiKit.INK, 0.4)
@@ -769,23 +933,95 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		poster.Rotation = 0
 		stageScale.Scale = 1
 
-		-- Before the result: the poster rises in under calm spotlights, flashes going off.
-		stamp.Visible = false
-		waitingLabel.Visible = true
-		for _, part in resultParts do
-			part.Visible = false
-		end
-		cardEdge.Color = UiKit.FAINT
-		sweep(1, BEAM_WARM, true)
-		poster.Position += UDim2.fromOffset(0, 40)
-		-- Not kept with the spotlight tweens: the reveal cancels those, and this must always finish.
-		tween(poster, 0.55, { Position = poster.Position - UDim2.fromOffset(0, 40) }, Enum.EasingStyle.Quint)
-		Sfx.play("premiereDrumroll")
-		Sfx.play("lucienPremiere")
-		flashes(PremiereNight.DRUMROLL_FLASHES, PremiereNight.DRUMROLL_SECONDS * 0.8, mine)
-		task.delay(PremiereNight.DRUMROLL_SECONDS, function()
-			reveal(result, mine)
+		-- The red-carpet show first; if the theatre is not there, the card alone (with its old drumroll).
+		startedAt = os.clock()
+		setPhase("show")
+		task.delay(PremiereNight.SKIP_AFTER, function()
+			if premiereToken == mine and phase == "show" then
+				skipPill.Visible = true
+			end
 		end)
+		task.spawn(function()
+			local ok = PremiereShow.play(result, res, first, {
+				card = function()
+					startCard(result, mine, false)
+				end,
+				aborted = function()
+					if premiereToken == mine and phase == "show" then
+						startCard(result, mine, false)
+					end
+				end,
+			})
+			if premiereToken ~= mine then
+				return
+			end
+			showRan = ok
+			if not ok then
+				startCard(result, mine, true)
+			end
+		end)
+	end
+
+	tapCatcher.Activated:Connect(function()
+		if current == nil or not overlay.Visible or os.clock() - startedAt < PremiereNight.SKIP_AFTER then
+			return
+		end
+		if phase == "show" then
+			PremiereShow.skip()
+		elseif phase == "card" then
+			if not tapCatcher:GetAttribute("Revealed") then
+				reveal(current, premiereToken)
+			elseif finishCounts ~= nil then
+				finishCounts()
+				finishCounts = nil
+			end
+		end
+	end)
+
+	continueButton.Activated:Connect(function()
+		if phase ~= "card" then
+			return
+		end
+		premiereToken += 1
+		finishCounts = nil
+		stopEffects()
+		-- The card goes at once; the camera glides home behind the clear film frame.
+		phase = "leaving"
+		stage.Visible = false
+		for _, beam in beams do
+			beam.Visible = false
+		end
+		tween(overlay, 0.3, { BackgroundTransparency = 1 })
+		local function close()
+			overlay.Visible = false
+			phase = "idle"
+			busy = false
+			local nextUp = table.remove(pending, 1)
+			if nextUp ~= nil then
+				task.delay(0.4, begin, nextUp.result, nextUp.first)
+			end
+		end
+		if showRan then
+			PremiereShow.finish(close)
+		else
+			close()
+		end
+	end)
+
+	return function(result: any)
+		if Movies.getResult(result.result) == nil then
+			return
+		end
+		-- Read before the sync that follows this result adds the new trophy.
+		local studio = ClientState.studio
+		local first = result.result == "Masterpiece" and (studio == nil or (studio.trophies or 0) == 0)
+		if busy then
+			if #pending < 20 then
+				table.insert(pending, { result = result, first = first })
+			end
+			return
+		end
+		begin(result, first)
 	end
 end
 
