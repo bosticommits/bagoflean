@@ -431,7 +431,7 @@ local function reveal(r: Run)
 	r.mode = "react"
 	local s, id, show = r.stage, r.res.id, r.show
 	r.mood = show.mood
-	PremiereCamera.move(shot(s, 19, 11), 45, 0.45, 0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	PremiereCamera.move(shot(s, 24, 12, 4), 45, 0.45, 0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	Fx.shake(if id == "Masterpiece" or id == "Blockbuster" then 1.4 else 0.8, 0.4)
 	flipBoard(r)
 	Fx.premiere(id, r.res.color)
@@ -468,10 +468,10 @@ local function reveal(r: Run)
 		Sfx.play("showFireworks", nil, 6)
 		tintTo(r, Color3.fromRGB(255, 232, 170), 0.25, 0.03, 0.8)
 		Fx.skyFlash(GOLD, 0.3)
-		local trophy = place(r, "GrandTrophy", at(s, 7, 0, -9), 2)
+		local trophy = place(r, "GrandTrophy", at(s, 7, 0, -6), 1.3)
 		local home = trophy:GetPivot()
 		animate(r, 1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, function(e)
-			trophy:PivotTo(home * CFrame.new(0, 9 * e, 0))
+			trophy:PivotTo(home * CFrame.new(0, 6 * e, 0))
 		end)
 		bursts(r, 10, GOLDS, 0.2)
 		if r.first then
@@ -580,7 +580,7 @@ local function timeline(r: Run, mine: number, jump: boolean)
 	end
 	r.hooks.card()
 	-- Behind the card the camera drifts slowly round the marquee.
-	PremiereCamera.move(shot(s, 22, 13), 45, 8, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+	PremiereCamera.move(shot(s, 26, 14, 4), 45, 8, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 end
 
 -- Public ------------------------------------------------------------------------------------------------
