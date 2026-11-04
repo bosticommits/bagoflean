@@ -49,3 +49,42 @@ test("unknown ids fall back safely", function()
 end)
 
 end)
+
+test("the theatre show builds up longer for rarer results, inside the time budget", function()
+	local lastReveal, lastCard = -1, -1
+	for _, result in Movies.Results do
+		local show = PremiereNight.Shows[result.id]
+		expect(show ~= nil, `{result.id} has a show`)
+		local reveal, card = PremiereNight.beats(result.id)
+		expect(reveal >= lastReveal and card >= lastCard, `{result.id} builds up at least as long`)
+		lastReveal, lastCard = reveal, card
+		expect(#show.critic >= 1, `{result.id} has a critic line`)
+		expect(show.stars[1] >= 1 and show.stars[2] <= 5 and show.stars[1] <= show.stars[2], `{result.id} stars`)
+	end
+	-- Drumroll to Continue (the longest glide, the card, then ~1.2 s of count-up): 4-6 s for a Hit,
+	-- a Masterpiece may run longer.
+	local _, hitCard = PremiereNight.beats("Hit")
+	expect(1.1 + hitCard + 1.2 <= 6, "a Hit reaches Continue within 6 s")
+	equal(PremiereNight.Shows.Hit.hush, 0)
+	expect(PremiereNight.Shows.Masterpiece.hush > PremiereNight.Shows.Blockbuster.hush, "the hush grows")
+end)
+
+test("the critic's stars stay in each result's range", function()
+	for _, result in Movies.Results do
+		local show = PremiereNight.show(result.id)
+		for _, roll in { 0, 0.3, 0.5, 0.99 } do
+			local stars, line = PremiereNight.review(result.id, roll)
+			expect(stars >= show.stars[1] and stars <= show.stars[2], `{result.id} stars at {roll}`)
+			expect(table.find(show.critic, line) ~= nil, `{result.id} line at {roll}`)
+		end
+	end
+	equal(PremiereNight.review("Flop", 0), 1)
+	equal(PremiereNight.review("Flop", 0.99), 2)
+end)
+
+test("far players get a cut, near ones a glide", function()
+	equal(PremiereNight.glideSeconds(10), 0.6)
+	equal(PremiereNight.glideSeconds(1000), nil)
+	local mid = PremiereNight.glideSeconds(200)
+	expect(mid ~= nil and mid > 0.6 and mid <= 1.1, "mid glide")
+end)

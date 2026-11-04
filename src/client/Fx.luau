@@ -297,6 +297,22 @@ function Fx.confettiAt(at: Vector3, count: number)
 	Debris:AddItem(anchor, 4)
 end
 
+-- One firework burst at `at` in the world: sparkles and paper in `color` (the premiere show).
+function Fx.fireworkAt(at: Vector3, color: Color3)
+	local anchor = Instance.new("Attachment")
+	anchor.Name = "FireworkFx"
+	anchor.WorldPosition = at
+	anchor.Parent = workspace.Terrain
+	local sparkles = emitter(anchor, SPARKLE_TEXTURE, { color, Color3.new(1, 1, 1) }, NumberRange.new(18, 30), NumberRange.new(0.8, 1.4), 2.2)
+	sparkles.SpreadAngle = Vector2.new(180, 180)
+	sparkles.LightEmission = 1
+	sparkles:Emit(40)
+	local paper = emitter(anchor, CONFETTI_TEXTURE, { color, Color3.fromRGB(255, 230, 140) }, NumberRange.new(10, 22), NumberRange.new(1.5, 2.5), 0.5)
+	paper.SpreadAngle = Vector2.new(180, 180)
+	paper:Emit(30)
+	Debris:AddItem(anchor, 3)
+end
+
 function Fx.start(remotes: Instance)
 	local celebrateRemote = remotes:WaitForChild("Celebrate", 10)
 	if celebrateRemote == nil or not celebrateRemote:IsA("RemoteEvent") then

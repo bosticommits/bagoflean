@@ -28,6 +28,93 @@ PremiereNight.DRUMROLL_FLASHES = 5
 -- How long "The reviews are in..." lasts before the stamp lands. A tap skips it.
 PremiereNight.DRUMROLL_SECONDS = 1.2
 
+-- The red-carpet show at the Grand Premiere Theatre (src/client/PremiereShow.luau), per result.
+-- Bigger results get a longer build-up, a hush before the reveal and a longer celebration.
+export type Show = {
+	build: number, -- seconds of red-carpet drumroll (the camera dollies up the carpet)
+	hush: number, -- seconds of silence before the result (0 = none); it hints something big is coming
+	celebrate: number, -- seconds after the marquee flips before the box office card
+	stars: { number }, -- the critic's stars: fewest, most
+	mood: "aww" | "cheer" | "wild" | "chant", -- how the crowd behind the ropes reacts
+	critic: { string }, -- the critic's line (one is picked)
+}
+
+PremiereNight.Shows = table.freeze({
+	Flop = {
+		build = 1.6, hush = 0, celebrate = 0.7, stars = { 1, 2 }, mood = "aww",
+		critic = {
+			"I fell asleep. Twice. The popcorn was the best actor.",
+			"Even the seats tried to walk out.",
+			"Bold choice: a movie with no ending. Or middle.",
+		},
+	},
+	Hit = {
+		build = 1.6, hush = 0, celebrate = 0.7, stars = { 2, 3 }, mood = "cheer",
+		critic = {
+			"Solid fun! I only checked my phone once.",
+			"A good popcorn movie. I finished my popcorn.",
+			"I smiled four times. That's a lot for me.",
+		},
+	},
+	Blockbuster = {
+		build = 1.8, hush = 0.4, celebrate = 0.8, stars = { 4, 4 }, mood = "wild",
+		critic = {
+			"Explosions! Feelings! I cried into my nachos!",
+			"I clapped so hard my gloves flew off.",
+			"Bring tissues AND a helmet.",
+		},
+	},
+	Cult = {
+		build = 1.9, hush = 0.6, celebrate = 0.9, stars = { 4, 4 }, mood = "chant",
+		critic = {
+			"Nobody gets it... and that's why we LOVE it.",
+			"Weird. Wonderful. I've seen it nine times.",
+			"My cat watched it with me. Now she wears a cape.",
+		},
+	},
+	Masterpiece = {
+		build = 2.0, hush = 1.0, celebrate = 1.5, stars = { 5, 5 }, mood = "wild",
+		critic = {
+			"I have run out of stars. Please send more stars.",
+			"I'm framing my ticket. Maybe my whole seat.",
+			"Hollywood will be talking about this one forever.",
+		},
+	},
+} :: { [string]: Show })
+
+PremiereNight.CRITIC = "Rita Reelwright, The Daily Clapper"
+PremiereNight.SKIP_AFTER = 1 -- seconds before a tap can skip (the first premiere's tutorial too)
+PremiereNight.FAR = 350 -- studs: farther than this, the camera cuts to the theatre instead of flying
+PremiereNight.RETURN_SECONDS = 0.7 -- the glide home after Continue
+
+function PremiereNight.show(resultId: string): Show
+	return PremiereNight.Shows[resultId] or PremiereNight.Shows.Hit
+end
+
+-- How long the camera takes to glide `distance` studs to the theatre; nil when it is too far to fly.
+function PremiereNight.glideSeconds(distance: number): number?
+	if distance > PremiereNight.FAR then
+		return nil
+	end
+	return math.clamp(distance / 260, 0.6, 1.1)
+end
+
+-- When the marquee flips and when the box office card comes up, in seconds after the glide.
+function PremiereNight.beats(resultId: string): (number, number)
+	local show = PremiereNight.show(resultId)
+	local reveal = show.build + show.hush
+	return reveal, reveal + 0.6 + show.celebrate
+end
+
+-- The critic's stars and line; `roll` is 0..1 (random), so the same roll gives the same review.
+function PremiereNight.review(resultId: string, roll: number): (number, string)
+	local show = PremiereNight.show(resultId)
+	local low, high = show.stars[1], show.stars[2]
+	local stars = math.min(high, low + math.floor(roll * (high - low + 1)))
+	local line = show.critic[math.min(#show.critic, 1 + math.floor(roll * #show.critic))]
+	return stars, line
+end
+
 function PremiereNight.style(resultId: string): Style
 	return PremiereNight.Styles[resultId] or PremiereNight.Styles.Hit
 end
