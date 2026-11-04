@@ -71,21 +71,21 @@ end
 -- other off. `pitch` multiplies the slot's own pitch, for a little variety. With `at`, the sound
 -- comes from that spot in the world (3D, fading out by `range` studs); `length` cuts a long sound
 -- short with a quick fade.
-local function playSlot(name: string, pitch: number?, at: Vector3?, range: number?, length: number?)
+local function playSlot(name: string, pitch: number?, at: Vector3?, range: number?, length: number?): Sound?
 	local id, volume, slotPitch = Sounds.resolve(name)
 	if id == nil then
 		warn(`[Sfx] unknown sound slot "{name}"`)
-		return
+		return nil
 	end
 	local now = os.clock()
 	if now - (lastPlayed[name] or -1) < REPEAT_GAP then
-		return
+		return nil
 	end
 	lastPlayed[name] = now
 	local base = template(id)
 	local sfxGroup = group
 	if base == nil or sfxGroup == nil or sfxGroup.Volume <= 0 then
-		return
+		return nil
 	end
 	local sound = base:Clone()
 	sound.Volume = volume
@@ -120,12 +120,14 @@ local function playSlot(name: string, pitch: number?, at: Vector3?, range: numbe
 			end
 		end)
 	end
-	-- Safety net if Ended never fires (asset failed to load).
-	task.delay(math.max(8, (length or 0) + 1), done)
+	-- Safety net if Ended never fires (asset failed to load). Long enough for a voice line.
+	task.delay(math.max(12, (length or 0) + 1), done)
+	return sound
 end
 
-function Sfx.play(name: string, pitch: number?)
-	playSlot(name, pitch)
+-- Returns the playing copy (nil if muted or unknown), so a voice line can be stopped early.
+function Sfx.play(name: string, pitch: number?): Sound?
+	return playSlot(name, pitch)
 end
 
 -- Plays slot `name` from `at` in the world (see playSlot).

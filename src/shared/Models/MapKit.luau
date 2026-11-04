@@ -7,6 +7,7 @@
 -- Words are never part of a model: signs have named spots, and `labels` letters them.
 local Build = require(script.Parent.Build)
 local HalloweenShapes = require(script.Parent.HalloweenShapes)
+local LucienShapes = require(script.Parent.LucienShapes)
 local MapKitShapes = require(script.Parent.MapKitShapes)
 
 type Builder = Build.Builder
@@ -75,8 +76,12 @@ end
 function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: Options?): Model
 	local opts: Options = options or {}
 	local scale = opts.scale or 1
-	-- The Fright Night decor (art/blender/halloween_kit.py) has its own shapes file.
-	local kit: typeof(MapKitShapes) = if MapKitShapes.Shapes[name] ~= nil then MapKitShapes else HalloweenShapes :: any
+	-- The Fright Night decor (art/blender/halloween_kit.py) and Lucien (art/blender/lucien.py)
+	-- have their own shapes files.
+	local kit: typeof(MapKitShapes) = if MapKitShapes.Shapes[name] ~= nil
+		then MapKitShapes
+		elseif LucienShapes.Shapes[name] ~= nil then LucienShapes :: any
+		else HalloweenShapes :: any
 	local shapes = kit.Shapes[name]
 	local bounds = kit.Bounds[name]
 	assert(shapes ~= nil and bounds ~= nil, `no map kit model called {name}`)

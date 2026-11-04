@@ -89,6 +89,17 @@ Sounds.Slots = {
 	FilmPlaces = { id = 109213125841224, volume = 0.8, fallback = "indicator" }, -- "Places everyone!" when the owner walks in
 	FilmApplause = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- a clean take (PSE "Applause Tight 4"; FilmSetWorld plays ~3 s of it)
 
+	-- The intro (IntroScene, StageScene): the curtains part, the logo's fanfare, the marquee
+	-- slamming down, the dice landing, and Director Lucien Vale's lines (Fish Audio voice
+	-- "Adrian", uploaded 2026-11-02; the words are in IntroScene.LINES).
+	introCurtain = slot("whoosh", 0.7),
+	introFanfare = slot("jingle"),
+	introSlam = slot("stinger", 0.8),
+	introDice = slot("pop", 0.9),
+	introLucien1 = { id = 0, volume = 0.9, fallback = "indicator" }, -- "Ah, there you are! Welcome to Hollywood, my friend."
+	introLucien2 = { id = 0, volume = 0.9, fallback = "indicator" }, -- "I'm Director Lucien Vale. Fifty years behind the camera..."
+	introLucien3 = { id = 0, volume = 0.9, fallback = "indicator" }, -- "This studio is yours now. Let's make your very first picture!"
+
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed
 	welcome = slot("jingle"), -- welcome back, daily reward ready, tutorial done
