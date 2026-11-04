@@ -8,6 +8,7 @@
 -- overlay as a clear film frame (letterbox and a skip pill); then the poster, stamp and card come
 -- up over it. Taps: none for the first second, then one skips to the result and card, then one
 -- finishes the count-ups. Results that arrive during a premiere wait their turn.
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -84,9 +85,12 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	safe.Parent = overlay
 	local function fit()
 		local view = UiKit.viewport()
-		local pos, size = gui.AbsolutePosition, gui.AbsoluteSize
-		local left, top = pos.X, pos.Y
-		local right, bottom = math.max(0, view.X - (pos.X + size.X)), math.max(0, view.Y - (pos.Y + size.Y))
+		-- The core insets (top bar, notch) sit at the top left; whatever else the screen has beyond
+		-- the game's area is at the right and bottom.
+		local topLeft = GuiService:GetGuiInset()
+		local size = gui.AbsoluteSize
+		local left, top = topLeft.X, topLeft.Y
+		local right, bottom = math.max(0, view.X - size.X - left), math.max(0, view.Y - size.Y - top)
 		overlay.Position = UDim2.fromOffset(-left, -top)
 		overlay.Size = UDim2.new(1, left + right, 1, top + bottom)
 		safe.Position = UDim2.fromOffset(left, top)
@@ -94,8 +98,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	end
 	fit()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
-	gui:GetPropertyChangedSignal("AbsolutePosition"):Connect(fit)
-	UiKit.onViewportChanged(fit)
+		UiKit.onViewportChanged(fit)
 
 	-- Tapping anywhere during the drumroll skips to the result.
 	local tapCatcher = Instance.new("TextButton")
