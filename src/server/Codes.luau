@@ -17,6 +17,6 @@ return table.freeze({
 	LIGHTSCAMERA = { reward = { luckMinutes = 10 } },
 	DIRECTORSCUT = { reward = { cash = 9_900_000, fame = 500_000 }, dev = true },
 	ACTION = { reward = { script = { genre = "Action", length = "Indie", count = 2 } } },
-	RELEASE = { reward = { cash = 1000, luckMinutes = 15, skips = 1 } },
-	HOLLYWOOD = { reward = { cash = 2500, cashMinutes = 30 } },
+	RELEASE = { reward = { cash = 500, cashMinutes = 15 } },
+	HOLLYWOOD = { reward = { cash = 500, cashMinutes = 15 } },
 } :: { [string]: Code })

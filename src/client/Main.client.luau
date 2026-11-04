@@ -54,7 +54,7 @@ gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 gui.Parent = playerGui
 
-GamepadNavigation.start(gui)
+GamepadNavigation.start()
 Sfx.start()
 Music.start()
 Blimp.start()

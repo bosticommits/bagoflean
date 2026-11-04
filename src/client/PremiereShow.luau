@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local ActorModels = require(ReplicatedStorage.Shared.Models.ActorModels)
@@ -86,13 +87,14 @@ type Run = {
 }
 
 local random = Random.new()
-local lite = false -- sticky for the session: set when the glide ran under 30 FPS
+local lite = UserInputService.TouchEnabled -- phones and tablets start light; any device goes light if the glide runs under 30 FPS
 local active: Run? = nil
 local starting = false
 local token = 0
 local rig: { fans: { Person }, photogs: { Person } }? = nil
-local palmCache: { { part: BasePart, cf: CFrame } }? = nil
 local iris: Frame? = nil
+local irisTween: Tween? = nil
+local revealed = false -- this show already played the result sting (Fx.premiere)
 
 local function noCollide(model: Instance)
 	for _, part in model:GetDescendants() do
@@ -167,7 +169,23 @@ local function irisTo(transparency: number, seconds: number)
 		iris = frame
 	end
 	local frame = iris :: Frame
-	TweenService:Create(frame, TweenInfo.new(seconds, Enum.EasingStyle.Quad), { BackgroundTransparency = transparency }):Play()
+	if irisTween ~= nil then
+		irisTween:Cancel()
+	end
+	local t = TweenService:Create(frame, TweenInfo.new(seconds, Enum.EasingStyle.Quad), { BackgroundTransparency = transparency })
+	irisTween = t
+	t:Play()
+end
+
+-- Never leave the white iris on screen (a skip, a death or a Visit during a cut).
+local function clearIris()
+	if irisTween ~= nil then
+		irisTween:Cancel()
+		irisTween = nil
+	end
+	if iris ~= nil then
+		iris.BackgroundTransparency = 1
+	end
 end
 
 -- The crowd -----------------------------------------------------------------------------------------
@@ -347,22 +365,17 @@ local function flipBoard(r: Run)
 	end)
 end
 
--- The theatre's palms wilt for a Flop (they stand up again afterwards). Meshed palms only.
+-- The theatre's palms wilt for a Flop (they stand up again afterwards). Meshed palms only; asked
+-- for fresh each time, so a palm that streamed out is never held on to.
 local function palms(): { { part: BasePart, cf: CFrame } }
-	if palmCache ~= nil then
-		return palmCache
-	end
 	local out = {}
-	local tb = MapModels.theatreBase()
-	local town = Workspace:FindFirstChild("Town")
-	if town ~= nil then
-		for _, d in town:GetDescendants() do
-			if d.Name == "PalmTree" and d:IsA("MeshPart") and (d.Position - tb.Position).Magnitude < 40 then
-				table.insert(out, { part = d, cf = d.CFrame })
-			end
+	local params = OverlapParams.new()
+	params.MaxParts = 400
+	for _, d in Workspace:GetPartBoundsInRadius(MapModels.theatreBase().Position, 40, params) do
+		if d.Name == "PalmTree" and d:IsA("MeshPart") then
+			table.insert(out, { part = d, cf = d.CFrame })
 		end
 	end
-	palmCache = out
 	return out
 end
 
@@ -448,7 +461,8 @@ local function reveal(r: Run)
 	PremiereCamera.move(shot(s, 19, 11, 4), fov(s, 45), 0.45, 0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	Fx.shake(if id == "Masterpiece" or id == "Blockbuster" then 1.4 else 0.8, 0.4)
 	flipBoard(r)
-	Fx.premiere(id, r.res.color)
+	revealed = true
+	Fx.premiere(id, r.res.color, lite)
 	if id == "Flop" then
 		Sfx.play("showAww", nil, 3)
 		Sfx.play("showRain", nil, 6)
@@ -465,7 +479,7 @@ local function reveal(r: Run)
 		Sfx.play("showCheerWild", 0.9, 5)
 		tintTo(r, Color3.fromRGB(210, 150, 255), 0.2, -0.03, 0.8)
 		bursts(r, 4, { PURPLE, Color3.fromRGB(255, 120, 220) }, 0.35)
-		Fx.confetti(70, { PURPLE, Color3.fromRGB(255, 120, 220), Color3.new(1, 1, 1) })
+		Fx.confetti(if lite then 35 else 70, { PURPLE, Color3.fromRGB(255, 120, 220), Color3.new(1, 1, 1) })
 		local glow = Instance.new("Part")
 		glow.Anchored, glow.Transparency, glow.Size = true, 1, Vector3.one
 		glow.CFrame = CFrame.new(at(s, 6, 0, 9))
@@ -489,7 +503,7 @@ local function reveal(r: Run)
 		end)
 		bursts(r, 10, GOLDS, 0.2)
 		if r.first then
-			Fx.confetti(120, GOLDS, true) -- golden tickets
+			Fx.confetti(if lite then 60 else 120, GOLDS, true) -- golden tickets
 		end
 	end
 end
@@ -530,6 +544,7 @@ local function timeline(r: Run, mine: number, jump: boolean)
 		if glide == nil then
 			irisTo(0, 0.25)
 			if not sleep(r, mine, 0.3) then
+				irisTo(1, 0.15)
 				return
 			end
 			PremiereCamera.cut(est, fov(s, 60))
@@ -597,7 +612,33 @@ local function timeline(r: Run, mine: number, jump: boolean)
 	PremiereCamera.move(shot(s, 18, 13, 4), fov(s, 45), 8, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 end
 
+-- Runs the timeline; if it ever errors the show is ended, so the camera, controls and HUD come back.
+local function runTimeline(r: Run, mine: number, jump: boolean)
+	task.spawn(function()
+		local message = ""
+		local ok = xpcall(timeline, function(e: any)
+			message = tostring(e)
+			return e
+		end, r, mine, jump)
+		if not ok then
+			warn(`[PremiereShow] {message}`)
+			if not r.cleaned then
+				PremiereShow.abort(true)
+			end
+		end
+	end)
+end
+
 -- Public ------------------------------------------------------------------------------------------------
+
+-- True once this show has played the result sting (so the card must not play it again).
+function PremiereShow.didReveal(): boolean
+	return revealed
+end
+
+function PremiereShow.resetReveal()
+	revealed = false
+end
 
 function PremiereShow.active(): boolean
 	return active ~= nil or starting
@@ -638,6 +679,7 @@ local function cleanup(r: Run)
 	if active == r then
 		active = nil
 	end
+	clearIris()
 	PremiereCamera.restore()
 end
 
@@ -648,21 +690,19 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 	if active ~= nil or starting then
 		return false
 	end
+	revealed = false
 	starting = true
 	local tb = MapModels.theatreBase()
-	-- Ask the server to stream the theatre in (no waiting when it is already there), then give it up
-	-- to two seconds to arrive.
-	task.spawn(pcall, function()
-		Players.LocalPlayer:RequestStreamAroundAsync(tb.Position, 2)
-	end)
+	-- Ask the server to stream the theatre in; this waits (up to 2 s) only while it is not there yet.
+	local localPlayer = Players.LocalPlayer
+	pcall(localPlayer.RequestStreamAroundAsync, localPlayer, tb.Position, 2)
 	local town = Workspace:FindFirstChild("Town")
-	local waited = 0
-	while waited < 2 and (town == nil or town:FindFirstChild("PremiereTheatre", true) == nil) do
-		task.wait(0.1)
-		waited += 0.1
+	local theatre = if town ~= nil then town:FindFirstChild("PremiereTheatre", true) else nil
+	if theatre == nil or theatre:FindFirstChildWhichIsA("BasePart", true) == nil then
 		town = Workspace:FindFirstChild("Town")
+		theatre = if town ~= nil then town:FindFirstChild("PremiereTheatre", true) else nil
 	end
-	if town == nil or town:FindFirstChild("PremiereTheatre", true) == nil or not PremiereCamera.begin() then
+	if theatre == nil or theatre:FindFirstChildWhichIsA("BasePart", true) == nil or not PremiereCamera.begin() then
 		starting = false
 		return false
 	end
@@ -793,7 +833,7 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 			hooks.aborted()
 		end
 	end)
-	task.spawn(timeline, run, mine, false)
+	runTimeline(run, mine, false)
 	return true
 end
 
@@ -820,7 +860,7 @@ function PremiereShow.skip(): boolean
 	end
 	token += 1
 	r.fast = true
-	task.spawn(timeline, r, token, true)
+	runTimeline(r, token, true)
 	return true
 end
 

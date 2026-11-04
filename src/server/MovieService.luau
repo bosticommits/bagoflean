@@ -15,7 +15,7 @@ local Takes = require(ReplicatedStorage.Shared.Takes)
 local Unlocks = require(ReplicatedStorage.Shared.Unlocks)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
-local BadgeService = require(script.Parent.BadgeService)
+local BadgeAwards = require(script.Parent.BadgeAwards)
 local CastingService = require(script.Parent.CastingService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -399,17 +399,17 @@ local function settle(player: Player, data: DataService.PlayerData, film: DataSe
 	end
 	Analytics.onboarding(player, Analytics.Steps.FirstPremiere)
 	Analytics.event(player, "Premiere", 1, result.id, film.length)
-	BadgeService.award(player, "FirstFilm")
+	BadgeAwards.award(player, "FirstFilm")
 	QuestTracker.track(player, "premiere")
 	QuestTracker.track(player, "premiere:" .. film.genre) -- weekly genre quests
 	if result.multiplier >= 3 then
-		BadgeService.award(player, "FirstBlockbuster")
+		BadgeAwards.award(player, "FirstBlockbuster")
 		QuestTracker.track(player, "hit")
 		QuestTracker.track(player, "hit:" .. film.genre) -- Film Festival goals
 	end
 	VisitService.premiered(player, film.title, result.id) -- visitors on the lot watch it too
 	if result.id == "Masterpiece" then
-		BadgeService.award(player, "Masterpiece")
+		BadgeAwards.award(player, "Masterpiece")
 		Remotes.announce(`{player.DisplayName}'s "{film.title}" is a MASTERPIECE!`)
 		LotService.celebrate(player, "masterpiece")
 	end

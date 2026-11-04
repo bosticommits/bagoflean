@@ -93,6 +93,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	overlay.Visible = false
 	overlay.ZIndex = 12
 	overlay.Parent = shell
+	UiKit.watchOverlay(overlay)
 	overlay:GetPropertyChangedSignal("Visible"):Connect(function()
 		safeGui.Enabled = overlay.Visible
 	end)
@@ -811,7 +812,9 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 			-- A thump: the whole stage jolts a little as the stamp lands.
 			stageScale.Scale = if big then 1.04 else 1.02
 			tween(stageScale, 0.4, { Scale = 1 }, Enum.EasingStyle.Sine)
-			Fx.premiere(res.id, res.color)
+			if not PremiereShow.didReveal() then
+				Fx.premiere(res.id, res.color) -- the show plays it at the reveal; only a card with no show (or one cut short) plays it here
+			end
 			flashes(style.flashes, if big then 1.6 else 0.9, mine)
 			if style.beams ~= "down" then
 				-- A ring rolls out from the stamp and a lens streak flares across it.
@@ -1124,6 +1127,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 		showRan = false
 		stopEffects()
 		tapCatcher:SetAttribute("Revealed", nil)
+		PremiereShow.resetReveal()
 		overlay.Visible = true
 		overlay.BackgroundTransparency = 1
 		layout()
