@@ -16,6 +16,29 @@ local DataService = require(script.Parent.DataService)
 local MAX_CASH = 1e15
 
 local lastCollectAttempt: { [Player]: number } = {}
+-- Group membership for the group Cash bonus, looked up once per player in the background:
+-- IsInGroupAsync is a web call, so addCash never waits on it (no bonus until it answers).
+local inGroup: { [Player]: boolean } = {}
+local function lookUpGroup(player: Player)
+	if Config.RobloxGroupId == 0 or inGroup[player] ~= nil then
+		return
+	end
+	inGroup[player] = false
+	task.spawn(function()
+		for _ = 1, 3 do
+			local ok, member = pcall(function()
+				return player:IsInGroupAsync(Config.RobloxGroupId)
+			end)
+			if ok then
+				if player.Parent ~= nil then
+					inGroup[player] = member == true
+				end
+				return
+			end
+			task.wait(5)
+		end
+	end)
+end
 
 local EconomyService = {}
 
@@ -75,6 +98,10 @@ function EconomyService.addCash(player: Player, amount: number, tx: string?, sku
 	if whole <= 0 then
 		return false
 	end
+	lookUpGroup(player)
+	if inGroup[player] and tx == "Gameplay" then
+		whole = math.floor(whole * (1 + Config.GroupCashBonus))
+	end
 	data.cash = math.min(data.cash + whole, MAX_CASH)
 	DataService.markDirty(player)
 	Analytics.economy(player, true, whole, data.cash, tx or "Gameplay", sku or "Other")
@@ -125,6 +152,7 @@ end
 
 function EconomyService.forget(player: Player)
 	lastCollectAttempt[player] = nil
+	inGroup[player] = nil
 end
 
 return EconomyService
