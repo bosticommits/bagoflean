@@ -1,45 +1,36 @@
 --!strict
--- Gamepad navigation handler for Hollywood RNG.
--- Handles virtual cursor selection, bumper tab switching, and B/Circle button screen dismissal.
+-- Gamepad navigation for Hollywood RNG: turns on the gamepad selection cursor, and B/Circle first
+-- deselects the selected UI object, then closes the open panel. The casting reveal's B-skip lives in
+-- CastingUi and is left alone: this binding only sinks B when it did something.
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
-local UserInputService = game:GetService("UserInputService")
+
+local UiKit = require(script.Parent.UiKit)
 
 local GamepadNavigation = {}
 
 local CLOSE_ACTION = "GamepadCloseScreen"
 
 local function handleCloseAction(_actionName: string, inputState: Enum.UserInputState, _inputObject: InputObject)
-	if inputState == Enum.UserInputState.Begin then
-		-- Deselect UI object or send Back intention
-		if GuiService.SelectedObject ~= nil then
-			GuiService.SelectedObject = nil
-			return Enum.ContextActionResult.Sink
-		end
+	if inputState ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	if GuiService.SelectedObject ~= nil then
+		GuiService.SelectedObject = nil
+		return Enum.ContextActionResult.Sink
+	end
+	if UiKit.anyPanelOpen() and not UiKit.overlayOpen() then
+		UiKit.closePanels()
+		return Enum.ContextActionResult.Sink
 	end
 	return Enum.ContextActionResult.Pass
 end
 
-function GamepadNavigation.start(gui: ScreenGui)
-	-- Enable virtual gamepad cursor if supported
+function GamepadNavigation.start()
 	pcall(function()
 		GuiService.AutoSelectGuiEnabled = true
 	end)
-
-	-- Bind Gamepad B button to cancel/close menus gracefully
-	ContextActionService:BindAction(
-		CLOSE_ACTION,
-		handleCloseAction,
-		false,
-		Enum.KeyCode.ButtonB
-	)
-
-	-- Whenever gamepad is connected, optimize navigation mode
-	UserInputService.GamepadConnected:Connect(function(gamepadNum)
-		if gamepadNum == Enum.UserInputType.Gamepad1 then
-			GuiService.SelectedObject = nil
-		end
-	end)
+	ContextActionService:BindAction(CLOSE_ACTION, handleCloseAction, false, Enum.KeyCode.ButtonB)
 end
 
 return GamepadNavigation

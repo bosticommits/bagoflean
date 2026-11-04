@@ -92,6 +92,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	overlay.Visible = false
 	overlay.ZIndex = 12
 	overlay.Parent = shell
+	UiKit.watchOverlay(overlay)
 	overlay:GetPropertyChangedSignal("Visible"):Connect(function()
 		safeGui.Enabled = overlay.Visible
 	end)

@@ -605,6 +605,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	overlay.Visible = false
 	overlay.ZIndex = 10
 	overlay.Parent = gui
+	UiKit.watchOverlay(overlay)
 
 	local card = Instance.new("Frame")
 	card.AnchorPoint = Vector2.new(0.5, 0.5)
