@@ -216,7 +216,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	batchFrame.Size = UDim2.fromScale(1, 1)
 	batchFrame.ZIndex = 14
 	batchFrame.Visible = false
-	batchFrame.Parent = overlay
+	batchFrame.Parent = safe
 	local batchTitle = UiKit.makeTitle(batchFrame, "MORE PREMIERES TONIGHT", UiKit.GOLD, UDim2.fromScale(0.9, 0.1), UDim2.fromScale(0.05, 0.09), 3)
 	batchTitle.ZIndex = 14
 	UiKit.textConstraint(batchTitle, 40)
