@@ -115,6 +115,70 @@ function PremiereNight.review(resultId: string, roll: number): (number, string)
 	return stars, line
 end
 
+-- PREMIERE ALL: how a batch of results is staged. Every Masterpiece gets its own full show (in
+-- order); with none, the biggest result (rarest, then richest) gets one. The rest flip as quick
+-- cards, worst to best by payout (only the first QUICK_CARDS are shown, then "+N more").
+PremiereNight.QUICK_CARDS = 4
+PremiereNight.QUICK_SECONDS = 0.35 -- per card
+
+local function rank(resultId: string): number
+	for index, result in Movies.Results do
+		if result.id == resultId then
+			return index
+		end
+	end
+	return 0
+end
+
+function PremiereNight.plan(results: { any }): ({ any }, { any })
+	local full: { any } = {}
+	for _, r in results do
+		if r.result == "Masterpiece" then
+			table.insert(full, r)
+		end
+	end
+	if #full == 0 and #results > 0 then
+		local best = results[1]
+		for _, r in results do
+			local a, b = rank(r.result), rank(best.result)
+			if a > b or (a == b and (r.payout or 0) > (best.payout or 0)) then
+				best = r
+			end
+		end
+		table.insert(full, best)
+	end
+	local rest: { any } = {}
+	for _, r in results do
+		if table.find(full, r) == nil then
+			table.insert(rest, r)
+		end
+	end
+	-- Worst to best; table.sort is not stable, so ties keep their order by position.
+	local position: { [any]: number } = {}
+	for index, r in rest do
+		position[r] = index
+	end
+	table.sort(rest, function(a, b)
+		local pa, pb = a.payout or 0, b.payout or 0
+		if pa ~= pb then
+			return pa < pb
+		end
+		return position[a] < position[b]
+	end)
+	return full, rest
+end
+
+-- The night's totals: Cash, Fame and how many films earned the Award Night bonus.
+function PremiereNight.total(results: { any }): (number, number, number)
+	local payout, fame, awards = 0, 0, 0
+	for _, r in results do
+		payout += if type(r.payout) == "number" then r.payout else 0
+		fame += if type(r.fame) == "number" then r.fame else 0
+		awards += if r.awardNight then 1 else 0
+	end
+	return payout, fame, awards
+end
+
 function PremiereNight.style(resultId: string): Style
 	return PremiereNight.Styles[resultId] or PremiereNight.Styles.Hit
 end

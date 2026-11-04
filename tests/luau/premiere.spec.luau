@@ -88,3 +88,33 @@ test("far players get a cut, near ones a glide", function()
 	local mid = PremiereNight.glideSeconds(200)
 	expect(mid ~= nil and mid > 0.6 and mid <= 1.1, "mid glide")
 end)
+
+test("PREMIERE ALL: masterpieces get their own show, otherwise the biggest result; the rest go worst to best", function()
+	local function film(result: string, payout: number, extra: any?)
+		local r = { result = result, payout = payout, fame = payout // 10, title = result .. payout }
+		for k, v in extra or {} do
+			r[k] = v
+		end
+		return r
+	end
+	local a, b, c, d = film("Hit", 1200), film("Flop", 300), film("Blockbuster", 900), film("Hit", 800)
+	local full, rest = PremiereNight.plan({ a, b, c, d })
+	equal(#full, 1)
+	equal(full[1], c, "the rarest result gets the show, not the richest")
+	equal(rest[1], b)
+	equal(rest[2], d)
+	equal(rest[3], a)
+	local m1, m2 = film("Masterpiece", 20000), film("Masterpiece", 5000)
+	full, rest = PremiereNight.plan({ a, m1, b, m2 })
+	equal(#full, 2, "every masterpiece gets a show")
+	equal(full[1], m1)
+	equal(rest[1], b)
+	equal(#rest, 2)
+	full, rest = PremiereNight.plan({ film("Hit", 500), film("Hit", 900) })
+	equal(full[1].payout, 900, "the richer of equals")
+	equal(rest[1].payout, 500)
+	local payout, fame, awards = PremiereNight.total({ a, film("Hit", 100, { awardNight = true }), film("Hit", "x") })
+	equal(payout, 1300)
+	equal(fame, 130)
+	equal(awards, 1)
+end)
