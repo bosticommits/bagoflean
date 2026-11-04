@@ -85,7 +85,8 @@ Sounds.Slots = {
 	showHeartbeat = { id = 1839998022, volume = 0.7, fallback = "low", pitch = 0.6 }, -- "Heartbeat" (GAME SHOW TOOLKIT): the hush
 	showCheer = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- applause (PSE "Applause Tight 4")
 	showCheerWild = { id = 9112766203, volume = 0.55, fallback = "clap" }, -- cheers, whistles, chanting (PSE "Crowd Cheer And Applause 2")
-	showAww = slot("low", 0.8), -- the crowd's friendly "awww" on a Flop (no licensed one yet)
+	-- The crowd's friendly "awww" on a Flop: four Fish Audio voices layered (uploaded 2026-11-04).
+	showAww = { id = 99187295696445, volume = 0.7, fallback = "low", pitch = 0.8 },
 	showRain = { id = 9112852671, volume = 0.45, fallback = "sweep", pitch = 0.6 }, -- Flop drizzle (PSE "Rain Continuous Drizzle 2")
 	showFireworks = { id = 9112780898, volume = 0.6, fallback = "pop", pitch = 0.7 }, -- pops and whistles (PSE "Fireworks Sparse 2")
 	showCoins = { id = 9113849445, volume = 0.5, fallback = "pop", pitch = 1.5 }, -- the coin burst (PSE "Coins Or Keys Jingle 5")
