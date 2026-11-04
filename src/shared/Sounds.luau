@@ -109,6 +109,19 @@ Sounds.Slots = {
 	-- Then the announcer: "Fright Night has begun! Grab the pumpkins!" (Fish Audio, uploaded 2026-10-26).
 	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6 },
 
+	-- Lucien Vale, the game show host (Fish Audio voice "Adrian", uploaded 2026-11-04).
+	lucienWelcome = { id = 119403867472276, volume = 0.9, fallback = "jingle" }, -- "Welcome to Hollywood RNG!"
+	lucienFirstCast = { id = 125664057757278, volume = 0.9, fallback = "whoosh" }, -- "Time to roll your first cast!"
+	lucienRarePull = { id = 94106934856816, volume = 0.9, fallback = "stinger" }, -- "Ooh! Now THAT is a rare face!"
+	lucienLegendPull = { id = 76266690163201, volume = 0.9, fallback = "jingle" }, -- "A LEGEND!"
+	lucienAction = { id = 78920949726178, volume = 0.9, fallback = "clap" }, -- "Lights... camera... ACTION!"
+	lucienPremiere = { id = 105795421068430, volume = 0.9, fallback = "whoosh" }, -- "Let's see what the critics say..."
+	lucienFlop = { id = 98265469775608, volume = 0.9, fallback = "low" }, -- "Oof... a flop!"
+	lucienBlockbuster = { id = 127361279847230, volume = 0.9, fallback = "stinger" }, -- "BLOCKBUSTER!"
+	lucienRebirth = { id = 94420324004466, volume = 0.9, fallback = "jingle" }, -- "A fresh start!"
+	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger" }, -- "Heads up, Hollywood! A special event just started!"
+	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)
+
 	-- Studio visits
 	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio
 	applause = slot("clap", 1.1), -- someone applauds a studio near you (each clap)
