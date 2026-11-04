@@ -81,7 +81,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	safe.Name = "Safe"
 	safe.BackgroundTransparency = 1
 	safe.Size = UDim2.fromScale(1, 1)
-	safe.ZIndex = 12
+	safe.ZIndex = 13
 	safe.Parent = overlay
 	local function fit()
 		local view = UiKit.viewport()
@@ -202,7 +202,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	stageScale.Parent = stage
 
 	-- During the red-carpet show: a pill that says a tap skips (it shows once taps count).
-	local skipPill = UiKit.makeLabel(overlay, "Tap to skip", WHITE, UDim2.fromScale(0.22, 0.05), UDim2.fromScale(0.39, 0.9))
+	local skipPill = UiKit.makeLabel(overlay, "Tap to skip", WHITE, UDim2.fromScale(0.22, 0.05), UDim2.fromScale(0.39, 0.83))
 	skipPill.Name = "SkipPill"
 	skipPill.ZIndex = 14
 	skipPill.BackgroundTransparency = 0.45
@@ -719,6 +719,10 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 		end
 		stage.Visible = onCard
 		batchFrame.Visible = name == "quick"
+		-- The cinema bars belong to the 3D show; the card and the quick cards use the whole screen.
+		for _, bar in { overlay:FindFirstChild("LetterboxTop"), overlay:FindFirstChild("LetterboxBottom") } do
+			(bar :: GuiObject).Visible = name == "show"
+		end
 		skipPill.Visible = false
 		tapCatcher.Visible = true
 	end

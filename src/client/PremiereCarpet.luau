@@ -4,6 +4,7 @@
 -- same remotes as the Studio panel's buttons (PREMIERE, or PREMIERE ALL with two or more ready).
 -- Both are local to this player: the prompt is made here, and only the marquee's text is changed on
 -- this client (the server's map still says "TONIGHT: YOUR PREMIERE").
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local MapModels = require(game:GetService("ReplicatedStorage").Shared.Models.MapModels)
@@ -95,6 +96,7 @@ function PremiereCarpet.start(gui: ScreenGui, remotes: Instance)
 	end
 
 	local flip = false
+	local wasReady = false
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
@@ -105,6 +107,13 @@ function PremiereCarpet.start(gui: ScreenGui, remotes: Instance)
 			if ready > 0 then
 				ensurePrompt()
 			end
+			-- A film just finished: have the theatre streamed in already, so the show starts at once.
+			if ready > 0 and not wasReady then
+				task.spawn(pcall, function()
+					Players.LocalPlayer:RequestStreamAroundAsync(tb.Position, 3)
+				end)
+			end
+			wasReady = ready > 0
 			local p = prompt
 			if p ~= nil then
 				p.Enabled = ready > 0 and not busy
