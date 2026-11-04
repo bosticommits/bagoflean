@@ -28,7 +28,7 @@ local SWEEP = math.rad(18)
 
 local darkness = 0
 
--- 0 in daylight to 1 at night, for other modules (TownLife's premiere lights).
+-- 0 in daylight to 1 at night, for other modules (the premiere show's lights).
 function DayNightWorld.darkness(): number
 	return darkness
 end

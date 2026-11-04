@@ -3,15 +3,12 @@
 -- ActorLife, so they cost the server nothing):
 --   * a hot-dog vendor at his cart, a mime and a busker playing for tips, people waiting at the
 --     two bus stops;
---   * paparazzi snapping photos by the top-star pedestal of a lot whose star is Star or rarer;
---   * when a player premieres a film (the server's LotPremiere broadcast, which every client hears),
---     fans run up the red carpet of that studio and cheer for a few seconds (more fans for bigger
---     results), the paparazzi join them, and the marquee and carpet lights come up (brighter
---     after dark, DayNightWorld).
+--   * paparazzi snapping photos by the top-star pedestal of a lot whose star is Star or rarer.
+-- Premieres get no crowd on the lot: the owner's premiere is a private show (PremiereReveal).
 --
 -- Every person is the townsfolk rig from art/blender/townlife_kit.py: six pieces (Head, Torso,
 -- two arms, two legs) turned at their joints with plain CFrame math, no Humanoids or pathfinding.
--- They are built once and reused (the fans are a pool of eight). One Heartbeat moves them all with
+-- They are built once and reused. One Heartbeat moves them all with
 -- one BulkMoveTo, 30 times a second; only the CAP nearest within RANGE move, those past NEAR only
 -- every FAR_EVERY steps, and people past CULL are taken out of the world until the camera comes back.
 local Players = game:GetService("Players")
@@ -24,7 +21,6 @@ local Build = require(ReplicatedStorage.Shared.Models.Build)
 local Config = require(ReplicatedStorage.Shared.Config)
 local MapKit = require(ReplicatedStorage.Shared.Models.MapKit)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
-local DayNightWorld = require(script.Parent.DayNightWorld)
 
 local TownLife = {}
 
@@ -34,7 +30,6 @@ local NEAR = 60 -- closer than this, every step; farther, every FAR_EVERY steps
 local FAR_EVERY = 3
 local CULL = 260 -- farther than this, out of the world
 local CAP = 24 -- most people moved in one step
-local PREMIERE_RANGE = 200 -- premieres farther from the camera than this get no crowd
 local STAR_RANGE = 140 -- the paparazzi visit the nearest star lot within this
 
 -- Body (studs, feet at y = 0, facing -Z): the same joints as CrewRig and the Blender kit.
@@ -44,20 +39,9 @@ local SHOULDER_X, SHOULDER_Y = 1.2, 1.75
 local NECK = 2.1
 local GRIP = 1.6
 
-local CROWD = { Flop = 2, Hit = 4, Blockbuster = 6, Cult = 7, Masterpiece = 8 }
-local CHEER_SECONDS = { Flop = 4, Hit = 6, Blockbuster = 8, Cult = 9, Masterpiece = 11 }
-local EXCITEMENT = { Flop = 0.2, Hit = 0.7, Blockbuster = 0.9, Cult = 1, Masterpiece = 1 }
-local FAN_LOOKS = { "FanA", "FanB", "FanC", "FanD" }
--- Lot space (MapModels.lotBase; the ground is at y = 1, the carpet runs up x = 0 from the gate at
--- z = -27 to the cinema door at z = 4.5): behind the velvet ropes, clear of the pedestal and pads.
-local FAN_SPOTS = {
-	Vector3.new(-5.2, 1, -6), Vector3.new(5.2, 1, -11), Vector3.new(-5.2, 1, -9), Vector3.new(-5.2, 1, -3),
-	Vector3.new(5.2, 1, -14), Vector3.new(-5.2, 1, -12), Vector3.new(-5.2, 1, 0), Vector3.new(-5.2, 1, -15),
-}
-local GATE_Z = -26
+-- Lot space (MapModels.lotBase; the ground is at y = 1).
 local STAR_SPOTS = { Vector3.new(4.6, 1, -7.4), Vector3.new(12.4, 1, -6.8) } -- round the pedestal
 local PEDESTAL = Vector3.new(8.5, 1, -3)
-local PREMIERE_SPOTS = { Vector3.new(-5.2, 1, 2.2), Vector3.new(5.2, 1, 1.8) } -- by the cinema door
 local TIER_RANK: { [string]: number } = {}
 for index, tier in Actors.Tiers do
 	TIER_RANK[tier.id] = index
@@ -223,8 +207,8 @@ local function setShown(person: Person, shown: boolean)
 	end
 end
 
-local function flashSoon(person: Person, t: number, busy: boolean)
-	person.nextFlash = t + (if busy then random:NextNumber(0.25, 0.9) else random:NextNumber(0.8, 2.8))
+local function flashSoon(person: Person, t: number)
+	person.nextFlash = t + random:NextNumber(0.8, 2.8)
 end
 
 -- Ambient townsfolk --------------------------------------------------------------------------------
@@ -314,8 +298,7 @@ end
 
 local paparazzi: { Person } = {}
 local starLot: number? = nil
-local premiere: { lot: number, starts: number, ends: number }? = nil
-local placedFor = "" -- what the paparazzi are standing for: "p<lot>", "s<lot>" or ""
+local placedFor: number? = nil -- the star lot the paparazzi are standing at
 
 local function photographer(index: number)
 	local person = newPerson("Photog", "PaparazziCamera", function(self, t)
@@ -331,7 +314,7 @@ local function photographer(index: number)
 		p.nod = math.sin(s * 0.9) * 0.05
 		if t >= self.nextFlash then
 			self.flashAt = t
-			flashSoon(self, t, premiere ~= nil)
+			flashSoon(self, t)
 		end
 		return p
 	end)
@@ -345,20 +328,13 @@ local function facingPoint(at: Vector3, target: Vector3): CFrame
 end
 
 local function placePaparazzi()
-	local spots, target = nil, nil
-	local lot = if premiere ~= nil then premiere.lot else starLot
-	placedFor = if premiere ~= nil then `p{premiere.lot}` elseif starLot ~= nil then `s{starLot}` else ""
+	local lot = starLot
+	placedFor = lot
 	if lot ~= nil then
 		local base = MapModels.lotBase(lot)
-		if premiere ~= nil then
-			spots = PREMIERE_SPOTS
-			target = base * Vector3.new(0, 1, -8)
-		else
-			spots = STAR_SPOTS
-			target = base * PEDESTAL
-		end
+		local target = base * PEDESTAL
 		for i, person in paparazzi do
-			local at = base * spots[i]
+			local at = base * STAR_SPOTS[i]
 			person.data.base = facingPoint(Vector3.new(at.X, at.Y, at.Z), target)
 			person.at = at
 			person.active = true
@@ -391,128 +367,6 @@ local function findStarLot(camera: Vector3): number?
 	return best
 end
 
--- Premiere crowd -------------------------------------------------------------------------------------
-
-local fans: { Person } = {}
-local premiereLights: { PointLight } = {}
-
-local function fan(index: number)
-	local look = FAN_LOOKS[(index - 1) % #FAN_LOOKS + 1]
-	local person = newPerson(look, if index % 3 == 1 then "FanSign" else nil, function(self, t)
-		local d = self.data
-		local s = t + self.phase
-		local run = 1.3
-		local stage, u
-		if t < d.start + run then
-			stage, u = "in", math.clamp((t - d.start) / run, 0, 1)
-		elseif t < d.leave then
-			stage, u = "cheer", 0
-		else
-			stage, u = "out", math.clamp((t - d.leave) / run, 0, 1)
-			if u >= 1 then
-				self.active = false
-			end
-		end
-		if stage ~= "cheer" then
-			local from, to = d.gate, d.spot
-			if stage == "out" then
-				from, to = d.spot, d.gate
-			end
-			local at = from:Lerp(to, u)
-			local p = pose(CFrame.lookAt(at, at + (to - from)) * CFrame.new(0, math.abs(math.sin(s * 12)) * 0.25, 0))
-			local swing = math.sin(s * 12) * 0.8
-			p.legs = { swing, -swing }
-			p.arms = { { -swing, 0.15 }, { swing, 0.15 } }
-			self.at = at
-			return p
-		end
-		local excite = d.excite
-		local hop = math.abs(math.sin(s * 6)) * 0.6 * excite
-		local p = pose(d.face * CFrame.new(0, hop, 0))
-		if excite < 0.4 then
-			-- A polite clap for a Flop.
-			local clap = math.abs(math.sin(s * 9)) * 0.3
-			p.arms = { { 1.2, -0.35 + clap }, { 1.2, -0.35 + clap } }
-		else
-			p.arms = { { 0.2, 2.5 + math.sin(s * 8) * 0.35 }, { 0.2, 2.5 + math.sin(s * 8 + 2) * 0.35 } }
-			if self.hold == "FanSign" then
-				p.arms[2] = { 0, 2.95 + math.sin(s * 3) * 0.12 }
-			end
-			p.legs = { math.sin(s * 6) * 0.2 * excite, -math.sin(s * 6) * 0.2 * excite }
-		end
-		p.head = math.sin(s * 0.8) * 0.35
-		self.at = d.face.Position
-		return p
-	end)
-	table.insert(fans, person)
-end
-
-local function lightAt(at: Vector3, color: Color3, range: number): PointLight
-	local holder = Instance.new("Part")
-	holder.Name = "PremiereLight"
-	holder.Anchored = true
-	holder.CanCollide = false
-	holder.CanQuery = false
-	holder.CanTouch = false
-	holder.Transparency = 1
-	holder.Size = Vector3.new(0.2, 0.2, 0.2)
-	holder.Position = at
-	holder.Parent = folder
-	local light = Instance.new("PointLight")
-	light.Color = color
-	light.Range = range
-	light.Brightness = 0
-	light.Shadows = false
-	light.Parent = holder
-	return light
-end
-
-local function startPremiere(lot: number, resultId: string)
-	local camera = Workspace.CurrentCamera
-	local base = MapModels.lotBase(lot)
-	if camera == nil or (base.Position - camera.CFrame.Position).Magnitude > PREMIERE_RANGE then
-		return
-	end
-	if #fans == 0 then
-		for i = 1, #FAN_SPOTS do
-			fan(i)
-		end
-		premiereLights = {
-			lightAt(Vector3.zero, Color3.fromRGB(255, 214, 140), 26), -- the marquee
-			lightAt(Vector3.zero, Color3.fromRGB(255, 120, 110), 18), -- the carpet
-			lightAt(Vector3.zero, Color3.fromRGB(255, 120, 110), 18),
-		}
-	end
-	local t = os.clock()
-	local cheer = CHEER_SECONDS[resultId] or CHEER_SECONDS.Hit
-	local count = CROWD[resultId] or CROWD.Hit
-	premiere = { lot = lot, starts = t, ends = t + 1.3 + cheer }
-	for i, person in fans do
-		if i > count then
-			person.active = false
-			continue
-		end
-		local spot = base * FAN_SPOTS[i]
-		local d = person.data
-		d.spot = spot
-		d.gate = base * Vector3.new(FAN_SPOTS[i].X, 1, GATE_Z - random:NextNumber(0, 3))
-		d.face = facingPoint(spot, base * Vector3.new(0, 1, FAN_SPOTS[i].Z + 2))
-		d.start = t + random:NextNumber(0, 0.6)
-		d.leave = d.start + 1.3 + cheer + random:NextNumber(-0.5, 0.5)
-		d.excite = EXCITEMENT[resultId] or 0.7
-		person.at = d.gate
-		person.active = true
-	end
-	local spots = { Vector3.new(0, 9.5, 0.4), Vector3.new(0, 3, -11), Vector3.new(0, 3, -3) }
-	for i, light in premiereLights do
-		(light.Parent :: BasePart).Position = base * spots[i]
-	end
-	placePaparazzi()
-	for _, person in paparazzi do
-		flashSoon(person, t, true)
-	end
-end
-
 -- The loop ---------------------------------------------------------------------------------------------
 
 local function start()
@@ -529,17 +383,6 @@ local function start()
 	busStop(CFrame.new(-128, ground(-128, 22), 22), { "FanD", "FanB", "Photog" })
 	photographer(1)
 	photographer(2)
-
-	local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
-	local lotPremiere = if remotes ~= nil then remotes:WaitForChild("LotPremiere", 30) else nil
-	if lotPremiere ~= nil and lotPremiere:IsA("RemoteEvent") then
-		lotPremiere.OnClientEvent:Connect(function(index, _title, resultId)
-			if type(index) ~= "number" or index % 1 ~= 0 or index < 1 or index > Config.LotCount or type(resultId) ~= "string" then
-				return
-			end
-			startPremiere(index, resultId)
-		end)
-	end
 
 	local parts: { BasePart } = {}
 	local cframes: { CFrame } = {}
@@ -562,28 +405,12 @@ local function start()
 		local eye = camera.CFrame.Position
 		local t = os.clock()
 
-		-- Once a second: is there a star lot nearby for the paparazzi, and is the premiere over?
+		-- Once a second: is there a star lot nearby for the paparazzi?
 		if t >= nextScan then
 			nextScan = t + 1
-			if premiere ~= nil and t > premiere.ends + 1.5 then
-				premiere = nil
-			end
 			starLot = findStarLot(eye)
-			local want = if premiere ~= nil then `p{premiere.lot}` elseif starLot ~= nil then `s{starLot}` else ""
-			if want ~= placedFor then
+			if starLot ~= placedFor then
 				placePaparazzi()
-			end
-		end
-
-		-- Premiere lights: up for the show, a gentle chase, brighter after dark.
-		if #premiereLights > 0 then
-			local level = 0
-			if premiere ~= nil then
-				level = math.clamp(math.min(t - premiere.starts, premiere.ends + 1.5 - t), 0, 1)
-			end
-			local glow = level * (0.5 + 2.5 * DayNightWorld.darkness()) -- low by day: bloom washes out the fans
-			for i, light in premiereLights do
-				light.Brightness = glow * (0.8 + 0.2 * math.sin(t * 5 + i * 2))
 			end
 		end
 
