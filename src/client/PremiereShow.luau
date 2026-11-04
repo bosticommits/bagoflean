@@ -109,10 +109,19 @@ local function at(s: Stage, forward: number, lateral: number, up: number): Vecto
 	return s.origin + s.f * forward + s.r * lateral + Vector3.yAxis * up
 end
 
--- A camera shot `forward` studs out on the carpet and `up` high, looking at the marquee.
+-- The Hollywood Blvd arch stands across the boulevard 21 to 25 studs out from the carpet's start,
+-- 20 high: the camera stays in front of the theatre (inside it) or flies over it.
+local MAX_FORWARD = 19
+
+-- A camera shot `forward` studs out on the carpet and `up` high, looking at the marquee. On a tall
+-- screen the field of view widens (see `fov`) instead of the camera backing into the arch.
 local function shot(s: Stage, forward: number, up: number, drop: number?): CFrame
-	local pos = at(s, forward * s.wide, 0, up * (1 + (s.wide - 1) * 0.6))
+	local pos = at(s, math.min(forward * s.wide, MAX_FORWARD), 0, up)
 	return CFrame.lookAt(pos, s.marquee - Vector3.yAxis * (drop or 0))
+end
+
+local function fov(s: Stage, base: number): number
+	return base + math.min(40, (s.wide - 1) * 13)
 end
 
 local function animate(r: Run, seconds: number, style: Enum.EasingStyle, dir: Enum.EasingDirection, fn: (number) -> ())
@@ -431,7 +440,7 @@ local function reveal(r: Run)
 	r.mode = "react"
 	local s, id, show = r.stage, r.res.id, r.show
 	r.mood = show.mood
-	PremiereCamera.move(shot(s, 24, 12, 4), 45, 0.45, 0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	PremiereCamera.move(shot(s, 19, 11, 4), fov(s, 45), 0.45, 0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	Fx.shake(if id == "Masterpiece" or id == "Blockbuster" then 1.4 else 0.8, 0.4)
 	flipBoard(r)
 	Fx.premiere(id, r.res.color)
@@ -511,18 +520,18 @@ local function timeline(r: Run, mine: number, jump: boolean)
 	local s, show = r.stage, r.show
 	if not jump then
 		-- Glide (or cut) to the establishing shot.
-		local est = shot(s, 34, 20)
+		local est = shot(s, 19, 24)
 		local glide = PremiereNight.glideSeconds(r.dist)
 		if glide == nil then
 			irisTo(0, 0.25)
 			if not sleep(r, mine, 0.3) then
 				return
 			end
-			PremiereCamera.cut(est, 60)
+			PremiereCamera.cut(est, fov(s, 60))
 			irisTo(1, 0.25)
 			glide = 0.3
 		else
-			PremiereCamera.move(est, 60, glide, 22)
+			PremiereCamera.move(est, fov(s, 60), glide, 22)
 			Sfx.play("showGlide")
 			-- Under 30 FPS on the way: thin the crowd and the weather for the rest of the session.
 			local frames, start = 0, os.clock()
@@ -548,7 +557,7 @@ local function timeline(r: Run, mine: number, jump: boolean)
 		Music.duck(show.build + show.hush + 4)
 		Sfx.play("showDrumroll", nil, show.build)
 		Sfx.play("lucienPremiere")
-		PremiereCamera.move(shot(s, 11, 5.5, 2.5), 55, show.build, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+		PremiereCamera.move(shot(s, 11, 5.5, 2.5), fov(s, 55), show.build, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 		flashLoop(r, mine, show.build)
 		if r.result.awardNight then
 			task.delay(show.build * 0.5, function()
@@ -568,7 +577,7 @@ local function timeline(r: Run, mine: number, jump: boolean)
 		if show.hush > 0 then
 			r.mode, r.frozenAt = "hush", os.clock() - r.startedAt
 			Sfx.play("showHeartbeat", nil, show.hush)
-			PremiereCamera.move(shot(s, 10, 5, 2.5), 52, show.hush, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+			PremiereCamera.move(shot(s, 10, 5, 2.5), fov(s, 52), show.hush, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 			if not sleep(r, mine, show.hush) then
 				return
 			end
@@ -580,7 +589,7 @@ local function timeline(r: Run, mine: number, jump: boolean)
 	end
 	r.hooks.card()
 	-- Behind the card the camera drifts slowly round the marquee.
-	PremiereCamera.move(shot(s, 26, 14, 4), 45, 8, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+	PremiereCamera.move(shot(s, 18, 13, 4), fov(s, 45), 8, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 end
 
 -- Public ------------------------------------------------------------------------------------------------
@@ -704,7 +713,7 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 		cleaned = false,
 		fast = false,
 		far = false,
-		dist = (camera.Position - at(stage, 34, 0, 20)).Magnitude,
+		dist = (camera.Position - at(stage, MAX_FORWARD, 0, 24)).Magnitude,
 		board = nil,
 		boardCF = CFrame.identity,
 		front = nil,
