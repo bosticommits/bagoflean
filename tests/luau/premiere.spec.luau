@@ -91,7 +91,7 @@ end)
 
 test("PREMIERE ALL: masterpieces get their own show, otherwise the biggest result; the rest go worst to best", function()
 	local function film(result: string, payout: number, extra: any?)
-		local r = { result = result, payout = payout, fame = payout // 10, title = result .. payout }
+		local r = { result = result, payout = payout, fame = if type(payout) == "number" then payout // 10 else 0, title = result .. payout }
 		for k, v in extra or {} do
 			r[k] = v
 		end
