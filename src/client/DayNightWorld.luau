@@ -23,7 +23,7 @@ local NIGHT_TINT = Color3.fromRGB(196, 210, 255)
 local NIGHT_AMBIENT = Color3.fromRGB(118, 128, 178)
 local NIGHT_SHIFT = Color3.fromRGB(150, 175, 255)
 local LIGHT_DAY, LIGHT_NIGHT = 0.6, 1.6 -- lamp brightness, times its own
-local BEAM_DAY, BEAM_NIGHT = 0.8, 0.5 -- searchlight beam transparency
+local BEAM_DAY, BEAM_NIGHT = 0.8, 0.72 -- searchlight beam transparency
 local SWEEP = math.rad(18)
 
 local darkness = 0

@@ -581,7 +581,7 @@ local function start()
 			if premiere ~= nil then
 				level = math.clamp(math.min(t - premiere.starts, premiere.ends + 1.5 - t), 0, 1)
 			end
-			local glow = level * (1.2 + 2.3 * DayNightWorld.darkness())
+			local glow = level * (0.5 + 2.5 * DayNightWorld.darkness()) -- low by day: bloom washes out the fans
 			for i, light in premiereLights do
 				light.Brightness = glow * (0.8 + 0.2 * math.sin(t * 5 + i * 2))
 			end
