@@ -674,7 +674,7 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 		r = f:Cross(Vector3.yAxis),
 		origin = Vector3.new(tb.Position.X, floorY, tb.Position.Z) + f * 3,
 		marquee = (tb * MapKit.spot("PremiereTheatre", "Marquee")).Position,
-		wide = math.clamp(1.6 / math.max(viewport.X / math.max(viewport.Y, 1), 0.3), 1, 3),
+		wide = math.clamp(2.2 / math.max(viewport.X / math.max(viewport.Y, 1), 0.3), 1, 4.5),
 	}
 	local crowd = ensureRig()
 	local folder = Instance.new("Folder")
