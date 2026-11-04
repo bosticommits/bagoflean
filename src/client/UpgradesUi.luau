@@ -226,26 +226,46 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	end
 	local buyUpgrade = remotes:WaitForChild("BuyUpgrade") :: RemoteEvent
 
-	-- Full-screen board over the dimmed world (no window box). It is one of the exclusive screens:
-	-- opening another screen closes it and the other way round.
+	-- Two ScreenGuis above the game UI: the board edge to edge under the top bar and notch
+	-- (ScreenInsets None), and the title, card and buttons over it inside the safe area.
+	local function layer(name: string, order: number, insets: Enum.ScreenInsets): ScreenGui
+		local layerGui = Instance.new("ScreenGui")
+		layerGui.Name = name
+		layerGui.ResetOnSpawn = false
+		layerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		layerGui.ScreenInsets = insets
+		layerGui.DisplayOrder = order
+		layerGui.Parent = gui.Parent
+		return layerGui
+	end
+	local treeGui = layer("UpgradeTreeGui", 10, Enum.ScreenInsets.None)
+	local chromeGui = layer("UpgradeTreeChrome", 11, Enum.ScreenInsets.CoreUISafeInsets)
+
+	-- Full-screen board over the darkened world (no window box). It is one of the exclusive
+	-- screens: opening another screen closes it and the other way round.
 	local screen = Instance.new("Frame")
 	screen.Name = "UpgradeTree"
-	screen.BackgroundColor3 = Color3.fromRGB(8, 10, 22)
-	screen.BackgroundTransparency = 0.04
+	screen.BackgroundColor3 = Color3.fromRGB(10, 13, 30)
+	screen.BackgroundTransparency = 0.15
 	screen.BorderSizePixel = 0
 	screen.Size = UDim2.fromScale(1, 1)
 	screen.Visible = false
-	screen.ZIndex = 6 -- over the side menu and panels, under the tutorial's dialogue
 	screen.Active = true -- taps on the board don't reach the world
-	screen.Parent = gui
+	screen.Parent = treeGui
 	UiKit.addExclusive(screen)
+	local chrome = Instance.new("Frame")
+	chrome.Name = "Chrome"
+	chrome.BackgroundTransparency = 1
+	chrome.Size = UDim2.fromScale(1, 1)
+	chrome.Visible = false
+	chrome.Parent = chromeGui
 	-- Darker at the edges, so the tree in the middle stands out.
 	local vignette = Instance.new("UIGradient")
 	vignette.Rotation = 90
 	vignette.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(0.3, 0.1),
-		NumberSequenceKeypoint.new(0.7, 0.1),
+		NumberSequenceKeypoint.new(0.3, 0.05),
+		NumberSequenceKeypoint.new(0.7, 0.05),
 		NumberSequenceKeypoint.new(1, 0),
 	})
 	vignette.Parent = screen
@@ -289,10 +309,10 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	local zoom = 1
 
 	-- Title: light-to-deep green letters with a thick outline and a drop shadow.
-	local titleShadow = makeTitle(screen, "UPGRADES", UiKit.INK, UDim2.fromOffset(SIDE_W, 56), nil, 5)
+	local titleShadow = makeTitle(chrome, "UPGRADES", UiKit.INK, UDim2.fromOffset(SIDE_W, 56), nil, 5)
 	titleShadow.ZIndex = 3
 	UiKit.textConstraint(titleShadow, 60)
-	local title = makeTitle(screen, "UPGRADES", Color3.new(1, 1, 1), UDim2.fromOffset(SIDE_W, 56), nil, 5)
+	local title = makeTitle(chrome, "UPGRADES", Color3.new(1, 1, 1), UDim2.fromOffset(SIDE_W, 56), nil, 5)
 	title.ZIndex = 4
 	UiKit.textConstraint(title, 60)
 	local titleFill = Instance.new("UIGradient")
@@ -300,7 +320,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	titleFill.Color = ColorSequence.new(TITLE_GREEN, TITLE_GREEN_DEEP)
 	titleFill.Parent = title
 
-	local close = makeButton(screen, "X", UiKit.CLOSE_RED, UDim2.fromOffset(56, 56))
+	local close = makeButton(chrome, "X", UiKit.CLOSE_RED, UDim2.fromOffset(56, 56))
 	close.Name = "Close"
 	close.ZIndex = 5
 	UiKit.textConstraint(close, 34)
@@ -315,7 +335,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	side.AnchorPoint = Vector2.new(1, 0)
 	side.Size = UDim2.fromOffset(SIDE_W, SIDE_H)
 	side.ZIndex = 4
-	side.Parent = screen
+	side.Parent = chrome
 	local sideScale = Instance.new("UIScale")
 	sideScale.Parent = side
 
@@ -373,19 +393,19 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	UiKit.textConstraint(cardButton, 30)
 
 	-- Bottom: zoom buttons and the stats line on the left, the hint on the right.
-	local zoomIn = makeButton(screen, "+", UiKit.BLUE, UDim2.fromOffset(46, 46))
-	local zoomOut = makeButton(screen, "-", UiKit.BLUE, UDim2.fromOffset(46, 46))
+	local zoomIn = makeButton(chrome, "+", UiKit.BLUE, UDim2.fromOffset(46, 46))
+	local zoomOut = makeButton(chrome, "-", UiKit.BLUE, UDim2.fromOffset(46, 46))
 	for _, button in { zoomIn, zoomOut } do
 		button.ZIndex = 5
 		button.AnchorPoint = Vector2.new(0, 1)
 		UiKit.textConstraint(button, 32)
 	end
-	local statsLabel = makeLabel(screen, "", UiKit.MUTED, UDim2.fromScale(0.42, 0), nil)
+	local statsLabel = makeLabel(chrome, "", UiKit.MUTED, UDim2.fromScale(0.42, 0), nil)
 	statsLabel.AnchorPoint = Vector2.new(0, 1)
 	statsLabel.TextXAlignment = Enum.TextXAlignment.Left
 	statsLabel.ZIndex = 3
 	UiKit.outline(statsLabel, 1.5)
-	local hint = makeLabel(screen, "Drag to look around  •  Tap a hex to see what it gives", UiKit.MUTED, UDim2.fromScale(0.42, 0), nil)
+	local hint = makeLabel(chrome, "Drag to look around  •  Tap a hex to see what it gives", UiKit.MUTED, UDim2.fromScale(0.42, 0), nil)
 	hint.AnchorPoint = Vector2.new(1, 1)
 	hint.TextXAlignment = Enum.TextXAlignment.Right
 	hint.ZIndex = 3
@@ -410,7 +430,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	-- Phones (short screens): the title moves top-left and the right column shrinks to fit.
 	local function layout()
 		local compact = UiKit.isCompact()
-		local screenHeight = math.max(gui.AbsoluteSize.Y, 200)
+		local screenHeight = math.max(chromeGui.AbsoluteSize.Y, 200)
 		local closeSize = if compact then 42 else 56
 		close.Size = UDim2.fromOffset(closeSize, closeSize)
 		close.Position = UDim2.new(1, -(closeSize + (if compact then 10 else 28)), 0, if compact then 6 else 28)
@@ -449,17 +469,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	end
 	UiKit.onViewportChanged(layout)
 
-	-- On open: START a little left of centre (the card covers the right), never zoomed past 1:1.
-	local function openView()
-		local view = board.AbsoluteSize
-		if view.X <= 0 then
-			return
-		end
-		zoom = if UiKit.isCompact() then 0.75 else 1
-		zoomScale.Scale = zoom
-		board.CanvasSize = UDim2.fromOffset(width * zoom, height * zoom)
-		board.CanvasPosition = Vector2.new(startX * zoom - view.X * 0.4, startY * zoom - view.Y * 0.52)
-	end
+	local openView: () -> () -- defined once the hexes exist
 
 	-- Tree -------------------------------------------------------------------------------------
 
@@ -595,7 +605,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 			node.hit.Activated:Connect(function()
 				local level = Upgrades.level(ClientState.stats(), upgrade.id)
 				if n > level + 1 then
-					UiKit.toast(gui, "Buy the level before it first")
+					UiKit.toast(chromeGui, "Buy the level before it first")
 					return
 				end
 				selected = if selected ~= nil and selected.id == upgrade.id and selected.n == n then nil else { id = upgrade.id, n = n }
@@ -612,6 +622,47 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		label.Name = "RayLabel"
 		label.ZIndex = 4
 		UiKit.textConstraint(label, 24)
+	end
+
+	-- On open: fit the part of the tree you can act on (each ray up to two hexes past what you own,
+	-- plus a ray's name once its end is that close) into the space left of the card and between the
+	-- header and the bottom buttons, centred. Zoom stays between MIN_ZOOM and 1:1, so a 10-level ray
+	-- is never shrunk to unreadable hexes; drag for the rest.
+	openView = function()
+		local view = board.AbsoluteSize
+		if view.X <= 0 then
+			return
+		end
+		local stats = ClientState.stats()
+		local reach = HEX_R + GLOW
+		local x0, x1, y0, y1 = startX - START_R, startX + START_R, startY - START_R, startY + START_R
+		local function include(x: number, y: number, halfWidth: number, up: number, down: number)
+			x0, x1 = math.min(x0, x - halfWidth), math.max(x1, x + halfWidth)
+			y0, y1 = math.min(y0, y - up), math.max(y1, y + down)
+		end
+		for _, upgrade in Upgrades.List do
+			local last = math.min(Upgrades.level(stats, upgrade.id) + 2, upgrade.maxLevel)
+			for n = 1, last do
+				local node = nodes[upgrade.id][n]
+				include(node.x, node.y, reach, reach + 14, reach) -- the name sits over the top point
+			end
+			if last == upgrade.maxLevel then
+				local lx, ly = labelOffset(upgrade)
+				include(startX + lx, startY + ly, 100, 16, 16)
+			end
+		end
+		-- Free area in board pixels: the chrome layer sits inside the safe area, the board doesn't.
+		local inset = (treeGui.AbsoluteSize - chromeGui.AbsoluteSize)
+		local origin = chrome.AbsolutePosition
+		local left = 10 + inset.X / 2
+		local right = side.AbsolutePosition.X - origin.X - 14 + inset.X / 2
+		local top = (if UiKit.isCompact() then title.AbsolutePosition.Y + title.AbsoluteSize.Y - origin.Y else 16) + inset.Y
+		local bottom = zoomIn.AbsolutePosition.Y - origin.Y - 8 + inset.Y
+		local areaW, areaH = math.max(right - left, 100), math.max(bottom - top, 100)
+		zoom = math.clamp(math.min(areaW / (x1 - x0), areaH / (y1 - y0)), MIN_ZOOM, 1)
+		zoomScale.Scale = zoom
+		board.CanvasSize = UDim2.fromOffset(width * zoom, height * zoom)
+		board.CanvasPosition = Vector2.new((x0 + x1) / 2 * zoom - (left + areaW / 2), (y0 + y1) / 2 * zoom - (top + areaH / 2))
 	end
 
 	local function stopTweens(node: Node)
@@ -751,9 +802,9 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		end
 		local state = nodeState(upgrade, level, pick.n, player:GetAttribute("Cash") or 0, player:GetAttribute("Fame") or 0)
 		if state == "fame" then
-			UiKit.toast(gui, `Needs Fame {Hud.comma(upgrade.fame[pick.n])}`)
+			UiKit.toast(chromeGui, `Needs Fame {Hud.comma(upgrade.fame[pick.n])}`)
 		elseif state == "short" then
-			UiKit.toast(gui, "Not enough Cash")
+			UiKit.toast(chromeGui, "Not enough Cash")
 		else
 			buyUpgrade:FireServer(upgrade.id)
 		end
@@ -897,7 +948,10 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	-- Closing hands the gamepad selection back to the game.
 	screen:GetPropertyChangedSignal("Visible"):Connect(function()
 		local current = GuiService.SelectedObject
-		if not screen.Visible and current ~= nil and current:IsDescendantOf(screen) then
+		-- The game UI hides while the tree is open (it read through the backdrop) and comes back on close.
+		chrome.Visible = screen.Visible
+		gui.Enabled = not screen.Visible
+		if not screen.Visible and current ~= nil and (current:IsDescendantOf(screen) or current:IsDescendantOf(chrome)) then
 			GuiService.SelectedObject = nil
 		end
 	end)
