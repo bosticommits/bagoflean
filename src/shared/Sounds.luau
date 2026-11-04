@@ -14,7 +14,9 @@
 local Sounds = {}
 
 export type LibrarySound = { id: number, volume: number }
-export type Slot = { id: number, volume: number, fallback: string, pitch: number? }
+-- `voice`: a spoken line (one at a time, ducks the other sounds; slots named "lucien..." are voices
+-- too). `delay`: seconds to wait before it starts, e.g. so a voice follows the sting's hit.
+export type Slot = { id: number, volume: number, fallback: string, pitch: number?, voice: boolean?, delay: number? }
 export type Track = { id: number, name: string, volume: number }
 
 Sounds.Library = {
@@ -29,9 +31,9 @@ Sounds.Library = {
 	indicator = { id = 15675085146, volume = 0.45 }, -- Roblox_UI_Indicator
 } :: { [string]: LibrarySound }
 
-local function slot(fallback: string, pitch: number?): Slot
+local function slot(fallback: string, pitch: number?, delay: number?): Slot
 	local library = Sounds.Library[fallback]
-	return { id = 0, volume = if library ~= nil then library.volume else 0.5, fallback = fallback, pitch = pitch }
+	return { id = 0, volume = if library ~= nil then library.volume else 0.5, fallback = fallback, pitch = pitch, delay = delay }
 end
 
 Sounds.Slots = {
@@ -60,12 +62,12 @@ Sounds.Slots = {
 	revealStep = slot("indicator"),
 	revealBurst = slot("stinger", 1.2),
 	-- The announcer on the flip (Fish Audio voice "Energetic Male", uploaded 2026-10-26).
-	voiceStar = { id = 115516541869843, volume = 0.8, fallback = "pop", pitch = 1.2 }, -- "Star!"
-	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1 }, -- "SUPERSTAR!"
-	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1 }, -- "LEGEND!"
-	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9 }, -- "ICON!"
+	voiceStar = { id = 115516541869843, volume = 0.8, fallback = "pop", pitch = 1.2, voice = true }, -- "Star!"
+	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1, voice = true }, -- "SUPERSTAR!"
+	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1, voice = true }, -- "LEGEND!"
+	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9, voice = true }, -- "ICON!"
 	-- "Ooh, so close!": the near-miss tease lands on a lower tier.
-	voiceSoClose = { id = 81149535231196, volume = 0.8, fallback = "low", pitch = 1.1 },
+	voiceSoClose = { id = 81149535231196, volume = 0.8, fallback = "low", pitch = 1.1, voice = true },
 
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up
@@ -125,23 +127,24 @@ Sounds.Slots = {
 	eventEnd = slot("sweep", 0.8), -- a special event ends
 	frightSting = slot("stinger", 0.6), -- the Pumpkin Patch starts (Fright Night): a spooky sting
 	-- Then the announcer: "Fright Night has begun! Grab the pumpkins!" (Fish Audio, uploaded 2026-10-26).
-	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6 },
+	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6, voice = true },
 
-	-- Lucien Vale, the game show host (Fish Audio voice "Adrian", uploaded 2026-11-04).
+	-- Lucien Vale, the game show host (Fish Audio voice "Adrian", uploaded 2026-11-04). All "lucien"
+	-- slots are voices; `delay` lets the sting that starts with them land first.
 	lucienWelcome = { id = 119403867472276, volume = 0.9, fallback = "jingle" }, -- "Welcome to Hollywood RNG!"
 	lucienFirstCast = { id = 125664057757278, volume = 0.9, fallback = "whoosh" }, -- "Time to roll your first cast!"
-	lucienRarePull = { id = 94106934856816, volume = 0.9, fallback = "stinger" }, -- "Ooh! Now THAT is a rare face!"
-	lucienLegendPull = { id = 76266690163201, volume = 0.9, fallback = "jingle" }, -- "A LEGEND!"
+	lucienRarePull = { id = 94106934856816, volume = 0.9, fallback = "stinger", delay = 0.8 }, -- "Ooh! Now THAT is a rare face!"
+	lucienLegendPull = { id = 76266690163201, volume = 0.9, fallback = "jingle", delay = 1 }, -- "A LEGEND!"
 	lucienAction = { id = 78920949726178, volume = 0.9, fallback = "clap" }, -- "Lights... camera... ACTION!"
-	lucienPremiere = { id = 105795421068430, volume = 0.9, fallback = "whoosh" }, -- "Let's see what the critics say..."
-	lucienFlop = { id = 98265469775608, volume = 0.9, fallback = "low" }, -- "Oof... a flop!"
-	lucienBlockbuster = { id = 127361279847230, volume = 0.9, fallback = "stinger" }, -- "BLOCKBUSTER!"
-	lucienHit = { id = 102072339047901, volume = 0.9, fallback = "pop" }, -- "A hit! The audience loves it!"
-	lucienCult = { id = 80231962225282, volume = 0.9, fallback = "stinger" }, -- "A cult classic... they'll be quoting this one for years!"
-	lucienMasterpiece = { id = 113254789405013, volume = 0.9, fallback = "jingle" }, -- "A MASTERPIECE! Hollywood will never forget tonight!"
+	lucienPremiere = { id = 105795421068430, volume = 0.9, fallback = "whoosh", delay = 0.4 }, -- "Let's see what the critics say..."
+	lucienFlop = { id = 98265469775608, volume = 0.9, fallback = "low", delay = 0.9 }, -- "Oof... a flop!"
+	lucienBlockbuster = { id = 127361279847230, volume = 0.9, fallback = "stinger", delay = 0.9 }, -- "BLOCKBUSTER!"
+	lucienHit = { id = 102072339047901, volume = 0.9, fallback = "pop", delay = 0.8 }, -- "A hit! The audience loves it!"
+	lucienCult = { id = 80231962225282, volume = 0.9, fallback = "stinger", delay = 1 }, -- "A cult classic... they'll be quoting this one for years!"
+	lucienMasterpiece = { id = 113254789405013, volume = 0.9, fallback = "jingle", delay = 1 }, -- "A MASTERPIECE! Hollywood will never forget tonight!"
 	lucienTotal = { id = 134834345543231, volume = 0.9, fallback = "jingle" }, -- "What a night at the box office!"
-	lucienRebirth = { id = 94420324004466, volume = 0.9, fallback = "jingle" }, -- "A fresh start!"
-	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger" }, -- "Heads up, Hollywood! A special event just started!"
+	lucienRebirth = { id = 94420324004466, volume = 0.9, fallback = "jingle", delay = 1.2 }, -- "A fresh start!"
+	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger", delay = 0.9 }, -- "Heads up, Hollywood! A special event just started!"
 	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)
 
 	-- Studio visits
@@ -151,7 +154,7 @@ Sounds.Slots = {
 
 	-- Rebirth
 	rebirthSting = slot("stinger", 0.8), -- the rebirth reveal opens
-	rebirth = slot("jingle", 0.95), -- on top of the sting (the music dips under it)
+	rebirth = slot("jingle", 0.95, 0.5), -- follows the sting half a second later (the music dips under it)
 } :: { [string]: Slot }
 
 -- Track ids below were checked in Studio on 2026-10-08: uploaded by Roblox (its licensed music
@@ -203,6 +206,18 @@ function Sounds.resolve(name: string): (number?, number, number)
 		return nil, 0, 1
 	end
 	return library.id, s.volume, s.pitch or 1
+end
+
+-- True for spoken lines, which the Sfx voice channel plays one at a time (see VoiceQueue).
+function Sounds.isVoice(name: string): boolean
+	local s = Sounds.Slots[name]
+	return s ~= nil and (s.voice == true or string.sub(name, 1, 6) == "lucien")
+end
+
+-- Seconds a slot waits before it starts (0 for most).
+function Sounds.delayOf(name: string): number
+	local s = Sounds.Slots[name]
+	return if s ~= nil and s.delay ~= nil then s.delay else 0
 end
 
 -- Tracks with an id, in order.

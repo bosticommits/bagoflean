@@ -166,7 +166,7 @@ end
 
 -- Dips the music for `seconds` (a big reveal), then brings it back.
 function Music.duck(seconds: number)
-	duckUntil = os.clock() + seconds
+	duckUntil = math.max(duckUntil, os.clock() + seconds) -- a short dip never cuts a longer one short
 	local sound = current
 	if sound == nil then
 		return

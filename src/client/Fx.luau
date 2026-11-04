@@ -115,7 +115,9 @@ function Fx.castReveal(tierId: string, variantId: string)
 		if rank >= 6 then
 			Music.duck(4)
 			Sfx.play("revealLegend")
-			Sfx.play("lucienLegendPull")
+			if rank == 7 then
+				Sfx.play("lucienLegendPull") -- the announcer already shouts "LEGEND!" on rank 6
+			end
 		end
 		Fx.flash(color, 0.5)
 		Fx.confetti(70 + rank * 10)
