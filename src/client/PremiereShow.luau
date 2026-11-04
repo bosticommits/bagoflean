@@ -636,10 +636,18 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 	end
 	starting = true
 	local tb = MapModels.theatreBase()
-	pcall(function()
+	-- Ask the server to stream the theatre in (no waiting when it is already there), then give it up
+	-- to two seconds to arrive.
+	task.spawn(pcall, function()
 		Players.LocalPlayer:RequestStreamAroundAsync(tb.Position, 2)
 	end)
 	local town = Workspace:FindFirstChild("Town")
+	local waited = 0
+	while waited < 2 and (town == nil or town:FindFirstChild("PremiereTheatre", true) == nil) do
+		task.wait(0.1)
+		waited += 0.1
+		town = Workspace:FindFirstChild("Town")
+	end
 	if town == nil or town:FindFirstChild("PremiereTheatre", true) == nil or not PremiereCamera.begin() then
 		starting = false
 		return false
