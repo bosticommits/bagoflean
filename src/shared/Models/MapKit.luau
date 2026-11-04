@@ -8,6 +8,7 @@
 local Build = require(script.Parent.Build)
 local HalloweenShapes = require(script.Parent.HalloweenShapes)
 local MapKitShapes = require(script.Parent.MapKitShapes)
+local TownLifeShapes = require(script.Parent.TownLifeShapes)
 
 type Builder = Build.Builder
 
@@ -75,8 +76,12 @@ end
 function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: Options?): Model
 	local opts: Options = options or {}
 	local scale = opts.scale or 1
-	-- The Fright Night decor (art/blender/halloween_kit.py) has its own shapes file.
-	local kit: typeof(MapKitShapes) = if MapKitShapes.Shapes[name] ~= nil then MapKitShapes else HalloweenShapes :: any
+	-- The Fright Night decor (art/blender/halloween_kit.py) and the townsfolk (townlife_kit.py)
+	-- have their own shapes files.
+	local kit: typeof(MapKitShapes) = if MapKitShapes.Shapes[name] ~= nil
+		then MapKitShapes
+		elseif TownLifeShapes.Shapes[name] ~= nil then TownLifeShapes :: any
+		else HalloweenShapes :: any
 	local shapes = kit.Shapes[name]
 	local bounds = kit.Bounds[name]
 	assert(shapes ~= nil and bounds ~= nil, `no map kit model called {name}`)
