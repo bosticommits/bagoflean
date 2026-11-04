@@ -29,9 +29,9 @@ local ART = {
 
 -- Lucien's lines, short and warm (his voice lines are the Sounds slots named here).
 local LINES: { StageScene.Line } = {
-	{ text = "Ah, there you are! Welcome to Hollywood RNG!", voice = "lucienWelcome", gesture = "wave" },
-	{ text = "I'm Director Lucien Vale. Fifty years behind the camera, and I still love a fresh face.", voice = nil, gesture = "twirl" },
-	{ text = "This studio is yours now. Time to roll your first cast!", voice = "lucienFirstCast" },
+	{ text = "Ah, there you are! Welcome to Hollywood, my friend!", voice = "introLucien1", gesture = "wave" },
+	{ text = "I'm Director Lucien Vale! Fifty years in film, and I still love a fresh face!", voice = "introLucien2", gesture = "twirl" },
+	{ text = "This studio is yours now. Let's make your very first picture!", voice = "introLucien3" },
 }
 
 local GOLD = Color3.fromRGB(245, 184, 46)
