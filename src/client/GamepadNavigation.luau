@@ -19,7 +19,7 @@ local function handleCloseAction(_actionName: string, inputState: Enum.UserInput
 		GuiService.SelectedObject = nil
 		return Enum.ContextActionResult.Sink
 	end
-	if UiKit.anyPanelOpen() then
+	if UiKit.anyPanelOpen() and not UiKit.overlayOpen() then
 		UiKit.closePanels()
 		return Enum.ContextActionResult.Sink
 	end

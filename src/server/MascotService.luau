@@ -88,6 +88,7 @@ function MascotService.start()
 			if mascot == nil or not Mascots.owns(mascot, data) then
 				return
 			end
+			BadgeAwards.award(player, "MascotOwner") -- existing owners get the badge too
 		end
 		equip(player, data, id)
 	end)

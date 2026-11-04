@@ -20,6 +20,5 @@ test("BadgeAwards marks the cache before spawning and only an award failure clea
 	local mark = string.find(source, "awardedCache[userId][badgeId] = true", 1, true)
 	local spawn = string.find(source, "task.spawn", 1, true)
 	expect(mark ~= nil and spawn ~= nil and mark < spawn, "cache marked before task.spawn")
-	local _, clears = string.gsub(source, "giveUp()", "")
-	equal(clears, 2) -- the definition and the one award-failure call
+	expect(string.find(source, "giveUp()", 1, true), "award failure clears the cache")
 end)

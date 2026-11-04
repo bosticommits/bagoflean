@@ -11,10 +11,6 @@ local BadgeAwards = {}
 -- In-memory cache of badges awarded during this server session: [UserId]: { [badgeId]: true }
 local awardedCache: { [number]: { [number]: boolean } } = {}
 
-function BadgeAwards.init(player: Player)
-	awardedCache[player.UserId] = {}
-end
-
 function BadgeAwards.cleanup(player: Player)
 	awardedCache[player.UserId] = nil
 end
@@ -61,13 +57,13 @@ function BadgeAwards.award(player: Player, badgeKey: string)
 			return
 		end
 
-		local awardOk, awardErr = pcall(function()
-			BadgeService:AwardBadge(userId, badgeId)
+		local awardOk, awarded = pcall(function()
+			return BadgeService:AwardBadge(userId, badgeId)
 		end)
 
-		if not awardOk then
+		if not awardOk or awarded == false then -- AwardBadge returns false when Roblox refuses it
 			giveUp()
-			warn(`[BadgeAwards] Failed to award badge '{badgeDef.name}' ({badgeId}) to {player.Name}: {awardErr}`)
+			warn(`[BadgeAwards] Failed to award badge '{badgeDef.name}' ({badgeId}) to {player.Name}: {awarded}`)
 		end
 	end)
 end

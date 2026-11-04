@@ -832,6 +832,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	local ticking = false
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
+		if not panel.Visible then
+			picker.Visible = false -- the movie picker must not outlive the Studio panel
+		end
 		if not panel.Visible or ticking then
 			return
 		end

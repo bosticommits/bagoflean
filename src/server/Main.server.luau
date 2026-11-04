@@ -83,7 +83,6 @@ local function onPlayerAdded(player: Player)
 	RebirthService.refresh(player)
 	MascotService.refresh(player)
 	FilmSetService.refresh(player)
-	BadgeAwards.init(player)
 	-- A player can step on a claim pad before their data arrives (a quick rejoin waits for the old
 	-- session to save). Redraw their lot now so it shows their stages and star, not an empty lot.
 	LotService.refresh(player)
