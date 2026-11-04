@@ -272,6 +272,11 @@ local function beat(r: Run)
 			model:PivotTo(r.castBase[index] * CFrame.new(0, math.abs(math.sin(now * 6 + index)) * 0.5, 0))
 		end
 	end
+	-- The camera was taken away (it is not ours any more): the show is over.
+	if not PremiereCamera.active() then
+		PremiereShow.abort(true)
+		return
+	end
 	-- Moved away (a Visit teleport): the show is over.
 	local character = Players.LocalPlayer.Character
 	local root = if character ~= nil then character:FindFirstChild("HumanoidRootPart") else nil
