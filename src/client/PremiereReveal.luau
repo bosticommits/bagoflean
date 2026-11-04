@@ -8,7 +8,6 @@
 -- overlay as a clear film frame (letterbox and a skip pill); then the poster, stamp and card come
 -- up over it. Taps: none for the first second, then one skips to the result and card, then one
 -- finishes the count-ups. Results that arrive during a premiere wait their turn.
-local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -61,8 +60,34 @@ local function round(object: GuiObject, radius: UDim)
 end
 
 -- Builds the overlay once (hidden) and returns the function that shows a PremiereResult on it.
+<<<<<<< HEAD
 function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) -> (), (results: { any }) -> ())
 	-- The tutorial looks for "PremiereReveal" to wait while it shows.
+=======
+function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> ()
+	-- Two screens of their own, so the film frame truly covers the whole display (notch and top bar
+	-- included) while everything you read or tap stays inside the safe area:
+	--   PremiereRevealBackdrop: no insets; the dim, spotlights, cinema bars and the tap catcher.
+	--   PremiereRevealSafe: the core safe insets (clear of Roblox's own buttons and any notch); the
+	--   card, the skip pill and the quick cards.
+	local playerGui = gui.Parent
+	local shell = Instance.new("ScreenGui")
+	shell.Name = "PremiereRevealBackdrop"
+	shell.IgnoreGuiInset = true
+	shell.ScreenInsets = Enum.ScreenInsets.None
+	shell.DisplayOrder = 5
+	shell.ResetOnSpawn = false
+	shell.Parent = playerGui
+	local safeGui = Instance.new("ScreenGui")
+	safeGui.Name = "PremiereRevealSafe"
+	safeGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	safeGui.DisplayOrder = 6
+	safeGui.ResetOnSpawn = false
+	safeGui.Enabled = false
+	safeGui.Parent = playerGui
+
+	-- The tutorial looks for "PremiereReveal" (in the backdrop) to wait while it shows.
+>>>>>>> claude/premiere-show
 	local overlay = Instance.new("Frame")
 	overlay.Name = "PremiereReveal"
 	overlay.Size = UDim2.fromScale(1, 1)
@@ -72,33 +97,15 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	overlay.Active = true
 	overlay.Visible = false
 	overlay.ZIndex = 12
-	overlay.Parent = gui
-
-	-- The overlay covers the whole screen, under the top bar and any notch too (the game's UI lives
-	-- inside the core safe area). Everything you read or tap sits in `safe`, which is exactly that
-	-- safe area, so nothing hides behind Roblox's own buttons.
+	overlay.Parent = shell
+	overlay:GetPropertyChangedSignal("Visible"):Connect(function()
+		safeGui.Enabled = overlay.Visible
+	end)
 	local safe = Instance.new("Frame")
 	safe.Name = "Safe"
 	safe.BackgroundTransparency = 1
 	safe.Size = UDim2.fromScale(1, 1)
-	safe.ZIndex = 13
-	safe.Parent = overlay
-	local function fit()
-		local view = UiKit.viewport()
-		-- The core insets (top bar, notch) sit at the top left; whatever else the screen has beyond
-		-- the game's area is at the right and bottom.
-		local topLeft = GuiService:GetGuiInset()
-		local size = gui.AbsoluteSize
-		local left, top = topLeft.X, topLeft.Y
-		local right, bottom = math.max(0, view.X - size.X - left), math.max(0, view.Y - size.Y - top)
-		overlay.Position = UDim2.fromOffset(-left, -top)
-		overlay.Size = UDim2.new(1, left + right, 1, top + bottom)
-		safe.Position = UDim2.fromOffset(left, top)
-		safe.Size = UDim2.new(1, -(left + right), 1, -(top + bottom))
-	end
-	fit()
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
-		UiKit.onViewportChanged(fit)
+	safe.Parent = safeGui
 
 	-- Tapping anywhere during the drumroll skips to the result.
 	local tapCatcher = Instance.new("TextButton")

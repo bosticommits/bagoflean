@@ -102,7 +102,8 @@ function PremiereCarpet.start(gui: ScreenGui, remotes: Instance)
 			task.wait(0.5)
 			local ready = #readyStages()
 			-- Hidden while a premiere is on screen (the show has its own marquee).
-			local overlay = gui:FindFirstChild("PremiereReveal")
+			local backdrop = Players.LocalPlayer.PlayerGui:FindFirstChild("PremiereRevealBackdrop")
+			local overlay = if backdrop ~= nil then backdrop:FindFirstChild("PremiereReveal") else nil
 			local busy = PremiereShow.active() or (overlay ~= nil and overlay:IsA("GuiObject") and overlay.Visible)
 			if ready > 0 then
 				ensurePrompt()
