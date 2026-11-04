@@ -431,7 +431,7 @@ local function reveal(r: Run)
 	r.mode = "react"
 	local s, id, show = r.stage, r.res.id, r.show
 	r.mood = show.mood
-	PremiereCamera.move(shot(s, 13, 9), 45, 0.45, 0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	PremiereCamera.move(shot(s, 19, 11), 45, 0.45, 0, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	Fx.shake(if id == "Masterpiece" or id == "Blockbuster" then 1.4 else 0.8, 0.4)
 	flipBoard(r)
 	Fx.premiere(id, r.res.color)
@@ -580,7 +580,7 @@ local function timeline(r: Run, mine: number, jump: boolean)
 	end
 	r.hooks.card()
 	-- Behind the card the camera drifts slowly round the marquee.
-	PremiereCamera.move(shot(s, 15, 11), 45, 8, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+	PremiereCamera.move(shot(s, 22, 13), 45, 8, 0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 end
 
 -- Public ------------------------------------------------------------------------------------------------
@@ -637,7 +637,7 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 	starting = true
 	local tb = MapModels.theatreBase()
 	pcall(function()
-		Workspace:RequestStreamAroundAsync(tb.Position, 2)
+		Players.LocalPlayer:RequestStreamAroundAsync(tb.Position, 2)
 	end)
 	local town = Workspace:FindFirstChild("Town")
 	if town == nil or town:FindFirstChild("PremiereTheatre", true) == nil or not PremiereCamera.begin() then

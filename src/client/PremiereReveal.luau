@@ -662,6 +662,24 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	local quickSkip = false
 	local pending: { { result: any, first: boolean, tail: { rest: { any }, all: { any } }? } } = {}
 
+	-- The HUD hides behind the 3D show and comes back when the premiere is over.
+	local hidden: { GuiObject } = {}
+	local function hideHud(on: boolean)
+		if on then
+			for _, child in gui:GetChildren() do
+				if child:IsA("GuiObject") and child.Visible and child ~= overlay and child.Name ~= "Tutorial" and child.Name ~= "Reveal" then
+					child.Visible = false
+					table.insert(hidden, child)
+				end
+			end
+		else
+			for _, child in hidden do
+				child.Visible = true
+			end
+			table.clear(hidden)
+		end
+	end
+
 	local function setPhase(name: string)
 		phase = name
 		local onCard = name == "card"
@@ -1121,6 +1139,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 			startCard(result, mine, false)
 			return
 		end
+		hideHud(true)
 		task.spawn(function()
 			local ok = PremiereShow.play(result, res, first, {
 				card = function()
@@ -1137,6 +1156,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 			end
 			showRan = ok
 			if not ok then
+				hideHud(false)
 				startCard(result, mine, true)
 			end
 		end)
@@ -1178,6 +1198,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 		end
 		tween(overlay, 0.3, { BackgroundTransparency = 1 })
 		local function close()
+			hideHud(false)
 			overlay.Visible = false
 			phase = "idle"
 			busy = false
