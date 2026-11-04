@@ -568,7 +568,17 @@ local function landmarks(b: Builder)
 		b:block("ForecourtCarpetEdge", v(length + 3, 0.07, 0.4), v(-x0 - length / 2 + 1.5, 0.235, z), P.Gold)
 	end
 	TownSets.theatre(b:sub(CFrame.new(west - 3, 0, 0) * CFrame.Angles(0, math.rad(-90), 0)))
-	LotModels.stanchions(b:sub(CFrame.new(west + 8, 0.2, 0) * CFrame.Angles(0, math.rad(-90), 0)), -6, 6, 4)
+	-- Velvet ropes down both sides of the carpet (premiere kit); the premiere show's fans stand
+	-- behind them. The spans don't block anyone stepping on or off the carpet.
+	for _, z in { -4.5, 4.5 } do
+		for i = 0, 4 do
+			local x = west + 2 + i * 4
+			MapKit.place(b, "VelvetRopePost", v(x, 0.2, z))
+			if i < 4 then
+				MapKit.place(b, "VelvetRopeSpan", v(x + 2, 0.2, z), { solid = false })
+			end
+		end
+	end
 	for _, z in { -1, 1 } do
 		LotModels.palm(b:sub(v(west + 3, 0.2, z * 10)), 15, 6)
 		TownSets.flowerBed(b:sub(v(-x0 - 11, 0.2, z * (gap + 4))), v(12, 0, 6))

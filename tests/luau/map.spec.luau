@@ -343,6 +343,25 @@ test("every map kit model has a part version, a size and builds", function()
 	expect(lamp:FindFirstChild("LightSpot") ~= nil, "lamp light")
 end)
 
+test("the premiere kit builds, with its sign spots, and ropes line the theatre carpet", function()
+	local folder = roblox.Instance.new("Folder")
+	local Build = H.require("Models/Build")
+	for _, name in { "VelvetRopePost", "VelvetRopeSpan", "FanSignHeart", "FanSignBlank", "MarqueeFlipBoard", "GrandTrophy", "FireworkMortar", "RainCloud" } do
+		local model = MapKit.place(Build.new(folder, CFrame.identity), name, CFrame.identity)
+		expect(#model:GetChildren() > 0, `{name} builds parts`)
+	end
+	MapKit.spot("MarqueeFlipBoard", "Front")
+	MapKit.spot("MarqueeFlipBoard", "Back")
+	MapKit.spot("FanSignBlank", "Sign")
+	local posts = 0
+	for _, d in town:GetDescendants() do
+		if d.Name == "VelvetRopePost" then
+			posts += 1
+		end
+	end
+	equal(posts, 10, "rope posts on the theatre forecourt")
+end)
+
 test("the park's ducks paddle on open water", function()
 	local TownSets = H.require("Models/TownSets")
 	local r = TownSets.PondRadius
