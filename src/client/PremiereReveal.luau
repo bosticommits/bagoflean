@@ -193,7 +193,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	stage.Name = "Stage"
 	stage.AnchorPoint = Vector2.new(0.5, 0.5)
 	stage.Position = UDim2.fromScale(0.5, 0.52)
-	stage.Size = UDim2.fromScale(0.94, 0.84)
+	stage.Size = UDim2.fromScale(0.9, 0.82)
 	stage.BackgroundTransparency = 1
 	stage.ZIndex = 13
 	stage.Parent = safe
@@ -443,7 +443,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	starRow.BackgroundTransparency = 1
 	starRow.AnchorPoint = Vector2.new(0.5, 0)
 	starRow.Position = UDim2.fromScale(0.5, 0.3)
-	starRow.Size = UDim2.fromScale(0.7, 0.075)
+	starRow.Size = UDim2.fromScale(0.9, 0.075)
 	starRow.ZIndex = 14
 	starRow.Parent = card
 	local starLayout = Instance.new("UIListLayout")
@@ -453,8 +453,13 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 	starLayout.Parent = starRow
 	local starLabels: { TextLabel } = {}
 	local starScales: { UIScale } = {}
-	for index = 1, 5 do
-		local star = UiKit.makeTitle(starRow, "\u{2605}", STAR_EMPTY, UDim2.fromScale(0.15, 1), nil, 2)
+	for index = 1, 6 do -- the sixth is the Masterpiece bonus star
+		local star = UiKit.makeTitle(starRow, "\u{2605}", STAR_EMPTY, UDim2.fromScale(0.14, 1), nil, 2)
+		if index == 6 then
+			local rainbow = Instance.new("UIGradient")
+			rainbow.Color = UiKit.RAINBOW
+			rainbow.Parent = star
+		end
 		star.Name = "Star" .. index
 		star.ZIndex = 14
 		UiKit.textConstraint(star, 40)
@@ -828,13 +833,15 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		local stars, line = PremiereNight.review(res.id, random:NextNumber())
 		criticLabel.Text = `"{line}"`
 		attribLabel.Text = `- {PremiereNight.CRITIC}`
+		local bonus = res.id == "Masterpiece"
+		starLabels[6].Visible = bonus
 		for index, star in starLabels do
 			star.TextColor3 = STAR_EMPTY
-			if index <= stars then
+			if index <= stars or (index == 6 and bonus) then
 				task.delay(0.25 + (index - 1) * 0.12, function()
 					if premiereToken == mine and star.TextColor3 == STAR_EMPTY then
-						star.TextColor3 = UiKit.GOLD
-						starScales[index].Scale = 1.5
+						star.TextColor3 = if index == 6 then WHITE else UiKit.GOLD
+						starScales[index].Scale = if index == 6 then 2 else 1.5
 						tween(starScales[index], 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
 						Sfx.play("showStar", 1 + (index - 1) * 0.12)
 					end
@@ -850,8 +857,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 				previous()
 			end
 			for index, star in starLabels do
-				if index <= stars then
-					star.TextColor3 = UiKit.GOLD
+				if index <= stars or (index == 6 and bonus) then
+					star.TextColor3 = if index == 6 then WHITE else UiKit.GOLD
 				end
 			end
 		end
