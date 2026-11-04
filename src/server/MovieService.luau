@@ -475,20 +475,28 @@ local function onPremiereAll(player: Player)
 	end
 	table.sort(stages)
 	local results = {}
+	local failed = false
 	for _, stage in stages do
 		local film, filmIndex = findFilm(data, stage)
-		if film ~= nil and filmIndex ~= nil then
-			local out = settle(player, data, film, filmIndex)
-			if out ~= nil then
+		-- Each film is checked again, and one that errors never stops the others (or the payout and
+		-- sync for the films already paid).
+		if film ~= nil and filmIndex ~= nil and film.endTime <= os.time() then
+			local ok, out = pcall(settle, player, data, film, filmIndex)
+			if not ok then
+				failed = true
+				warn(`[MovieService] PREMIERE ALL: stage {stage} failed: {out}`)
+			elseif out ~= nil then
 				table.insert(results, out)
 			end
 		end
 	end
-	if #results == 0 then
+	if #results > 0 then
+		premiereBatch:FireClient(player, results)
+	elseif failed then
 		studioError:FireClient(player, "invalid")
-		return
+	else
+		studioError:FireClient(player, "none")
 	end
-	premiereBatch:FireClient(player, results)
 	MovieService.sync(player)
 	LotService.refresh(player)
 end

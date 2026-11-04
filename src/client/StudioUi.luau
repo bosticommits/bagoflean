@@ -200,9 +200,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		local order = 0
 		-- Once the tutorial is done: PREMIERE ALL (when 2+ films are finished) and the Quick premieres switch.
 		if state.tutorialDone then
-			local row = UiKit.addRow(list, 0, 56)
+			local row = UiKit.addRow(list, 0, 60)
 			row.Name = "PremiereControls"
-			local all = makeButton(row, "PREMIERE ALL", UiKit.GREEN, UDim2.new(0.56, 0, 0, 42), UDim2.new(0, 8, 0.5, -21))
+			local all = makeButton(row, "PREMIERE ALL", UiKit.GREEN, UDim2.new(0.56, 0, 0, 44), UDim2.new(0, 8, 0.5, -22))
 			all.Name = "PremiereAll"
 			controls.all = all
 			all.Activated:Connect(function()
@@ -212,7 +212,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					UiKit.toast(gui, "PREMIERE ALL needs 2 or more finished films")
 				end
 			end)
-			local quick = makeButton(row, "", UiKit.NAVY, UDim2.new(0.38, -12, 0, 42), UDim2.new(0.62, 0, 0.5, -21))
+			local quick = makeButton(row, "", UiKit.NAVY, UDim2.new(0.38, -12, 0, 44), UDim2.new(0.62, 0, 0.5, -22))
 			quick.Name = "QuickPremieres"
 			controls.quick = quick
 			quick.Activated:Connect(function()
@@ -221,7 +221,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				if quickRemote ~= nil then
 					quickRemote:FireServer(want)
 				end
-				quick.Text = if want then "Quick: ON" else "Quick: OFF"
+				quick.Text = if want then "Red carpet: OFF" else "Red carpet: ON"
 			end)
 		end
 		for stage = 1, Config.StageLimit do
@@ -887,10 +887,10 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		if all ~= nil then
 			local ready = readyCount()
 			all.Text = `PREMIERE ALL ({ready})`
-			UiKit.setEnabled(all, ready >= 2, UiKit.GREEN)
+			all.Visible = ready >= 2 -- only worth a button when there is a batch
 		end
 		if quick ~= nil then
-			quick.Text = if quickOn() then "Quick: ON" else "Quick: OFF"
+			quick.Text = if quickOn() then "Red carpet: OFF" else "Red carpet: ON"
 		end
 		if needsRender then
 			render()

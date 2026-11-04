@@ -76,12 +76,18 @@ function PremiereCarpet.start(gui: ScreenGui, remotes: Instance)
 		anchor, prompt = part, p
 	end
 
-	-- The theatre's marquee text (the streamed-in map: look it up again whenever it is gone).
+	-- The theatre's marquee text (the streamed-in map: found once and kept; looked up again, at most
+	-- every 2 s, only when it is gone).
+	local nextSearch = 0
 	local function findLabel()
 		if label ~= nil and label:IsDescendantOf(Workspace) then
 			return
 		end
 		label = nil
+		if os.clock() < nextSearch then
+			return
+		end
+		nextSearch = os.clock() + 2
 		local town = Workspace:FindFirstChild("Town")
 		local theatre = if town ~= nil then town:FindFirstChild("PremiereTheatre", true) else nil
 		if theatre == nil then
@@ -120,7 +126,9 @@ function PremiereCarpet.start(gui: ScreenGui, remotes: Instance)
 				p.Enabled = ready > 0 and not busy
 				p.ActionText = if ready >= 2 then `PREMIERE ALL ({ready})` else "PREMIERE"
 			end
-			findLabel()
+			if ready > 0 or (label ~= nil and label.Text == READY_TEXT) then
+				findLabel()
+			end
 			local l = label
 			if l ~= nil then
 				flip = not flip

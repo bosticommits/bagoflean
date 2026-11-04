@@ -42,11 +42,14 @@ function HudSettingsService.start()
 
 	-- "Quick premieres": card only, no red-carpet show. Same checks as the tuck.
 	Remotes.get("QuickPremieres").OnServerEvent:Connect(function(player: Player, quick: any)
+		-- A rejected toggle sends the saved value back, so the client's switch never lies.
 		if type(quick) ~= "boolean" then
+			publish(player)
 			return
 		end
 		local now = os.clock()
 		if now - (lastChange[player] or -math.huge) < MIN_GAP then
+			publish(player)
 			return
 		end
 		lastChange[player] = now

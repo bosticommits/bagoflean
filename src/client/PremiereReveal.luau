@@ -1052,7 +1052,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 		overlay.BackgroundTransparency = 1
 		tween(overlay, 0.35, { BackgroundTransparency = DIM })
 		for _, child in cardRow:GetChildren() do
-			if child:IsA("Frame") then
+			if not child:IsA("UIListLayout") then
 				child:Destroy()
 			end
 		end
@@ -1097,7 +1097,11 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 			totalBox.Visible = true
 			batchTitle.Visible = false
 			Sfx.play("showTotal")
-			Sfx.play("lucienTotal")
+			task.delay(0.4, function() -- let the Ta Da sting land first
+				if premiereToken == mine then
+					Sfx.play("lucienTotal")
+				end
+			end)
 			totalFame.Text = `+{Hud.comma(fame)} Fame` .. (if awards > 0 then `  -  Award Night x{Config.AwardNightPayoutMultiplier} on {awards} film{if awards == 1 then "" else "s"}` else "")
 			finishCounts = nil
 			countUp(totalPayout, payout, 1.2, mine)
@@ -1184,7 +1188,8 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 			end
 		end)
 		if format.quick() then
-			-- "Quick premieres": the card straight away.
+			-- "Quick premieres": the card straight away (the HUD still gets out of the way).
+			hideHud(true)
 			startCard(result, mine, false)
 			return
 		end
