@@ -8,6 +8,8 @@ local LotModels = H.require("Models/LotModels")
 local MapModels = H.require("Models/MapModels")
 local Rewards = H.require("Rewards")
 local SpecialEvents = H.require("SpecialEvents")
+local PhoneLayout = H.require("PhoneLayout")
+local LiveConfigNumbers = H.require("LiveConfigNumbers")
 local test, expect, equal = H.test, H.expect, H.equal
 
 local Vector3 = roblox.Vector3
@@ -120,6 +122,58 @@ test("every event comes up as often, never twice in a row", function()
 		local expected = if event.season == nil then share else 0
 		expect(math.abs(n - expected) <= 2, `{event.id} came up {n} times, expected about {expected}`)
 	end
+end)
+
+test("live event weights are deterministic, bounded by the allowlist, and never repeat neighbors", function()
+	local weights = { CashRain = 4 }
+	local counts: { [string]: number } = {}
+	local previous = nil
+	for slot = FIRST_SLOT, FIRST_SLOT + 600 do
+		local event = SpecialEvents.forSlot(slot, nil, weights)
+		assert(event ~= nil)
+		equal(SpecialEvents.forSlot(slot, nil, weights), event, "same slot has the same weighted event")
+		expect(event ~= previous, "weighted schedule avoids adjacent repeats")
+		previous = event
+		counts[event.id] = (counts[event.id] or 0) + 1
+	end
+	local maxOther = 0
+	for id, count in counts do
+		if id ~= "CashRain" then
+			maxOther = math.max(maxOther, count)
+		end
+	end
+	expect((counts.CashRain or 0) > maxOther * 1.5, "higher event weight increases its share")
+	local none = {}
+	for _, event in SpecialEvents.List do
+		none[event.id] = 0
+	end
+	equal(SpecialEvents.forSlot(FIRST_SLOT, nil, none), nil, "all-zero weights suspend events")
+end)
+
+test("phone layout reserves clearances at custom viewport sizes", function()
+	local landscape = PhoneLayout.profile(844, 390, true)
+	expect(landscape.compact, "landscape phone uses compact layout")
+	equal(landscape.jumpTop, 90, "short-side phone jump button top")
+	equal(landscape.soundTopInset, 66, "compact speaker position")
+	local portrait = PhoneLayout.profile(390, 844, true)
+	equal(portrait.castBottomInset, 130, "portrait cast controls clear touch controls")
+	equal(portrait.jumpTop, 90, "portrait phone jump button top")
+	local tablet = PhoneLayout.profile(1024, 768, true)
+	expect(not tablet.compact, "tablet uses regular layout")
+	equal(tablet.jumpTop, 210, "tall touch-screen jump button top")
+	local desktop = PhoneLayout.profile(1366, 768, false)
+	equal(desktop.soundSize, 48, "desktop speaker size")
+	equal(desktop.giftBottomInset, 76, "desktop gifts sit above speaker")
+end)
+
+test("live numeric config accepts only allowlisted finite values inside bounds", function()
+	equal(LiveConfigNumbers.clean("GiftCashMultiplier", 1.25), 1.25, "accepted gift multiplier")
+	equal(LiveConfigNumbers.clean("EventWeight_CashRain", 0), 0, "zero weight is a valid disable")
+	equal(LiveConfigNumbers.clean("GiftCashMultiplier", 2.01), nil, "reject above maximum")
+	equal(LiveConfigNumbers.clean("CastingLuckMultiplier", 0.49), nil, "reject below minimum")
+	equal(LiveConfigNumbers.clean("GiftCashMultiplier", math.huge), nil, "reject infinity")
+	equal(LiveConfigNumbers.clean("GiftCashMultiplier", 0 / 0), nil, "reject NaN")
+	equal(LiveConfigNumbers.clean("UnknownControl", 1), nil, "reject unknown key")
 end)
 
 test("the Pumpkin Patch is dealt only in Fright Night, never twice in a row", function()

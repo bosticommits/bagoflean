@@ -151,10 +151,67 @@ local function deck(cycle: number, events: { Event }): { Event }
 	return cards
 end
 
--- The event dealt to `slot`. Each cycle of #events slots deals the whole deck, so every event
--- comes up once per cycle, and a new deck never opens with the card the last one ended on.
-local function eventFor(slot: number, events: { Event }): Event?
+-- At default weights, each cycle deals a shuffled deck so every event appears once and adjacent
+-- cycles do not repeat. An explicit live weight override uses deterministic weighted picks instead.
+local weightedSchedules: { [string]: { Event } } = {}
+
+local function eventFor(slot: number, events: { Event }, weights: { [string]: number }?): Event?
 	local count = #events
+	if weights ~= nil then
+		local keyParts = {}
+		for _, event in events do
+			table.insert(keyParts, `{event.id}:{weights[event.id] or 1}`)
+		end
+		local key = table.concat(keyParts, ",")
+		local schedule = weightedSchedules[key]
+		if schedule == nil then
+			local positive = {}
+			for _, event in events do
+				if (weights[event.id] or 1) > 0 then
+					table.insert(positive, event)
+				end
+			end
+			local built: { Event } = {}
+			if #positive > 0 then
+				local seed = 2166136261
+				for index = 1, #key do
+					seed = bit32.bxor(seed, string.byte(key, index))
+					seed = (seed * 16777619) % 4294967296
+				end
+				local random = Random.new(seed)
+				local first: Event? = nil
+				local previous: Event? = nil
+				for index = 1, 512 do
+					local candidates = {}
+					local total = 0
+					for _, event in positive do
+						if #positive == 1 or (event ~= previous and (index < 512 or event ~= first)) then
+							table.insert(candidates, event)
+							total += weights[event.id] or 1
+						end
+					end
+					local pick = random:NextNumber() * total
+					local selected = candidates[#candidates]
+					for _, event in candidates do
+						pick -= weights[event.id] or 1
+						if pick < 0 then
+							selected = event
+							break
+						end
+					end
+					if first == nil then first = selected end
+					table.insert(built, selected)
+					previous = selected
+				end
+			end
+			weightedSchedules[key] = built
+			schedule = built
+		end
+		if #schedule == 0 then
+			return nil
+		end
+		return schedule[slot % #schedule + 1]
+	end
 	if count <= 2 then
 		return events[slot % math.max(count, 1) + 1] -- one event, or two taking turns
 	end
@@ -193,18 +250,18 @@ function SpecialEvents.window(slot: number, seconds: number): (number?, number?)
 end
 
 -- The event in `slot` and when it starts, or nil.
-function SpecialEvents.forSlot(slot: number, disabled: { [string]: boolean }?): (Event?, number)
+function SpecialEvents.forSlot(slot: number, disabled: { [string]: boolean }?, weights: { [string]: number }?): (Event?, number)
 	local events = enabledEvents(disabled, slot)
-	local event = eventFor(slot, events)
+	local event = eventFor(slot, events, weights)
 	-- When a season starts or ends the deck changes, so its first card could repeat the last
 	-- slot's event: deal one unlike both neighbours instead (seasons are weeks apart, so the
 	-- neighbours themselves are ordinary deals).
 	if event ~= nil and #events >= 3 then
 		local before = enabledEvents(disabled, slot - 1)
-		if #before ~= #events and eventFor(slot - 1, before) == event then
-			local after = eventFor(slot + 1, events)
+		if #before ~= #events and eventFor(slot - 1, before, weights) == event then
+			local after = eventFor(slot + 1, events, weights)
 			for _, other in events do
-				if other ~= event and other ~= after then
+				if other ~= event and other ~= after and (weights == nil or (weights[other.id] or 1) > 0) then
 					event = other
 					break
 				end
@@ -223,8 +280,8 @@ end
 
 -- The event running at `now`: (event, starts, ends), or nil. Events stay inside their slot, so
 -- only the current slot can have one.
-function SpecialEvents.at(now: number, disabled: { [string]: boolean }?): (Event?, number, number)
-	local event, starts = SpecialEvents.forSlot(now // SpecialEvents.SlotSeconds, disabled)
+function SpecialEvents.at(now: number, disabled: { [string]: boolean }?, weights: { [string]: number }?): (Event?, number, number)
+	local event, starts = SpecialEvents.forSlot(now // SpecialEvents.SlotSeconds, disabled, weights)
 	if event ~= nil and now >= starts and now < starts + event.seconds then
 		return event, starts, starts + event.seconds
 	end
@@ -232,10 +289,10 @@ function SpecialEvents.at(now: number, disabled: { [string]: boolean }?): (Event
 end
 
 -- The next event to start after `now`, and when (it looks a few slots ahead).
-function SpecialEvents.nextAfter(now: number, disabled: { [string]: boolean }?): (Event?, number)
+function SpecialEvents.nextAfter(now: number, disabled: { [string]: boolean }?, weights: { [string]: number }?): (Event?, number)
 	local slot = now // SpecialEvents.SlotSeconds
 	for ahead = 0, 3 do
-		local event, starts = SpecialEvents.forSlot(slot + ahead, disabled)
+		local event, starts = SpecialEvents.forSlot(slot + ahead, disabled, weights)
 		if event ~= nil and starts > now then
 			return event, starts
 		end

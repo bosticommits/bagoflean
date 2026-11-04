@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 
 local AchievementsUi = require(script.Parent.AchievementsUi)
+local Announcements = require(script.Parent.Announcements)
 local ActorLife = require(script.Parent.ActorLife)
 local AreaMood = require(script.Parent.AreaMood)
 local CastingUi = require(script.Parent.CastingUi)
@@ -48,6 +49,7 @@ gui.ResetOnSpawn = false
 -- Sibling ordering: a panel's children always draw above the panel itself, whatever their ZIndex.
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 gui.Parent = playerGui
 
 Sfx.start()
@@ -81,6 +83,7 @@ if remotes ~= nil then
 	SoundSettingsUi.start(gui, remotes)
 	Tutorial.start(gui, remotes)
 	SpecialEventsUi.start(gui, remotes)
+	Announcements.start(gui, remotes)
 	VisitUi.start(gui, side.visit)
 	MascotUi.start(gui, side.mascots, remotes)
 	task.spawn(PlaytimeGiftsUi.start, gui, remotes)

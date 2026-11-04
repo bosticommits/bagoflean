@@ -781,6 +781,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): (result: any) -> 
 		-- Not kept with the spotlight tweens: the reveal cancels those, and this must always finish.
 		tween(poster, 0.55, { Position = poster.Position - UDim2.fromOffset(0, 40) }, Enum.EasingStyle.Quint)
 		Sfx.play("premiereDrumroll")
+		Sfx.play("lucienPremiere")
 		flashes(PremiereNight.DRUMROLL_FLASHES, PremiereNight.DRUMROLL_SECONDS * 0.8, mine)
 		task.delay(PremiereNight.DRUMROLL_SECONDS, function()
 			reveal(result, mine)

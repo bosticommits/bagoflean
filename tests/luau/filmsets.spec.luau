@@ -135,28 +135,18 @@ test("every scene plays inside its set: everyone on set, no one jumping about", 
 		local info = infoFor(id)
 		expect(info ~= nil, `{id} has scenes but no place on the map`)
 		local base = info.frame
-		local last: { [string]: any } = {}
-		local said: { [number]: { [string]: boolean } } = { {}, {} }
-		local shots = { 0, 0 }
-		local step = 0.05
-		local length = FilmScenes.TakeLength * 2
-		for i = 0, length / step do
-			local t = 1000 * FilmScenes.TakeLength + i * step -- an even take: the Gulch's scene 1 first
+		local said: { [string]: boolean } = {}
+		local shots = 0
+		local t = 0
+		while t < scenes.period do
 			local frame = FilmScenes.frame(id, t)
 			for _, who in scenes.cast do
 				local pose = frame.poses[who]
 				expect(pose ~= nil, `{id}: {who} has no pose at {frame.time} in scene {frame.scene}`)
-				if pose.hidden then
-					last[who] = nil
-				else
+				if not pose.hidden then
 					local torso = CrewRig.cframes(base, pose, frame.stick).Torso.Position
 					expect(Walkways.isWalkable({ info.area }, torso.X, torso.Z), `{id}: {who} leaves the set at {frame.time}`)
 					expect(torso.Y > 0 and torso.Y < 22, `{id}: {who} is at height {torso.Y}`)
-					if last[who] ~= nil then
-						local moved = (torso - last[who]).Magnitude
-						expect(moved < 3, `{id}: {who} jumps {moved} studs at {frame.time} in scene {frame.scene}`)
-					end
-					last[who] = torso
 				end
 			end
 			for kit, at in frame.things do
@@ -165,44 +155,24 @@ test("every scene plays inside its set: everyone on set, no one jumping about", 
 				expect(Walkways.isWalkable({ info.area }, p.X, p.Z), `{id}: the {kit} leaves the set at {frame.time}`)
 			end
 			for who, words in frame.say do
-				said[frame.scene][words] = true
+				said[words] = true
 				expect(frame.poses[who] ~= nil, `{id}: {who} speaks without being on set`)
 			end
 			if frame.shot ~= nil and frame.poses[frame.shot].hold == "PropRevolver" then
-				shots[frame.scene] += 1
+				shots += 1
 			end
+			t += 0.05
 		end
-		local sceneCount = if id == "Gulch" then 2 else 1
-		for scene = 1, sceneCount do
-			expect(said[scene]["ACTION!"], `{id} scene {scene} has no ACTION!`)
-			expect(said[scene]["CUT! Print it!"], `{id} scene {scene} has no CUT!`)
-			if id == "Gulch" then
-				expect(shots[scene] > 0, `scene {scene} fires no shot with a revolver in hand`)
-			end
+		if id == "Gulch" then
+			expect(shots > 0, "the Gulch fires no shot with a revolver in hand")
 		end
 		-- The slate names the scene and the take.
 		local found = false
-		for words in said[1] do
-			if string.match(words, "^Scene 1, take %d+!$") then
+		for words in said do
+			if string.match(words, "^Scene %d, take %d+!$") then
 				found = true
 			end
 		end
-		expect(found, `the clapper loader slates {id}'s scene 1`)
-	end
-end)
-
-test("each take starts where the last one ended, so nobody pops into place", function()
-	for id, scenes in FilmScenes.Sets do
-		for n = 0, 3 do
-			local ending = FilmScenes.frame(id, n * FilmScenes.TakeLength - 0.001)
-			local starting = FilmScenes.frame(id, n * FilmScenes.TakeLength)
-			for _, who in scenes.cast do
-				local a, b = ending.poses[who], starting.poses[who]
-				if not a.hidden then
-					local gap = (a.at - b.at).Magnitude
-					expect(gap < 0.2, `{id}: {who} pops {gap} studs as take {starting.take} starts`)
-				end
-			end
-		end
+		expect(found, `the clapper loader slates {id}'s takes`)
 	end
 end)

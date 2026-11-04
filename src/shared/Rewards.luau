@@ -228,6 +228,29 @@ function Rewards.takeCarried(carried: { Carried }, key: any): Carried?
 	return nil
 end
 
+-- Quests in a RewardsSync payload (`requests`, `weekly`, `festival`, `carried`) that are ready to
+-- claim, keyed "<scope>:<id>" ("carried:<key>" for a carried one). The Goals badge and the HUD pull
+-- tab's dot both count these.
+function Rewards.readyQuests(state: any): { [string]: boolean }
+	local ready: { [string]: boolean } = {}
+	for scope, field in { daily = "requests", weekly = "weekly", festival = "festival" } do
+		local entries = state[field]
+		for _, entry in if type(entries) == "table" then entries else {} do
+			local quest = requestById[entry.id]
+			if quest ~= nil and not entry.claimed and entry.progress >= quest.target then
+				ready[`{scope}:{entry.id}`] = true
+			end
+		end
+	end
+	local carried = state.carried
+	for _, entry in if type(carried) == "table" then carried else {} do
+		if requestById[entry.id] ~= nil then
+			ready[`carried:{entry.key}`] = true
+		end
+	end
+	return ready
+end
+
 -- Saved daily state: the day last claimed and the streak reached on it.
 export type DailyState = { day: number, streak: number }
 
@@ -262,6 +285,27 @@ local function comma(n: number): string
 	return (formatted:gsub("^,", ""))
 end
 
+Rewards.MaxFame = 1e12 -- matches Movies.MaxPayout
+
+function Rewards.addFame(current: number, amount: number): number
+	return math.min(current + amount, Rewards.MaxFame)
+end
+
+-- Why a code can't be redeemed, or nil if it can. A `dev` code only exists for the game's creator:
+-- everyone else gets the same answer as an unknown code, so it never leaks. Dev codes repeat.
+function Rewards.codeRefusal(entry: { dev: boolean?, expires: number? }?, used: boolean, isCreator: boolean, disabled: boolean, now: number): string?
+	if entry == nil or (entry.dev and not isCreator) then
+		return "Invalid code"
+	end
+	if (entry.expires ~= nil and now >= entry.expires) or disabled then
+		return "That code has expired"
+	end
+	if used and not entry.dev then
+		return "You already used that code"
+	end
+	return nil
+end
+
 -- Short text for the UI and for "you got" messages.
 function Rewards.describe(reward: Reward, ratePerSecond: number): string
 	local parts: { string } = {}
@@ -278,6 +322,9 @@ function Rewards.describe(reward: Reward, ratePerSecond: number): string
 	end
 	if reward.skips ~= nil then
 		table.insert(parts, `{reward.skips} Skip Filming`)
+	end
+	if reward.fame ~= nil then
+		table.insert(parts, `{comma(reward.fame)} Fame`)
 	end
 	return table.concat(parts, " + ")
 end

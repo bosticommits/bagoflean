@@ -240,6 +240,19 @@ local function tick()
 	local now = os.time()
 	publishFestival(now)
 	local off = disabled()
+	local configuredWeights: { [string]: number } = {}
+	local weights: { [string]: number }? = nil
+	local hasWeightOverride = false
+	for _, candidate in SpecialEvents.List do
+		local weight = LiveConfig.number("EventWeight_" .. candidate.id)
+		configuredWeights[candidate.id] = weight
+		if weight ~= 1 then
+			hasWeightOverride = true
+		end
+	end
+	if hasWeightOverride then
+		weights = configuredWeights
+	end
 	local event: SpecialEvents.Event?, starts: number, ends: number
 	local test = forced
 	if test ~= nil and now < test.ends then
@@ -247,7 +260,7 @@ local function tick()
 	else
 		forced = nil
 		test = nil
-		event, starts, ends = SpecialEvents.at(now, off)
+		event, starts, ends = SpecialEvents.at(now, off, weights)
 	end
 	local key = if event ~= nil then `{event.id}:{starts}` else nil
 	local state = live
@@ -266,7 +279,7 @@ local function tick()
 	if test ~= nil then
 		upcoming = if now < test.starts then test.starts else nil
 	else
-		local nextEvent, nextStarts = SpecialEvents.nextAfter(now, off)
+		local nextEvent, nextStarts = SpecialEvents.nextAfter(now, off, weights)
 		upcoming = if nextEvent ~= nil then nextStarts else nil
 	end
 	ReplicatedStorage:SetAttribute("SpecialEventNext", upcoming)
@@ -317,7 +330,7 @@ local function onClaim(player: Player, kind: any, index: any)
 	end
 	markClaimed(player, data, state, item)
 	if kind == "coin" then
-		local cash = SpecialEvents.coinCash(EconomyService.rate(data), data.fame)
+		local cash = math.floor(SpecialEvents.coinCash(EconomyService.rate(data), data.fame) * LiveConfig.number("EventCoinMultiplier"))
 		EconomyService.addCash(player, cash, "Gameplay", state.event.id)
 		resultRemote:FireClient(player, kind, index, true, Rewards.describe({ cash = cash }, 0))
 	elseif kind == "golden" then

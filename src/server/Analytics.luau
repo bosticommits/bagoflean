@@ -5,6 +5,8 @@
 -- - Economy: every Cash source and sink, batched per player and flushed once a minute (and on
 --   leave), because collecting can happen several times a second and the API is rate limited.
 -- - Onboarding funnel: the first-session steps, logged once per new player (see Steps).
+-- - First-ten-minute milestones: each first-time onboarding step reached within 10 minutes,
+--   with cumulative active play seconds as the event value.
 -- - Custom events: a few low-frequency moments (rare pulls, premieres, rewards, purchases).
 -- Analytics is never the source of truth for anything; a failed log is ignored.
 local AnalyticsService = game:GetService("AnalyticsService")
@@ -111,6 +113,12 @@ function Analytics.onboarding(player: Player, step: number)
 	try(function()
 		AnalyticsService:LogOnboardingFunnelStepEvent(player, step, stepNames[step])
 	end)
+	-- Keep the ordinary onboarding funnel for every new player. This separate event only counts
+	-- milestones reached in the first 10 minutes of active play, so its per-step counts show where
+	-- new players are progressing before the deadline. `played` is server-counted and persisted.
+	if data.played <= 10 * 60 then
+		Analytics.event(player, "FTUEStepWithin10Minutes", data.played, stepNames[step])
+	end
 end
 
 function Analytics.start()

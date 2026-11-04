@@ -103,15 +103,16 @@ export type Agency = {
 	cost: number,
 	fame: number, -- Fame needed to use it
 	minTier: number, -- tiers below this index are removed from the pool
+	pity: string, -- the tier its pity meter guarantees (Actors.PityEvery)
 }
 
 -- Plan section 3: better agencies cost more per roll and remove the bottom tier(s).
 -- Talent Agency's Fame gate sets when it opens (about 30 minutes of play, see ECONOMY.md): Fame,
 -- not its $1,000 price, is what holds it back, so tune the gate to move it.
 Actors.Agencies = {
-	{ id = "Open", name = "Open Casting", cost = 10, fame = 0, minTier = 1 },
-	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 1400, minTier = 2 },
-	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 50000, minTier = 3 },
+	{ id = "Open", name = "Open Casting", cost = 10, fame = 0, minTier = 1, pity = "Star" },
+	{ id = "Talent", name = "Talent Agency", cost = 1000, fame = 1400, minTier = 2, pity = "Superstar" },
+	{ id = "Hollywood", name = "Hollywood Casting", cost = 100000, fame = 50000, minTier = 3, pity = "Superstar" },
 } :: { Agency }
 
 -- "Discovered!" hot start: a brand-new player's first casts carry guaranteed pulls, so the first
@@ -319,6 +320,65 @@ function Actors.roll(random: Random, luck: number, minTier: number?, floorTier: 
 		variant = variantById.Shiny
 	end
 	return actor, variant
+end
+
+-- Pity meter: each agency counts the casts since its last pull of its `pity` tier or better, and
+-- the PityEvery-th one is guaranteed that tier. Per agency, so cheap Open Casting casts cannot
+-- fill up the Talent Agency's meter. Tuned in ECONOMY.md ("Pity meter").
+Actors.PityEvery = 400
+
+-- Early crazy pulls for a brand-new account, by seconds of play (counted on the server):
+-- a Superstar near-miss tease, then one guaranteed Superstar. `early` in the save: 0 = neither yet,
+-- 1 = tease shown, 2 (Actors.EarlyDone) = done (old saves start done). A natural Superstar or
+-- better first also counts as done.
+Actors.TeaseAfter = 5 * 60 -- the first cast after this that rolls TeaseMinTier or better is teased
+Actors.TeaseMinTier = "Pro" -- so the build-up never lands on a Newcomer
+Actors.FirstSuperstarAfter = 12 * 60 -- the first cast after this is a guaranteed Superstar
+Actors.EarlyDone = 2
+
+export type CastSave = { hotStart: number, pity: { [string]: number }, early: number, played: number }
+
+local function rank(tierId: string): number
+	return table.find(Actors.Tiers, tierById[tierId]) or 0
+end
+
+-- One cast with every guarantee applied: the hot start, the agency's pity meter and the first
+-- Superstar. `roll(floorTier)` does the real roll (Actors.roll) with the best floor in force, so a
+-- luckier roll always keeps its tier. Updates `save` and returns the actor, the variant, which
+-- guarantee covered this cast ("hotStart" | "pity" | "firstSuperstar" | nil) and the tease
+-- ("nearMiss" | nil; presentation only, the result is the real roll).
+function Actors.castWithGuarantees(save: CastSave, agency: Agency, roll: (string?) -> (Actor, Variant), noFirstSuperstar: boolean?): (Actor, Variant, string?, string?)
+	local floor: string?, guarantee: string? = nil, nil
+	local function offer(tierId: string?, why: string)
+		if tierId ~= nil and (floor == nil or rank(tierId) > rank(floor :: string)) then
+			floor, guarantee = tierId, why
+		end
+	end
+	if save.hotStart < Actors.HotStartLength then
+		save.hotStart += 1
+		offer(Actors.hotStartTier(save.hotStart), "hotStart")
+	end
+	local pityCount = (save.pity[agency.id] or 0) + 1
+	if pityCount >= Actors.PityEvery then
+		offer(agency.pity, "pity")
+	end
+	if not noFirstSuperstar and save.early < Actors.EarlyDone and save.played >= Actors.FirstSuperstarAfter then
+		offer("Superstar", "firstSuperstar")
+	end
+
+	local actor, variant = roll(floor)
+	local got = rank(actor.tier)
+	save.pity[agency.id] = if got >= rank(agency.pity) then 0 else pityCount
+	local tease: string? = nil
+	if save.early < Actors.EarlyDone then
+		if got >= rank("Superstar") then
+			save.early = Actors.EarlyDone
+		elseif save.early == 0 and save.played >= Actors.TeaseAfter and got >= rank(Actors.TeaseMinTier) then
+			save.early = 1
+			tease = "nearMiss"
+		end
+	end
+	return actor, variant, guarantee, tease
 end
 
 return Actors

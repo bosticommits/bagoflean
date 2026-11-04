@@ -424,11 +424,13 @@ function LotService.model(index: number): Model?
 	return if lot ~= nil then lot.model else nil
 end
 
--- Tell every client to play a celebration on this player's lot ("masterpiece" or "pull").
-function LotService.celebrate(player: Player, kind: string)
+-- Tell every client to play a celebration on this player's lot ("masterpiece" or "pull"). A
+-- "pull" carries the tier (Superstar and up) and the puller's UserId, so their own client can
+-- hold it until the reveal card flips. Only server-decided values go out.
+function LotService.celebrate(player: Player, kind: string, tierId: string?)
 	local lot = lotOf[player]
 	if lot ~= nil then
-		celebrate:FireAllClients(lot.index, kind)
+		celebrate:FireAllClients(lot.index, kind, tierId, player.UserId)
 	end
 end
 

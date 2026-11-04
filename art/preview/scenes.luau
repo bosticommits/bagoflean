@@ -160,7 +160,7 @@ function scenes.filmset(folder, load, roblox, arg)
 	local crew = roblox.Instance.new("Folder")
 	crew.Parent = folder
 	for _, who in FilmScenes.Sets[id].cast do
-		local rig = CrewRig.build(crew, who)
+		local rig = CrewRig.build(crew, who, FilmScenes.Sets[id].props[who])
 		local pose = frame.poses[who]
 		if pose.hidden then
 			rig.model.Parent = nil

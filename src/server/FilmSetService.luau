@@ -7,8 +7,14 @@
 -- The save keeps `filmSetsOwned` (a set of bought ids). Like `mascotsOwned` it is not in
 -- DataService's template, so this feature stays in its own file; a missing set means none owned.
 -- A rebirth never takes film sets away.
+--
+-- The owner steers the crew (FilmScenes.cue): walking into their set, or calling "Action!" at the
+-- clapper loader (remote FilmSetAction, checked here: the set's owner, standing inside it, at
+-- most once every ACTION_GAP seconds), sets the workspace attribute FilmSetCue_<id>. Every client
+-- plays the crew from it, so all players see the same take.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local FilmScenes = require(ReplicatedStorage.Shared.FilmScenes)
 local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
 local Walkways = require(ReplicatedStorage.Shared.Models.Walkways)
@@ -17,11 +23,23 @@ local EconomyService = require(script.Parent.EconomyService)
 local Remotes = require(script.Parent.Remotes)
 
 local MIN_GAP = 0.5 -- seconds between purchases per player
+local ACTION_GAP = 2 -- seconds between one player's "Action!" calls
 
 local FilmSetService = {}
 
 local lastBuy: { [Player]: number } = {}
 local inside: { [Player]: number } = {} -- seconds spent inside an owned set since the last payout
+local lastAction: { [Player]: number } = {}
+local cues: { [string]: FilmScenes.Cue } = {}
+
+-- Cues the crew of set `id`; does nothing while an earlier cue is still playing out.
+local function cue(id: string, press: boolean)
+	local nextCue = FilmScenes.cue(id, cues[id], workspace:GetServerTimeNow(), press)
+	if nextCue ~= nil then
+		cues[id] = nextCue
+		workspace:SetAttribute("FilmSetCue_" .. id, FilmScenes.cueText(nextCue))
+	end
+end
 
 -- Publishes what the player owns. Cheap; Main calls it every second.
 function FilmSetService.refresh(player: Player)
@@ -69,6 +87,9 @@ function FilmSetService.tick(player: Player)
 	end
 	if player:GetAttribute("OnFilmSet") ~= set.id then
 		player:SetAttribute("OnFilmSet", set.id)
+		if FilmScenes.Sets[set.id] ~= nil then
+			cue(set.id, false) -- the crew greets the owner at the next take
+		end
 	end
 	inside[player] = (inside[player] or 0) + 1
 	if inside[player] >= FilmSets.PayEvery then
@@ -81,6 +102,23 @@ function FilmSetService.tick(player: Player)
 end
 
 function FilmSetService.start()
+	Remotes.get("FilmSetAction").OnServerEvent:Connect(function(player: Player, id: any)
+		if type(id) ~= "string" or #id > 40 or FilmScenes.Sets[id] == nil then
+			return
+		end
+		local now = os.clock()
+		if now - (lastAction[player] or -math.huge) < ACTION_GAP then
+			return
+		end
+		lastAction[player] = now
+		local data = DataService.getData(player)
+		local set = if data ~= nil then setUnder(player, data) else nil
+		if set == nil or set.id ~= id then
+			return -- only the owner, standing inside their own set
+		end
+		cue(id, true)
+	end)
+
 	Remotes.get("BuyFilmSet").OnServerEvent:Connect(function(player: Player, id: any)
 		if type(id) ~= "string" or #id > 40 then
 			return
@@ -110,6 +148,7 @@ end
 function FilmSetService.forget(player: Player)
 	lastBuy[player] = nil
 	inside[player] = nil
+	lastAction[player] = nil
 end
 
 return FilmSetService

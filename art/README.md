@@ -7,6 +7,8 @@ that look smoother; once you import them, the game uses them automatically.
 | File | What it builds |
 |---|---|
 | `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
+| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 314 mesh templates currently in the Studio place |
+| `tools/studio/rebuild_lot_meshes.luau` | Studio Command Bar script that rebuilds and verifies `ReplicatedStorage.LotMeshes` from the manifest |
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (4 sizes), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
@@ -16,7 +18,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
 | `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |
 | `src/shared/Models/Walkways.luau` | Where players may walk, and the invisible walls along the path borders |
-| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `festival_laurel` (the Film Festival prize that stands on a player's lot), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), `seasonal_actors` (the four limited seasonal actors, built with the mascots' shapes; it writes `src/shared/Models/SeasonalShapes.luau` the same way), `actors` (the 21 castable actors, each split into rig pieces Body, Head, ArmL, ArmR and a rarity-colored Base; it also writes `src/shared/Models/ActorShapes.luau`, the part version the game shows until the meshes are imported, and `art/previews/actors_blender.png`), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), `crew_kit.py` the film set crew and actors (ten people in rig pieces: head, torso, arm, leg), their props and the film set gate, `space_kit.py` Moon Base's rocket, lander, dome, buggy, rocks, craters and backdrop, `jungle_kit.py` the Jungle Temple and its trees, palms, ferns, torches and ruins, all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
+| `art/blender/*.py` | Blender models: `palm_tree`, `searchlight`, `film_camera`, `film_reel_logo` (and `trophy_gold`), `mystery_crate` (the Mystery Crate event's crate, lid and parachute), `festival_laurel` (the Film Festival prize that stands on a player's lot), `mascots` (the six studio mascots; it also writes `src/shared/Models/MascotShapes.luau`, the part version the game shows until the meshes are imported), `seasonal_actors` (the four limited seasonal actors, built with the mascots' shapes; it writes `src/shared/Models/SeasonalShapes.luau` the same way), `actors` (the 21 castable actors, each split into rig pieces Body, Head, ArmL, ArmR and a rarity-colored Base; it also writes `src/shared/Models/ActorShapes.luau`, the part version the game shows until the meshes are imported, and `art/previews/actors_blender.png`), and `map_kit` (about 120 map models in one file: `map_kit.py` has the lamps, trees, cacti, rocks, mesas, water towers, bandstand, benches and Dusty Gulch's eight buildings, `town_kit.py` the store stands, plaza fountain, hedges, arches, theatre, Studio Gate, film sets, cars, street furniture, Gulch and park props, hills, the hill star, the blimp, city towers, clouds, gulls, butterflies and ducks, `boulevard_kit.py` the tall boulevard buildings (Hotel Stardust, Sunset Tower, four apartment blocks, two costume shops, the radio station and the Star Cafe), `crew_kit.py` the film set crew and actors (ten people in rig pieces: head, torso, arm, leg), their props and the film set gate, `space_kit.py` Moon Base's rocket, lander, dome, buggy, rocks, craters and backdrop, `jungle_kit.py` the Jungle Temple and its trees, palms, ferns, torches, ruins, fake rocks, river, bridge, plants, painted backdrop flats and the park's signpost and jungle arch, `backlot_kit.py` the studio backlot dressing (green mesh fence, painted flats with their bracing, truss and scaffold light rigs, cables and generator, road cases, carts, craft services, video village) for the open backlot sets, all written in the shape language in `kitdsl.py`; it also writes `src/shared/Models/MapKitShapes.luau`, with the sign spots the game letters text on) |
 | `art/blender/halloween_kit.py` | The Fright Night decor and Pumpkin Patch pumpkins: `JackOLantern`, `JackOLanternSmall`, `PumpkinPlain`, `GoldenPumpkin`, `HalloweenHayBale`, `Scarecrow`, `CandyBucket` (map kit shape language, its own `halloween_kit.fbx` and `src/shared/Models/HalloweenShapes.luau`; preview `art/previews/halloween_kit.png`). Import `halloween_kit.fbx` like the map kit (Merge meshes off) and drop the whole model into `LotMeshes` |
 | `art/preview/` | Draws previews of the code-built models without opening Studio |
 
@@ -60,10 +62,17 @@ The town around the lots (`MapModels`, built by `src/server/MapService.luau`):
   by the server clock so everyone sees the same take. Dusty Gulch has a showdown and a balcony
   stunt; Moon Base (`space_kit.py`) has an astronaut planting a flag with an alien sneaking up;
   the Jungle Temple (`jungle_kit.py`) has an explorer grabbing an idol and outrunning a boulder.
+  Eight people on each set (director, camera operator on a dolly and crane, clapper loader,
+  boom operator, lighting tech, make-up artist and the actors) play a loop of rehearsals, takes,
+  bloopers, notes and resets with planted-foot walks; `tests/luau/crew.spec.luau` plays every
+  frame to check nobody snaps, slides or bumps. `map_kit_crew_more.png` shows the newer crew
+  pieces and the camera rig.
   The gate on the way in is bought with Cash; it opens on the owner's screen only. Preview a
   moment with `MAP_SCENE=filmset MAP_ARG=<set id>:<seconds>` (`Gulch`, `MoonBase`, `Jungle`) and
   the `filmset`, `filmbalcony`, `filmsetwide`, `filmgate`, `moonset`, `moonwide`, `moongate`,
-  `jungleset`, `junglewide` or `junglegate` shots.
+  `jungleset`, `junglewide`, `junglegate`, `jungleaerial` (straight down), `jungleback` (the flats' bracing),
+  `jungleroad` (the trailers by the road in) or `jungletrail` (the park path to the jungle gate) shots
+  (`gulchtop`, `gulchend`, `gulchback` and `gulchbase` show the Gulch's backlot dressing).
 - **Scenery**: woods of trees, pines and bushes round the town and behind the park, a desert of
   cacti, boulders and mesas behind Dusty Gulch, trees up the hills, and a ring of terrain
   mountains (snowy peaks, sandstone mesas behind the Gulch) on the horizon.
@@ -123,6 +132,31 @@ each by name and sets the colors itself. Don't rename or merge them: each piece 
 5. Press Play. The lots now use the meshes. Save the place so the folder is kept.
 
 Rojo only manages `ReplicatedStorage.Shared`, so it leaves the `LotMeshes` folder alone.
+
+## Rebuild the saved mesh library
+
+`src/shared/LotMeshManifest.luau` is the committed source for the 314 mesh templates currently in
+the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces and the 271-mesh map kit
+(`map_kit`, asset 80189346190801). It records
+each Roblox mesh asset ID, template size, appearance and physics properties, plus its group name.
+Other Blender models listed above are not in this snapshot until they have been imported into the
+place and added to the manifest.
+
+On a fresh place or another machine:
+
+1. Open the place in Studio and sync the project with Rojo so
+   `ReplicatedStorage.Shared.LotMeshManifest` exists.
+2. Open Studio's **View → Command Bar**. Copy the contents of
+   `tools/studio/rebuild_lot_meshes.luau` into the bar and run it.
+3. Wait for the success message, then check `ReplicatedStorage > LotMeshes` in Explorer. The script
+   stages all entries and checks each loaded mesh ID before it replaces the live folder. If a mesh
+   fails to load or validate, the old folder stays in place.
+4. Save the place. The replaced folder is preserved under
+   `ServerStorage > LotMeshesBackup`; keep it until the rebuilt art has been checked.
+
+The mesh assets must remain readable by the experience creator. When adding or replacing a mesh,
+update the manifest as part of the same change; the rebuild intentionally creates exactly the
+manifested library and moves any previous folder to the backup.
 
 ## Previewing without Studio
 

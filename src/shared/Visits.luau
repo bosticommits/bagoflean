@@ -7,7 +7,10 @@
 -- have stood on that studio for a few seconds (a real tour). After that the button still claps for
 -- the show, without counting. A tour is counted once per studio per day too (QuestTracker kind
 -- "visit"), ready for a quest that asks for tours.
+local FilmSets = require(script.Parent.FilmSets)
 local LotModels = require(script.Parent.Models.LotModels)
+local MapModels = require(script.Parent.Models.MapModels)
+local Walkways = require(script.Parent.Models.Walkways)
 
 local Visits = {}
 
@@ -65,6 +68,34 @@ end
 -- space +Z; the gate faces -Z, toward the boulevard). Raised so the character stands on the floor.
 function Visits.arrival(base: CFrame): CFrame
 	return base * CFrame.new(0, 4.5, LotModels.Layout.gateZ + 3.5) * CFrame.Angles(0, math.pi, 0)
+end
+
+-- Where a Visit-menu jump to film set `id` lands a player whose save is `data` (only
+-- `filmSetsOwned` is read): inside the set if they own it, otherwise just outside its gate.
+-- Returns the spot and whether it is inside, or nil for an unknown id, or for a gate that stands
+-- inside another set they don't own (Moon Base's gate is in Dusty Gulch; that set's id comes
+-- third), so a jump never skips a gate. `id` comes from a client, so anything may arrive.
+function Visits.filmSetArrival(id: any, data: any): (CFrame?, boolean, string?)
+	local set = if type(id) == "string" and #id <= 40 then FilmSets.get(id) else nil
+	if set == nil or type(data) ~= "table" then
+		return nil, false
+	end
+	for _, info in MapModels.FilmSets do
+		if info.id == set.id then
+			if FilmSets.owns(set, data) then
+				return info.frame * info.inside, true
+			end
+			local spot = info.gate * MapModels.GateArrival
+			for _, other in MapModels.FilmSets do
+				local otherSet = FilmSets.get(other.id)
+				if otherSet ~= nil and not FilmSets.owns(otherSet, data) and Walkways.isWalkable({ other.area }, spot.X, spot.Z) then
+					return nil, false, otherSet.id
+				end
+			end
+			return spot, false
+		end
+	end
+	return nil, false
 end
 
 -- "1,234"

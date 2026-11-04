@@ -6,6 +6,7 @@
 local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
 
 local Sounds = require(ReplicatedStorage.Shared.Sounds)
 
@@ -67,8 +68,10 @@ function Sfx.setVolume(volume: number)
 end
 
 -- Plays slot `name` (see Sounds.Slots) as a one-shot copy, so overlapping plays never cut each
--- other off. `pitch` multiplies the slot's own pitch, for a little variety.
-function Sfx.play(name: string, pitch: number?)
+-- other off. `pitch` multiplies the slot's own pitch, for a little variety. With `at`, the sound
+-- comes from that spot in the world (3D, fading out by `range` studs); `length` cuts a long sound
+-- short with a quick fade.
+local function playSlot(name: string, pitch: number?, at: Vector3?, range: number?, length: number?)
 	local id, volume, slotPitch = Sounds.resolve(name)
 	if id == nil then
 		warn(`[Sfx] unknown sound slot "{name}"`)
@@ -87,17 +90,66 @@ function Sfx.play(name: string, pitch: number?)
 	local sound = base:Clone()
 	sound.Volume = volume
 	sound.PlaybackSpeed = slotPitch * (pitch or 1)
-	sound.Parent = sfxGroup
+	local holder: Instance = sfxGroup
+	if at ~= nil then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "SfxAt"
+		attachment.WorldPosition = at
+		attachment.Parent = workspace.Terrain
+		holder = attachment
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
+		sound.RollOffMinDistance = 12
+		sound.RollOffMaxDistance = range or 140
+	end
+	sound.Parent = holder
 	sound:Play()
-	sound.Ended:Once(function()
-		sound:Destroy()
-	end)
-	-- Safety net if Ended never fires (asset failed to load).
-	task.delay(8, function()
+	local function done()
 		if sound.Parent ~= nil then
 			sound:Destroy()
 		end
-	end)
+		if holder ~= sfxGroup and holder.Parent ~= nil then
+			holder:Destroy()
+		end
+	end
+	sound.Ended:Once(done)
+	if length ~= nil then
+		task.delay(length, function()
+			if sound.Parent ~= nil then
+				TweenService:Create(sound, TweenInfo.new(0.6), { Volume = 0 }):Play()
+				task.delay(0.6, done)
+			end
+		end)
+	end
+	-- Safety net if Ended never fires (asset failed to load).
+	task.delay(math.max(8, (length or 0) + 1), done)
+end
+
+function Sfx.play(name: string, pitch: number?)
+	playSlot(name, pitch)
+end
+
+-- Plays slot `name` from `at` in the world (see playSlot).
+function Sfx.playAt(name: string, at: Vector3, range: number?, length: number?)
+	playSlot(name, nil, at, range, length)
+end
+
+-- A looping 3D sound for `parent` (an Attachment or part), through the Effects volume: asset
+-- `id` at `volume`, fading out by `range` studs. Not playing yet; the caller plays and stops it.
+function Sfx.loop(id: number, volume: number, parent: Instance, range: number): Sound?
+	local sfxGroup = group
+	if sfxGroup == nil or id <= 0 then
+		return nil
+	end
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://" .. id
+	sound.Volume = volume
+	sound.Looped = true
+	sound.SoundGroup = sfxGroup
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.RollOffMinDistance = math.min(20, range / 3)
+	sound.RollOffMaxDistance = range
+	sound.Parent = parent
+	return sound
 end
 
 return Sfx

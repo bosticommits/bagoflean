@@ -53,6 +53,19 @@ Sounds.Slots = {
 	revealEpic = slot("stinger", 0.9), -- Superstar and up: a deeper sting
 	revealLegend = slot("jingle"), -- Legend and Icon, on top of the deeper sting (music dips under it)
 	revealShiny = slot("stinger", 1.25), -- Shiny and Award variants, on top of the tier sound
+	-- The reveal build-up (CastingUi): drumroll ticks speed up, a tone each time the glow climbs a
+	-- tier (pitched up per tier), and a burst when a fake-out jumps to the real tier.
+	drumroll = slot("clap", 0.6),
+	drumrollLow = slot("click", 0.5), -- the second drum layer for Superstar+ and the near miss
+	revealStep = slot("indicator"),
+	revealBurst = slot("stinger", 1.2),
+	-- The announcer on the flip (Fish Audio voice "Energetic Male", uploaded 2026-10-26).
+	voiceStar = { id = 115516541869843, volume = 0.8, fallback = "pop", pitch = 1.2 }, -- "Star!"
+	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1 }, -- "SUPERSTAR!"
+	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1 }, -- "LEGEND!"
+	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9 }, -- "ICON!"
+	-- "Ooh, so close!": the near-miss tease lands on a lower tier.
+	voiceSoClose = { id = 81149535231196, volume = 0.8, fallback = "low", pitch = 1.1 },
 
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up
@@ -68,6 +81,13 @@ Sounds.Slots = {
 	takePerfect = slot("stinger", 1.15),
 	takeGood = slot("clap", 1.05),
 	takeMiss = slot("low", 0.9),
+	-- The film crews on the film sets (FilmSetWorld), heard from where it happens. The voice lines
+	-- were still in moderation review when added; the fallbacks play only if an id is cleared.
+	FilmClapper = { id = 9120916820, volume = 0.7, fallback = "clap", pitch = 0.8 }, -- the clapperboard snaps shut (PSE "Wood Impacts 13")
+	FilmAction = { id = 123389177574608, volume = 0.8, fallback = "low", pitch = 1.35 }, -- the director's "Action!"
+	FilmCut = { id = 133550941117464, volume = 0.8, fallback = "low", pitch = 0.85 }, -- the director's "Cut!"
+	FilmPlaces = { id = 109213125841224, volume = 0.8, fallback = "indicator" }, -- "Places everyone!" when the owner walks in
+	FilmApplause = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- a clean take (PSE "Applause Tight 4"; FilmSetWorld plays ~3 s of it)
 
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed
@@ -89,6 +109,19 @@ Sounds.Slots = {
 	-- Then the announcer: "Fright Night has begun! Grab the pumpkins!" (Fish Audio, uploaded 2026-10-26).
 	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6 },
 
+	-- Lucien Vale, the game show host (Fish Audio voice "Adrian", uploaded 2026-11-04).
+	lucienWelcome = { id = 119403867472276, volume = 0.9, fallback = "jingle" }, -- "Welcome to Hollywood RNG!"
+	lucienFirstCast = { id = 125664057757278, volume = 0.9, fallback = "whoosh" }, -- "Time to roll your first cast!"
+	lucienRarePull = { id = 94106934856816, volume = 0.9, fallback = "stinger" }, -- "Ooh! Now THAT is a rare face!"
+	lucienLegendPull = { id = 76266690163201, volume = 0.9, fallback = "jingle" }, -- "A LEGEND!"
+	lucienAction = { id = 78920949726178, volume = 0.9, fallback = "clap" }, -- "Lights... camera... ACTION!"
+	lucienPremiere = { id = 105795421068430, volume = 0.9, fallback = "whoosh" }, -- "Let's see what the critics say..."
+	lucienFlop = { id = 98265469775608, volume = 0.9, fallback = "low" }, -- "Oof... a flop!"
+	lucienBlockbuster = { id = 127361279847230, volume = 0.9, fallback = "stinger" }, -- "BLOCKBUSTER!"
+	lucienRebirth = { id = 94420324004466, volume = 0.9, fallback = "jingle" }, -- "A fresh start!"
+	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger" }, -- "Heads up, Hollywood! A special event just started!"
+	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)
+
 	-- Studio visits
 	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio
 	applause = slot("clap", 1.1), -- someone applauds a studio near you (each clap)
@@ -108,9 +141,18 @@ Sounds.Music = {
 		{ id = 15930255433, name = "Lobby 3", volume = 0.35 }, -- light, 1:47
 	} :: { Track },
 	event = { id = 17422163655, name = "Cloud Blitz", volume = 0.4 } :: Track, -- energetic, 2:18
-	-- The Pumpkin Patch event's spooky loop (Fright Night); with id 0 it plays the event track.
-	fright = { id = 0, name = "Pumpkin Patch", volume = 0.4 } :: Track,
+	-- The Pumpkin Patch event's track (Fright Night); with id 0 it plays the event track. Roblox's
+	-- licensed music library (APMOfficial, verified, free), checked 2026-10-26.
+	fright = { id = 1836009584, name = "Bouncing Halloween", volume = 0.4 } :: Track, -- playful spooky, 1:29
 }
+
+-- Film set ambience: a quiet loop heard only up close on each set (FilmSetWorld), by set id. A
+-- set with no entry, or an id of 0, stays silent; adding a set is one line here.
+Sounds.Ambience = {
+	Gulch = { id = 9112832297, volume = 0.25 }, -- placeholder: audio pass (PSE "Mountain Birds 2" stands in for wind; creaking wood still missing)
+	MoonBase = { id = 9114330786, volume = 0.25 }, -- placeholder: audio pass (PSE "Energy Field Constant" hum with beeps)
+	Jungle = { id = 9112805601, volume = 0.25 }, -- placeholder: audio pass (PSE "Jungle Birds Ambience 2", birds; distant drums still missing)
+} :: { [string]: LibrarySound }
 
 -- Player volume settings: 0..1 in steps of 1/STEPS. Saved with the player's data.
 Sounds.STEPS = 10

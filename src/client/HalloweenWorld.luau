@@ -116,11 +116,11 @@ function HalloweenWorld.start()
 			local season = SpecialEvents.seasonAt(workspace:GetServerTimeNow())
 			local on = season ~= nil and season.id == SEASON
 			if on and folder == nil then
-				local ok, err = pcall(build)
+				local ok, err = pcall(build :: () -> any)
 				if not ok then
 					warn(`[HalloweenWorld] {err}`)
 				end
-			elseif not on and folder ~= nil then
+			elseif not on and folder then
 				clear()
 			end
 			task.wait(CHECK_EVERY)
