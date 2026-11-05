@@ -9,6 +9,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local PlaytimeGifts = require(ReplicatedStorage.Shared.PlaytimeGifts)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local Unlocks = require(ReplicatedStorage.Shared.Unlocks)
 local Analytics = require(script.Parent.Analytics)
 local CastingService = require(script.Parent.CastingService)
 local Codes = require(script.Parent.Codes)
@@ -63,6 +64,13 @@ function RewardService.apply(player: Player, data: DataService.PlayerData, rewar
 	end
 	if reward.skips ~= nil then
 		data.skips += reward.skips
+	end
+	if reward.fame ~= nil and reward.fame > 0 then
+		local fame = Rewards.addFame(data.fame, reward.fame)
+		for _, name in Unlocks.crossed(data.fame, fame) do
+			Analytics.event(player, "Unlock", data.stats.premiere or 0, name)
+		end
+		data.fame = fame -- the HUD Fame attribute follows in afterGrant (EconomyService.refresh)
 	end
 	DataService.markDirty(player)
 	return text
@@ -197,18 +205,16 @@ local function onRedeemCode(player: Player, raw: any)
 	end
 	local code = string.upper((string.gsub(raw, "%s", "")))
 	local entry = Codes[code]
-	if entry == nil then
-		return fail(player, "Invalid code")
+	local isCreator = game.CreatorType == Enum.CreatorType.User and player.UserId > 0 and player.UserId == game.CreatorId
+	local refusal = Rewards.codeRefusal(entry, data.codes[code] == true, isCreator, LiveConfig.codeDisabled(code), os.time())
+	if refusal ~= nil or entry == nil then
+		return fail(player, refusal or "Invalid code")
 	end
-	if (entry.expires ~= nil and os.time() >= entry.expires) or LiveConfig.codeDisabled(code) then
-		return fail(player, "That code has expired")
+	if not entry.dev then
+		data.codes[code] = true
 	end
-	if data.codes[code] then
-		return fail(player, "You already used that code")
-	end
-	data.codes[code] = true
 	local text = RewardService.apply(player, data, entry.reward, "TimedReward", "Code")
-	Analytics.event(player, "CodeRedeemed", 1, code)
+	Analytics.event(player, if entry.dev then "DevCodeRedeemed" else "CodeRedeemed", 1, code)
 	RewardService.afterGrant(player, `Code redeemed: {text}`)
 end
 

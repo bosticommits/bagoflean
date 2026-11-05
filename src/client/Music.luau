@@ -166,15 +166,16 @@ end
 
 -- Dips the music for `seconds` (a big reveal), then brings it back.
 function Music.duck(seconds: number)
-	duckUntil = os.clock() + seconds
+	duckUntil = math.max(duckUntil, os.clock() + seconds) -- a short dip never cuts a longer one short
 	local sound = current
 	if sound == nil then
 		return
 	end
 	TweenService:Create(sound, TweenInfo.new(0.2), { Volume = level() }):Play()
 	task.delay(seconds, function()
-		if current == sound and os.clock() >= duckUntil then
-			TweenService:Create(sound, TweenInfo.new(FADE), { Volume = level() }):Play()
+		local now = current -- whichever song is playing when the dip ends
+		if now ~= nil and os.clock() >= duckUntil then
+			TweenService:Create(now, TweenInfo.new(FADE), { Volume = level() }):Play()
 		end
 	end)
 end

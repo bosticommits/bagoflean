@@ -71,20 +71,14 @@ test("every agency guarantees a real tier its pool can roll", function()
 	end
 end)
 
-test("early pulls: tease after TeaseAfter on a decent roll, then one Superstar", function()
-	local save = { hotStart = Actors.HotStartLength, pity = {}, early = 0, played = Actors.TeaseAfter - 1 }
-	local _, _, _, tease = Actors.castWithGuarantees(save, OPEN, rollAs("Pro"))
-	equal(tease, nil, "too early")
-	save.played = Actors.TeaseAfter
-	_, _, _, tease = Actors.castWithGuarantees(save, OPEN, rollAs("Rising"))
-	equal(tease, nil, "never teases onto a weak roll")
-	_, _, _, tease = Actors.castWithGuarantees(save, OPEN, rollAs("Pro"))
-	equal(tease, "nearMiss", "teased")
-	equal(save.early, 1, "tease saved")
-	_, _, _, tease = Actors.castWithGuarantees(save, OPEN, rollAs("Pro"))
-	equal(tease, nil, "only once")
+test("early pulls: one guaranteed Superstar after FirstSuperstarAfter, and no tease", function()
+	local save = { hotStart = Actors.HotStartLength, pity = {}, early = 0, played = Actors.FirstSuperstarAfter - 1 }
+	local actor, _, guarantee = Actors.castWithGuarantees(save, OPEN, rollAs("Pro"))
+	equal(actor.tier, "Pro", "too early for the Superstar, and a Pro is never teased")
+	equal(guarantee, nil, "no guarantee yet")
+	equal(save.early, 0, "nothing saved by a plain cast")
 	save.played = Actors.FirstSuperstarAfter
-	local actor, _, guarantee = Actors.castWithGuarantees(save, OPEN, rollAs("Newcomer"), true)
+	actor, _, guarantee = Actors.castWithGuarantees(save, OPEN, rollAs("Newcomer"), true)
 	equal(actor.tier, "Newcomer", "live switch holds the first Superstar back")
 	actor, _, guarantee = Actors.castWithGuarantees(save, OPEN, rollAs("Newcomer"))
 	equal(actor.tier, "Superstar", "guaranteed Superstar")
@@ -95,16 +89,20 @@ test("early pulls: tease after TeaseAfter on a decent roll, then one Superstar",
 	equal(guarantee, nil, "no more guarantees")
 end)
 
+test("a save from the removed tease (early = 1) still gets its Superstar", function()
+	local save = { hotStart = Actors.HotStartLength, pity = {}, early = 1, played = Actors.FirstSuperstarAfter }
+	equal(Actors.nextFloor(save, OPEN), "Superstar", "early 1 counts as not yet")
+end)
+
 test("early pulls: a natural Superstar first uses the guarantee up; veterans get none", function()
 	local save = { hotStart = Actors.HotStartLength, pity = {}, early = 0, played = 60 }
 	Actors.castWithGuarantees(save, OPEN, rollAs("Superstar"))
 	equal(save.early, Actors.EarlyDone, "natural Superstar counts")
 	local old = veteran()
 	old.played = 99999
-	local actor, _, guarantee, tease = Actors.castWithGuarantees(old, OPEN, rollAs("Pro"))
+	local actor, _, guarantee = Actors.castWithGuarantees(old, OPEN, rollAs("Pro"))
 	equal(actor.tier, "Pro", "no Superstar for old saves")
 	equal(guarantee, nil, "no guarantee")
-	equal(tease, nil, "no tease")
 end)
 
 test("hot start still works and reports its reason", function()
@@ -121,4 +119,59 @@ test("migration defaults: old saves start with empty meters and the early pulls 
 	expect(string.find(source, "\tplayed = 0,", 1, true), "TEMPLATE played = 0")
 	expect(string.find(source, "profile.Data.early = 0", 1, true), "new profiles get the early pulls")
 	expect(string.find(source, "CURRENT_VERSION = 12", 1, true), "schema bumped")
+end)
+
+test("nextFloor says what the next cast is guaranteed, without changing the save", function()
+	local save = { hotStart = 2, pity = {}, early = Actors.EarlyDone, played = 0 }
+	local floor, why = Actors.nextFloor(save, OPEN)
+	equal(floor, "Rising", "cast 3 is a Rising")
+	equal(why, "hotStart", "reason")
+	equal(save.hotStart, 2, "pure")
+	save.hotStart = 9
+	floor = Actors.nextFloor(save, OPEN)
+	equal(floor, "Pro", "cast 10 is a Pro")
+	save.hotStart = 24
+	equal(Actors.nextFloor(save, OPEN), "Star", "cast 25 is a Star")
+	save.hotStart = 5
+	equal(Actors.nextFloor(save, OPEN), nil, "an ordinary cast has none")
+	save.hotStart = Actors.HotStartLength
+	equal(Actors.nextFloor(save, OPEN), nil, "the hot start is over")
+end)
+
+test("nextFloor: pity, first Superstar, and the best floor wins", function()
+	local save = veteran()
+	save.pity.Open = Actors.PityEvery - 2
+	equal(Actors.nextFloor(save, OPEN), nil, "two casts out")
+	save.pity.Open = Actors.PityEvery - 1
+	local floor, why = Actors.nextFloor(save, OPEN)
+	equal(floor, "Star", "Open Casting pity")
+	equal(why, "pity", "reason")
+	equal(Actors.nextFloor(save, TALENT), nil, "meters are per agency")
+	save.pity.Talent = Actors.PityEvery - 1
+	equal(Actors.nextFloor(save, TALENT), "Superstar", "Talent Agency pity")
+
+	save = { hotStart = Actors.HotStartLength, pity = {}, early = 0, played = Actors.FirstSuperstarAfter - 1 }
+	equal(Actors.nextFloor(save, OPEN), nil, "not yet 12 minutes")
+	save.played = Actors.FirstSuperstarAfter
+	floor, why = Actors.nextFloor(save, OPEN)
+	equal(floor, "Superstar", "first Superstar")
+	equal(why, "firstSuperstar", "reason")
+	equal(Actors.nextFloor(save, OPEN, true), nil, "live switch")
+	save.hotStart = 2
+	equal(Actors.nextFloor(save, OPEN), "Superstar", "the better floor wins over a hot start Rising")
+	save.pity.Open = Actors.PityEvery - 1
+	equal(select(2, Actors.nextFloor(save, OPEN)), "firstSuperstar", "a Superstar beats a Star pity")
+end)
+
+test("castWithGuarantees rolls with exactly the floor nextFloor announced", function()
+	for hotStart = 0, Actors.HotStartLength do
+		local save = { hotStart = hotStart, pity = { Open = Actors.PityEvery - 1 }, early = 0, played = Actors.FirstSuperstarAfter }
+		local copy = { hotStart = hotStart, pity = { Open = Actors.PityEvery - 1 }, early = 0, played = Actors.FirstSuperstarAfter }
+		local announced, why = Actors.nextFloor(copy, OPEN)
+		local seen = {}
+		local _, _, guarantee, used = Actors.castWithGuarantees(save, OPEN, rollAs("Newcomer", seen))
+		equal(seen[1], announced or false, `hotStart {hotStart}: the roll got the announced floor`)
+		equal(used, announced, "and it is returned")
+		equal(guarantee, why, "with the same reason")
+	end
 end)

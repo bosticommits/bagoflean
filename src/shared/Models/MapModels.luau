@@ -50,8 +50,9 @@ MapModels.Layout = table.freeze({
 	fenceZ = 127,
 	-- Players appear on the plaza looking past the fountain at the Shop and Rewards stands.
 	spawn = CFrame.new(0, 0.65, -15) * CFrame.Angles(0, math.pi, 0),
-	-- Gold star sign on the big hill behind lots 4-6.
-	hillStar = Vector3.new(0, 44, 306),
+	-- Gold star sign standing on the crest of the big green hill behind the park (MapModels.Hills),
+	-- facing -Z toward the park and spawn. Its feet; MapLife sways it from here.
+	hillStar = CFrame.new(0, 59.5, 368),
 	-- The boulevard runs out through the hedge at both ends: west to the Grand Premiere Theatre
 	-- (its bottom step), east through the Studio Gate.
 	endGap = 14,
@@ -90,9 +91,10 @@ export type FilmSetInfo = {
 -- Moon Base: out in the desert east of Dusty Gulch, its gate on the Gulch's east edge (so players
 -- reach it through the Gulch), the set running toward world +X.
 MapModels.MoonFrame = CFrame.new(88, 0, -209) * CFrame.Angles(0, math.pi / 2, 0)
--- The Jungle Temple: in the woods west of Starlight Park, its gate in the park's west fence, the
--- set running toward world -X.
-MapModels.JungleFrame = CFrame.new(-108, 0, 168) * CFrame.Angles(0, -math.pi / 2, 0)
+-- The Jungle Temple: deep in the woods west of Starlight Park, the set running toward world -X. Like
+-- Moon Base behind the Gulch, it has its own space: a belt of jungle 50 studs wide between the
+-- park's west fence (x = -108) and its gate, crossed by its own winding trail (TownSets.jungleTemple).
+MapModels.JungleFrame = CFrame.new(-158, 0, 168) * CFrame.Angles(0, -math.pi / 2, 0)
 
 local function filmSet(id: string, frame: CFrame, wallWidth: number, wallX: number, area: Walkways.Rect, spot: Vector3): FilmSetInfo
 	local centre = FilmScenes.Sets[id].centre
@@ -106,7 +108,7 @@ end
 MapModels.FilmSets = table.freeze({
 	filmSet("Gulch", MapModels.GulchFrame, 172, 0, Walkways.rect(-86, -(Lay.fenceZ + 1) - 158, 86, -(Lay.fenceZ + 4)), Vector3.new(2, 3.4, 90)),
 	filmSet("MoonBase", MapModels.MoonFrame, 124, 3, Walkways.rect(90.5, -272, 200, -152), Vector3.new(0, 3.4, 24)),
-	filmSet("Jungle", MapModels.JungleFrame, 124, 24, Walkways.rect(-232, 132, -110.5, 252), Vector3.new(2, 3.4, 36)),
+	filmSet("Jungle", MapModels.JungleFrame, 124, 24, Walkways.rect(-282, 132, -160.5, 252), Vector3.new(2, 3.4, 36)),
 } :: { FilmSetInfo })
 
 -- The lawns along each lot's front, either side of its gate (x from, x to).
@@ -117,6 +119,12 @@ for col = -1, 1 do
 	table.insert(LAWN_SPANS, { c + 6, c + 30 })
 end
 local LAWN_FROM = Lay.sidewalkTo - 16 -- the lawns' boulevard edge
+
+-- The Grand Premiere Theatre's base (the kit model's feet): at the boulevard's west end, its
+-- front (-Z) facing east down the boulevard. The premiere show (PremiereShow) is staged from it.
+function MapModels.theatreBase(): CFrame
+	return CFrame.new(Lay.theatreX - 3, 0, 0) * CFrame.Angles(0, math.rad(-90), 0)
+end
 
 -- Where lot `index` (1-6) sits, as the lot-space CFrame LotModels expects: origin at the lot's
 -- ground centre, lot-space -Z toward the boulevard.
@@ -530,9 +538,8 @@ local function hills(b: Builder)
 		local feet = hill.at - v(0, hill.size / 2, 0)
 		MapKit.place(b, "Hill" .. hill.kit, CFrame.new(feet) * CFrame.Angles(0, hill.size, 0), { scale = hill.size / 100, far = true })
 	end
-	-- The landmark: a giant gold star sign on the big hill, leaning back into the slope (the kit
-	-- model stands upright with the star's middle 15 up).
-	MapKit.place(b, "HillStar", CFrame.new(Lay.hillStar) * CFrame.Angles(math.rad(30), 0, 0) * CFrame.new(0, -15, 0), { far = true })
+	-- The landmark: a giant gold star sign standing upright on the big hill's crest.
+	MapKit.place(b, "HillStar", Lay.hillStar, { far = true })
 end
 
 -- Big sound stages and the water towers outside the hedge.
@@ -567,8 +574,18 @@ local function landmarks(b: Builder)
 	for _, z in { -3.2, 3.2 } do
 		b:block("ForecourtCarpetEdge", v(length + 3, 0.07, 0.4), v(-x0 - length / 2 + 1.5, 0.235, z), P.Gold)
 	end
-	TownSets.theatre(b:sub(CFrame.new(west - 3, 0, 0) * CFrame.Angles(0, math.rad(-90), 0)))
-	LotModels.stanchions(b:sub(CFrame.new(west + 8, 0.2, 0) * CFrame.Angles(0, math.rad(-90), 0)), -6, 6, 4)
+	TownSets.theatre(b:sub(MapModels.theatreBase()))
+	-- Velvet ropes down both sides of the carpet (premiere kit); the premiere show's fans stand
+	-- behind them. The spans don't block anyone stepping on or off the carpet.
+	for _, z in { -4.5, 4.5 } do
+		for i = 0, 4 do
+			local x = west + 2 + i * 4
+			MapKit.place(b, "VelvetRopePost", v(x, 0.2, z))
+			if i < 4 then
+				MapKit.place(b, "VelvetRopeSpan", v(x + 2, 0.2, z), { solid = false })
+			end
+		end
+	end
 	for _, z in { -1, 1 } do
 		LotModels.palm(b:sub(v(west + 3, 0.2, z * 10)), 15, 6)
 		TownSets.flowerBed(b:sub(v(-x0 - 11, 0.2, z * (gap + 4))), v(12, 0, 6))
@@ -777,6 +794,8 @@ local function walkAreas(): { Walkways.Rect }
 	} do
 		table.insert(areas, R(r.x0, e + r.z0, r.x1, e + r.z1))
 	end
+	-- The jungle trail from the park's west fence to the Jungle Temple's gate (TownSets.jungleTemple).
+	table.insert(areas, R(-158, 160, -108, 176))
 	-- Dusty Gulch (TownSets.westernTown, turned to run toward -Z): the street and boardwalks.
 	table.insert(areas, R(-20, -e - 150, 20, -e))
 	return areas
@@ -798,7 +817,8 @@ local function playAreas(): { Walkways.Rect }
 		R(-108, fz, 108, fz + 128), -- Starlight Park, to its ranch fences and the movie screen
 		R(-86, -fz - 158, 86, -fz), -- Dusty Gulch and its desert edges
 		R(86, -272, 200, -152), -- Moon Base, past the Gulch's east edge
-		R(-232, 132, -108, 252), -- the Jungle Temple, past the park's west fence
+		R(-282, 132, -158, 252), -- the Jungle Temple, out in the woods west of the park
+		R(-158, 158, -108, 178), -- the jungle trail to it, from the gap in the park's west fence
 	}
 end
 
