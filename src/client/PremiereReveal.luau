@@ -1097,11 +1097,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 			totalBox.Visible = true
 			batchTitle.Visible = false
 			Sfx.play("showTotal")
-			task.delay(0.4, function() -- let the Ta Da sting land first
-				if premiereToken == mine then
-					Sfx.play("lucienTotal")
-				end
-			end)
+			Sfx.play("lucienTotal") -- waits its own Sounds delay so the Ta Da sting lands first
 			totalFame.Text = `+{Hud.comma(fame)} Fame` .. (if awards > 0 then `  -  Award Night x{Config.AwardNightPayoutMultiplier} on {awards} film{if awards == 1 then "" else "s"}` else "")
 			finishCounts = nil
 			countUp(totalPayout, payout, 1.2, mine)

@@ -124,7 +124,9 @@ function Fx.castReveal(tierId: string, variantId: string)
 		if rank >= 6 then
 			Music.duck(4)
 			Sfx.play("revealLegend")
-			Sfx.play("lucienLegendPull")
+			if rank == 7 then
+				Sfx.play("lucienLegendPull") -- Icon only: the announcer already shouts "LEGEND!" on rank 6
+			end
 		end
 		Fx.flash(color, 0.5)
 		Fx.confetti(70 + rank * 10)
@@ -139,6 +141,7 @@ end
 -- Premiere result: a flop gets a sad whistle, a Masterpiece gets everything.
 function Fx.premiere(resultId: string, color: Color3, lite: boolean?)
 	local thin = if lite then 0.5 else 1
+	Sfx.cutVoice() -- the result beats whatever line is still talking
 	if resultId == "Flop" then
 		Sfx.play("premiereFlop")
 		Sfx.play("lucienFlop")
