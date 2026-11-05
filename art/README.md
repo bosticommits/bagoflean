@@ -7,7 +7,7 @@ that look smoother; once you import them, the game uses them automatically.
 | File | What it builds |
 |---|---|
 | `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
-| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 338 mesh templates currently in the Studio place |
+| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 350 mesh templates currently in the Studio place |
 | `tools/studio/rebuild_lot_meshes.luau` | Studio Command Bar script that rebuilds and verifies `ReplicatedStorage.LotMeshes` from the manifest |
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (7 looks), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
@@ -158,8 +158,8 @@ If you change the shapes, update `STAGE_MESH` in `LotModels.luau` from the sizes
 
 ## Rebuild the saved mesh library
 
-`src/shared/LotMeshManifest.luau` is the committed source for the 338 mesh templates currently in
-the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces, the eight-piece premiere kit (`PremiereKit`, asset 95738350014256), the two sound stage meshes (`lot_stage_kit`), the 14 cinema meshes (`lot_cinema_kit`) and the 271-mesh map kit
+`src/shared/LotMeshManifest.luau` is the committed source for the 350 mesh templates currently in
+the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces, the eight-piece premiere kit (`PremiereKit`, asset 95738350014256), the two sound stage meshes (`lot_stage_kit`), the 14 cinema meshes (`lot_cinema_kit`), the 12-mesh lot office kit (`lot_office_kit`, asset 77336967160126) and the 271-mesh map kit
 (`map_kit`, asset 80189346190801). It records
 each Roblox mesh asset ID, template size, appearance and physics properties, plus its group name.
 Other Blender models listed above are not in this snapshot until they have been imported into the
