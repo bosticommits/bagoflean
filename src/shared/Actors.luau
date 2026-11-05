@@ -327,12 +327,10 @@ end
 -- fill up the Talent Agency's meter. Tuned in ECONOMY.md ("Pity meter").
 Actors.PityEvery = 400
 
--- Early crazy pulls for a brand-new account, by seconds of play (counted on the server):
--- a Superstar near-miss tease, then one guaranteed Superstar. `early` in the save: 0 = neither yet,
--- 1 = tease shown, 2 (Actors.EarlyDone) = done (old saves start done). A natural Superstar or
+-- One early pull for a brand-new account, by seconds of play (counted on the server): one
+-- guaranteed Superstar. `early` in the save: 0 = not yet, 2 (Actors.EarlyDone) = done (old saves
+-- start done; 1 was the removed near-miss tease and counts as not yet). A natural Superstar or
 -- better first also counts as done.
-Actors.TeaseAfter = 5 * 60 -- the first cast after this that rolls TeaseMinTier or better is teased
-Actors.TeaseMinTier = "Pro" -- so the build-up never lands on a Newcomer
 Actors.FirstSuperstarAfter = 12 * 60 -- the first cast after this is a guaranteed Superstar
 Actors.EarlyDone = 2
 
@@ -345,12 +343,10 @@ end
 -- Position of a tier in Actors.Tiers (1 = Newcomer); 0 for an unknown id.
 Actors.tierRank = rank
 
--- One cast with every guarantee applied: the hot start, the agency's pity meter and the first
--- Superstar. `roll(floorTier)` does the real roll (Actors.roll) with the best floor in force, so a
--- luckier roll always keeps its tier. Updates `save` and returns the actor, the variant, which
--- guarantee covered this cast ("hotStart" | "pity" | "firstSuperstar" | nil) and the tease
--- ("nearMiss" | nil; presentation only, the result is the real roll).
-function Actors.castWithGuarantees(save: CastSave, agency: Agency, roll: (string?) -> (Actor, Variant), noFirstSuperstar: boolean?): (Actor, Variant, string?, string?)
+-- The tier the agency's NEXT cast is guaranteed at least, and why ("hotStart" | "pity" |
+-- "firstSuperstar"), or nil, nil. Pure: it changes nothing. castWithGuarantees rolls with it, and
+-- the server mirrors it to the odds panel (NextFloor<agency>), so what is shown is what is rolled.
+function Actors.nextFloor(save: CastSave, agency: Agency, noFirstSuperstar: boolean?): (string?, string?)
 	local floor: string?, guarantee: string? = nil, nil
 	local function offer(tierId: string?, why: string)
 		if tierId ~= nil and (floor == nil or rank(tierId) > rank(floor :: string)) then
@@ -358,30 +354,145 @@ function Actors.castWithGuarantees(save: CastSave, agency: Agency, roll: (string
 		end
 	end
 	if save.hotStart < Actors.HotStartLength then
-		save.hotStart += 1
-		offer(Actors.hotStartTier(save.hotStart), "hotStart")
+		offer(Actors.hotStartTier(save.hotStart + 1), "hotStart")
 	end
-	local pityCount = (save.pity[agency.id] or 0) + 1
-	if pityCount >= Actors.PityEvery then
+	if (save.pity[agency.id] or 0) + 1 >= Actors.PityEvery then
 		offer(agency.pity, "pity")
 	end
 	if not noFirstSuperstar and save.early < Actors.EarlyDone and save.played >= Actors.FirstSuperstarAfter then
 		offer("Superstar", "firstSuperstar")
 	end
+	return floor, guarantee
+end
+
+-- One cast with every guarantee applied (Actors.nextFloor): the hot start, the agency's pity meter
+-- and the first Superstar. `roll(floorTier)` does the real roll (Actors.roll) with the best floor
+-- in force, so a luckier roll always keeps its tier. Updates `save` and returns the actor, the
+-- variant, which guarantee covered this cast ("hotStart" | "pity" | "firstSuperstar" | nil) and
+-- the floor tier it rolled with.
+function Actors.castWithGuarantees(save: CastSave, agency: Agency, roll: (string?) -> (Actor, Variant), noFirstSuperstar: boolean?): (Actor, Variant, string?, string?)
+	local floor, guarantee = Actors.nextFloor(save, agency, noFirstSuperstar)
+	if save.hotStart < Actors.HotStartLength then
+		save.hotStart += 1
+	end
+	local pityCount = (save.pity[agency.id] or 0) + 1
 
 	local actor, variant = roll(floor)
 	local got = rank(actor.tier)
 	save.pity[agency.id] = if got >= rank(agency.pity) then 0 else pityCount
-	local tease: string? = nil
-	if save.early < Actors.EarlyDone then
-		if got >= rank("Superstar") then
-			save.early = Actors.EarlyDone
-		elseif save.early == 0 and save.played >= Actors.TeaseAfter and got >= rank(Actors.TeaseMinTier) then
-			save.early = 1
-			tease = "nearMiss"
+	if save.early < Actors.EarlyDone and got >= rank("Superstar") then
+		save.early = Actors.EarlyDone
+	end
+	return actor, variant, guarantee, floor
+end
+
+-- Moves the chance of the tiers below `floorTier` into it: a guaranteed cast rolls at least that
+-- tier, so those tiers cannot happen. nil changes nothing.
+function Actors.floorChances(chances: { [string]: number }, floorTier: string?): { [string]: number }
+	local merged = table.clone(chances)
+	if floorTier ~= nil then
+		for index = 1, rank(floorTier) - 1 do
+			local id = Actors.Tiers[index].id
+			merged[floorTier] += merged[id]
+			merged[id] = 0
 		end
 	end
-	return actor, variant, guarantee, tease
+	return merged
+end
+
+export type CastOdds = {
+	tiers: { [string]: number }, -- chance the cast is each tier (sums to 1; a limited actor counts in its own tier)
+	actor: { [string]: number }, -- chance of any ONE everyday actor of each tier
+	limited: number, -- chance of the limited actor (0 when none, or a floor above its tier covers the cast)
+}
+
+-- Everything a single cast can be, as Actors.roll rolls it: `floorTier` is the guarantee in force
+-- (Actors.nextFloor), `limited` the limited actor in season. The limited actor's slice comes out of
+-- the first tier that has any chance (it sits at the bottom of the roll) and is counted in its own
+-- tier, so the tiers still sum to 1. Variants are rolled on top (Actors.variantChances).
+function Actors.castOdds(luck: number, minTier: number?, floorTier: string?, limited: Actor?): CastOdds
+	local base = Actors.tierChances(luck, minTier)
+	local merged = Actors.floorChances(base, floorTier)
+	local share = 0
+	if limited ~= nil and (floorTier == nil or rank(floorTier) <= rank(limited.tier)) then
+		share = Actors.limitedChance(base, limited)
+	end
+	local tiers: { [string]: number } = {}
+	local actor: { [string]: number } = {}
+	local firstTaken = false
+	for _, tier in Actors.Tiers do
+		local chance = merged[tier.id]
+		if not firstTaken and chance > 0 then
+			firstTaken = true
+			chance = math.max(chance - share, 0)
+		end
+		actor[tier.id] = chance / math.max(#Actors.actorsInTier(tier.id), 1)
+		tiers[tier.id] = chance
+	end
+	if limited ~= nil then
+		tiers[limited.tier] += share
+	end
+	return { tiers = tiers, actor = actor, limited = share }
+end
+
+-- The chance of this exact pull (tier, then the actor in it, then the variant) for a cast rolled
+-- with these arguments. Used for the reveal card, so the number is the cast's real one.
+function Actors.pullChance(luck: number, minTier: number?, floorTier: string?, limited: Actor?, actorId: string, variantId: string): number
+	local actor = actorById[actorId]
+	if actor == nil then
+		return 0
+	end
+	local odds = Actors.castOdds(luck, minTier, floorTier, limited)
+	local ofActor = if actor.season ~= nil then odds.limited else odds.actor[actor.tier] or 0
+	return ofActor * (Actors.variantChances(luck)[variantId] or 0)
+end
+
+-- A chance (0..1) as a percentage for the odds screens: at least 4 decimals below the first
+-- non-zero digit (so a 1 in 5,000,000 Icon reads 0.000020000%). 0 reads "0%".
+function Actors.percent(chance: number): string
+	if chance <= 0 then
+		return "0%"
+	end
+	local pct = chance * 100
+	if pct >= 100 then
+		return "100%"
+	end
+	local text = string.format("%." .. math.max(0, 4 - math.floor(math.log10(pct))) .. "f%%", pct)
+	-- Less than certain never reads as certain.
+	return if string.sub(text, 1, 3) == "100" then "99.999%" else text
+end
+
+-- A short chance for the reveal card, where space is tight: 2 significant figures down to 1%
+-- ("37%", "4.2%"), "1 in N" below that. The odds panel keeps the full Actors.percent.
+function Actors.brief(chance: number): string
+	if chance <= 0 then
+		return "0%"
+	end
+	local pct = chance * 100
+	if pct >= 100 then
+		return "100%"
+	elseif pct >= 10 then
+		return string.format("%.0f%%", math.min(pct, 99.4))
+	elseif pct >= 1 then
+		return string.format("%.1f%%", pct)
+	end
+	return Actors.oneIn(chance)
+end
+
+-- "1 in 8,000" style secondary text for a chance (0..1), or "never".
+function Actors.oneIn(chance: number): string
+	if chance <= 0 then
+		return "never"
+	end
+	local text = tostring(math.floor(1 / chance + 0.5))
+	while true do
+		local replaced, count = string.gsub(text, "^(-?%d+)(%d%d%d)", "%1,%2")
+		text = replaced
+		if count == 0 then
+			break
+		end
+	end
+	return "1 in " .. text
 end
 
 return Actors

@@ -22,10 +22,14 @@ local DataService = require(script.Parent.DataService)
 local LotService = require(script.Parent.LotService)
 local MascotService = require(script.Parent.MascotService)
 local MovieService = require(script.Parent.MovieService)
+local Remotes = require(script.Parent.Remotes)
 local RewardService = require(script.Parent.RewardService)
 
 local DATA_WAIT_SECONDS = 20
 local VIP_GOLD = Color3.fromRGB(255, 205, 70)
+
+local rewardResult = Remotes.get("RewardResult")
+local told: { [any]: boolean } = {} -- receipts the player was already told are not available
 
 local ShopService = {}
 
@@ -73,13 +77,29 @@ end
 
 -- Roblox rule for paid random items: where a player's region restricts them, the shop must not
 -- offer Robux purchases that lead to random actors (Shop `randomItems`). If the policy cannot be
--- read, treat the player as restricted rather than risk offering them.
+-- read, treat the player as restricted rather than risk offering them. The server enforces it:
+-- processReceipt refuses those purchases and CastingService.castLuck pauses the 2x Luck pass
+-- (ownership stays saved). IsPaidItemTradingAllowed is stored for the future gifting feature.
+local POLICY_TRIES = 3
 local function checkPolicy(player: Player)
-	local ok, policy = pcall(function()
-		return PolicyService:GetPolicyInfoForPlayerAsync(player)
-	end)
+	-- A failed read is retried, so a paying owner is not treated as restricted (2x Luck paused for
+	-- the whole session) because of one hiccup.
+	local ok, policy = false, nil
+	for attempt = 1, POLICY_TRIES do
+		ok, policy = pcall(function()
+			return PolicyService:GetPolicyInfoForPlayerAsync(player)
+		end)
+		if ok and type(policy) == "table" then
+			break
+		end
+		if attempt < POLICY_TRIES then
+			task.wait(attempt) -- 1 s, then 2 s
+		end
+	end
 	local restricted = not ok or type(policy) ~= "table" or policy.ArePaidRandomItemsRestricted ~= false
 	player:SetAttribute("PaidRandomRestricted", restricted)
+	player:SetAttribute("IsPaidItemTradingAllowed", ok and type(policy) == "table" and policy.IsPaidItemTradingAllowed == true)
+	CastingService.refresh(player) -- 2x Luck works from the next cast once the policy allows it
 end
 
 -- Called once the player's data has loaded. Yields (ownership checks), so call it in a task.
@@ -122,11 +142,27 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 		return Enum.ProductPurchaseDecision.NotProcessedYet -- redelivered when they next join
 	end
 	local waited = 0
-	while DataService.getData(player) == nil and player.Parent == Players and waited < DATA_WAIT_SECONDS do
+	-- The data AND the region policy (checkPolicy always sets the attribute): without the policy a
+	-- receipt right after joining would be judged restricted.
+	while (DataService.getData(player) == nil or player:GetAttribute("PaidRandomRestricted") == nil) and player.Parent == Players and waited < DATA_WAIT_SECONDS do
 		task.wait(0.25)
 		waited += 0.25
 	end
-	if DataService.getData(player) == nil then
+	local data = DataService.getData(player)
+	if data == nil then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	-- Paid random items where the player's region restricts them: not processed (the buy buttons
+	-- are hidden there, so this is a prompt that should not have opened). A mascot bought again
+	-- turns into Cash that pays for casts, so an owned one counts as random too.
+	local randomItems = if mascot ~= nil then Mascots.randomItems(mascot) or Mascots.owns(mascot, data) else (product :: Shop.Product).randomItems
+	-- A receipt already granted goes on to grantPurchaseOnce, which only confirms it.
+	local alreadyGranted = table.find(data.purchaseIds, tostring(receipt.PurchaseId)) ~= nil
+	if Shop.blocksReceipt(alreadyGranted, randomItems, player:GetAttribute("PaidRandomRestricted")) then
+		if not told[receipt.PurchaseId] then -- Roblox redelivers a receipt that stays unprocessed
+			told[receipt.PurchaseId] = true
+			rewardResult:FireClient(player, false, "Not available in your region")
+		end
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 

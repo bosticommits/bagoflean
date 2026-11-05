@@ -98,8 +98,7 @@ local function tierIndex(tierId: string): number
 end
 
 -- Casting reveal: the rarer the tier and variant, the bigger the moment.
--- `nearMiss`: the "Ooh, so close!" tease follows, so Lucien's rare-pull line is skipped.
-function Fx.castReveal(tierId: string, variantId: string, nearMiss: boolean?)
+function Fx.castReveal(tierId: string, variantId: string)
 	local rank = tierIndex(tierId) -- 1 Newcomer .. 7 Icon
 	local tier = Actors.getTier(tierId)
 	local color = if tier ~= nil then tier.color else Color3.new(1, 1, 1)
@@ -117,9 +116,7 @@ function Fx.castReveal(tierId: string, variantId: string, nearMiss: boolean?)
 		Sfx.play("revealCommon")
 	elseif rank <= 4 then
 		Sfx.play("revealRare")
-		if not nearMiss then
-			Sfx.play("lucienRarePull")
-		end
+		Sfx.play("lucienRarePull")
 		Fx.confetti(20 + rank * 5, { color, Color3.new(1, 1, 1) })
 	else
 		-- Superstar and up: a deeper sting; Legend and Icon also get the big fanfare over dipped music.

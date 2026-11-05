@@ -14,7 +14,7 @@ EconomyService.
     python3 tools/economy_sim.py --no-events         # the same week without special events
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
     python3 tools/economy_sim.py --no-pity           # without the pity meter (--pity-every N tries another length)
-    python3 tools/economy_sim.py --no-early          # without the new player's near-miss tease and first Superstar
+    python3 tools/economy_sim.py --no-early          # without the new player's first Superstar
     python3 tools/economy_sim.py --no-weekly         # the same week without weekly quest rewards
     python3 tools/economy_sim.py --weekly-day 1      # weekly quests all finished on day one (worst case)
     python3 tools/economy_sim.py --no-festival       # the same week without the Film Festival's goals
@@ -195,8 +195,6 @@ def load_tuning() -> dict:
         "hot_start": {int(row["cast"]): row["tier"] for row in _rows(_block(actors_text, "Actors.HotStart"))},
         # Pity meter and early crazy pulls (Actors.castWithGuarantees)
         "pity_every": _num(re.search(r"Actors\.PityEvery = ([^\n-]+)", actors_text).group(1)),
-        "tease_after": _num(re.search(r"Actors\.TeaseAfter = ([^\n-]+)", actors_text).group(1)),
-        "tease_min": re.search(r'Actors\.TeaseMinTier = "(\w+)"', actors_text).group(1),
         "first_superstar_after": _num(re.search(r"Actors\.FirstSuperstarAfter = ([^\n-]+)", actors_text).group(1)),
         "upgrades": {u["id"]: u for u in upgrades},
         # Mascots.List: (id, Cash price, buff kind, amount)
@@ -414,7 +412,7 @@ GIFTS = True  # the playtime gift ladder (--no-gifts)
 # A season id (SpecialEvents.Seasons) to make every week that seasonal festival (--season): its
 # limited actor (Actors.Limited) joins its tier's casting pool, and winning the festival gives one.
 SEASON: str | None = None
-EARLY = True  # the near-miss tease and first guaranteed Superstar for new players (--no-early)
+EARLY = True  # the first guaranteed Superstar for new players (--no-early)
 PITY_EVERY: float | None = None  # override Actors.PityEvery (--pity-every; --no-pity sets 0)
 FILM_SETS = False  # auto-buy sets when affordable (--film-sets)
 FILM_SET_VISIT_MINUTES = 0.0  # time spent inside an owned set each online session
@@ -476,7 +474,7 @@ class Player:
         self.film_set_inside = False
         self.hot_start = 0  # casts counted toward the "Discovered!" hot start; a new player starts at 0
         self.pity: dict[str, int] = {}  # casts since the agency's pity tier, per agency
-        self.early = 0  # 0 new, 1 near-miss tease shown, 2 first Superstar done
+        self.early = 0  # 0 not yet, 2 first Superstar done
         self.takes_on = True
 
     # stats
@@ -984,12 +982,8 @@ class Player:
         if why in ("pity", "firstSuperstar"):
             self.counts[why] = self.counts.get(why, 0) + 1
             self.mark(f"First {why} pull")
-        if t["early"] and self.early < 2:
-            if got >= rank["Superstar"]:
-                self.early = 2
-            elif self.early == 0 and self.played >= t["tease_after"] and got >= rank[t["tease_min"]]:
-                self.early = 1
-                self.mark("Superstar near-miss tease")
+        if t["early"] and self.early < 2 and got >= rank["Superstar"]:
+            self.early = 2
         key = f"{actor_id}:{variant}"
         self.roster[key] = self.roster.get(key, 0) + 1
         self.index.add(key)
@@ -1317,7 +1311,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-hot-start", action="store_true", help="leave the \"Discovered!\" guarantees out (to compare)")
     parser.add_argument("--no-pity", action="store_true", help="switch the pity meter off (to compare)")
     parser.add_argument("--pity-every", type=int, default=None, help="try another pity meter length than Actors.PityEvery")
-    parser.add_argument("--no-early", action="store_true", help="leave the new player's tease and first guaranteed Superstar out (to compare)")
+    parser.add_argument("--no-early", action="store_true", help="leave the new player's first guaranteed Superstar out (to compare)")
     parser.add_argument("--no-gifts", action="store_true", help="leave the playtime gift ladder out (to compare)")
     parser.add_argument("--no-takes", action="store_true", help="the player ignores the TAKE! cards (to compare)")
     parser.add_argument("--mascots", default="none", choices=["none", "cash", "luck", "speed", "boxOffice"],

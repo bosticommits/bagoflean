@@ -58,7 +58,7 @@ Sounds.Slots = {
 	-- The reveal build-up (CastingUi): drumroll ticks speed up, a tone each time the glow climbs a
 	-- tier (pitched up per tier), and a burst when a fake-out jumps to the real tier.
 	drumroll = slot("clap", 0.6),
-	drumrollLow = slot("click", 0.5), -- the second drum layer for Superstar+ and the near miss
+	drumrollLow = slot("click", 0.5), -- the second drum layer for Superstar+
 	revealStep = slot("indicator"),
 	revealBurst = slot("stinger", 1.2),
 	-- The announcer on the flip (Fish Audio voice "Energetic Male", uploaded 2026-10-26).
@@ -66,8 +66,6 @@ Sounds.Slots = {
 	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1, voice = true }, -- "SUPERSTAR!"
 	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1, voice = true }, -- "LEGEND!"
 	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9, voice = true }, -- "ICON!"
-	-- "Ooh, so close!": the near-miss tease lands on a lower tier.
-	voiceSoClose = { id = 81149535231196, volume = 0.8, fallback = "low", pitch = 1.1, voice = true },
 
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up
