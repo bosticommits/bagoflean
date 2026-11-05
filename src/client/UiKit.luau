@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Icon3D = require(script.Parent.Icon3D)
+local Juice = require(script.Parent.Juice)
 local Sfx = require(script.Parent.Sfx)
 
 local UiKit = {}
@@ -248,6 +249,7 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 	syncHalo()
 	button:GetPropertyChangedSignal("BackgroundColor3"):Connect(syncHalo)
 	button:GetAttributeChangedSignal("NoHalo"):Connect(syncHalo)
+	Juice.press(button)
 	-- Every button clicks, unless it plays its own sound (set the "Silent" attribute).
 	button.Activated:Connect(function()
 		if not button:GetAttribute("Silent") then

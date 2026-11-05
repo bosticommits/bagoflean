@@ -13,8 +13,10 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
+local CountUp = require(ReplicatedStorage.Shared.CountUp)
 local ClientState = require(script.Parent.ClientState)
 local Icon3D = require(script.Parent.Icon3D)
+local Juice = require(script.Parent.Juice)
 local Screens = require(script.Parent.Screens)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -166,6 +168,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local function opensBoard(card: TextButton)
 		card.Text = ""
 		card.AutoButtonColor = false
+		Juice.press(card)
 		card.Activated:Connect(function()
 			Sfx.play("click")
 			Screens.open("Quests")
@@ -358,8 +361,12 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		if not player:GetAttribute("DataLoaded") then
 			return
 		end
-		cashLabel.Text = "$" .. comma(player:GetAttribute("Cash") or 0)
-		fameLabel.Text = "Fame " .. comma(player:GetAttribute("Fame") or 0)
+		Juice.count(cashLabel, player:GetAttribute("Cash") or 0, function(n)
+			return "$" .. comma(n)
+		end)
+		Juice.count(fameLabel, player:GetAttribute("Fame") or 0, function(n)
+			return "Fame " .. comma(n)
+		end)
 		refreshBox()
 	end
 
@@ -384,10 +391,13 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			Sfx.play("coin")
 		end
 		-- Rises from the Cash number.
-		local float = UiKit.makeTitle(wallet, "+$" .. comma(collected), UiKit.CASH_GREEN, UDim2.fromOffset(220, 32), UDim2.fromOffset(54, -6), 3)
+		local float = UiKit.makeTitle(wallet, "+$0", UiKit.CASH_GREEN, UDim2.fromOffset(220, 32), UDim2.fromOffset(54, -6), 3)
 		float.TextXAlignment = Enum.TextXAlignment.Left
 		float.ZIndex = 3
 		UiKit.textConstraint(float, 32)
+		Juice.count(float, collected, function(n)
+			return "+$" .. comma(n)
+		end, 0)
 		TweenService:Create(float, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(54, -56), TextTransparency = 1 }):Play()
 		task.delay(1.3, function()
 			float:Destroy()
@@ -583,6 +593,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		local cash = player:GetAttribute("Cash") or 0
 		if cash < lastCash and player:GetAttribute("DataLoaded") then
 			Sfx.play("spend")
+		elseif player:GetAttribute("DataLoaded") and CountUp.noticeable(lastCash, cash) then
+			Juice.punch(cashLabel, Vector2.new(0, 0.5))
 		end
 		lastCash = cash
 	end
