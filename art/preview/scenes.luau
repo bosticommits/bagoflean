@@ -15,10 +15,8 @@ end
 function scenes.cinema(folder, load, roblox)
 	local Build, LotModels = modules(load)
 	local b = Build.new(folder, roblox.CFrame.new())
-	local x = -45
-	for tier = 1, 4 do
-		LotModels.cinema(b:sub(roblox.Vector3.new(x, 0, 0)), tier, Build.Palette.Blue)
-		x += 30
+	for level = 0, 6 do
+		LotModels.cinema(b:sub(roblox.Vector3.new(-90 + level * 30, 0, 0)), level, Build.Palette.Blue)
 	end
 end
 
