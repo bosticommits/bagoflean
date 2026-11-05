@@ -1090,7 +1090,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 				else nil
 			noteLabel.Visible = note ~= nil
 			noteLabel.Text = note or ""
-			Fx.castReveal(tier.id, variant.id)
+			Fx.castReveal(tier.id, variant.id, plan.nearMiss)
 			if plan.nearMiss then
 				Sfx.play("voiceSoClose")
 			end
