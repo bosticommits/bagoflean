@@ -120,6 +120,12 @@ for col = -1, 1 do
 end
 local LAWN_FROM = Lay.sidewalkTo - 16 -- the lawns' boulevard edge
 
+-- The Grand Premiere Theatre's base (the kit model's feet): at the boulevard's west end, its
+-- front (-Z) facing east down the boulevard. The premiere show (PremiereShow) is staged from it.
+function MapModels.theatreBase(): CFrame
+	return CFrame.new(Lay.theatreX - 3, 0, 0) * CFrame.Angles(0, math.rad(-90), 0)
+end
+
 -- Where lot `index` (1-6) sits, as the lot-space CFrame LotModels expects: origin at the lot's
 -- ground centre, lot-space -Z toward the boulevard.
 function MapModels.lotBase(index: number): CFrame
@@ -568,7 +574,7 @@ local function landmarks(b: Builder)
 	for _, z in { -3.2, 3.2 } do
 		b:block("ForecourtCarpetEdge", v(length + 3, 0.07, 0.4), v(-x0 - length / 2 + 1.5, 0.235, z), P.Gold)
 	end
-	TownSets.theatre(b:sub(CFrame.new(west - 3, 0, 0) * CFrame.Angles(0, math.rad(-90), 0)))
+	TownSets.theatre(b:sub(MapModels.theatreBase()))
 	-- Velvet ropes down both sides of the carpet (premiere kit); the premiere show's fans stand
 	-- behind them. The spans don't block anyone stepping on or off the carpet.
 	for _, z in { -4.5, 4.5 } do

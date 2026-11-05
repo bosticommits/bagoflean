@@ -124,8 +124,9 @@ local function playSlot(name: string, pitch: number?, at: Vector3?, range: numbe
 	task.delay(math.max(8, (length or 0) + 1), done)
 end
 
-function Sfx.play(name: string, pitch: number?)
-	playSlot(name, pitch)
+-- `length` cuts a long sound (a loop or a bed) short with a quick fade.
+function Sfx.play(name: string, pitch: number?, length: number?)
+	playSlot(name, pitch, nil, nil, length)
 end
 
 -- Plays slot `name` from `at` in the world (see playSlot).

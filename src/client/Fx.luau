@@ -55,14 +55,23 @@ function Fx.flash(color: Color3, strength: number)
 	Debris:AddItem(frame, 0.7)
 end
 
--- Paper confetti falling from the top of the screen. `count` scales with how special the moment is.
-function Fx.confetti(count: number, colors: { Color3 }?)
+-- Paper confetti falling from the top of the screen. `count` scales with how special the moment is; `tickets` makes golden tickets.
+function Fx.confetti(count: number, colors: { Color3 }?, tickets: boolean?)
 	local palette = colors or CONFETTI_COLORS
 	local gui = overlay()
 	for _ = 1, count do
 		local piece = Instance.new("Frame")
 		local size = random:NextInteger(6, 12)
-		piece.Size = UDim2.fromOffset(size, size * 1.6)
+		-- Golden tickets are wide, with a darker stripe.
+		piece.Size = if tickets then UDim2.fromOffset(size * 2.2, size * 1.3) else UDim2.fromOffset(size, size * 1.6)
+		if tickets then
+			local stripe = Instance.new("Frame")
+			stripe.Size = UDim2.fromScale(0.12, 1)
+			stripe.Position = UDim2.fromScale(0.7, 0)
+			stripe.BackgroundColor3 = Color3.fromRGB(170, 110, 20)
+			stripe.BorderSizePixel = 0
+			stripe.Parent = piece
+		end
 		piece.AnchorPoint = Vector2.new(0.5, 0.5)
 		piece.Position = UDim2.new(random:NextNumber(0.1, 0.9), 0, 0, -20)
 		piece.Rotation = random:NextNumber(0, 360)
@@ -128,7 +137,8 @@ function Fx.castReveal(tierId: string, variantId: string)
 end
 
 -- Premiere result: a flop gets a sad whistle, a Masterpiece gets everything.
-function Fx.premiere(resultId: string, color: Color3)
+function Fx.premiere(resultId: string, color: Color3, lite: boolean?)
+	local thin = if lite then 0.5 else 1
 	if resultId == "Flop" then
 		Sfx.play("premiereFlop")
 		Sfx.play("lucienFlop")
@@ -139,18 +149,18 @@ function Fx.premiere(resultId: string, color: Color3)
 		Sfx.play("premiereBig")
 		Sfx.play("lucienBlockbuster")
 		Fx.flash(Color3.new(1, 1, 1), 0.35)
-		Fx.confetti(70, { color, Color3.new(1, 1, 1) })
+		Fx.confetti(70 * thin, { color, Color3.new(1, 1, 1) })
 	elseif resultId == "Cult" then
 		Sfx.play("premiereCult")
 		Sfx.play("lucienCult")
 		Fx.flash(color, 0.35)
-		Fx.confetti(90, { color, Color3.fromRGB(255, 205, 70) })
+		Fx.confetti(90 * thin, { color, Color3.fromRGB(255, 205, 70) })
 	else
 		Music.duck(4)
 		Sfx.play("premiereMasterpiece")
 		Sfx.play("lucienMasterpiece")
 		Fx.flash(color, 0.6)
-		Fx.confetti(200)
+		Fx.confetti(200 * thin)
 	end
 end
 
@@ -295,6 +305,22 @@ function Fx.confettiAt(at: Vector3, count: number)
 	confetti.EmissionDirection = Enum.NormalId.Top
 	confetti:Emit(count)
 	Debris:AddItem(anchor, 4)
+end
+
+-- One firework burst at `at` in the world: sparkles and paper in `color` (the premiere show).
+function Fx.fireworkAt(at: Vector3, color: Color3)
+	local anchor = Instance.new("Attachment")
+	anchor.Name = "FireworkFx"
+	anchor.WorldPosition = at
+	anchor.Parent = workspace.Terrain
+	local sparkles = emitter(anchor, SPARKLE_TEXTURE, { color, Color3.new(1, 1, 1) }, NumberRange.new(18, 30), NumberRange.new(0.8, 1.4), 2.2)
+	sparkles.SpreadAngle = Vector2.new(180, 180)
+	sparkles.LightEmission = 1
+	sparkles:Emit(40)
+	local paper = emitter(anchor, CONFETTI_TEXTURE, { color, Color3.fromRGB(255, 230, 140) }, NumberRange.new(10, 22), NumberRange.new(1.5, 2.5), 0.5)
+	paper.SpreadAngle = Vector2.new(180, 180)
+	paper:Emit(30)
+	Debris:AddItem(anchor, 3)
 end
 
 function Fx.start(remotes: Instance)
