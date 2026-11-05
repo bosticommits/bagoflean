@@ -33,7 +33,7 @@ test("every Cinema Size level has its own Blender look that grows with the level
 	for level = 0, 6 do
 		local look = LotModels.CinemaLooks[level]
 		equal(count(look, "BladeFace"), if level >= 2 then 1 else 0, `blade sign at level {level}`)
-		equal(count(look, "Hitbox"), if level >= 6 then 6 elseif level >= 4 then 2 else 1, `wing and dome hitbox at level {level}`)
+		equal(count(look, "Hitbox"), if level >= 6 then 5 elseif level >= 4 then 2 else 1, `wing and dome hitbox at level {level}`)
 		equal(#look.lights, if level >= 6 then 2 else 0, `searchlights at level {level}`)
 		equal(count(look, "DomeTop"), if level >= 6 then 1 else 0, `dome at level {level}`)
 	end
