@@ -49,3 +49,20 @@ test("the part fallback keeps the four old tiers and still returns the marquee",
 		expect(label ~= nil and label:IsA("TextLabel"), `level {level} returns the marquee label`)
 	end
 end)
+
+test("cinema bodies fit between the stages and the level 6 roof hitbox matches the mesh roof", function()
+	for level = 0, 6 do
+		local look = LotModels.CinemaLooks[level]
+		local sx = LotModels.cinemaWidthScale(level)
+		expect(look.body.size.X * sx <= LotModels.CinemaMaxWidth + 1e-6, `level {level} body is wider than the lot gap`)
+		expect(look.accent.size.X * sx <= LotModels.CinemaMaxWidth + 1e-6, `level {level} accent is wider than the lot gap`)
+	end
+	equal(LotModels.cinemaWidthScale(3), 1, "levels 0-3 keep their Blender width")
+	local top = 0
+	for _, p in LotModels.CinemaLooks[6].parts do
+		if p.color == "hitbox" then
+			top = math.max(top, p.cf.Y + p.size.Y / 2)
+		end
+	end
+	expect(top >= 17.9 - 1e-6, `level 6 roof hitbox top is {top}`)
+end)
