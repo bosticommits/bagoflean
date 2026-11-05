@@ -1,0 +1,45 @@
+local fs = require("@lune/fs")
+local H = require("./harness")
+local Mascots = H.require("Mascots")
+local Shop = H.require("Shop")
+local test, expect, equal = H.test, H.expect, H.equal
+
+test("paid random items are allowed only when the region confirms it", function()
+	equal(Shop.paidRandomAllowed(false), true, "confirmed allowed")
+	equal(Shop.paidRandomAllowed(true), false, "restricted")
+	equal(Shop.paidRandomAllowed(nil), false, "not checked yet counts as restricted")
+	equal(Shop.paidRandomAllowed("false"), false, "anything else counts as restricted")
+end)
+
+test("a purchase is blocked when it is random and the region does not allow it", function()
+	equal(Shop.blocksPurchase(true, true), true, "random, restricted")
+	equal(Shop.blocksPurchase(true, nil), true, "random, unchecked")
+	equal(Shop.blocksPurchase(true, false), false, "random, allowed")
+	equal(Shop.blocksPurchase(false, true), false, "not random is never blocked")
+	equal(Shop.blocksPurchase(nil, nil), false, "unmarked items are never blocked")
+end)
+
+test("every pass and product that leads to random actors is marked", function()
+	local luckPass = Shop.getPass("Luck2x")
+	expect(luckPass ~= nil and luckPass.randomItems == true, "2x Luck pass")
+	for _, key in { "LuckyCasting", "CashSmall", "CashLarge" } do
+		local product = Shop.getProduct(key)
+		expect(product ~= nil and product.randomItems == true, `{key} product`)
+	end
+	for _, mascot in Mascots.List do
+		equal(Mascots.randomItems(mascot), mascot.buff.kind == "luck", `{mascot.id} is random exactly when it gives Luck`)
+	end
+	expect(Mascots.randomItems(Mascots.get("SpotlightOwl") :: any), "the Spotlight Owl is a Luck mascot")
+end)
+
+test("the server wires the gate: receipts, the Luck pass and the stored trading policy", function()
+	local shop = fs.readFile("src/server/ShopService.luau")
+	local gate = string.find(shop, "Shop.blocksPurchase(", 1, true)
+	local grant = string.find(shop, "DataService.grantPurchaseOnce(player", 1, true)
+	expect(gate ~= nil and grant ~= nil and gate < grant, "the receipt is refused before anything is granted")
+	expect(string.find(shop, "Mascots.randomItems(mascot) or Mascots.owns(mascot, data)", 1, true), "an owned mascot (Robux to Cash) counts as random")
+	expect(string.find(shop, "NotProcessedYet", gate, true), "a blocked receipt is not processed")
+	expect(string.find(shop, 'SetAttribute("IsPaidItemTradingAllowed"', 1, true), "trading policy stored")
+	local casting = fs.readFile("src/server/CastingService.luau")
+	expect(string.find(casting, 'data.passes.Luck2x and Shop.paidRandomAllowed(player:GetAttribute("PaidRandomRestricted"))', 1, true), "the Luck pass pauses where restricted")
+end)

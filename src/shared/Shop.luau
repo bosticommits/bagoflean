@@ -99,6 +99,20 @@ for _, product in Shop.Products do
 	end
 end
 
+-- Whether paid random items may take effect or be sold, from the player's PaidRandomRestricted
+-- attribute (ShopService sets it from PolicyService). Only a confirmed `false` allows it: nil
+-- (not checked yet) counts as restricted. The server uses it to refuse receipts and pause the
+-- Luck pass; the client uses it to hide offers.
+function Shop.paidRandomAllowed(restricted: any): boolean
+	return restricted == false
+end
+
+-- True when a purchase must be refused: it leads to random actors (`randomItems`) and the player's
+-- region does not allow that.
+function Shop.blocksPurchase(randomItems: boolean?, restricted: any): boolean
+	return randomItems == true and not Shop.paidRandomAllowed(restricted)
+end
+
 function Shop.getPass(key: string): Pass?
 	return passByKey[key]
 end

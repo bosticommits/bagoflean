@@ -29,15 +29,14 @@ local WHITE, PANEL = UiKit.WHITE, UiKit.PANEL
 
 local CastingUi = {}
 
-local function fmtOdds(chance: number): string
-	if chance <= 0 then
-		return "never"
-	end
-	local oneIn = 1 / chance
-	if oneIn < 1.5 then
-		return string.format("%.0f%%", chance * 100)
-	end
-	return "1 in " .. Hud.comma(math.floor(oneIn + 0.5))
+-- A chance as a percentage (Actors.percent: Roblox wants odds as percentages), with "1 in N" for
+-- readers who prefer it.
+local fmtOdds = Actors.percent
+
+-- The tier the agency's next cast is guaranteed at least (the server's NextFloor<agency>), or nil.
+local function nextFloorOf(player: Player, agency: Actors.Agency): string?
+	local value = player:GetAttribute("NextFloor" .. agency.id)
+	return if type(value) == "string" and value ~= "" and Actors.getTier(value) ~= nil then value else nil
 end
 
 -- The limited actor in season right now: the one of this week's seasonal Film Festival, as the
@@ -194,6 +193,12 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		if type(pityCount) == "number" and Actors.PityEvery - pityCount < left then
 			tierId, left, fraction = agency.pity, Actors.PityEvery - pityCount, pityCount / Actors.PityEvery
 		end
+		-- A guarantee covering the very next cast (hot start casts 3 / 10 / 25, the first Superstar,
+		-- pity) wins; the server tells us which tier (NextFloor<agency>).
+		local nextFloor = nextFloorOf(player, agency)
+		if nextFloor ~= nil then
+			tierId, left, fraction = nextFloor, 1, 1
+		end
 		hotBar.Visible = tierId ~= nil and player:GetAttribute("DataLoaded") == true
 		if tierId == nil then
 			return
@@ -224,12 +229,13 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		local limited, lastDay = limitedInSeason()
 		local tier = if limited ~= nil then Actors.getTier(limited.tier) else nil
 		local luck = player:GetAttribute("Luck") or Config.BaseLuck
-		local chances = Actors.tierChances(luck, currentAgency().minTier)
-		limitedTag.Visible = limited ~= nil and tier ~= nil and chances[tier.id] > 0
+		local agency = currentAgency()
+		local share = Actors.castOdds(luck, agency.minTier, nextFloorOf(player, agency), limited).limited
+		limitedTag.Visible = limited ~= nil and tier ~= nil and share > 0
 		if limited == nil then
 			return
 		end
-		local odds = fmtOdds(Actors.limitedChance(chances, limited))
+		local odds = fmtOdds(share)
 		local untilText = if lastDay ~= nil then `, until {lastDay}` else ""
 		limitedLabel.Text = `LIMITED: {limited.name}  <font color="#FFFFFF">{odds}</font>{untilText}`
 		limitedTag.Position = UDim2.fromOffset(0, if hotBar.Visible then -68 else -34)
@@ -277,60 +283,99 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			end
 		end
 		local luck = player:GetAttribute("Luck") or Config.BaseLuck
-		local chances = Actors.tierChances(luck, agency.minTier)
+		-- The odds of the NEXT cast, exactly as the server rolls it: a guarantee in force moves the
+		-- tiers below it into its own tier, and the limited actor's slice comes out of the first tier.
+		local floorTier = nextFloorOf(player, agency)
+		local limited, lastDay = limitedInSeason()
+		local odds = Actors.castOdds(luck, agency.minTier, floorTier, limited)
 		local order = 0
+		local function note(text: string, color: Color3, height: number)
+			order += 1
+			local row = UiKit.addRow(oddsList, order, height)
+			UiKit.plainRow(row)
+			local label = makeLabel(row, text, color, UDim2.new(1, -20, 1, -8), UDim2.fromOffset(10, 4))
+			label.TextWrapped = true
+			textConstraint(label, 18)
+			return row
+		end
 
 		order += 1
 		local info = UiKit.addRow(oddsList, order, 44)
 		local removed = if agency.minTier > 1 then `no {Actors.Tiers[1].name}{if agency.minTier > 2 then " or " .. Actors.Tiers[2].name else ""}` else "every tier"
 		local unlocked = fame() >= agency.fame
 		makeLabel(info, `${Hud.comma(agency.cost)} per cast  -  {removed}  -  {if unlocked then "unlocked" else "needs Fame " .. Hud.comma(agency.fame)}`, if unlocked then UiKit.GOLD else UiKit.WARN, UDim2.new(1, -20, 1, -8), UDim2.fromOffset(10, 4))
+		if floorTier ~= nil then
+			local floorName = (Actors.getTier(floorTier) :: Actors.Tier).name
+			note(`Next cast: {floorName} or better is guaranteed, so lower tiers read 0%.`, UiKit.GOLD, 48)
+		end
 
+		-- One row per tier: its chance, and under it the chance of any one actor in it.
 		for tierIndex = #Actors.Tiers, 1, -1 do
 			local tier = Actors.Tiers[tierIndex]
-			if chances[tier.id] > 0 then
+			if odds.tiers[tier.id] > 0 then
 				order += 1
-				local row = UiKit.addRow(oddsList, order, 40)
-				local name = UiKit.makeTitle(row, tier.name, tier.color, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
+				local row = UiKit.addRow(oddsList, order, 62)
+				local name = UiKit.makeTitle(row, tier.name, tier.color, UDim2.new(0.3, 0, 0, 30), UDim2.fromOffset(10, 3))
 				local outline = row:FindFirstChild("Outline") :: UIStroke
 				outline.Color = tier.color
 				name.TextXAlignment = Enum.TextXAlignment.Left
-				makeLabel(row, fmtOdds(chances[tier.id]), WHITE, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.4, 0))
-				makeLabel(row, "Power " .. Hud.comma(tier.starPower), UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
+				textConstraint(name, 24)
+				local power = makeLabel(row, "Power " .. Hud.comma(tier.starPower), UiKit.GOLD, UDim2.new(0.25, 0, 0, 30), UDim2.new(0.3, 0, 0, 3))
+				textConstraint(power, 16)
+				local pct = makeLabel(row, fmtOdds(odds.tiers[tier.id]), WHITE, UDim2.new(0.43, -6, 0, 30), UDim2.new(0.57, 0, 0, 3))
+				pct.TextXAlignment = Enum.TextXAlignment.Right
+				local each = makeLabel(row, `Each actor in this tier: {fmtOdds(odds.actor[tier.id])}`, UiKit.MUTED, UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 35))
+				each.TextXAlignment = Enum.TextXAlignment.Left
+				textConstraint(each, 16)
 			end
 		end
-		-- A limited actor in season: as likely as any one actor of its tier.
-		local limited = limitedInSeason()
+		-- A limited actor in season: as likely as any one actor of its tier, and already counted in
+		-- that tier's row above.
 		local limitedTier = if limited ~= nil then Actors.getTier(limited.tier) else nil
-		if limited ~= nil and limitedTier ~= nil and chances[limitedTier.id] > 0 then
+		if limited ~= nil and limitedTier ~= nil and odds.limited > 0 then
 			order += 1
-			local row = UiKit.addRow(oddsList, order, 40)
-			local name = UiKit.makeTitle(row, `LIMITED: {limited.name}`, UiKit.GOLD, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
+			local row = UiKit.addRow(oddsList, order, 62)
+			local name = UiKit.makeTitle(row, `LIMITED: {limited.name}`, UiKit.GOLD, UDim2.new(0.57, 0, 0, 30), UDim2.fromOffset(10, 3))
 			name.TextXAlignment = Enum.TextXAlignment.Left
-			textConstraint(name, 18)
+			textConstraint(name, 20)
 			local outline = row:FindFirstChild("Outline") :: UIStroke
 			outline.Color = UiKit.GOLD
-			makeLabel(row, fmtOdds(Actors.limitedChance(chances, limited)), WHITE, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.4, 0))
-			local _, lastDay = limitedInSeason()
-			makeLabel(row, if lastDay ~= nil then `{limitedTier.name}, until {lastDay}` else `{limitedTier.name}, this season only`, UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
+			local pct = makeLabel(row, fmtOdds(odds.limited), WHITE, UDim2.new(0.43, -6, 0, 30), UDim2.new(0.57, 0, 0, 3))
+			pct.TextXAlignment = Enum.TextXAlignment.Right
+			local sub = makeLabel(row, `Already in the {limitedTier.name} row{if lastDay ~= nil then ", until " .. lastDay else ", this season only"}`, UiKit.MUTED, UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 35))
+			sub.TextXAlignment = Enum.TextXAlignment.Left
+			textConstraint(sub, 16)
 		end
+
+		-- Variants are rolled apart from the actor, so they get their own list.
+		note("Variants are rolled separately for every actor", UiKit.GOLD, 34)
 		local vChances = Actors.variantChances(luck)
 		for _, variant in Actors.Variants do
-			if variant.oneIn ~= nil then
-				order += 1
-				local row = UiKit.addRow(oddsList, order, 40)
-				local name = UiKit.makeTitle(row, variant.name, variant.color, UDim2.fromScale(0.4, 1), UDim2.fromOffset(10, 0))
-				name.TextXAlignment = Enum.TextXAlignment.Left
-				makeLabel(row, fmtOdds(vChances[variant.id]), WHITE, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.4, 0))
-				makeLabel(row, "x" .. variant.multiplier .. " power", UiKit.GOLD, UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0))
-			end
+			order += 1
+			local row = UiKit.addRow(oddsList, order, 44)
+			local name = UiKit.makeTitle(row, variant.name, variant.color, UDim2.new(0.4, 0, 1, 0), UDim2.fromOffset(10, 0))
+			name.TextXAlignment = Enum.TextXAlignment.Left
+			textConstraint(name, 22)
+			local pct = makeLabel(row, fmtOdds(vChances[variant.id]), WHITE, UDim2.new(0.34, 0, 1, 0), UDim2.fromScale(0.4, 0))
+			pct.TextXAlignment = Enum.TextXAlignment.Right
+			local power = makeLabel(row, "x" .. variant.multiplier .. " power", UiKit.GOLD, UDim2.new(0.26, -10, 1, 0), UDim2.fromScale(0.74, 0))
+			textConstraint(power, 16)
 		end
-		order += 1
-		local note = UiKit.addRow(oddsList, order, 40)
-		makeLabel(note, "Luck x" .. string.format("%.2f", luck) .. "  -  odds apply to every roll", UiKit.MUTED, UDim2.fromScale(1, 1))
-		order += 1
-		local pity = UiKit.addRow(oddsList, order, 40)
-		makeLabel(pity, `Pity: a {agency.pity} or better at least once every {Actors.PityEvery} casts here`, UiKit.MUTED, UDim2.fromScale(1, 1))
+
+		local nextStep = Actors.nextHotStart(player:GetAttribute("HotStart") or Actors.HotStartLength)
+		local guarantees = `Pity: a {agency.pity} or better at least once every {Actors.PityEvery} casts here.`
+		if nextStep ~= nil then
+			local parts = {}
+			for _, step in Actors.HotStart do
+				table.insert(parts, `{step.tier} on cast {step.cast}`)
+			end
+			guarantees ..= ` New players: a guaranteed {table.concat(parts, ", ")}.`
+		end
+		if player:GetAttribute("FirstSuperstar") == true then
+			guarantees ..= ` And a Superstar once you have played {Actors.FirstSuperstarAfter // 60} minutes.`
+		end
+		note(guarantees, UiKit.MUTED, 82)
+		note(`Luck x{string.format("%.2f", luck)}. Probabilities are rounded; total of displayed individual probabilities may not equal 100%.`, UiKit.MUTED, 82)
 	end
 
 	-- Collection panel: Roster and Index tabs -------------------------------------------------
@@ -848,8 +893,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		spotlights[i] = holder
 	end
 
-	-- A gold note across the top of the card: the guarantee that covered this cast, or the near
-	-- miss's kind "So close!".
+	-- A gold note across the top of the card: the guarantee that covered this cast.
 	local noteLabel = UiKit.makeTitle(card, "", WHITE, UDim2.fromScale(0.62, 0.065), UDim2.fromScale(0.19, 0.085), 2.5)
 	noteLabel.BackgroundTransparency = 0
 	noteLabel.BackgroundColor3 = UiKit.GOLD
@@ -914,13 +958,21 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end)
 
-	local againButton = makeButton(card, "Cast again", UiKit.GREEN, UDim2.fromScale(0.44, 0.13), UDim2.fromScale(0.04, 0.83))
-	local doneButton = makeButton(card, "Continue", UiKit.BLUE, UDim2.fromScale(0.44, 0.13), UDim2.fromScale(0.52, 0.83))
-	againButton.ZIndex = 12
-	doneButton.ZIndex = 12
+	-- Cast again, the odds it casts with, and Continue: 44 px tall at least, along the card's foot.
+	local function footButton(text: string, color: Color3, width: number, x: number): TextButton
+		local button = makeButton(card, text, color, UDim2.fromScale(width, 0.13), UDim2.fromScale(x, 0.96))
+		button.AnchorPoint = Vector2.new(0, 1)
+		button.ZIndex = 12
+		local least = Instance.new("UISizeConstraint")
+		least.MinSize = Vector2.new(0, 44)
+		least.Parent = button
+		return button
+	end
+	local againButton = footButton("Cast again", UiKit.GREEN, 0.36, 0.04)
+	local oddsRevealButton = footButton("Odds", UiKit.TAB_OFF, 0.16, 0.42)
+	local doneButton = footButton("Continue", UiKit.BLUE, 0.36, 0.6)
 
 	local revealToken = 0
-	local castAgency: Actors.Agency? = nil -- the agency of the cast being revealed
 	local function setCardVisible(visible: boolean)
 		for _, child in card:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -976,15 +1028,14 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		rainbow.Enabled = false
 		-- Build-up (Reveal.plan): the silhouette spins fast while spotlights sweep, a drumroll speeds
 		-- up and the card shakes, glowing one rarity after another up to the real one (or looking
-		-- Common, then bursting: the fake-out; or climbing to Superstar gold: the near miss). Then the
-		-- card flips to the result.
+		-- Common, then bursting: the fake-out). Then the card flips to the result.
 		art.Visible = true
 		showArt(function(frame)
 			return Icon3D.actor(frame, actor.id, variant.id, true)
 		end, 150)
 		setRays(nil, 0)
 		local rank = table.find(Actors.Tiers, tier) or 1
-		local plan = Reveal.plan(rank, result.tease, math.random())
+		local plan = Reveal.plan(rank, math.random())
 		local long = plan.seconds >= 0.8
 		if rank >= 5 then
 			Fx.holdOwnPull() -- the fireworks over our lot wait for the flip
@@ -995,7 +1046,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			for _, holder in spotlights do
 				holder.Visible = long
 			end
-			local deep = plan.nearMiss or rank >= 5
+			local deep = rank >= 5
 			local start, stepIndex, nextTick, glowRank = os.clock(), 0, 0, 1
 			while revealToken == mine and not skipBuild do
 				local t = os.clock() - start
@@ -1059,14 +1110,9 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			ribbonStroke.Color = if tier.id == "Icon" then WHITE else UiKit.INK
 			ribbonRainbow.Enabled = tier.id == "Icon"
 			tierLabel.Text = string.upper(tier.name)
-			-- Odds of this exact pull (tier, then one of its actors, then the variant) at the Luck
-			-- and agency it was cast with, as the Odds screen works them out.
-			local luck = player:GetAttribute("Luck") or Config.BaseLuck
-			local agency = castAgency or currentAgency()
-			local tierChance = Actors.tierChances(luck, agency.minTier)[tier.id] or 0
-			local pool = #Actors.actorsInTier(tier.id) -- a limited actor is as likely as one of these
-			local chance = tierChance / math.max(pool, 1) * (Actors.variantChances(luck)[variant.id] or 0)
-			chanceLabel.Text = fmtOdds(chance)
+			-- The real chance of this exact pull, worked out by the server with the Luck, agency,
+			-- guarantee and limited actor of this cast (Crate x3 and guaranteed casts included).
+			chanceLabel.Text = if type(result.chance) == "number" then fmtOdds(result.chance) else "?"
 			powerLabel.Text = Hud.comma(tier.starPower * variant.multiplier)
 			genreLabel.Text = actor.genre
 			genreLabel.TextColor3 = UiKit.GENRE_COLORS[actor.genre] or WHITE
@@ -1081,19 +1127,14 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			variantLabel.Text = string.upper(if variant.id == "Award" then "Award" else variant.name)
 			variantLabel.BackgroundColor3 = variant.color
 			variantLabel.TextColor3 = WHITE
-			-- The guarantee that covered this cast (server-decided), or the near miss's kind line.
-			local note = if plan.nearMiss
-				then "So close! Superstar soon!"
-				elseif result.guarantee == "firstSuperstar" then "YOUR FIRST SUPERSTAR!"
+			-- The guarantee that covered this cast (server-decided).
+			local note = if result.guarantee == "firstSuperstar" then "YOUR FIRST SUPERSTAR!"
 				elseif result.guarantee == "pity" then "PITY GUARANTEE!"
 				elseif result.guarantee == "hotStart" or result.discovered then "DISCOVERED!"
 				else nil
 			noteLabel.Visible = note ~= nil
 			noteLabel.Text = note or ""
 			Fx.castReveal(tier.id, variant.id)
-			if plan.nearMiss then
-				Sfx.play("voiceSoClose")
-			end
 			if rank >= 5 then
 				Fx.releaseOwnPull()
 			end
@@ -1113,7 +1154,6 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			UiKit.toast(gui, "Not enough Cash")
 			return false
 		end
-		castAgency = agency
 		castRemote:FireServer(agency.id)
 		return true
 	end
@@ -1135,6 +1175,11 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	end)
 	doneButton.Activated:Connect(function()
 		overlay.Visible = false
+	end)
+	oddsRevealButton.Activated:Connect(function()
+		overlay.Visible = false
+		UiKit.closePanels()
+		UiKit.togglePanel(oddsPanel, buildOdds)
 	end)
 
 	castResult.OnClientEvent:Connect(function(result)
@@ -1172,9 +1217,14 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		if name == "Luck" then
 			refreshLimitedTag()
 		end
-		if (name == "Luck" or name == "Fame") and oddsPanel.Visible then
+		local isFloor = string.sub(name, 1, 9) == "NextFloor"
+		if isFloor then
+			refreshLimitedTag()
+		end
+		if (name == "Luck" or name == "Fame" or isFloor or name == "FirstSuperstar" or name == "HotStart") and oddsPanel.Visible then
 			buildOdds()
-		elseif name == "HotStart" or name == "DataLoaded" or string.sub(name, 1, 4) == "Pity" then
+		end
+		if name == "HotStart" or name == "DataLoaded" or isFloor or string.sub(name, 1, 4) == "Pity" then
 			refreshHotStart()
 		end
 	end)

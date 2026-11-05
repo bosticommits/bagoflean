@@ -9,13 +9,14 @@
 --     discovered: boolean,         -- same as guarantee == "hotStart" (the "DISCOVERED!" badge)
 --     guarantee: string?,          -- the guarantee that covered this cast: "hotStart" | "pity" |
 --                                  -- "firstSuperstar" | nil. Set even when the natural roll beat it.
---     tease: string?,              -- "nearMiss": build the reveal up like a Superstar, then land on
---                                  -- the real result (presentation only; never a Superstar itself)
+--     chance: number,              -- the real chance (0..1) of exactly this pull: the cast's Luck,
+--                                  -- agency, guarantee floor and limited actor all counted
 --     pity: { agency: string, tier: string, count: number, every: number },
 --                                  -- that agency's meter AFTER this cast: `every - count` casts
 --                                  -- until a guaranteed `tier` (count 0 = just reset)
 --   }
--- The meters are also mirrored as player attributes Pity<agencyId> (e.g. PityOpen) for the HUD.
+-- The meters are also mirrored as player attributes Pity<agencyId> (e.g. PityOpen) for the HUD, and
+-- the tier the next cast is guaranteed as NextFloor<agencyId> ("" for none; Actors.nextFloor).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
@@ -24,6 +25,7 @@ local Events = require(ReplicatedStorage.Shared.Events)
 local FilmSets = require(ReplicatedStorage.Shared.FilmSets)
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
 local PullNews = require(ReplicatedStorage.Shared.PullNews)
+local Shop = require(ReplicatedStorage.Shared.Shop)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local Analytics = require(script.Parent.Analytics)
 local BadgeAwards = require(script.Parent.BadgeAwards)
@@ -61,7 +63,8 @@ end
 
 -- Luck for Casting Calls: the stat Luck above times the 2x Luck pass, an active Lucky Casting
 -- boost, Award Night, a Lucky Star special event and a Luck mascot. Premieres use the stat Luck
--- only.
+-- only. The 2x Luck pass is paid random items: it works only where the player's region allows
+-- those (Shop.paidRandomAllowed); the pass stays owned and works again if the policy allows.
 function CastingService.castLuck(player: Player): number
 	local data = DataService.getData(player)
 	if data == nil then
@@ -70,7 +73,7 @@ function CastingService.castLuck(player: Player): number
 	local now = os.time()
 	local luck = Upgrades.luck(data)
 	luck *= LiveConfig.number("CastingLuckMultiplier")
-	if data.passes.Luck2x then
+	if data.passes.Luck2x and Shop.paidRandomAllowed(player:GetAttribute("PaidRandomRestricted")) then
 		luck *= Config.PassLuckMultiplier
 	end
 	if data.luckBoostUntil > now then
@@ -93,6 +96,16 @@ function CastingService.setEventLuck(multiplier: number, untilTime: number)
 	eventLuck, eventLuckUntil = multiplier, untilTime
 end
 
+-- The tier each agency's next cast is guaranteed (Actors.nextFloor), as NextFloor<agencyId>.
+local function mirrorFloors(player: Player, data: any)
+	local noFirstSuperstar = LiveConfig.switchedOff("FirstSuperstar")
+	for _, agency in Actors.Agencies do
+		player:SetAttribute("NextFloor" .. agency.id, (Actors.nextFloor(data, agency, noFirstSuperstar)) or "")
+	end
+	-- Whether the one-off first-Superstar guarantee is still to come (the odds panel lists it).
+	player:SetAttribute("FirstSuperstar", data.early < Actors.EarlyDone and not noFirstSuperstar)
+end
+
 -- Mirror casting luck to an attribute so the odds panel can compute the same numbers the roll uses.
 -- Called every second from Main, so boosts and Award Night show up as they start and end.
 function CastingService.refresh(player: Player)
@@ -104,6 +117,7 @@ function CastingService.refresh(player: Player)
 		for _, agency in Actors.Agencies do
 			player:SetAttribute("Pity" .. agency.id, data.pity[agency.id] or 0)
 		end
+		mirrorFloors(player, data)
 		-- Seconds played, counted here (never from the client); a long stall counts at most 5 s.
 		local now = os.clock()
 		data.played += math.clamp(now - (lastTick[player] or now), 0, 5)
@@ -147,11 +161,12 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 		return
 	end
 	local limited = CastingService.limitedInSeason()
-	local actor, variant, guarantee, tease = Actors.castWithGuarantees(data, agency, function(floorTier)
+	local actor, variant, guarantee, floorTier = Actors.castWithGuarantees(data, agency, function(floorTier)
 		return Actors.roll(random, luck, agency.minTier, floorTier, limited)
 	end, LiveConfig.switchedOff("FirstSuperstar"))
 	player:SetAttribute("HotStart", data.hotStart)
 	player:SetAttribute("Pity" .. agency.id, data.pity[agency.id])
+	mirrorFloors(player, data) -- the next cast's guarantee
 	local isNew, count = CastingService.grant(player, actor.id, variant.id)
 	castResult:FireClient(player, {
 		ok = true,
@@ -161,12 +176,10 @@ local function rollAndGrant(player: Player, agency: Actors.Agency, luck: number)
 		count = count,
 		discovered = guarantee == "hotStart",
 		guarantee = guarantee,
-		tease = tease,
+		chance = Actors.pullChance(luck, agency.minTier, floorTier, limited, actor.id, variant.id),
 		pity = { agency = agency.id, tier = agency.pity, count = data.pity[agency.id], every = Actors.PityEvery },
 	})
-	if tease ~= nil then
-		Analytics.event(player, "NearMissTease", math.floor(data.played), actor.tier)
-	elseif guarantee == "firstSuperstar" then
+	if guarantee == "firstSuperstar" then
 		Analytics.event(player, "FirstSuperstar", math.floor(data.played), actor.tier, variant.id)
 	end
 	-- Counted first, so a slow or failing lot redraw below can never lose a cast's progress.

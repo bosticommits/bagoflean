@@ -77,7 +77,7 @@ export type PlayerData = {
 	hotStart: number,
 	-- Pity meter (Actors.PityEvery): casts since each agency's pity tier, by agency id.
 	pity: { [string]: number },
-	-- Early crazy pulls (Actors.castWithGuarantees): 0 new, 1 tease shown, 2 done; and seconds
+	-- Early crazy pulls (Actors.castWithGuarantees): 0 not yet, 2 done (1 was the removed near-miss tease); and seconds
 	-- played, counted by the server (CastingService.refresh).
 	early: number,
 	played: number,
@@ -320,7 +320,7 @@ function DataService.load(player: Player): PlayerData?
 		profile.Data.cash = Config.StartingCash
 		profile.Data.funnel = 0 -- a new player: log their onboarding funnel
 		profile.Data.hotStart = 0 -- and give them the "Discovered!" hot start
-		profile.Data.early = 0 -- and the near-miss tease and first Superstar
+		profile.Data.early = 0 -- and the first Superstar
 	end
 	migrate(profile.Data)
 

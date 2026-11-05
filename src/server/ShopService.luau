@@ -22,10 +22,14 @@ local DataService = require(script.Parent.DataService)
 local LotService = require(script.Parent.LotService)
 local MascotService = require(script.Parent.MascotService)
 local MovieService = require(script.Parent.MovieService)
+local Remotes = require(script.Parent.Remotes)
 local RewardService = require(script.Parent.RewardService)
 
 local DATA_WAIT_SECONDS = 20
 local VIP_GOLD = Color3.fromRGB(255, 205, 70)
+
+local rewardResult = Remotes.get("RewardResult")
+local told: { [any]: boolean } = {} -- receipts the player was already told are not available
 
 local ShopService = {}
 
@@ -73,13 +77,16 @@ end
 
 -- Roblox rule for paid random items: where a player's region restricts them, the shop must not
 -- offer Robux purchases that lead to random actors (Shop `randomItems`). If the policy cannot be
--- read, treat the player as restricted rather than risk offering them.
+-- read, treat the player as restricted rather than risk offering them. The server enforces it:
+-- processReceipt refuses those purchases and CastingService.castLuck pauses the 2x Luck pass
+-- (ownership stays saved). IsPaidItemTradingAllowed is stored for the future gifting feature.
 local function checkPolicy(player: Player)
 	local ok, policy = pcall(function()
 		return PolicyService:GetPolicyInfoForPlayerAsync(player)
 	end)
 	local restricted = not ok or type(policy) ~= "table" or policy.ArePaidRandomItemsRestricted ~= false
 	player:SetAttribute("PaidRandomRestricted", restricted)
+	player:SetAttribute("IsPaidItemTradingAllowed", ok and type(policy) == "table" and policy.IsPaidItemTradingAllowed == true)
 end
 
 -- Called once the player's data has loaded. Yields (ownership checks), so call it in a task.
@@ -126,7 +133,19 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 		task.wait(0.25)
 		waited += 0.25
 	end
-	if DataService.getData(player) == nil then
+	local data = DataService.getData(player)
+	if data == nil then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	-- Paid random items where the player's region restricts them: not processed (the buy buttons
+	-- are hidden there, so this is a prompt that should not have opened). A mascot bought again
+	-- turns into Cash that pays for casts, so an owned one counts as random too.
+	local randomItems = if mascot ~= nil then Mascots.randomItems(mascot) or Mascots.owns(mascot, data) else (product :: Shop.Product).randomItems
+	if Shop.blocksPurchase(randomItems, player:GetAttribute("PaidRandomRestricted")) then
+		if not told[receipt.PurchaseId] then -- Roblox redelivers a receipt that stays unprocessed
+			told[receipt.PurchaseId] = true
+			rewardResult:FireClient(player, false, "Not available in your region")
+		end
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 

@@ -64,8 +64,6 @@ Sounds.Slots = {
 	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1 }, -- "SUPERSTAR!"
 	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1 }, -- "LEGEND!"
 	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9 }, -- "ICON!"
-	-- "Ooh, so close!": the near-miss tease lands on a lower tier.
-	voiceSoClose = { id = 81149535231196, volume = 0.8, fallback = "low", pitch = 1.1 },
 
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up
