@@ -284,7 +284,7 @@ test("players can't walk off the map: walls close every way out", function()
 	equal(open, 0, "edge cells with no wall")
 	-- The whole map is one piece: spawn reaches the park, the Gulch, the theatre and the gate road.
 	local e = Lay.fenceZ + 1
-	for _, place in { { 0, e + 100 }, { 0, -e - 145 }, { Lay.theatreX - 2, 0 }, { 160, 0 }, { 120, 110 } } do
+	for _, place in { { 0, e + 100 }, { 0, -e - 145 }, { Lay.theatreX - 2, 0 }, { 160, 0 }, { 120, 110 }, { -130, 168 }, { -220, 190 } } do
 		expect(seen[`{math.round(place[1] / step)},{math.round(place[2] / step)}`] == true, `can't reach {place[1]}, {place[2]}`)
 	end
 end)
@@ -343,6 +343,25 @@ test("every map kit model has a part version, a size and builds", function()
 	expect(lamp:FindFirstChild("LightSpot") ~= nil, "lamp light")
 end)
 
+test("the premiere kit builds, with its sign spots, and ropes line the theatre carpet", function()
+	local folder = roblox.Instance.new("Folder")
+	local Build = H.require("Models/Build")
+	for _, name in { "VelvetRopePost", "VelvetRopeSpan", "FanSignHeart", "FanSignBlank", "MarqueeFlipBoard", "GrandTrophy", "FireworkMortar", "RainCloud" } do
+		local model = MapKit.place(Build.new(folder, CFrame.identity), name, CFrame.identity)
+		expect(#model:GetChildren() > 0, `{name} builds parts`)
+	end
+	MapKit.spot("MarqueeFlipBoard", "Front")
+	MapKit.spot("MarqueeFlipBoard", "Back")
+	MapKit.spot("FanSignBlank", "Sign")
+	local posts = 0
+	for _, d in town:GetDescendants() do
+		if d.Name == "VelvetRopePost" then
+			posts += 1
+		end
+	end
+	equal(posts, 10, "rope posts on the theatre forecourt")
+end)
+
 test("the park's ducks paddle on open water", function()
 	local TownSets = H.require("Models/TownSets")
 	local r = TownSets.PondRadius
@@ -369,6 +388,20 @@ test("the park's ducks paddle on open water", function()
 		end
 	end
 	equal(ducks, #TownSets.DuckLoops, "a loop for every duck")
+end)
+
+test("the jungle keeps to itself: no jungle plant in the town or the park", function()
+	local hx, hz = Lay.fenceX + 2, Lay.fenceZ + 2 -- the town hedge, with its thickness
+	local plants = 0
+	for _, model in town:GetDescendants() do
+		if model:IsA("Model") and string.sub(model.Name, 1, 6) == "Jungle" and model.Name ~= "JungleGateArch" and model.Name ~= "JungleSignpost" then
+			plants += 1
+			local p = model.WorldPivot.Position
+			expect(not (math.abs(p.X) < hx and math.abs(p.Z) < hz), `{model.Name} at {p} is inside the town hedge`)
+			expect(not (p.X > -106 and p.Z > Lay.fenceZ), `{model.Name} at {p} is in Starlight Park`)
+		end
+	end
+	expect(plants > 100, `only {plants} jungle pieces`)
 end)
 
 test("the Jungle Temple's dressing keeps the crew corner and the boulder's run clear", function()
@@ -454,4 +487,17 @@ test("Dusty Gulch's backlot dressing keeps the street, the crew and Moon Base's 
 		end
 	end
 	expect(pieces >= 60, `only {pieces} backlot pieces in the Gulch`)
+end)
+
+test("the gold star stands upright on the green hill's crest, facing the town", function()
+	local star = Lay.hillStar
+	local at = star.Position
+	local ground = MapScenery.groundAt(MapModels.Hills, at.X, at.Z)
+	expect(star.UpVector.Y > 0.999, "the star leans")
+	expect(star.LookVector.Z < -0.999, "the star doesn't face the town (-Z)")
+	-- Feet just into the ground (the hill is low-poly, a little under its sphere), never half-sunk.
+	expect(at.Y <= ground and at.Y > ground - 1.5, `star feet at {at.Y}, ground at {ground}`)
+	for _, d in { Vector3.new(8, 0, 0), Vector3.new(0, 0, 8), Vector3.new(0, 0, -8) } do
+		expect(MapScenery.groundAt(MapModels.Hills, at.X + d.X, at.Z + d.Z) <= ground, "the star isn't on the crest")
+	end
 end)

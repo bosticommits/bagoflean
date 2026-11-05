@@ -6,11 +6,13 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Shop = require(ReplicatedStorage.Shared.Shop)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local LuckDetails = require(script.Parent.LuckDetails)
 local Screens = require(script.Parent.Screens)
 local UiKit = require(script.Parent.UiKit)
 
@@ -51,7 +53,7 @@ end
 -- False for items that lead to random actors when this player's region restricts paid random
 -- items (the attribute is nil until the server has checked, which also counts as restricted).
 function ShopUi.offered(item: { randomItems: boolean? }): boolean
-	return not item.randomItems or Players.LocalPlayer:GetAttribute("PaidRandomRestricted") == false
+	return not Shop.blocksPurchase(item.randomItems, Players.LocalPlayer:GetAttribute("PaidRandomRestricted"))
 end
 
 -- Opens Roblox's purchase prompt for a developer product. Returns false if it is not set up yet.
@@ -77,6 +79,11 @@ local LOOKS: { [string]: { icon: string, color: Color3 } } = {
 	CashLarge = { icon = "vault", color = Color3.fromRGB(205, 150, 30) },
 }
 local FEATURED = "Luck2x" -- the big banner at the top
+-- What sells casting Luck by Robux: the multiplier it gives (the "Odds" button shows the numbers).
+local LUCK_SOLD: { [string]: number } = {
+	Luck2x = Config.PassLuckMultiplier,
+	LuckyCasting = Config.BoostLuckMultiplier,
+}
 
 -- `cashButton` (the green "+" by Cash) opens the shop at Boosts and Cash.
 function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextButton?)
@@ -236,10 +243,39 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			return button
 		end
 
+		-- The "Odds" button on a Luck card, before buying: now against boosted chances.
+		local function oddsButton(c: Frame, key: string, name: string)
+			local sold = LUCK_SOLD[key]
+			if sold == nil then
+				return
+			end
+			LuckDetails.cornerButton(c, function()
+				local multiplier, note: string? = sold, nil
+				-- A Lucky Casting boost that is already running is already in your Luck.
+				if key == "LuckyCasting" and (player:GetAttribute("LuckBoostUntil") or 0) > workspace:GetServerTimeNow() then
+					multiplier, note = 1, "A boost is running already, so this only adds time."
+				elseif key == "LuckyCasting" then
+					note = "Lasts 15 minutes."
+				end
+				LuckDetails.open(gui, name, multiplier, note)
+			end)
+		end
+		-- An owned random-items pass does nothing where the region restricts paid random items.
+		local function pausedNote(c: Frame)
+			local description = c:FindFirstChild("Description")
+			if description ~= nil and description:IsA("TextLabel") then
+				description.Text = "Paused in your region"
+				description.TextColor3 = UiKit.WARN
+			end
+		end
+
 		local function passCard(parent: Instance, pass: Shop.Pass, slot: number): Frame
 			local c = card(parent, pass.key, pass.name, pass.description, slot)
 			if player:GetAttribute("Pass" .. pass.key) == true then
 				ownedLabel(c, "OWNED", UiKit.GOLD)
+				if Shop.blocksPurchase(pass.randomItems, player:GetAttribute("PaidRandomRestricted")) then
+					pausedNote(c)
+				end
 			elseif not ShopUi.offered(pass) then
 				ownedLabel(c, "Not available", UiKit.MUTED)
 			else
@@ -250,6 +286,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 						MarketplaceService:PromptGamePassPurchase(player, pass.id)
 					end
 				end)
+				oddsButton(c, pass.key, pass.name)
 			end
 			return c
 		end
@@ -335,6 +372,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 					UiKit.toast(gui, "Coming soon!")
 				end
 			end)
+			oddsButton(c, product.key, product.name)
 		end
 
 		order += 1
