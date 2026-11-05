@@ -38,6 +38,8 @@ local UpgradesUi = require(script.Parent.UpgradesUi)
 local VisitUi = require(script.Parent.VisitUi)
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+-- Landscape only; the place setting is not managed by Rojo, so set it here (StarterGui's is plugin-only).
+playerGui.ScreenOrientation = Enum.ScreenOrientation.LandscapeSensor
 
 -- Startup guard: a duplicated client script must not build the UI twice.
 if playerGui:FindFirstChild("MovieMogulUI") then
