@@ -21,7 +21,8 @@ EXPORTS = os.path.join(REPO, "art", "exports")
 
 STUD = 0.28  # metres per stud
 HEIGHT = 2.0 * STUD  # trophy is about 2 studs tall
-SEGMENTS = 12  # low poly round parts
+SEGMENTS = 10  # low poly round parts
+MAX_TRIS = 250  # ART_STYLE small prop budget (was 604 before the lighter props pass)
 
 
 def hex_to_linear(hex_color):
@@ -91,10 +92,10 @@ def box(bm, center, size, mat_index):
 
 
 def handle(bm, side, mat_index):
-    """Chunky C-shaped handle on the +X (side=1) or -X (side=-1) of the cup."""
-    major, minor = 0.055, 0.016
+    """Chunky C-shaped handle on the +X (side=1) or -X (side=-1) of the cup: a square tube."""
+    major, minor = 0.055, 0.018
     cx, cz = side * 0.125, 0.42
-    arc = [math.radians(a) for a in range(-100, 101, 25)]  # open toward the cup
+    arc = [math.radians(a) for a in range(-100, 101, 50)]  # open toward the cup
     rings = []
     for a in arc:
         center = Vector((cx + side * major * math.cos(a), 0, cz + major * math.sin(a)))
@@ -102,12 +103,12 @@ def handle(bm, side, mat_index):
         rings.append(
             [
                 bm.verts.new(center + minor * (math.cos(b) * out + math.sin(b) * Vector((0, 1, 0))))
-                for b in (2 * math.pi * k / 6 for k in range(6))
+                for b in (2 * math.pi * k / 4 + math.pi / 4 for k in range(4))
             ]
         )
     for lower, upper in zip(rings, rings[1:]):
-        for k in range(6):
-            n = (k + 1) % 6
+        for k in range(4):
+            n = (k + 1) % 4
             bm.faces.new((lower[k], lower[n], upper[n], upper[k])).material_index = mat_index
     for ring in (rings[0], rings[-1]):
         bm.faces.new(ring).material_index = mat_index
@@ -132,20 +133,12 @@ def build():
             (0, 0.11),
             (0.07, 0.11),
             (0.07, 0.13),
-            (0.03, 0.15),
-            (0.025, 0.2),
-            (0.045, 0.22),
-            (0.025, 0.24),
-            (0.04, 0.27),
-            (0.1, 0.32),
-            (0.13, 0.4),
-            (0.145, 0.5),
-            (0.155, 0.535),
+            (0.028, 0.16),
+            (0.028, 0.26),
+            (0.115, 0.34),
             (0.155, HEIGHT),
-            (0.13, HEIGHT),
-            (0.12, 0.5),
-            (0.1, 0.41),
-            (0, 0.37),
+            (0.125, HEIGHT),
+            (0, 0.4),
         ],
         0,
     )
@@ -247,6 +240,7 @@ def main():
         f"size {max(xs) - min(xs):.3f} x {max(ys) - min(ys):.3f} x {max(zs) - min(zs):.3f} m "
         f"({(max(zs) - min(zs)) / STUD:.2f} studs tall), min z {min(zs):.3f}"
     )
+    assert triangle_count(obj) <= MAX_TRIS, f"Trophy_Gold is over its {MAX_TRIS} triangle budget"
     cam = setup_scene()
     render_view(cam, "front", 0, 12)
     render_view(cam, "34", 40, 25)

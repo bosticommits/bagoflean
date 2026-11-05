@@ -121,12 +121,13 @@ local meshes = {
 	mesh("LotTrophyCase", "lot_dressing_kit", 134974458626735, { 9.7, 1.8, 2.6 }, STANDARD),
 
 	-- Single Blender props (art/blender/<script>.py), each imported as a model of its own name.
-	mesh("FestivalLaurel", "FestivalLaurel", 119975877000135, { 2.861875, 3.15, 1.852363 }, STANDARD),
-	mesh("FilmCamera", "FilmCamera", 75184958822082, { 3.048076, 7.529201, 4.405 }, STANDARD),
+	-- FestivalLaurel, FilmCamera, PalmTree and TrophyGold are the lighter remakes (see art/README.md).
+	mesh("FestivalLaurel", "FestivalLaurel", 124174452394787, { 3.185027, 3.15, 1.9 }, STANDARD),
+	mesh("FilmCamera", "FilmCamera", 127438788893811, { 2.935375, 7.564013, 4.363715 }, STANDARD),
 	mesh("FilmReelLogo", "FilmReelLogo", 104022853740076, { 6.45, 7.5, 1.6 }, STANDARD),
-	mesh("PalmTree", "PalmTree", 74644931289509, { 13.331223, 15.506111, 13.523639 }, STANDARD),
+	mesh("PalmTree", "PalmTree", 73065545848007, { 13.520525, 15.887603, 13.778967 }, STANDARD),
 	mesh("Searchlight", "Searchlight", 118870821681028, { 2.6, 4.441514, 2.815595 }, STANDARD),
-	mesh("TrophyGold", "TrophyGold", 134204785814120, { 1.4, 2, 1.107143 }, STANDARD),
+	mesh("TrophyGold", "TrophyGold", 126288950317889, { 1.376628, 2, 1.052955 }, STANDARD),
 
 	mesh("ApartmentsButter", "map_kit", 92482573260774, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),
 	mesh("ApartmentsLilac", "map_kit", 87174407964047, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),

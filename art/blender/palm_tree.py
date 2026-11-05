@@ -26,6 +26,28 @@ def trunk_point(t):
     return Vector((x, 0, HEIGHT * 0.85 * t)), angle
 
 
+def frond(m, mat, matrix, pitch, pieces=5, length=1.8):
+    """One arching blade: a three-sided strip (flat underside, raised rib on top) that tapers to
+    a short point and droops toward the tip. Starts at the crown origin, pointing along +Y."""
+    rings, pos = [], Vector((0, 0, 0.7))
+    for k in range(pieces):
+        width = 1.7 * (1 - k / (pieces + 1)) + 0.25
+        up = Vector((0, -math.sin(pitch), math.cos(pitch)))
+        rings.append([pos + Vector((-width / 2, 0, 0)), pos + Vector((width / 2, 0, 0)), pos + up * 0.3])
+        pos = pos + Vector((0, math.cos(pitch), math.sin(pitch))) * (length if k < pieces - 1 else length / 2)
+        pitch -= math.radians(22)  # droops more toward the tip
+    verts = [mmkit.studs(1) * v for ring in rings for v in ring] + [mmkit.studs(1) * pos]
+    tip = len(verts) - 1
+    faces = [(0, 2, 1)]
+    for i in range(pieces - 1):
+        for k in range(3):
+            n = (k + 1) % 3
+            faces.append((3 * i + k, 3 * i + n, 3 * i + 3 + n, 3 * i + 3 + k))
+    last = 3 * (pieces - 1)
+    faces += [(last + k, last + (k + 1) % 3, tip) for k in range(3)]
+    m._add(verts, faces, mat, matrix)
+
+
 def build():
     m = mmkit.Model("PalmTree")
     bark = m.mat("Bark")
@@ -34,7 +56,8 @@ def build():
     leaf_dark = m.mat("DarkGreen")
     nut = m.mat("#6B4426")
 
-    # Trunk: stacked tapered octagons with a lip on each, so it reads as a palm trunk.
+    # Trunk: stacked tapered hexagons, each wider at its foot than the one below ends, so the
+    # rings read as a palm trunk.
     for i in range(SEGMENTS):
         t0 = i / SEGMENTS
         p, angle = trunk_point(t0)
@@ -42,50 +65,30 @@ def build():
         r0 = 0.85 - 0.35 * t0
         r1 = 0.85 - 0.35 * (i + 1) / SEGMENTS
         matrix = Matrix.Translation(Vector([mmkit.studs(c) for c in p])) @ Matrix.Rotation(angle, 4, "Y")
-        m.lathe(
-            [(0, 0), (r0 * 1.12, 0), (r0 * 1.12, 0.3), (r0, 0.45), (r1, length + 0.05), (0, length + 0.05)],
-            bark if i % 2 == 0 else wood,
-            segments=8,
-            matrix=matrix,
-        )
+        m.lathe([(r0 * 1.15, 0), (r1 * 0.95, length + 0.05)], bark if i % 2 == 0 else wood, segments=6, matrix=matrix)
 
     top, top_angle = trunk_point(1.0)
     crown = Matrix.Translation(Vector([mmkit.studs(c) for c in top])) @ Matrix.Rotation(top_angle * 0.5, 4, "Y")
-    m.lathe([(0, -0.3), (1.0, -0.2), (1.1, 0.5), (0.6, 1.0), (0, 1.1)], leaf_dark, segments=8, matrix=crown)
+    m.lathe([(0, -0.3), (1.1, 0.3), (0.6, 1.0), (0, 1.1)], leaf_dark, segments=6, matrix=crown)
 
-    # Fronds: 8 arching blades made of tapering boxes, alternating two greens.
+    # Fronds: 8 arching blades, alternating two greens.
     fronds = 8
     for f in range(fronds):
         yaw = 2 * math.pi * f / fronds + 0.2
-        color = leaf if f % 2 == 0 else leaf_dark
-        pos = Vector((0, 0, 0.7))
         pitch = math.radians(28 + (f % 3) * 6)  # starts rising
-        pieces = 5
-        for k in range(pieces):
-            length = 1.6
-            width = 1.7 * (1 - k / (pieces + 1)) + 0.25
-            direction = Vector((0, math.cos(pitch), math.sin(pitch)))
-            mid = pos + direction * (length / 2)
-            local = (
-                Matrix.Rotation(yaw, 4, "Z")
-                @ Matrix.Translation(Vector([mmkit.studs(c) for c in mid]))
-                @ Matrix.Rotation(pitch, 4, "X")
-            )
-            m.box((width, length + 0.15, 0.22), mat=color, matrix=crown @ local)
-            pos = pos + direction * length
-            pitch -= math.radians(22)  # droops more toward the tip
+        frond(m, leaf if f % 2 == 0 else leaf_dark, crown @ Matrix.Rotation(yaw, 4, "Z"), pitch)
 
     # Coconuts tucked under the crown.
     for k in range(3):
         a = 2 * math.pi * k / 3 + 0.5
         at = Vector((0.75 * math.cos(a), 0.75 * math.sin(a), -0.35))
         m.lathe(
-            [(0, -0.45), (0.35, -0.3), (0.45, 0), (0.35, 0.3), (0, 0.45)],
+            [(0, -0.45), (0.45, 0), (0, 0.45)],
             nut,
-            segments=6,
+            segments=4,
             matrix=crown @ Matrix.Translation(Vector([mmkit.studs(c) for c in at])),
         )
     return m.obj()
 
 
-mmkit.finish(build(), "palm_tree", max_tris=2000)
+mmkit.finish(build(), "palm_tree", max_tris=450)
