@@ -31,7 +31,8 @@ FilmSets.PayEvery = 5
 
 -- Priced along the typical player's Cash curve (ECONOMY_SUMMARY.md): the Gulch during the first
 -- day, Moon Base and the Jungle Temple as goals for later days. Moon Base's gate is inside the
--- Gulch, so it comes second.
+-- Gulch, so it comes second; the Jungle Temple is out in the woods past Starlight Park, along its
+-- own trail.
 FilmSets.List = {
 	{ id = "Gulch", name = "Dusty Gulch", price = 25000, luck = 0.05, boxOffice = 1 },
 	{ id = "MoonBase", name = "Moon Base", price = 250000, luck = 0.1, boxOffice = 1 },

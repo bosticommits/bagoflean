@@ -499,6 +499,49 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		tierCards(order, LIMITED_TIER, chips, Actors.Limited, "Limited")
 	end
 
+	-- Cult Classic posters: a collectible for every film that premiered as a Cult Classic.
+	local function renderPosters()
+		local studio = ClientState.studio
+		local posters: { any } = if studio ~= nil and type(studio.posters) == "table" then studio.posters else {}
+		if #posters == 0 then
+			local row = UiKit.addRow(collectionList, 1, 84)
+			local text = makeLabel(row, "No posters yet. A film that premieres as a Cult Classic earns one.", UiKit.MUTED, UDim2.new(1, -24, 1, -12), UDim2.fromOffset(12, 6))
+			text.TextWrapped = true
+			textConstraint(text, 20)
+			return
+		end
+		local cult = Movies.getResult("Cult")
+		local cultColor = if cult ~= nil then cult.color else UiKit.PURPLE
+		-- Newest first.
+		for index = #posters, 1, -1 do
+			local poster = posters[index]
+			local row = UiKit.addRow(collectionList, #posters - index + 1, 96)
+			local genreColor = UiKit.GENRE_COLORS[poster.genre] or UiKit.PURPLE
+			local tile = Instance.new("Frame")
+			tile.BackgroundColor3 = genreColor:Lerp(UiKit.INK, 0.4)
+			tile.Position = UDim2.fromOffset(8, 8)
+			tile.Size = UDim2.fromOffset(56, 80)
+			tile.Parent = row
+			corner(tile, 6)
+			UiKit.border(tile, 3, cultColor)
+			local tag = UiKit.makeTitle(tile, "CULT", cultColor, UDim2.fromScale(0.9, 0.3), UDim2.fromScale(0.05, 0.35), 1.5)
+			textConstraint(tag, 16)
+			local title = UiKit.makeTitle(row, tostring(poster.title), UiKit.CREAM, UDim2.new(1, -84, 0, 30), UDim2.fromOffset(74, 8), 2)
+			title.TextXAlignment = Enum.TextXAlignment.Left
+			textConstraint(title, 24)
+			local names = {}
+			for _, key in poster.cast do
+				local parts = string.split(tostring(key), ":")
+				local actor = Actors.getActor(parts[1] or "")
+				table.insert(names, if actor ~= nil then actor.name else tostring(key))
+			end
+			local sub = makeLabel(row, `{poster.genre} Cult Classic  -  {table.concat(names, ", ")}`, UiKit.MUTED, UDim2.new(1, -84, 0, 40), UDim2.fromOffset(74, 44))
+			sub.TextXAlignment = Enum.TextXAlignment.Left
+			sub.TextWrapped = true
+			textConstraint(sub, 16)
+		end
+	end
+
 	-- A reward line: claim button when earned, otherwise a status label.
 	local function rewardControl(row: Frame, rewardId: string, earned: boolean, claimed: boolean, label: string)
 		if claimed then
@@ -564,6 +607,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			roster = ClientState.roster,
 			index = ClientState.index,
 			rewards = if studio ~= nil then studio.rewards else nil,
+			posters = if studio ~= nil then studio.posters else nil,
 		})}`
 		if wanted == collectionBuiltFor then
 			return
@@ -581,13 +625,15 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		collectionHeader.Text = `Collection  -  Index {indexFound()}/{Actors.IndexSlots}`
 		if collectionTab == "Roster" then
 			renderRoster()
-		else
+		elseif collectionTab == "Index" then
 			renderIndex()
+		else
+			renderPosters()
 		end
 	end
 
-	for slot, name in { "Roster", "Index" } do
-		local button = makeButton(tabRow, name, UiKit.TAB_OFF, UDim2.new(0.49, 0, 1, 0), UDim2.new((slot - 1) * 0.51, 0, 0, 0))
+	for slot, name in { "Roster", "Index", "Posters" } do
+		local button = makeButton(tabRow, name, UiKit.TAB_OFF, UDim2.new(0.32, 0, 1, 0), UDim2.new((slot - 1) * 0.34, 0, 0, 0))
 		collectionTabs[name] = button
 		button.Activated:Connect(function()
 			collectionTab = name
@@ -605,6 +651,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	overlay.Visible = false
 	overlay.ZIndex = 10
 	overlay.Parent = gui
+	UiKit.watchOverlay(overlay)
 
 	local card = Instance.new("Frame")
 	card.AnchorPoint = Vector2.new(0.5, 0.5)

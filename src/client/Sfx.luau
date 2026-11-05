@@ -216,6 +216,7 @@ function Sfx.cutVoice()
 	end
 end
 
+-- `length` cuts a long sound (a loop or a bed) short with a quick fade.
 function Sfx.play(name: string, pitch: number?, length: number?)
 	playSlot(name, pitch, nil, nil, length)
 end

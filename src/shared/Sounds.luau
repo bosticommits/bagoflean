@@ -142,7 +142,7 @@ Sounds.Slots = {
 	lucienHit = { id = 102072339047901, volume = 0.9, fallback = "pop", delay = 0.8 }, -- "A hit! The audience loves it!"
 	lucienCult = { id = 80231962225282, volume = 0.9, fallback = "stinger", delay = 1 }, -- "A cult classic... they'll be quoting this one for years!"
 	lucienMasterpiece = { id = 113254789405013, volume = 0.9, fallback = "jingle", delay = 1 }, -- "A MASTERPIECE! Hollywood will never forget tonight!"
-	lucienTotal = { id = 134834345543231, volume = 0.9, fallback = "jingle" }, -- "What a night at the box office!"
+	lucienTotal = { id = 134834345543231, volume = 0.9, fallback = "jingle", delay = 0.4 }, -- "What a night at the box office!"
 	lucienRebirth = { id = 94420324004466, volume = 0.9, fallback = "jingle", delay = 1.2 }, -- "A fresh start!"
 	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger", delay = 0.9 }, -- "Heads up, Hollywood! A special event just started!"
 	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)

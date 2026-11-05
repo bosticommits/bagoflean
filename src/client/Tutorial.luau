@@ -304,8 +304,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	end
 	-- The casting and premiere reveals cover the screen; Lucien waits for them to finish.
 	local function revealShowing(): boolean
+		-- The premiere overlay lives in its own screen (PremiereReveal.start).
+		local backdrop = if playerGui ~= nil then playerGui:FindFirstChild("PremiereRevealBackdrop") else nil
 		for _, name in { "Reveal", "PremiereReveal" } do
-			local overlay = gui:FindFirstChild(name)
+			local overlay = gui:FindFirstChild(name) or (if backdrop ~= nil then backdrop:FindFirstChild(name) else nil)
 			if overlay ~= nil and overlay:IsA("GuiObject") and overlay.Visible then
 				return true
 			end

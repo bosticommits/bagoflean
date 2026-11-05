@@ -30,6 +30,7 @@ local SoundSettingsUi = require(script.Parent.SoundSettingsUi)
 local SpecialEventsUi = require(script.Parent.SpecialEventsUi)
 local TownLife = require(script.Parent.TownLife)
 local Stands = require(script.Parent.Stands)
+local PremiereCarpet = require(script.Parent.PremiereCarpet)
 local StudioUi = require(script.Parent.StudioUi)
 local TakeUi = require(script.Parent.TakeUi)
 local Tutorial = require(script.Parent.Tutorial)
@@ -53,7 +54,7 @@ gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 gui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
 gui.Parent = playerGui
 
-GamepadNavigation.start(gui)
+GamepadNavigation.start()
 Sfx.start()
 Music.start()
 Blimp.start()
@@ -75,6 +76,7 @@ if remotes ~= nil then
 	Fx.start(remotes)
 	CastingUi.start(gui, side.actors)
 	StudioUi.start(gui, side.studio)
+	PremiereCarpet.start(gui, remotes)
 	TakeUi.start(gui, remotes)
 	UpgradesUi.start(gui, side.upgrade)
 	RebirthUi.start(gui, side.rebirth)
