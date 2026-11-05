@@ -105,6 +105,10 @@ local meshes = {
 	mesh("VelvetRopePost", "PremiereKit", 106597423332165, { 1.462392, 2.94, 1.5 }, TOWN_LIFE),
 	mesh("VelvetRopeSpan", "PremiereKit", 76671180720541, { 3.770766, 0.765573, 0.26 }, TOWN_LIFE),
 
+	-- lot_stage_kit.fbx (asset 90871466415628): the sound stage, art/blender/lot_stage_kit.py.
+	mesh("LotStage", "lot_stage_kit", 136146289364166, { 12.6, 14.45, 14.15 }, STANDARD),
+	mesh("LotStageAccent", "lot_stage_kit", 121490435093866, { 12.6, 11.4, 13.4 }, STANDARD),
+
 	mesh("ApartmentsButter", "map_kit", 92482573260774, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),
 	mesh("ApartmentsLilac", "map_kit", 87174407964047, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),
 	mesh("ApartmentsPink", "map_kit", 121683995489471, { 17.200001, 47.509998, 23.400002 }, MAP_KIT),
@@ -394,7 +398,7 @@ local meshes = {
 	mesh("LotCinema6Accent", "lot_cinema_kit", 103083740869893, { 28.2, 2.275, 7.1 }, STANDARD),
 }
 
-assert(#meshes == 336, "LotMeshManifest must contain exactly 336 templates")
+assert(#meshes == 338, "LotMeshManifest must contain exactly 338 templates")
 
 return table.freeze({
 	version = 1,
