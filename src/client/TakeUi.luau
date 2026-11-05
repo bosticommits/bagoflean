@@ -46,6 +46,7 @@ function TakeUi.start(gui: ScreenGui, remotes: Instance)
 	card.Active = true
 	card.ZIndex = 9 -- above panels, below the casting and premiere reveals
 	card.Parent = gui
+	UiKit.watchOverlay(card)
 	UiKit.corner(card, 14)
 	UiKit.border(card, 3)
 	local cardScale = Instance.new("UIScale")

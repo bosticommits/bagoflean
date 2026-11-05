@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local PlaytimeGifts = require(ReplicatedStorage.Shared.PlaytimeGifts)
+local Posters = require(ReplicatedStorage.Shared.Posters)
 local ProfileStore = require(script.Parent.ProfileStore)
 
 -- A movie being filmed. Times are os.time() stamps, so filming continues while offline.
@@ -76,7 +77,7 @@ export type PlayerData = {
 	hotStart: number,
 	-- Pity meter (Actors.PityEvery): casts since each agency's pity tier, by agency id.
 	pity: { [string]: number },
-	-- Early crazy pulls (Actors.castWithGuarantees): 0 new, 1 tease shown, 2 done; and seconds
+	-- Early crazy pulls (Actors.castWithGuarantees): 0 not yet, 2 done (1 was the removed near-miss tease); and seconds
 	-- played, counted by the server (CastingService.refresh).
 	early: number,
 	played: number,
@@ -85,6 +86,8 @@ export type PlayerData = {
 	festival: { week: number, list: { Request } },
 	laurels: { Laurel },
 	hudTucked: boolean, -- the top HUD stack is tucked into its pull tab (HudSettingsService)
+	quickPremieres: boolean, -- premieres show the card only, no red-carpet show (HudSettingsService)
+	posters: { Posters.Poster }, -- Cult Classic collectibles shown in the Collection (Posters.luau)
 	-- Playtime gift ladder (PlaytimeGifts.luau): time played this ladder and the presents opened.
 	gifts: PlaytimeGifts.State,
 }
@@ -137,6 +140,8 @@ local TEMPLATE: PlayerData = {
 	festival = { week = 0, list = {} },
 	laurels = {},
 	hudTucked = false,
+	quickPremieres = false,
+	posters = {}, -- saves from before the Cult poster have none: Reconcile adds this, migrate cleans it
 	gifts = PlaytimeGifts.fresh(nil),
 }
 
@@ -179,6 +184,10 @@ local function migrate(data: any)
 	if type(data.hudTucked) ~= "boolean" then
 		data.hudTucked = false
 	end
+	if type(data.quickPremieres) ~= "boolean" then
+		data.quickPremieres = false
+	end
+	data.posters = Posters.clean(data.posters)
 	for _, field in { "accrued", "fame", "trophies", "luckBoostUntil", "skips", "funnel", "stayGiftDay", "rebirths", "likes" } do
 		if type(data[field]) ~= "number" or data[field] ~= data[field] or data[field] < 0 then
 			data[field] = 0
@@ -311,7 +320,7 @@ function DataService.load(player: Player): PlayerData?
 		profile.Data.cash = Config.StartingCash
 		profile.Data.funnel = 0 -- a new player: log their onboarding funnel
 		profile.Data.hotStart = 0 -- and give them the "Discovered!" hot start
-		profile.Data.early = 0 -- and the near-miss tease and first Superstar
+		profile.Data.early = 0 -- and the first Superstar
 	end
 	migrate(profile.Data)
 

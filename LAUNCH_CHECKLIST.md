@@ -64,7 +64,10 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
       *Done when:* every button is easy to tap and nothing is hidden behind controls.
 - [ ] PC and gamepad check. *Done when:* every screen can be opened, used and closed with
       mouse, keyboard and a controller.
-- [ ] Odds are visible on the casting screen for every agency. *Done when:* the shown odds
+- [ ] Odds are visible on the casting screen for every agency, as percentages that add up to 100%,
+      with the guarantees (pity, hot start, first Superstar) shown and the Luck items' Odds
+      buttons working. *Done when:* a phone and a PC playtest read the panel, the reveal chip and
+      the Odds buttons correctly, and the shown odds
       match the real roll code.
 
 ## 5. Retention (M6)
@@ -91,9 +94,17 @@ reach everything.
       *Done when:* each works right after buying and after rejoining.
 - [x] Developer products: Lucky Casting (15 min), skip filming, Cash packs.
       *Done when:* each purchase is granted exactly once, even if the player leaves mid-buy.
-- [x] Hide Robux items that lead to random actors (2x Luck, Lucky Casting, Cash packs) for
-      players whose region restricts paid random items. *Done when:* the shop shows them as
-      "Not available" for those players (Roblox PolicyService rule).
+- [ ] Paid random items (2x Luck, Lucky Casting, Cash packs, Spotlight Owl) for players whose
+      region restricts them. The client hides them and the server enforces it: `processReceipt`
+      returns NotProcessedYet, the 2x Luck pass is paused (still owned) and `IsPaidItemTradingAllowed`
+      is stored. *Done when:* a playtest with PaidRandomRestricted forced to true shows the shop
+      cards as "Not available" and the pass as "Paused in your region", a Studio test purchase of
+      each is refused with "Not available in your region", and with it false everything works.
+      Roblox's docs say a receipt answered NotProcessedYet is not granted and is retried when the
+      player next joins (the docs state no refund, hold or time limit:
+      https://create.roblox.com/docs/production/monetization/developer-products and
+      https://create.roblox.com/docs/reference/engine/classes/MarketplaceService#ProcessReceipt),
+      so a refused receipt comes back on every join; ask Roblox support what happens to the Robux.
 - [x] Shop screen and in-context prompts (for example, offer a skip on a long filming timer).
       *Done when:* buying never blocks normal play and every price is shown before buying.
 - [ ] Check prices against similar games. *Done when:* every item has a price written down

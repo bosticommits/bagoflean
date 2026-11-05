@@ -49,4 +49,6 @@ return table.freeze({
 	AwardNightPayoutMultiplier = 2, -- premiere payouts during Award Night
 	RewardCooldown = 1, -- min seconds between code tries per player (claims use ActionCooldown)
 	StayGiftMinSeconds = 5 * 60, -- play this long in a session before the "don't leave yet" gift
+	RobloxGroupId = 0, -- replace with your Roblox Group ID to activate group perks (+10% Cash)
+	GroupCashBonus = 0.10,
 })

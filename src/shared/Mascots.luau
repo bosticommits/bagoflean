@@ -55,11 +55,11 @@ Mascots.WarmUp = 30 -- seconds after equipping before the buff works
 -- set, the card's Robux button says "soon".
 Mascots.List = {
 	{ id = "PopcornPup", name = "Popcorn Pup", tier = "Newcomer", blurb = "Never misses a screening.", price = 0, buff = { kind = "cash", amount = 0.05 } },
-	{ id = "ClapperCroc", name = "Clapper Croc", tier = "Rising", blurb = "Snaps for every take.", price = 5000, product = 0, buff = { kind = "speed", amount = 0.1 } },
+	{ id = "ClapperCroc", name = "Clapper Croc", tier = "Rising", blurb = "Snaps for every take.", price = 5000, product = 3723666806, buff = { kind = "speed", amount = 0.1 } },
 	{ id = "ReelKitty", name = "Reel Kitty", tier = "Pro", blurb = "Hears every reel spin.", price = 25000, product = 0, buff = { kind = "luck", amount = 0.1 } },
-	{ id = "CameraBot", name = "Camera Bot", tier = "Star", blurb = "Always rolling.", price = 75000, product = 0, hover = true, buff = { kind = "boxOffice", amount = 0.15 } },
-	{ id = "SpotlightOwl", name = "Spotlight Owl", tier = "Superstar", blurb = "Lights up the night.", price = 1000000, product = 0, buff = { kind = "luck", amount = 0.2 } },
-	{ id = "PremiereDragon", name = "Premiere Dragon", tier = "Legend", blurb = "Guards the red carpet.", price = 5000000, product = 0, buff = { kind = "cash", amount = 0.2 } },
+	{ id = "CameraBot", name = "Camera Bot", tier = "Star", blurb = "Always rolling.", price = 75000, product = 3723666865, hover = true, buff = { kind = "boxOffice", amount = 0.15 } },
+	{ id = "SpotlightOwl", name = "Spotlight Owl", tier = "Superstar", blurb = "Lights up the night.", price = 1000000, product = 3723666948, buff = { kind = "luck", amount = 0.2 } },
+	{ id = "PremiereDragon", name = "Premiere Dragon", tier = "Legend", blurb = "Guards the red carpet.", price = 5000000, product = 3723667020, buff = { kind = "cash", amount = 0.2 } },
 } :: { Mascot }
 
 Mascots.Default = "PopcornPup"
