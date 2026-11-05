@@ -800,7 +800,8 @@ local function pumpkinPatch(run: Run, late: boolean)
 	end
 	if not late then
 		Sfx.play("frightSting")
-		task.delay(1.2, Sfx.play, "frightVoice")
+		-- After lucienEventStart (0.9 s delay + ~3.8 s line): the voice queue drops lines that wait over 1.5 s.
+		task.delay(5.0, Sfx.play, "frightVoice")
 	end
 
 	local function setHidden(model: Model, hidden: boolean)

@@ -14,7 +14,9 @@
 local Sounds = {}
 
 export type LibrarySound = { id: number, volume: number }
-export type Slot = { id: number, volume: number, fallback: string, pitch: number? }
+-- `voice`: a spoken line (one at a time, ducks the other sounds; slots named "lucien..." are voices
+-- too). `delay`: seconds to wait before it starts, e.g. so a voice follows the sting's hit.
+export type Slot = { id: number, volume: number, fallback: string, pitch: number?, voice: boolean?, delay: number? }
 export type Track = { id: number, name: string, volume: number }
 
 Sounds.Library = {
@@ -29,9 +31,9 @@ Sounds.Library = {
 	indicator = { id = 15675085146, volume = 0.45 }, -- Roblox_UI_Indicator
 } :: { [string]: LibrarySound }
 
-local function slot(fallback: string, pitch: number?): Slot
+local function slot(fallback: string, pitch: number?, delay: number?): Slot
 	local library = Sounds.Library[fallback]
-	return { id = 0, volume = if library ~= nil then library.volume else 0.5, fallback = fallback, pitch = pitch }
+	return { id = 0, volume = if library ~= nil then library.volume else 0.5, fallback = fallback, pitch = pitch, delay = delay }
 end
 
 Sounds.Slots = {
@@ -56,26 +58,42 @@ Sounds.Slots = {
 	-- The reveal build-up (CastingUi): drumroll ticks speed up, a tone each time the glow climbs a
 	-- tier (pitched up per tier), and a burst when a fake-out jumps to the real tier.
 	drumroll = slot("clap", 0.6),
-	drumrollLow = slot("click", 0.5), -- the second drum layer for Superstar+ and the near miss
+	drumrollLow = slot("click", 0.5), -- the second drum layer for Superstar+
 	revealStep = slot("indicator"),
 	revealBurst = slot("stinger", 1.2),
 	-- The announcer on the flip (Fish Audio voice "Energetic Male", uploaded 2026-10-26).
-	voiceStar = { id = 115516541869843, volume = 0.8, fallback = "pop", pitch = 1.2 }, -- "Star!"
-	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1 }, -- "SUPERSTAR!"
-	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1 }, -- "LEGEND!"
-	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9 }, -- "ICON!"
-	-- "Ooh, so close!": the near-miss tease lands on a lower tier.
-	voiceSoClose = { id = 81149535231196, volume = 0.8, fallback = "low", pitch = 1.1 },
+	voiceStar = { id = 115516541869843, volume = 0.8, fallback = "pop", pitch = 1.2, voice = true }, -- "Star!"
+	voiceSuperstar = { id = 123249610913912, volume = 0.85, fallback = "pop", pitch = 1.1, voice = true }, -- "SUPERSTAR!"
+	voiceLegend = { id = 100766374127319, volume = 0.9, fallback = "pop", pitch = 1, voice = true }, -- "LEGEND!"
+	voiceIcon = { id = 120481667577201, volume = 0.9, fallback = "pop", pitch = 0.9, voice = true }, -- "ICON!"
 
 	-- Filming and premieres
 	clap = slot("clap"), -- the clapperboard speed-up
 	premiereDrumroll = slot("whoosh", 0.8), -- "The reviews are in..."
-	premiereFlop = slot("low"),
-	premiereHit = slot("pop"),
-	premiereBig = slot("stinger"), -- Blockbuster and Cult Classic
-	premiereMasterpiece = slot("jingle"), -- the music dips under it
-	premiereFlash = slot("clap", 1.6), -- camera flashes on premiere night
+	-- The result stings (premiere audio picked 2026-11-04: Roblox's licensed APM and Pro Sound
+	-- Effects libraries, plus one public sad trombone). Each is 8 s or less: Sfx cuts longer ones.
+	premiereFlop = { id = 190705984, volume = 0.6, fallback = "low" }, -- "Sad-Trombone": wah-wah-wahhh
+	premiereHit = { id = 1839997962, volume = 0.6, fallback = "pop" }, -- "Right Answer" (Juice Music, GAME SHOW TOOLKIT)
+	premiereBig = { id = 1839997821, volume = 0.65, fallback = "stinger" }, -- Blockbuster: "Rising Bumper 2" (GAME SHOW TOOLKIT)
+	premiereCult = { id = 1846887865, volume = 0.6, fallback = "stinger", pitch = 0.9 }, -- "Mystery Sting 10": eerie choir (Sonoton)
+	premiereMasterpiece = { id = 1845298676, volume = 0.75, fallback = "jingle" }, -- "1812 Fanfare" horn calls (Soho FANFARES); music dips under it
+	premiereFlash = { id = 9113678227, volume = 0.45, fallback = "clap", pitch = 1.1 }, -- camera flashes: "Camera Shutter 1" (PSE)
 	premiereStamp = slot("clap", 0.6), -- the result stamp lands on the poster
+	-- The red-carpet show at the Grand Premiere Theatre (PremiereShow). Long ones are loops or
+	-- beds the show cuts to length.
+	showDrumroll = { id = 1842251033, volume = 0.55, fallback = "clap", pitch = 0.6 }, -- "Snare Drum Roll" (KPM): the build-up
+	showHeartbeat = { id = 1839998022, volume = 0.7, fallback = "low", pitch = 0.6 }, -- "Heartbeat" (GAME SHOW TOOLKIT): the hush
+	showCheer = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- applause (PSE "Applause Tight 4")
+	showCheerWild = { id = 9112766203, volume = 0.55, fallback = "clap" }, -- cheers, whistles, chanting (PSE "Crowd Cheer And Applause 2")
+	-- The crowd's friendly "awww" on a Flop: four Fish Audio voices layered (uploaded 2026-11-04).
+	showAww = { id = 99187295696445, volume = 0.7, fallback = "low", pitch = 0.8 },
+	showRain = { id = 9112852671, volume = 0.45, fallback = "sweep", pitch = 0.6 }, -- Flop drizzle (PSE "Rain Continuous Drizzle 2")
+	showFireworks = { id = 9112780898, volume = 0.6, fallback = "pop", pitch = 0.7 }, -- pops and whistles (PSE "Fireworks Sparse 2")
+	showCoins = { id = 9113849445, volume = 0.5, fallback = "pop", pitch = 1.5 }, -- the coin burst (PSE "Coins Or Keys Jingle 5")
+	showTotal = { id = 1839997894, volume = 0.6, fallback = "jingle" }, -- tonight's total: "Organ Ta Da" (GAME SHOW TOOLKIT)
+	showFlip = slot("whoosh", 1.4), -- the marquee board flips over
+	showGlide = slot("whoosh", 0.7), -- the camera glides to the theatre and back
+	showStar = slot("indicator", 1.2), -- each critic star fills (the show raises the pitch per star)
 	-- Direct the scene (TakeUi): the TAKE! card pops up, then the verdict on CUT!
 	takePop = slot("pop", 1.1),
 	takePerfect = slot("stinger", 1.15),
@@ -107,7 +125,25 @@ Sounds.Slots = {
 	eventEnd = slot("sweep", 0.8), -- a special event ends
 	frightSting = slot("stinger", 0.6), -- the Pumpkin Patch starts (Fright Night): a spooky sting
 	-- Then the announcer: "Fright Night has begun! Grab the pumpkins!" (Fish Audio, uploaded 2026-10-26).
-	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6 },
+	frightVoice = { id = 116173500034235, volume = 0.8, fallback = "whoosh", pitch = 0.6, voice = true },
+
+	-- Lucien Vale, the game show host (Fish Audio voice "Adrian", uploaded 2026-11-04). All "lucien"
+	-- slots are voices; `delay` lets the sting that starts with them land first.
+	lucienWelcome = { id = 119403867472276, volume = 0.9, fallback = "jingle" }, -- "Welcome to Hollywood RNG!"
+	lucienFirstCast = { id = 125664057757278, volume = 0.9, fallback = "whoosh" }, -- "Time to roll your first cast!"
+	lucienRarePull = { id = 94106934856816, volume = 0.9, fallback = "stinger", delay = 0.8 }, -- "Ooh! Now THAT is a rare face!"
+	lucienLegendPull = { id = 76266690163201, volume = 0.9, fallback = "jingle", delay = 1 }, -- "A LEGEND!"
+	lucienAction = { id = 78920949726178, volume = 0.9, fallback = "clap" }, -- "Lights... camera... ACTION!"
+	lucienPremiere = { id = 105795421068430, volume = 0.9, fallback = "whoosh", delay = 0.4 }, -- "Let's see what the critics say..."
+	lucienFlop = { id = 98265469775608, volume = 0.9, fallback = "low", delay = 0.9 }, -- "Oof... a flop!"
+	lucienBlockbuster = { id = 127361279847230, volume = 0.9, fallback = "stinger", delay = 0.9 }, -- "BLOCKBUSTER!"
+	lucienHit = { id = 102072339047901, volume = 0.9, fallback = "pop", delay = 0.8 }, -- "A hit! The audience loves it!"
+	lucienCult = { id = 80231962225282, volume = 0.9, fallback = "stinger", delay = 1 }, -- "A cult classic... they'll be quoting this one for years!"
+	lucienMasterpiece = { id = 113254789405013, volume = 0.9, fallback = "jingle", delay = 1 }, -- "A MASTERPIECE! Hollywood will never forget tonight!"
+	lucienTotal = { id = 134834345543231, volume = 0.9, fallback = "jingle", delay = 0.4 }, -- "What a night at the box office!"
+	lucienRebirth = { id = 94420324004466, volume = 0.9, fallback = "jingle", delay = 1.2 }, -- "A fresh start!"
+	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger", delay = 0.9 }, -- "Heads up, Hollywood! A special event just started!"
+	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)
 
 	-- Studio visits
 	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio
@@ -116,7 +152,7 @@ Sounds.Slots = {
 
 	-- Rebirth
 	rebirthSting = slot("stinger", 0.8), -- the rebirth reveal opens
-	rebirth = slot("jingle", 0.95), -- on top of the sting (the music dips under it)
+	rebirth = slot("jingle", 0.95, 0.5), -- follows the sting half a second later (the music dips under it)
 } :: { [string]: Slot }
 
 -- Track ids below were checked in Studio on 2026-10-08: uploaded by Roblox (its licensed music
@@ -168,6 +204,18 @@ function Sounds.resolve(name: string): (number?, number, number)
 		return nil, 0, 1
 	end
 	return library.id, s.volume, s.pitch or 1
+end
+
+-- True for spoken lines, which the Sfx voice channel plays one at a time (see VoiceQueue).
+function Sounds.isVoice(name: string): boolean
+	local s = Sounds.Slots[name]
+	return s ~= nil and (s.voice == true or string.sub(name, 1, 6) == "lucien")
+end
+
+-- Seconds a slot waits before it starts (0 for most).
+function Sounds.delayOf(name: string): number
+	local s = Sounds.Slots[name]
+	return if s ~= nil and s.delay ~= nil then s.delay else 0
 end
 
 -- Tracks with an id, in order.

@@ -25,7 +25,7 @@ plays a simple, sensible player through a week. Run it after changing any price,
     python3 tools/economy_sim.py --cast-rate 1.0     # casts per second while online (default 0.35); 1.0 = the server cap, 1 / CastCooldown
     python3 tools/economy_sim.py --no-hot-start      # a new player without the "Discovered!" guarantees
     python3 tools/economy_sim.py --no-pity           # without the pity meter (--pity-every N tries another length)
-    python3 tools/economy_sim.py --no-early          # without the new player's near-miss tease and first Superstar
+    python3 tools/economy_sim.py --no-early          # without the new player's first Superstar
     python3 tools/economy_sim.py --no-gifts          # leave the playtime gift ladder out, to compare
     python3 tools/economy_sim.py --film-sets --film-set-visit-minutes 5  # auto-buy sets; assume 5 min inside/session
 
@@ -330,9 +330,8 @@ against 209k a minute), Legend 97% against 95%, Icon 20% against 14% (the free L
   streaks (about 19 minutes of casting at one cast every 3 seconds, so the bar visibly fills in a
   session or two). The first pity pull comes early on day 2 (median 71 minutes played).
 - **Early crazy pulls (new accounts only; old saves count as done).** The server counts seconds
-  played (`played` in the save). The first cast after 5 minutes that rolls a Pro or better is a
-  **near-miss tease** (the reveal builds up like a Superstar, then lands on the real result; the
-  odds do not change). The first cast after 12 minutes is a **guaranteed Superstar**, once (a
+  played (`played` in the save). (A near-miss tease on the first Pro-or-better cast after 5 minutes
+  was removed before launch for the odds-compliance pass; it was presentation only.) The first cast after 12 minutes is a **guaranteed Superstar**, once (a
   natural Superstar before then uses it up). The hot start (casts 3, 10, 25) is unchanged.
 
 Sim, 100 runs each, all of it against neither (`--no-pity --no-early`):
@@ -340,7 +339,6 @@ Sim, 100 runs each, all of it against neither (`--no-pity --no-early`):
 | | Typical: before | Typical: after | Casual: before | Casual: after |
 |---|---|---|---|---|
 | First Star | 6 min | 6 min | 6 min | 6 min |
-| Near-miss tease | - | 6 min | - | 6 min |
 | First Superstar | day 2 (68 min) | day 1, 12 min | day 3 (59 min) | day 1, 12 min |
 | Talent Agency | 28 min | 25 min | day 2 (27 min) | day 2 (25 min) |
 | Sound stage 3 | day 2 (60 min) | day 1 (53 min) | day 3 (45 min) | day 3 (45 min) |

@@ -361,6 +361,7 @@ function RebirthUi.start(gui: ScreenGui, rebirthButton: TextButton)
 		Music.duck(4)
 		Sfx.play("rebirthSting")
 		Sfx.play("rebirth")
+		Sfx.play("lucienRebirth")
 		Fx.flash(UiKit.PURPLE, 0.5)
 		Fx.confetti(140)
 	end

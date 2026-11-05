@@ -17,7 +17,7 @@ Paste this into the Description field (about 860 characters, under Roblox's 1,00
 🎬 Run your own film studio and become a Hollywood legend!
 
 ⭐ CAST RARE ACTORS
-Hold Casting Calls to discover 21 original actors, from Nervous Intern to the 1 in 1,000,000 Icons like the Golden Muse. Find Shiny and Award-Winning versions too!
+Hold Casting Calls to discover 21 original actors, from Nervous Intern to the 1 in 5,000,000 Icons like the Golden Muse. Find Shiny and Award-Winning versions too!
 
 🎥 MAKE MOVIES
 Pick a script, cast up to 3 stars and start filming. Your movies keep filming while you're offline!
@@ -32,7 +32,7 @@ Grow your studio with more sound stages, a bigger cinema and a trophy shelf. You
 
 🎁 Daily rewards, Studio Requests and codes.
 
-Odds for every actor are shown on the casting screen. Everything can be earned for free.
+Odds for every tier, actor and variant are shown as percentages on the casting screen. Everything can be earned for free.
 ```
 
 ## Short pitch (for social posts and the group page)
@@ -55,9 +55,13 @@ Cast rare actors, make movies that film while you're offline, and pray your prem
 
 Answer honestly in the Experience Questionnaire. The parts that apply to this game:
 
-- **Paid random items: Yes.** Casting Calls give a random actor, and Cash can be bought with
-  Robux (Cash packs), and Luck can be bought (2x Luck pass, Lucky Casting). Odds are shown on
-  the casting screen, and the shop hides these items in regions that restrict them.
+- **Paid random items: Yes.** Casting Calls give a random actor. Robux buys Cash for casting
+  (Box Office Bag and Vault), Luck (2x Luck pass, Lucky Casting) and the Spotlight Owl mascot
+  (+20% Luck; any mascot with a Luck buff counts, and an owned mascot bought again pays out Cash). Odds are shown as percentages on the casting screen, add up to 100%, and say which
+  guarantees apply (pity every 400 casts, the new-player hot start and one early Superstar). The
+  Luck items have an Odds button with the chances before and after. Where a region restricts paid
+  random items the shop hides these items, and the server refuses their purchases and pauses the
+  2x Luck pass (enforced in `ShopService` and `CastingService.castLuck`).
 - Violence, blood, crude humour, romance, gambling with real money, social hangouts: None,
   apart from "Horror" and "Romance" being movie genres in name only.
 - Expected result: a Minimal or Mild rating, suitable for all ages.
@@ -70,7 +74,7 @@ no item buys a specific rare actor, and every item can be earned for free.
 
 | Item | Type | Proposed Robux | What the player gets | Why this price |
 |---|---|---|---|---|
-| 2x Luck | Game pass | 399 | Double casting Luck, forever | Biggest permanent power boost, so the highest pass price. Counts as paid random items |
+| 2x Luck | Game pass | 399 | Double casting Luck, forever | Biggest permanent power boost, so the highest pass price. Counts as paid random items; paused where those are restricted |
 | Auto-Collect | Game pass | 199 | Box office cash comes to you | Comfort only; saves taps, adds no power |
 | +1 Sound Stage | Game pass | 249 | Film one more movie at once | Permanent income boost of about one stage; priced below Luck |
 | Faster Filming | Game pass | 149 | Every movie films 25% faster | Small boost that also shortens waits; lowest-priced power pass |

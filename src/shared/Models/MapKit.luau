@@ -8,6 +8,8 @@
 local Build = require(script.Parent.Build)
 local HalloweenShapes = require(script.Parent.HalloweenShapes)
 local MapKitShapes = require(script.Parent.MapKitShapes)
+local PremiereShapes = require(script.Parent.PremiereShapes)
+local TownLifeShapes = require(script.Parent.TownLifeShapes)
 
 type Builder = Build.Builder
 
@@ -70,13 +72,25 @@ local function partFor(shape: MapKitShapes.Shape, b: Builder, scale: number, lit
 	return parts
 end
 
+-- The shapes file that has model `name`: the Fright Night decor (art/blender/halloween_kit.py),
+-- the townsfolk (townlife_kit.py) and the premiere show (premiere_kit.py) have their own.
+local function kitFor(name: string): typeof(MapKitShapes)
+	if MapKitShapes.Shapes[name] ~= nil then
+		return MapKitShapes
+	elseif TownLifeShapes.Shapes[name] ~= nil then
+		return TownLifeShapes :: any
+	elseif PremiereShapes.Shapes[name] ~= nil then
+		return PremiereShapes :: any
+	end
+	return HalloweenShapes :: any
+end
+
 -- Puts kit model `name` standing on `at` (in the builder's space), facing the builder's -Z.
 -- Returns a Model holding it (the mesh, or the parts), named `name`.
 function MapKit.place(b: Builder, name: string, at: CFrame | Vector3, options: Options?): Model
 	local opts: Options = options or {}
 	local scale = opts.scale or 1
-	-- The Fright Night decor (art/blender/halloween_kit.py) has its own shapes file.
-	local kit: typeof(MapKitShapes) = if MapKitShapes.Shapes[name] ~= nil then MapKitShapes else HalloweenShapes :: any
+	local kit = kitFor(name)
 	local shapes = kit.Shapes[name]
 	local bounds = kit.Bounds[name]
 	assert(shapes ~= nil and bounds ~= nil, `no map kit model called {name}`)
@@ -199,7 +213,7 @@ end
 -- Where spot `spotName` of kit model `name` sits in the model's own space (standing on y = 0,
 -- facing -Z), at `scale`. Errors if there is no such spot.
 function MapKit.spot(name: string, spotName: string, scale: number?): CFrame
-	local spots = MapKitShapes.Spots[name]
+	local spots = kitFor(name).Spots[name]
 	local spot = if spots ~= nil then spots[spotName] else nil
 	assert(spot ~= nil, `map kit model {name} has no spot called {spotName}`)
 	local k = scale or 1
@@ -208,7 +222,7 @@ end
 
 -- The size of kit model `name` and where its middle sits above its feet, at scale 1.
 function MapKit.bounds(name: string): { size: Vector3, center: Vector3 }
-	local bounds = MapKitShapes.Bounds[name]
+	local bounds = kitFor(name).Bounds[name]
 	assert(bounds ~= nil, `no map kit model called {name}`)
 	return bounds
 end

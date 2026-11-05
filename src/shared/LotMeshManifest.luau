@@ -95,6 +95,16 @@ local meshes = {
 	mesh("TownVendorLeg", "TownLifeKit", 106112739386473, { 0.86, 2, 1.22 }, TOWN_LIFE),
 	mesh("TownVendorTorso", "TownLifeKit", 140272451223697, { 1.84, 2.12, 1.105 }, TOWN_LIFE),
 
+	-- premiere_kit.fbx (asset 95738350014256), art/blender/premiere_kit.py.
+	mesh("FanSignBlank", "PremiereKit", 82306082447680, { 3, 4.05, 0.165 }, TOWN_LIFE),
+	mesh("FanSignHeart", "PremiereKit", 107906349189462, { 2.4, 4, 0.22 }, TOWN_LIFE),
+	mesh("FireworkMortar", "PremiereKit", 104681689935874, { 2.4, 3.495184, 1.63 }, TOWN_LIFE),
+	mesh("GrandTrophy", "PremiereKit", 110610444453361, { 3.8, 6.75, 3.635 }, TOWN_LIFE),
+	mesh("MarqueeFlipBoard", "PremiereKit", 118487855848324, { 24.08, 3.48, 0.7 }, TOWN_LIFE),
+	mesh("RainCloud", "PremiereKit", 89784186048847, { 6.155282, 2.676327, 2.692981 }, TOWN_LIFE),
+	mesh("VelvetRopePost", "PremiereKit", 106597423332165, { 1.462392, 2.94, 1.5 }, TOWN_LIFE),
+	mesh("VelvetRopeSpan", "PremiereKit", 76671180720541, { 3.770766, 0.765573, 0.26 }, TOWN_LIFE),
+
 	-- lot_dressing_kit.fbx (asset 75446899270617): the lot dressing, art/blender/lot_dressing_kit.py.
 	mesh("LotBillboard", "lot_dressing_kit", 75302773228575, { 14, 29.75, 3.15 }, STANDARD),
 	mesh("LotGatePost", "lot_dressing_kit", 83188732515978, { 3.5, 10.1, 3.5 }, STANDARD),
@@ -387,7 +397,7 @@ local meshes = {
 	mesh("WesternSheriff", "map_kit", 119245023266892, { 19.800001, 19.875, 20.299999 }, MAP_KIT),
 }
 
-assert(#meshes == 329, "LotMeshManifest must contain exactly 329 templates")
+assert(#meshes == 337, "LotMeshManifest must contain exactly 337 templates")
 
 return table.freeze({
 	version = 1,
