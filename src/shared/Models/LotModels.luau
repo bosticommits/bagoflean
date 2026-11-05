@@ -678,7 +678,8 @@ local CINEMA_MESH: { [number]: CinemaMesh } = {
 		body = { center = Vector3.new(0, 15, 6.095), size = Vector3.new(28.4, 30, 20.81) },
 		accent = { center = Vector3.new(0, 6.163, -0.45), size = Vector3.new(28.2, 2.275, 7.1) },
 		parts = {
-			{ name = "Hitbox", cf = CFrame.new(0, 8.95, 8, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(24.4, 17.9, 16.4), color = "hitbox", neon = false, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 8.4, 8, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(24.4, 16.8, 16.4), color = "hitbox", neon = false, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 17.625, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(8.2, 1.65, 8.2), color = "hitbox", neon = false, ball = false },
 			{ name = "HeadboardBulbs", cf = CFrame.new(0, 17.6, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(17.2, 0.35, 0.3), color = "F5B82E", neon = true, ball = false },
 			{ name = "HeadboardBulbs", cf = CFrame.new(0, 19.4, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(12.4, 0.35, 0.3), color = "F5B82E", neon = true, ball = false },
 			{ name = "HeadboardBulbs", cf = CFrame.new(0, 21.2, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(7.6, 0.35, 0.3), color = "F5B82E", neon = true, ball = false },
@@ -703,8 +704,9 @@ local CINEMA_MESH: { [number]: CinemaMesh } = {
 LotModels.CinemaLooks = CINEMA_MESH
 
 -- The level 4-6 body is 28.4 wide, 0.2-1.1 studs into the stages beside it (their inner edges sit
--- at x -14.0 / +13.4, and moving them out would push them into the side hedges), so it is squeezed
--- in X to this width. Sharing the Blender sizes keeps the kit untouched.
+-- at x -14.0 / +13.4, and moving them out would push them into the side hedges), so cinema()
+-- squeezes the meshes and every part (positions, widths, searchlights) in X by this scale to fit
+-- this width. The Blender kit stays untouched.
 LotModels.CinemaMaxWidth = 26
 
 function LotModels.cinemaWidthScale(level: number): number
@@ -740,8 +742,11 @@ function LotModels.cinema(b: Builder, level: number, accent: Color3): TextLabel
 	for _, info in look.parts do
 		local color = if info.color == "accent" then accent elseif info.color == "hitbox" then P.Cream else Color3.fromHex(info.color)
 		local material = if info.neon then NEON else nil
-		local size = if info.color == "hitbox" then info.size * Vector3.new(math.min(1, LotModels.CinemaMaxWidth / info.size.X), 1, 1) else info.size
-		local p = if info.ball then b:ball(info.name, info.size.X, info.cf, color, material) else b:block(info.name, size, info.cf, color, material)
+		-- Every part follows the squeezed body: X positions and block widths scale by sx (the tilted
+		-- star stays square).
+		local size = if info.name == "HeadboardStar" then info.size else info.size * Vector3.new(sx, 1, 1)
+		local cf = info.cf + Vector3.new(info.cf.X * (sx - 1), 0, 0)
+		local p = if info.ball then b:ball(info.name, info.size.X, cf, color, material) else b:block(info.name, size, cf, color, material)
 		if info.color == "hitbox" then
 			-- The mesh doesn't collide; this keeps players out of the building.
 			p.Transparency = 1
@@ -755,7 +760,7 @@ function LotModels.cinema(b: Builder, level: number, accent: Color3): TextLabel
 		end
 	end
 	for i, at in look.lights do
-		LotModels.searchlight(b:sub(at), if i == 1 then -25 else 25)
+		LotModels.searchlight(b:sub(Vector3.new(at.X * sx, at.Y, at.Z)), if i == 1 then -25 else 25)
 	end
 	assert(marquee ~= nil, "cinema look has no MarqueeSign")
 	return marquee
@@ -915,8 +920,7 @@ function LotModels.office(b: Builder, level: number, accent: Color3)
 	for _, info in look.parts do
 		local color = if info.color == "hitbox" then P.Cream else Color3.fromHex(info.color)
 		local material = if info.neon then NEON else nil
-		local size = if info.color == "hitbox" then info.size * Vector3.new(math.min(1, LotModels.CinemaMaxWidth / info.size.X), 1, 1) else info.size
-		local p = if info.ball then b:ball(info.name, info.size.X, info.cf, color, material) else b:block(info.name, size, info.cf, color, material)
+		local p = if info.ball then b:ball(info.name, info.size.X, info.cf, color, material) else b:block(info.name, info.size, info.cf, color, material)
 		if info.color == "hitbox" then
 			-- The mesh doesn't collide; this keeps players out of the building.
 			p.Transparency = 1

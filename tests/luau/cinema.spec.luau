@@ -33,7 +33,7 @@ test("every Cinema Size level has its own Blender look that grows with the level
 	for level = 0, 6 do
 		local look = LotModels.CinemaLooks[level]
 		equal(count(look, "BladeFace"), if level >= 2 then 1 else 0, `blade sign at level {level}`)
-		equal(count(look, "Hitbox"), if level >= 4 then 2 else 1, `wing hitbox at level {level}`)
+		equal(count(look, "Hitbox"), if level >= 6 then 3 elseif level >= 4 then 2 else 1, `wing and dome hitbox at level {level}`)
 		equal(#look.lights, if level >= 6 then 2 else 0, `searchlights at level {level}`)
 		equal(count(look, "DomeTop"), if level >= 6 then 1 else 0, `dome at level {level}`)
 	end
@@ -50,12 +50,19 @@ test("the part fallback keeps the four old tiers and still returns the marquee",
 	end
 end)
 
-test("cinema bodies fit between the stages and the level 6 roof hitbox matches the mesh roof", function()
+test("every cinema part stays inside the squeezed body width and the level 6 drum is standable", function()
 	for level = 0, 6 do
 		local look = LotModels.CinemaLooks[level]
 		local sx = LotModels.cinemaWidthScale(level)
-		expect(look.body.size.X * sx <= LotModels.CinemaMaxWidth + 1e-6, `level {level} body is wider than the lot gap`)
-		expect(look.accent.size.X * sx <= LotModels.CinemaMaxWidth + 1e-6, `level {level} accent is wider than the lot gap`)
+		local half = look.body.size.X * sx / 2
+		expect(half * 2 <= LotModels.CinemaMaxWidth + 1e-6, `level {level} body is wider than the lot gap`)
+		for _, p in look.parts do
+			local reach = math.abs(p.cf.X * sx) + (if p.name == "HeadboardStar" then p.size.X else p.size.X * sx) / 2
+			expect(reach <= half + 1e-6, `level {level} {p.name} reaches {reach}, body half-width {half}`)
+		end
+		for _, at in look.lights do
+			expect(math.abs(at.X * sx) <= half, `level {level} searchlight outside the body`)
+		end
 	end
 	equal(LotModels.cinemaWidthScale(3), 1, "levels 0-3 keep their Blender width")
 	local top = 0
@@ -64,5 +71,5 @@ test("cinema bodies fit between the stages and the level 6 roof hitbox matches t
 			top = math.max(top, p.cf.Y + p.size.Y / 2)
 		end
 	end
-	expect(top >= 17.9 - 1e-6, `level 6 roof hitbox top is {top}`)
+	expect(math.abs(top - 18.45) < 1e-6, `level 6 drum hitbox top is {top}`)
 end)

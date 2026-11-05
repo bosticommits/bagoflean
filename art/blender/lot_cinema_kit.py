@@ -79,8 +79,7 @@ def look(lv, accent_preview=None):
         BV((0, yc, h + 1.4), (w + 0.4, d + 0.4, 0.8), "Cream", 0.1),
         B((0, yc, h - 1.2), (w + 0.2, d + 0.2, 0.35), "Gold"),  # gold band under the cornice
     ]
-    hh = h + 1.8 + (1.1 if L.get("dome") else 0)  # the premiere roof peaks ~1.1 above the parapet
-    parts.append(part("Hitbox", B((0, yc, hh / 2), (w + 0.4, d + 0.4, hh), "#FFFFFF"), hit=True))
+    parts.append(part("Hitbox", B((0, yc, (h + 1.8) / 2), (w + 0.4, d + 0.4, h + 1.8), "#FFFFFF"), hit=True))
     # Front pilasters with gold caps and bases.
     for x in (-w / 2 + 0.6, w / 2 - 0.6):
         body += [
@@ -233,6 +232,8 @@ def look(lv, accent_preview=None):
             E((0, d / 2 + 2, h + 3.3), (3.5, 3.5, 3.5), "Gold"),
             C((0, d / 2 + 2, h + 8), 0.25, 3, "Gold", seg=8),
         ]
+        # Players can stand on the gold-ringed drum (top h + 3.45), which rises above the roof slab.
+        parts.append(part("Hitbox", B((0, d / 2 + 2, h + 2.625), (8.2, 8.2, 1.65), "#FFFFFF"), hit=True))
         parts.append(part("DomeTop", E((0, d / 2 + 2, h + 9.8), (0.6, 0.6, 0.6), "Gold", neon=True)))
         for x in (w / 2 - 2, -w / 2 + 2):  # game's left first (LotModels turns it -25 degrees)
             lights.append((x, d - 2, h + 1.8))
