@@ -58,28 +58,63 @@ function Juice.count(label: TextLabel, target: number, render: (number) -> strin
 	end)
 end
 
--- One shared press feel for buttons: dips on press, springs back on release. Its own UIScale, so
--- it multiplies with UiKit.bounce / UiKit.pulse instead of fighting them.
+-- One shared press feel for buttons: dips while held, springs back on release. UiKit.bounce and
+-- UiKit.pulse own the button's scale instead: they destroy "Press" and set "NoPress", so a button
+-- never carries two UIScales.
 function Juice.press(button: GuiButton)
+	if button:GetAttribute("NoPress") then
+		return
+	end
 	local scale = Instance.new("UIScale")
 	scale.Name = "Press"
 	scale.Parent = button
-	local function to(value: number, time: number, style: Enum.EasingStyle)
-		if reducedMotion() then
+	local function to(value: number, time: number, style: Enum.EasingStyle): Tween?
+		if reducedMotion() or scale.Parent == nil then
+			return nil
+		end
+		local tween = TweenService:Create(scale, TweenInfo.new(time, style, Enum.EasingDirection.Out), { Scale = value })
+		tween:Play()
+		return tween
+	end
+	local function isPointer(input: InputObject): boolean
+		return input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch
+	end
+	button.InputBegan:Connect(function(input)
+		if not isPointer(input) then
 			return
 		end
-		TweenService:Create(scale, TweenInfo.new(time, style, Enum.EasingDirection.Out), { Scale = value }):Play()
-	end
-	button.MouseButton1Down:Connect(function()
 		to(0.93, 0.07, Enum.EasingStyle.Quad)
+		-- MouseButton1Up only fires over the button; the input itself reports every release, also
+		-- after a slide-off or a scroll-drag (Cancel).
+		local conn: RBXScriptConnection
+		conn = input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End or input.UserInputState == Enum.UserInputState.Cancel then
+				conn:Disconnect()
+				to(1, 0.18, Enum.EasingStyle.Back)
+			end
+		end)
 	end)
-	-- Up also fires when the finger slides off, so it always springs back.
-	button.MouseButton1Up:Connect(function()
-		to(1, 0.18, Enum.EasingStyle.Back)
+	-- Gamepad / keyboard activation has no press: a tiny dip so it still answers.
+	button.Activated:Connect(function(input)
+		if isPointer(input) then
+			return
+		end
+		local down = to(0.96, 0.05, Enum.EasingStyle.Quad)
+		if down ~= nil then
+			down.Completed:Once(function()
+				to(1, 0.12, Enum.EasingStyle.Back)
+			end)
+		end
 	end)
-	button.MouseLeave:Connect(function()
-		to(1, 0.12, Enum.EasingStyle.Quad)
-	end)
+end
+
+-- Called by anything that brings its own UIScale for a button (bounce, pulse).
+function Juice.dropPress(object: GuiObject)
+	object:SetAttribute("NoPress", true)
+	local press = object:FindFirstChild("Press")
+	if press ~= nil and press:IsA("UIScale") then
+		press:Destroy()
+	end
 end
 
 -- A quick grow-and-settle on something that just got better. `anchor` is the point it grows

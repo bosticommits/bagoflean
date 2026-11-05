@@ -594,6 +594,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		if cash < lastCash and player:GetAttribute("DataLoaded") then
 			Sfx.play("spend")
 		elseif player:GetAttribute("DataLoaded") and CountUp.noticeable(lastCash, cash) then
+			-- punch sets cashLabel.AnchorPoint to (0, 0.5): any later cashLabel.Position code must allow for it.
 			Juice.punch(cashLabel, Vector2.new(0, 0.5))
 		end
 		lastCash = cash

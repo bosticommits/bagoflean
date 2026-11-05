@@ -262,6 +262,7 @@ end
 -- Grows a little under the pointer and dips when pressed, like the reference games' buttons.
 -- `onHover` runs with true/false as the pointer enters and leaves.
 function UiKit.bounce(button: GuiButton, onHover: ((boolean) -> ())?)
+	Juice.dropPress(button)
 	local scale = Instance.new("UIScale")
 	scale.Parent = button
 	local function to(value: number)
@@ -399,6 +400,7 @@ function UiKit.pulse(object: GuiObject, to: number?)
 		local dx, dy = 0.5 - anchor.X, 0.5 - anchor.Y
 		object.AnchorPoint = Vector2.new(0.5, 0.5)
 		object.Position += UDim2.new(size.X.Scale * dx, size.X.Offset * dx, size.Y.Scale * dy, size.Y.Offset * dy)
+		Juice.dropPress(object)
 		local scale = Instance.new("UIScale")
 		scale.Name = "Pulse"
 		scale.Parent = object
