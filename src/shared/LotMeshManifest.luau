@@ -105,6 +105,10 @@ local meshes = {
 	mesh("VelvetRopePost", "PremiereKit", 106597423332165, { 1.462392, 2.94, 1.5 }, TOWN_LIFE),
 	mesh("VelvetRopeSpan", "PremiereKit", 76671180720541, { 3.770766, 0.765573, 0.26 }, TOWN_LIFE),
 
+	-- lot_stage_kit.fbx (asset 90871466415628): the sound stage, art/blender/lot_stage_kit.py.
+	mesh("LotStage", "lot_stage_kit", 136146289364166, { 12.6, 14.45, 14.15 }, STANDARD),
+	mesh("LotStageAccent", "lot_stage_kit", 121490435093866, { 12.6, 11.4, 13.4 }, STANDARD),
+
 	-- lot_dressing_kit.fbx (asset 75446899270617): the lot dressing, art/blender/lot_dressing_kit.py.
 	mesh("LotBillboard", "lot_dressing_kit", 75302773228575, { 14, 29.75, 3.15 }, STANDARD),
 	mesh("LotGatePost", "lot_dressing_kit", 83188732515978, { 3.5, 10.1, 3.5 }, STANDARD),
@@ -395,9 +399,39 @@ local meshes = {
 	mesh("WesternPostOffice", "map_kit", 134642874217073, { 19.800001, 18.875002, 20.299999 }, MAP_KIT),
 	mesh("WesternSaloon", "map_kit", 101875343525953, { 21.800001, 24.875, 21.450001 }, MAP_KIT),
 	mesh("WesternSheriff", "map_kit", 119245023266892, { 19.800001, 19.875, 20.299999 }, MAP_KIT),
+
+	-- lot_cinema_kit.fbx (asset 124090129065323): the lot cinema, one look per Cinema Size level.
+	mesh("LotCinema0", "lot_cinema_kit", 127959965120828, { 17, 14.3, 16.81 }, STANDARD),
+	mesh("LotCinema0Accent", "lot_cinema_kit", 113346560221567, { 14, 1, 4 }, STANDARD),
+	mesh("LotCinema1", "lot_cinema_kit", 112582147314921, { 19, 15.8, 17.81 }, STANDARD),
+	mesh("LotCinema1Accent", "lot_cinema_kit", 113346560221567, { 14, 1, 4 }, STANDARD),
+	mesh("LotCinema2", "lot_cinema_kit", 70625745551439, { 21, 24, 18.81 }, STANDARD),
+	mesh("LotCinema2Accent", "lot_cinema_kit", 113346560221567, { 14, 1, 4 }, STANDARD),
+	mesh("LotCinema3", "lot_cinema_kit", 115957144029279, { 23, 27, 19.81 }, STANDARD),
+	mesh("LotCinema3Accent", "lot_cinema_kit", 72547140583296, { 15, 1, 4 }, STANDARD),
+	mesh("LotCinema4", "lot_cinema_kit", 138219397590060, { 28.4, 30, 20.81 }, STANDARD),
+	mesh("LotCinema4Accent", "lot_cinema_kit", 70927767459646, { 16, 1, 4 }, STANDARD),
+	mesh("LotCinema5", "lot_cinema_kit", 138219397590060, { 28.4, 30, 20.81 }, STANDARD),
+	mesh("LotCinema5Accent", "lot_cinema_kit", 103870885280147, { 28.2, 2.275, 7.1 }, STANDARD),
+	mesh("LotCinema6", "lot_cinema_kit", 140731960409763, { 28.4, 30, 20.81 }, STANDARD),
+	mesh("LotCinema6Accent", "lot_cinema_kit", 103083740869893, { 28.2, 2.275, 7.1 }, STANDARD),
+
+	-- lot_office_kit.fbx (asset 77336967160126): the lot office, one look per Offline Earnings level.
+	mesh("LotOffice0", "lot_office_kit", 87610425359120, { 10.3, 6.81, 6.78 }, STANDARD),
+	mesh("LotOffice0Accent", "lot_office_kit", 115505978327285, { 9.1, 2.85, 6.65 }, STANDARD),
+	mesh("LotOffice1", "lot_office_kit", 82248637625790, { 9.9, 10.7, 11.51 }, STANDARD),
+	mesh("LotOffice1Accent", "lot_office_kit", 120717428542246, { 9.2, 5.775, 2 }, STANDARD),
+	mesh("LotOffice2", "lot_office_kit", 136077988092217, { 9.9, 14.2, 11.51 }, STANDARD),
+	mesh("LotOffice2Accent", "lot_office_kit", 120717428542246, { 9.2, 5.775, 2 }, STANDARD),
+	mesh("LotOffice3", "lot_office_kit", 94419634830112, { 9.9, 18.4, 11.51 }, STANDARD),
+	mesh("LotOffice3Accent", "lot_office_kit", 91472929910168, { 9.2, 9.975, 2 }, STANDARD),
+	mesh("LotOffice4", "lot_office_kit", 89678088552127, { 9.9, 22.6, 11.51 }, STANDARD),
+	mesh("LotOffice4Accent", "lot_office_kit", 132714425735180, { 9.2, 14.175, 2 }, STANDARD),
+	mesh("LotOffice5", "lot_office_kit", 88522071164792, { 9.9, 23.8, 11.51 }, STANDARD),
+	mesh("LotOffice5Accent", "lot_office_kit", 77112502648695, { 9.2, 18.375, 2 }, STANDARD),
 }
 
-assert(#meshes == 337, "LotMeshManifest must contain exactly 337 templates")
+assert(#meshes == 365, "LotMeshManifest must contain exactly 365 templates")
 
 return table.freeze({
 	version = 1,
