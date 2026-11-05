@@ -36,7 +36,8 @@ local fmtOdds = Actors.percent
 -- The tier the agency's next cast is guaranteed at least (the server's NextFloor<agency>), or nil.
 local function nextFloorOf(player: Player, agency: Actors.Agency): string?
 	local value = player:GetAttribute("NextFloor" .. agency.id)
-	return if type(value) == "string" and value ~= "" and Actors.getTier(value) ~= nil then value else nil
+	-- A floor at or below the agency's lowest tier changes nothing, so it is not shown.
+	return if type(value) == "string" and Actors.tierRank(value) > agency.minTier then value else nil
 end
 
 -- The limited actor in season right now: the one of this week's seasonal Film Festival, as the
@@ -363,16 +364,17 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 
 		local nextStep = Actors.nextHotStart(player:GetAttribute("HotStart") or Actors.HotStartLength)
-		local guarantees = `Pity: a {agency.pity} or better at least once every {Actors.PityEvery} casts here.`
+		local guarantees = `Pity: {agency.pity} or better every {Actors.PityEvery} casts here.`
 		if nextStep ~= nil then
-			local parts = {}
+			local tierNames, castNumbers = {}, {}
 			for _, step in Actors.HotStart do
-				table.insert(parts, `{step.tier} on cast {step.cast}`)
+				table.insert(tierNames, step.tier)
+				table.insert(castNumbers, tostring(step.cast))
 			end
-			guarantees ..= ` New players: a guaranteed {table.concat(parts, ", ")}.`
+			guarantees ..= ` New players get a sure {table.concat(tierNames, ", ")} on casts {table.concat(castNumbers, ", ")}.`
 		end
 		if player:GetAttribute("FirstSuperstar") == true then
-			guarantees ..= ` And a Superstar once you have played {Actors.FirstSuperstarAfter // 60} minutes.`
+			guarantees ..= ` One sure Superstar after {Actors.FirstSuperstarAfter // 60} minutes.`
 		end
 		note(guarantees, UiKit.MUTED, 82)
 		note(`Luck x{string.format("%.2f", luck)}. Probabilities are rounded; total of displayed individual probabilities may not equal 100%.`, UiKit.MUTED, 82)
@@ -1112,7 +1114,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			tierLabel.Text = string.upper(tier.name)
 			-- The real chance of this exact pull, worked out by the server with the Luck, agency,
 			-- guarantee and limited actor of this cast (Crate x3 and guaranteed casts included).
-			chanceLabel.Text = if type(result.chance) == "number" then fmtOdds(result.chance) else "?"
+			chanceLabel.Text = if type(result.chance) == "number" then Actors.brief(result.chance) else "?"
 			powerLabel.Text = Hud.comma(tier.starPower * variant.multiplier)
 			genreLabel.Text = actor.genre
 			genreLabel.TextColor3 = UiKit.GENRE_COLORS[actor.genre] or WHITE

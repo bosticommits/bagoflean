@@ -84,7 +84,7 @@ end)
 test("castOdds matches what Actors.roll rolls", function()
 	local random = H.Random.new(20261118)
 	local limited = Actors.Limited[2]
-	local cases = { { 1, 1, nil }, { 3, 2, "Rising" }, { 1, 1, "Star" }, { 12, 3, nil } }
+	local cases = { { 1, 1, nil }, { 3, 2, "Rising" }, { 1, 1, "Star" }, { 12, 3, nil }, { 60, 1, nil } }
 	for _, case in cases do
 		local luck, minTier, floor = case[1] :: number, case[2] :: number, case[3] :: string?
 		local odds = Actors.castOdds(luck, minTier, floor, limited)
@@ -104,7 +104,10 @@ test("castOdds matches what Actors.roll rolls", function()
 				equal(tiers[tier.id] or 0, 0, `{tier.id} cannot happen`)
 			end
 		end
-		near(limitedSeen / runs, odds.limited, 0.01, "the limited actor's share")
+		near(limitedSeen / runs, odds.limited, 0.005, "the limited actor's share")
+		if luck == 60 then
+			expect(odds.limited > 0.02, "the high-Luck case really tests a visible limited share")
+		end
 	end
 end)
 
@@ -127,4 +130,15 @@ test("pullChance is the chance of one exact pull, variants included", function()
 	equal(Actors.pullChance(1, 3, nil, nil, "NervousIntern", "Normal"), 0, "an agency without that tier never casts it")
 	local guaranteed = Actors.pullChance(1, 1, "Superstar", nil, "BoxOfficeKing", "Normal")
 	expect(guaranteed > 0.2, "a guaranteed Superstar cast is a third of the Superstar-or-better chance, not 1 in 8,000")
+end)
+
+test("percent never reads 100% for less than certain; brief keeps rare pulls readable", function()
+	equal(Actors.percent(1 - 1e-9), "99.999%", "capped")
+	equal(Actors.percent(0.99999), "99.999%", "just under certain")
+	equal(Actors.brief(0), "0%", "zero")
+	equal(Actors.brief(0.372), "37%", "two figures")
+	equal(Actors.brief(0.042), "4.2%", "one decimal")
+	equal(Actors.brief(1 - 1e-9), "99%", "not certain")
+	equal(Actors.brief(1 / 8000), "1 in 8,000", "rare pulls read as 1 in N")
+	equal(Actors.brief(1 / 5000000), "1 in 5,000,000", "Icon")
 end)

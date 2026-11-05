@@ -20,13 +20,14 @@ local built: { panel: Frame, show: (title: string, multiplier: number, note: str
 
 local function build(gui: ScreenGui)
 	local player = Players.LocalPlayer
-	local panel, list, header = UiKit.makePanel(gui, "LuckDetailsPanel", "Luck odds", 108, true, nil, UiKit.TEAL)
+	local panel, list, header = UiKit.makePanel(gui, "LuckDetailsPanel", "Luck odds", 116, true, nil, UiKit.TEAL)
 	UiKit.panelIcon(panel, header, "clover")
+	UiKit.addExclusive(panel) -- other panels close it, like the screens it opens from
 	local tabRow = Instance.new("Frame")
-	tabRow.Name = "Agencies"
+	tabRow.Name = "LuckTabs" -- not "Agencies": makePanel would shrink those tabs below 44 px
 	tabRow.BackgroundTransparency = 1
 	tabRow.Position = UDim2.fromOffset(10, 58)
-	tabRow.Size = UDim2.new(1, -20, 0, 42)
+	tabRow.Size = UDim2.new(1, -20, 0, 44)
 	tabRow.Parent = panel
 
 	local agencyId = "Open"
@@ -80,6 +81,22 @@ local function build(gui: ScreenGui)
 				current.TextXAlignment = Enum.TextXAlignment.Right
 				UiKit.textConstraint(current, 16)
 			end
+		end
+		-- Variants are rolled apart from the actor, so they get the same now / boosted pair.
+		order += 1
+		textRow(order, "Variants are rolled separately for every actor", UiKit.GOLD, 34)
+		local variantsNow, variantsBoosted = Actors.variantChances(luck), Actors.variantChances(luck * multiplier)
+		for _, variant in Actors.Variants do
+			order += 1
+			local row = UiKit.addRow(list, order, 62)
+			local name = makeTitle(row, variant.name, variant.color, UDim2.new(0.5, 0, 0, 30), UDim2.fromOffset(10, 3))
+			name.TextXAlignment = Enum.TextXAlignment.Left
+			UiKit.textConstraint(name, 22)
+			local withIt = makeLabel(row, Actors.percent(variantsBoosted[variant.id]), UiKit.CASH_GREEN, UDim2.new(0.5, -10, 0, 30), UDim2.new(0.5, 0, 0, 3))
+			withIt.TextXAlignment = Enum.TextXAlignment.Right
+			local current = makeLabel(row, `Now: {Actors.percent(variantsNow[variant.id])}`, UiKit.MUTED, UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 35))
+			current.TextXAlignment = Enum.TextXAlignment.Right
+			UiKit.textConstraint(current, 16)
 		end
 		if note ~= nil then
 			order += 1

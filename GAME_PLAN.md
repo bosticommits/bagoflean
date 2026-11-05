@@ -483,7 +483,7 @@ exciting by M3, fix the core before adding anything else.
     it until its card flips. Legend and Icon still get the server announcement.
   - **Sounds**: slots `drumroll`, `drumrollLow`, `revealStep` (pitched up per tier), `revealBurst`
     (library sounds), and Fish Audio announcer lines `voiceStar`, `voiceSuperstar`, `voiceLegend`,
-    `voiceIcon`, `voiceSoClose` (voice "Energetic Male"; clips in `art/audio/reveal/`).
+    `voiceIcon` (voice "Energetic Male"; clips in `art/audio/reveal/`).
 
 
 ## 22. As built (rare-pull announcements)

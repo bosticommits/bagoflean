@@ -113,6 +113,14 @@ function Shop.blocksPurchase(randomItems: boolean?, restricted: any): boolean
 	return randomItems == true and not Shop.paidRandomAllowed(restricted)
 end
 
+-- True when a developer product receipt must be refused: it is paid random items the region does
+-- not allow, AND it was not granted before (`alreadyGranted`, its id is in the save's receipt log).
+-- A receipt that was already paid out is always confirmed, so a player who bought legitimately is
+-- never left with an endless unprocessed receipt.
+function Shop.blocksReceipt(alreadyGranted: boolean, randomItems: boolean?, restricted: any): boolean
+	return not alreadyGranted and Shop.blocksPurchase(randomItems, restricted)
+end
+
 function Shop.getPass(key: string): Pass?
 	return passByKey[key]
 end

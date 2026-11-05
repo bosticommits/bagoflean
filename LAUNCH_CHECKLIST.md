@@ -100,6 +100,11 @@ reach everything.
       is stored. *Done when:* a playtest with PaidRandomRestricted forced to true shows the shop
       cards as "Not available" and the pass as "Paused in your region", a Studio test purchase of
       each is refused with "Not available in your region", and with it false everything works.
+      Roblox's docs say a receipt answered NotProcessedYet is not granted and is retried when the
+      player next joins (the docs state no refund, hold or time limit:
+      https://create.roblox.com/docs/production/monetization/developer-products and
+      https://create.roblox.com/docs/reference/engine/classes/MarketplaceService#ProcessReceipt),
+      so a refused receipt comes back on every join; ask Roblox support what happens to the Robux.
 - [x] Shop screen and in-context prompts (for example, offer a skip on a long filming timer).
       *Done when:* buying never blocks normal play and every price is shown before buying.
 - [ ] Check prices against similar games. *Done when:* every item has a price written down

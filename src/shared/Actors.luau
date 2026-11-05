@@ -457,7 +457,26 @@ function Actors.percent(chance: number): string
 	if pct >= 100 then
 		return "100%"
 	end
-	return string.format("%." .. math.max(0, 4 - math.floor(math.log10(pct))) .. "f%%", pct)
+	local text = string.format("%." .. math.max(0, 4 - math.floor(math.log10(pct))) .. "f%%", pct)
+	-- Less than certain never reads as certain.
+	return if string.sub(text, 1, 3) == "100" then "99.999%" else text
+end
+
+-- A short chance for the reveal card, where space is tight: 2 significant figures down to 1%
+-- ("37%", "4.2%"), "1 in N" below that. The odds panel keeps the full Actors.percent.
+function Actors.brief(chance: number): string
+	if chance <= 0 then
+		return "0%"
+	end
+	local pct = chance * 100
+	if pct >= 100 then
+		return "100%"
+	elseif pct >= 10 then
+		return string.format("%.0f%%", math.min(pct, 99.4))
+	elseif pct >= 1 then
+		return string.format("%.1f%%", pct)
+	end
+	return Actors.oneIn(chance)
 end
 
 -- "1 in 8,000" style secondary text for a chance (0..1), or "never".

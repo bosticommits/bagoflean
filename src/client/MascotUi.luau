@@ -241,7 +241,8 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 					LuckDetails.cornerButton(card, function()
 						-- Only one mascot's buff counts: a Luck mascot already out is swapped, not stacked.
 						local out = Mascots.get(current)
-						local have = if out ~= nil and out.buff.kind == "luck" then 1 + out.buff.amount else 1
+						local warm = Mascots.warmUpLeft({ mascotSince = player:GetAttribute("MascotSince") }, workspace:GetServerTimeNow()) <= 0
+						local have = if out ~= nil and out.buff.kind == "luck" and warm then 1 + out.buff.amount else 1
 						LuckDetails.open(gui, m.name, (1 + m.buff.amount) / have, `Works {Mascots.WarmUp} seconds after you equip it.`)
 					end)
 				end
