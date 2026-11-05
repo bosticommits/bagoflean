@@ -13,8 +13,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Mascots = require(ReplicatedStorage.Shared.Mascots)
+local Shop = require(ReplicatedStorage.Shared.Shop)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
+local LuckDetails = require(script.Parent.LuckDetails)
 local ShopUi = require(script.Parent.ShopUi)
 local SideMenu = require(script.Parent.SideMenu)
 local Sfx = require(script.Parent.Sfx)
@@ -223,7 +225,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 				-- and Robux (Roblox's prompt; ShopService grants it from the receipt). Robux is left
 				-- off for Luck mascots where paid random items are restricted.
 				local canBuy = affordable[m.id] == true
-				local withRobux = not Mascots.randomItems(m) or player:GetAttribute("PaidRandomRestricted") == false
+				local withRobux = not Shop.blocksPurchase(Mascots.randomItems(m), player:GetAttribute("PaidRandomRestricted"))
 				local cashSize = if withRobux then UDim2.fromScale(0.42, 0.19) else actionSize
 				local shop = makeButton(card, if withRobux then `${Hud.comma(m.price)}` else `BUY ${Hud.comma(m.price)}`, if canBuy then UiKit.GREEN else UiKit.DISABLED, cashSize, actionPos)
 				shop.Name = "Buy"
@@ -234,6 +236,15 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 						buy:FireServer(m.id)
 					end
 				end)
+				if Mascots.randomItems(m) then
+					-- Before buying a Luck mascot: the odds now against with it out.
+					LuckDetails.cornerButton(card, function()
+						-- Only one mascot's buff counts: a Luck mascot already out is swapped, not stacked.
+						local out = Mascots.get(current)
+						local have = if out ~= nil and out.buff.kind == "luck" then 1 + out.buff.amount else 1
+						LuckDetails.open(gui, m.name, (1 + m.buff.amount) / have, `Works {Mascots.WarmUp} seconds after you equip it.`)
+					end)
+				end
 				if withRobux then
 					local id = m.product or 0
 					local price = robux[m.id]
