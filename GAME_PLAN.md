@@ -449,17 +449,22 @@ exciting by M3, fix the core before adding anything else.
   Casting, Superstar at the Talent Agency and Hollywood Casting, the `pity` field on
   `Actors.Agencies`), and the 400th (`Actors.PityEvery`) is that tier or better. Natural rares reset
   it; crate casts count. Saved as `pity` (by agency id). Tuning in ECONOMY.md.
-- **Early crazy pulls** for new accounts (old saves count as done, `early = 2`): a Superstar
-  near-miss tease on the first Pro-or-better cast after 5 minutes played, and one guaranteed
-  Superstar on the first cast after 12 minutes. Playtime is counted by the server in
-  `CastingService.refresh` (`played`, seconds). Analytics: `NearMissTease`, `FirstSuperstar`.
+- **Early crazy pulls** for new accounts (old saves count as done, `early = 2`): one guaranteed
+  Superstar on the first cast after 12 minutes. (The near-miss tease was removed before launch
+  for the odds-compliance pass.) Playtime is counted by the server in `CastingService.refresh` (`played`,
+  seconds). Analytics: `FirstSuperstar`.
 - **One rule function**, `Actors.castWithGuarantees`, applies the hot start, pity and first
   Superstar (the best floor wins, a better roll is kept) and is covered by `tests/luau/pity.spec.luau`.
+  `Actors.nextFloor` is the pure floor rule behind it; the server mirrors it as `NextFloor<agency>`
+  so the odds panel merges the tiers below the floor into it and the bar says "<TIER> GUARANTEED
+  NEXT CAST!". `Actors.castOdds` / `pullChance` give the tier, actor and exact-pull chances (tiers
+  add up to 100%, the limited actor's slice comes out of the first tier); the CastResult `chance`
+  is the real one.
 - **HUD**: the hot start bar over the Cast button is now the guarantee meter: it counts down to
   whichever guarantee is sooner, the hot start step or the chosen agency's pity ("STAR GUARANTEED
   IN 37 CASTS"). The odds panel has one line on the pity rule.
 - **CastResult payload** for the reveal: `guarantee` ("hotStart" | "pity" | "firstSuperstar" | nil),
-  `tease` ("nearMiss" | nil) and `pity` ({ agency, tier, count, every } after the cast), next to the
+  `chance` (the exact pull's real chance) and `pity` ({ agency, tier, count, every } after the cast), next to the
   old fields; documented at the top of `src/server/CastingService.luau`.
 - **Reveal presentation** (`CastingUi`, timing rule in `src/shared/Reveal.luau`, spec
   `tests/luau/reveal.spec.luau`): the card glows one rarity after another while two spotlights sweep,
@@ -469,8 +474,6 @@ exciting by M3, fix the core before adding anything else.
   - **Fake-out** (client only): 1 in 4 Pro pulls and 1 in 6 Star-and-up pulls glow Common, then burst
     into the real tier. The rule: the build-up never glows better than the real tier and always ends
     on it (tested).
-  - **Near miss** (`tease = "nearMiss"`): climbs to Superstar gold with a second drum layer, then lands
-    on the real tier with a gold "So close! Superstar soon!" note and the announcer's "Ooh, so close!".
   - **Guarantee note** (gold, top of the card): PITY GUARANTEE!, DISCOVERED! (hot start), YOUR FIRST
     SUPERSTAR!. The corner tag now only says NEW! / LIMITED! / xN.
   - **World reaction** on Superstar and up (first Superstar included): CastingService fires the
@@ -480,7 +483,7 @@ exciting by M3, fix the core before adding anything else.
     it until its card flips. Legend and Icon still get the server announcement.
   - **Sounds**: slots `drumroll`, `drumrollLow`, `revealStep` (pitched up per tier), `revealBurst`
     (library sounds), and Fish Audio announcer lines `voiceStar`, `voiceSuperstar`, `voiceLegend`,
-    `voiceIcon`, `voiceSoClose` (voice "Energetic Male"; clips in `art/audio/reveal/`).
+    `voiceIcon` (voice "Energetic Male"; clips in `art/audio/reveal/`).
 
 
 ## 22. As built (rare-pull announcements)

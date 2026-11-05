@@ -2,21 +2,32 @@
 -- Client sound effects. Which sound each moment plays lives in Shared/Sounds.luau (named slots), so
 -- sounds can be swapped there without touching game code. Everything plays through one SFX
 -- SoundGroup, whose volume is the player's Effects setting. Sounds play locally: instant feedback,
--- no server latency.
+-- no server latency. Spoken lines (Sounds.isVoice) go through a voice channel: one at a time,
+-- queued behind each other by VoiceQueue, and the other SFX and the music dip while they talk.
 local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Sounds = require(ReplicatedStorage.Shared.Sounds)
+local VoiceQueue = require(ReplicatedStorage.Shared.VoiceQueue)
+local Music = require(script.Parent.Music)
 
 local group: SoundGroup? = nil
+local voiceGroup: SoundGroup? = nil -- voices get their own group, so ducking the SFX leaves them alone
+local userVolume = Sounds.DEFAULT_SFX
+local duckUntil = 0
+local voiceState = VoiceQueue.new()
+local voiceGen = 0 -- bumped by cutVoice, so lines still waiting for their delay are dropped
+local voiceNow: Sound? = nil -- the voice line playing now
 local templates: { [number]: Sound? } = {} -- by asset id, shared by every slot that uses it
 local lastPlayed: { [string]: number } = {}
 
 -- The same slot again within this many seconds is skipped, so a burst (a row of rewards, many
 -- coins at once) sounds like one hit instead of a wall of noise.
 local REPEAT_GAP = 0.05
+local DUCK_TO = 0.35 -- share of the SFX volume left while a voice line talks
+local VOICE_FALLBACK_SECONDS = 3 -- when a clip's length is not known yet
 
 local Sfx = {}
 
@@ -44,6 +55,11 @@ function Sfx.start()
 	sfxGroup.Volume = Sounds.DEFAULT_SFX
 	sfxGroup.Parent = SoundService
 	group = sfxGroup
+	local voices = Instance.new("SoundGroup")
+	voices.Name = "MovieMogulVoice"
+	voices.Volume = Sounds.DEFAULT_SFX
+	voices.Parent = SoundService
+	voiceGroup = voices
 	local list = {}
 	for name in Sounds.Slots do
 		local id = Sounds.resolve(name)
@@ -61,10 +77,78 @@ end
 
 -- Effects volume, 0..1 (the player's setting).
 function Sfx.setVolume(volume: number)
-	local sfxGroup = group
-	if sfxGroup ~= nil then
-		sfxGroup.Volume = volume
+	userVolume = volume
+	local sfxGroup, voices = group, voiceGroup
+	if sfxGroup ~= nil and voices ~= nil then
+		-- A 0 s tween replaces any dip/restore tween still running on the group.
+		TweenService:Create(sfxGroup, TweenInfo.new(0), { Volume = volume * (if os.clock() < duckUntil then DUCK_TO else 1) }):Play()
+		voices.Volume = volume
 	end
+end
+
+-- Dips the other SFX and the music for `seconds` while a voice line talks.
+local function duck(seconds: number)
+	local sfxGroup = group
+	if sfxGroup == nil then
+		return
+	end
+	duckUntil = math.max(duckUntil, os.clock() + seconds)
+	Music.duck(seconds)
+	TweenService:Create(sfxGroup, TweenInfo.new(0.15), { Volume = userVolume * DUCK_TO }):Play()
+	task.delay(seconds, function()
+		if os.clock() >= duckUntil then
+			TweenService:Create(sfxGroup, TweenInfo.new(0.4), { Volume = userVolume }):Play()
+		end
+	end)
+end
+
+-- Starts one copy of `base` now. A voice line also dips the other SFX and the music while it talks.
+local function launch(base: Sound, sfxGroup: SoundGroup, volume: number, speed: number, voice: boolean, seconds: number, at: Vector3?, range: number?, length: number?)
+	local voices = voiceGroup
+	local sound = base:Clone()
+	sound.Volume = volume
+	sound.PlaybackSpeed = speed
+	local holder: Instance = sfxGroup
+	if voice and voices ~= nil then
+		sound.SoundGroup = voices
+		holder = voices
+		voiceNow = sound
+		duck(seconds + 0.3)
+	end
+	if at ~= nil then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "SfxAt"
+		attachment.WorldPosition = at
+		attachment.Parent = workspace.Terrain
+		holder = attachment
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
+		sound.RollOffMinDistance = 12
+		sound.RollOffMaxDistance = range or 140
+	end
+	sound.Parent = holder
+	sound:Play()
+	local function done()
+		if sound.Parent ~= nil then
+			sound:Destroy()
+		end
+		if holder ~= sfxGroup and holder ~= voices and holder.Parent ~= nil then
+			holder:Destroy()
+		end
+		if voiceNow == sound then
+			voiceNow = nil
+		end
+	end
+	sound.Ended:Once(done)
+	if length ~= nil then
+		task.delay(length, function()
+			if sound.Parent ~= nil then
+				TweenService:Create(sound, TweenInfo.new(0.6), { Volume = 0 }):Play()
+				task.delay(0.6, done)
+			end
+		end)
+	end
+	-- Safety net if Ended never fires (asset failed to load).
+	task.delay(math.max(8, (length or 0) + 1), done)
 end
 
 -- Plays slot `name` (see Sounds.Slots) as a one-shot copy, so overlapping plays never cut each
@@ -84,48 +168,57 @@ local function playSlot(name: string, pitch: number?, at: Vector3?, range: numbe
 	lastPlayed[name] = now
 	local base = template(id)
 	local sfxGroup = group
-	if base == nil or sfxGroup == nil or sfxGroup.Volume <= 0 then
+	if base == nil or sfxGroup == nil or userVolume <= 0 then
 		return
 	end
-	local sound = base:Clone()
-	sound.Volume = volume
-	sound.PlaybackSpeed = slotPitch * (pitch or 1)
-	local holder: Instance = sfxGroup
-	if at ~= nil then
-		local attachment = Instance.new("Attachment")
-		attachment.Name = "SfxAt"
-		attachment.WorldPosition = at
-		attachment.Parent = workspace.Terrain
-		holder = attachment
-		sound.RollOffMode = Enum.RollOffMode.InverseTapered
-		sound.RollOffMinDistance = 12
-		sound.RollOffMaxDistance = range or 140
-	end
-	sound.Parent = holder
-	sound:Play()
-	local function done()
-		if sound.Parent ~= nil then
-			sound:Destroy()
+	local speed = slotPitch * (pitch or 1)
+	-- Voice lines queue up; every slot may wait its own `delay` (e.g. for a sting to land first).
+	local wait = Sounds.delayOf(name)
+	local voice = at == nil and Sounds.isVoice(name)
+	local seconds = 0
+	if voice then
+		seconds = (if base.TimeLength > 0 then base.TimeLength else VOICE_FALLBACK_SECONDS) / speed
+		local start = VoiceQueue.schedule(voiceState, name, now, wait, seconds)
+		if start == nil then
+			return
 		end
-		if holder ~= sfxGroup and holder.Parent ~= nil then
-			holder:Destroy()
-		end
+		wait = start - now
 	end
-	sound.Ended:Once(done)
-	if length ~= nil then
-		task.delay(length, function()
-			if sound.Parent ~= nil then
-				TweenService:Create(sound, TweenInfo.new(0.6), { Volume = 0 }):Play()
-				task.delay(0.6, done)
+	if wait > 0.01 then
+		local gen = voiceGen
+		task.delay(wait, function()
+			if not voice or gen == voiceGen then
+				launch(base, sfxGroup, volume, speed, voice, seconds, at, range, length)
 			end
 		end)
+	else
+		launch(base, sfxGroup, volume, speed, voice, seconds, at, range, length)
 	end
-	-- Safety net if Ended never fires (asset failed to load).
-	task.delay(math.max(8, (length or 0) + 1), done)
 end
 
-function Sfx.play(name: string, pitch: number?)
-	playSlot(name, pitch)
+-- A big moment (a premiere result) cuts the chatter off: the voice line playing fades out over
+-- 0.15 s, lines still waiting are dropped, and the SFX come back up. Lines after this start fresh.
+function Sfx.cutVoice()
+	voiceGen += 1
+	VoiceQueue.reset(voiceState)
+	local sound = voiceNow
+	voiceNow = nil
+	if sound ~= nil and sound.Parent ~= nil then
+		TweenService:Create(sound, TweenInfo.new(0.15), { Volume = 0 }):Play()
+		task.delay(0.15, function()
+			sound:Destroy()
+		end)
+	end
+	duckUntil = 0
+	local sfxGroup = group
+	if sfxGroup ~= nil then
+		TweenService:Create(sfxGroup, TweenInfo.new(0.15), { Volume = userVolume }):Play()
+	end
+end
+
+-- `length` cuts a long sound (a loop or a bed) short with a quick fade.
+function Sfx.play(name: string, pitch: number?, length: number?)
+	playSlot(name, pitch, nil, nil, length)
 end
 
 -- Plays slot `name` from `at` in the world (see playSlot).
