@@ -679,7 +679,6 @@ local CINEMA_MESH: { [number]: CinemaMesh } = {
 		accent = { center = Vector3.new(0, 6.163, -0.45), size = Vector3.new(28.2, 2.275, 7.1) },
 		parts = {
 			{ name = "Hitbox", cf = CFrame.new(0, 8.4, 8, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(24.4, 16.8, 16.4), color = "hitbox", neon = false, ball = false },
-			{ name = "Hitbox", cf = CFrame.new(0, 17.625, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(8.2, 1.65, 8.2), color = "hitbox", neon = false, ball = false },
 			{ name = "HeadboardBulbs", cf = CFrame.new(0, 17.6, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(17.2, 0.35, 0.3), color = "F5B82E", neon = true, ball = false },
 			{ name = "HeadboardBulbs", cf = CFrame.new(0, 19.4, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(12.4, 0.35, 0.3), color = "F5B82E", neon = true, ball = false },
 			{ name = "HeadboardBulbs", cf = CFrame.new(0, 21.2, -0.15, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(7.6, 0.35, 0.3), color = "F5B82E", neon = true, ball = false },
@@ -695,6 +694,10 @@ local CINEMA_MESH: { [number]: CinemaMesh } = {
 			{ name = "BladeTop", cf = CFrame.new(10, 30.6, -1.6, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(1.6, 1.6, 1.6), color = "F5B82E", neon = true, ball = true },
 			{ name = "Hitbox", cf = CFrame.new(0, 5.5, 9, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(28.4, 11, 12), color = "hitbox", neon = false, ball = false },
 			{ name = "RoofBulbs", cf = CFrame.new(0, 16.9, -0.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(24, 0.45, 0.45), color = "F5B82E", neon = true, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 17.625, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(8.2, 1.65, 8.2), color = "hitbox", neon = false, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 20.425, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(6.8, 3.95, 6.8), color = "hitbox", neon = false, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 20.95, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(4.4, 5, 4.4), color = "hitbox", neon = false, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 21.225, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(2, 5.55, 2), color = "hitbox", neon = false, ball = false },
 			{ name = "DomeTop", cf = CFrame.new(0, 24.8, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(1.2, 1.2, 1.2), color = "F5B82E", neon = true, ball = true },
 		},
 		lights = { Vector3.new(-10, 16.8, 14), Vector3.new(10, 16.8, 14) },
@@ -703,7 +706,7 @@ local CINEMA_MESH: { [number]: CinemaMesh } = {
 -- END lot_cinema_kit
 LotModels.CinemaLooks = CINEMA_MESH
 
--- The level 4-6 body is 28.4 wide, 0.2-1.1 studs into the stages beside it (their inner edges sit
+-- The level 4-6 body is 28.4 wide, 0.2 to 0.8 studs into the stages beside it (their inner edges sit
 -- at x -14.0 / +13.4, and moving them out would push them into the side hedges), so cinema()
 -- squeezes the meshes and every part (positions, widths, searchlights) in X by this scale to fit
 -- this width. The Blender kit stays untouched.
