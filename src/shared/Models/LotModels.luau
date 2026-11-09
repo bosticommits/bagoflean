@@ -694,6 +694,8 @@ local CINEMA_MESH: { [number]: CinemaMesh } = {
 			{ name = "BladeTop", cf = CFrame.new(10, 30.6, -1.6, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(1.6, 1.6, 1.6), color = "F5B82E", neon = true, ball = true },
 			{ name = "Hitbox", cf = CFrame.new(0, 5.5, 9, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(28.4, 11, 12), color = "hitbox", neon = false, ball = false },
 			{ name = "RoofBulbs", cf = CFrame.new(0, 16.9, -0.3, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(24, 0.45, 0.45), color = "F5B82E", neon = true, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 17.625, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(8.2, 1.65, 8.2), color = "hitbox", neon = false, ball = false },
+			{ name = "Hitbox", cf = CFrame.new(0, 18.3, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(7, 7, 7), color = "hitbox", neon = false, ball = true },
 			{ name = "DomeTop", cf = CFrame.new(0, 24.8, 10, 1, 0, 0, 0, 1, 0, 0, 0, 1), size = Vector3.new(1.2, 1.2, 1.2), color = "F5B82E", neon = true, ball = true },
 		},
 		lights = { Vector3.new(-10, 16.8, 14), Vector3.new(10, 16.8, 14) },
@@ -702,10 +704,21 @@ local CINEMA_MESH: { [number]: CinemaMesh } = {
 -- END lot_cinema_kit
 LotModels.CinemaLooks = CINEMA_MESH
 
-local function cinemaMesh(b: Builder, name: string, bounds: { center: Vector3, size: Vector3 }, color: Color3): BasePart?
+-- The level 4-6 body is 28.4 wide, 0.2 to 0.8 studs into the stages beside it (their inner edges sit
+-- at x -14.0 / +13.4, and moving them out would push them into the side hedges), so cinema()
+-- squeezes the meshes and every part (positions, widths, searchlights) in X by this scale to fit
+-- this width. The Blender kit stays untouched.
+LotModels.CinemaMaxWidth = 26
+
+function LotModels.cinemaWidthScale(level: number): number
+	return math.min(1, LotModels.CinemaMaxWidth / CINEMA_MESH[math.clamp(level, 0, 6)].body.size.X)
+end
+
+local function cinemaMesh(b: Builder, name: string, bounds: { center: Vector3, size: Vector3 }, color: Color3, scaleX: number): BasePart?
 	local c = bounds.center
 	local p = Build.mesh(b, name, v(c.X, c.Y - bounds.size.Y / 2, c.Z), bounds.size.Y)
 	if p ~= nil then
+		p.Size *= Vector3.new(scaleX, 1, 1)
 		p.Color = color
 		p.Material = Enum.Material.SmoothPlastic
 	end
@@ -717,8 +730,9 @@ end
 function LotModels.cinema(b: Builder, level: number, accent: Color3): TextLabel
 	level = math.clamp(level, 0, 6)
 	local look = CINEMA_MESH[level]
-	local body = cinemaMesh(b, `LotCinema{level}`, look.body, Color3.new(1, 1, 1))
-	local tint = if body ~= nil then cinemaMesh(b, `LotCinema{level}Accent`, look.accent, accent) else nil
+	local sx = LotModels.cinemaWidthScale(level)
+	local body = cinemaMesh(b, `LotCinema{level}`, look.body, Color3.new(1, 1, 1), sx)
+	local tint = if body ~= nil then cinemaMesh(b, `LotCinema{level}Accent`, look.accent, accent, sx) else nil
 	if body == nil or tint == nil then
 		if body ~= nil then
 			body:Destroy()
@@ -729,7 +743,11 @@ function LotModels.cinema(b: Builder, level: number, accent: Color3): TextLabel
 	for _, info in look.parts do
 		local color = if info.color == "accent" then accent elseif info.color == "hitbox" then P.Cream else Color3.fromHex(info.color)
 		local material = if info.neon then NEON else nil
-		local p = if info.ball then b:ball(info.name, info.size.X, info.cf, color, material) else b:block(info.name, info.size, info.cf, color, material)
+		-- Every part follows the squeezed body: X positions and block widths scale by sx (the tilted
+		-- star stays square).
+		local size = if info.name == "HeadboardStar" then info.size else info.size * Vector3.new(sx, 1, 1)
+		local cf = info.cf + Vector3.new(info.cf.X * (sx - 1), 0, 0)
+		local p = if info.ball then b:ball(info.name, info.size.X, cf, color, material) else b:block(info.name, size, cf, color, material)
 		if info.color == "hitbox" then
 			-- The mesh doesn't collide; this keeps players out of the building.
 			p.Transparency = 1
@@ -743,7 +761,7 @@ function LotModels.cinema(b: Builder, level: number, accent: Color3): TextLabel
 		end
 	end
 	for i, at in look.lights do
-		LotModels.searchlight(b:sub(at), if i == 1 then -25 else 25)
+		LotModels.searchlight(b:sub(Vector3.new(at.X * sx, at.Y, at.Z)), if i == 1 then -25 else 25)
 	end
 	assert(marquee ~= nil, "cinema look has no MarqueeSign")
 	return marquee
