@@ -60,7 +60,7 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 
 - [x] Restyle every screen to ART_STYLE.md: HUD, casting, roster, studio, script shop,
       Index, upgrades, tutorial. *Done when:* all screens share one look and rarity colors.
-- [ ] Phone check on a small Android and an iPhone, portrait and landscape.
+- [ ] Phone check on a small Android and an iPhone, landscape only (the game is landscape only).
       *Done when:* every button is easy to tap and nothing is hidden behind controls.
 - [ ] PC and gamepad check. *Done when:* every screen can be opened, used and closed with
       mouse, keyboard and a controller.
