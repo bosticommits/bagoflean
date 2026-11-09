@@ -734,8 +734,9 @@ end
 -- A centered window with a colored title bar, close button and scrolling list.
 -- `topOffset` leaves room under the header for a tab row; `modal` panels sit above the others and
 -- are not closed by togglePanel; `bottomReserve` leaves room under the list for a footer;
--- `accent` colors the title bar (burgundy by default).
-function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?, bottomReserve: number?, accent: Color3?): (Frame, ScrollingFrame, TextLabel)
+-- `accent` colors the title bar (burgundy by default); `compactBottom` replaces `bottomReserve` on
+-- short screens, so the list takes the room a slimmer footer frees.
+function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?, bottomReserve: number?, accent: Color3?, compactBottom: number?): (Frame, ScrollingFrame, TextLabel)
 	local top = topOffset or 60
 	local bottom = bottomReserve or 10
 	local panel = Instance.new("Frame")
@@ -902,7 +903,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 			listTop = top - 12
 		end
 		list.Position = UDim2.fromOffset(10, listTop)
-		list.Size = UDim2.new(1, -20, 1, -(listTop + bottom))
+		list.Size = UDim2.new(1, -20, 1, -(listTop + (if compact and compactBottom ~= nil then compactBottom else bottom)))
 	end
 	UiKit.onViewportChanged(applyLayout)
 	gui:GetAttributeChangedSignal("MenuRight"):Connect(applyLayout)
