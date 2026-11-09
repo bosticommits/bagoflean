@@ -27,7 +27,8 @@ local notForSale: { [string]: boolean } = {} -- cacheKey -> Roblox says IsForSal
 -- Fetches a price once in the background and calls `onPrice` when it arrives.
 local function fetchPrice(kind: string, id: number, key: string, onPrice: () -> ())
 	local cacheKey = kind .. ":" .. key
-	if prices[cacheKey] ~= nil or fetching[cacheKey] or id == 0 then
+	-- shortcut: an off-sale item stays "Soon" until the player rejoins (no re-check), upgrade if sales toggle often.
+	if prices[cacheKey] ~= nil or notForSale[cacheKey] or fetching[cacheKey] or id == 0 then
 		return
 	end
 	fetching[cacheKey] = true
@@ -306,7 +307,14 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		-- the grid below.
 		local featured = Shop.getPass(FEATURED)
 		local featuredShown = false
-		if featured ~= nil and player:GetAttribute("Pass" .. featured.key) ~= true and ShopUi.offered(featured) then
+		-- An off-sale or unset pass is not the one main action: it stays a normal "Soon" card in the grid.
+		if
+			featured ~= nil
+			and featured.id ~= 0
+			and not notForSale["pass:" .. featured.key]
+			and player:GetAttribute("Pass" .. featured.key) ~= true
+			and ShopUi.offered(featured)
+		then
 			featuredShown = true
 			order += 1
 			local holder = Instance.new("Frame")
