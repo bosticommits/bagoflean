@@ -674,14 +674,16 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	-- UIScales (Juice.luau), so reuse its own and restore the value; add a temporary one only if
 	-- there is none. Anchor and position are left alone, so it grows from the anchor point.
 	local function idlePulse(target: GuiObject)
-		local scale = target:FindFirstChildWhichIsA("UIScale")
-		local temporary = scale == nil
-		if scale == nil then
-			scale = Instance.new("UIScale")
-			scale.Name = "IdleHint"
-			scale.Parent = target
+		local existing = target:FindFirstChildWhichIsA("UIScale")
+		local temporary = existing == nil
+		local object: UIScale
+		if existing ~= nil then
+			object = existing
+		else
+			object = Instance.new("UIScale")
+			object.Name = "IdleHint"
+			object.Parent = target
 		end
-		local object = scale :: UIScale
 		local original = object.Scale
 		local tween = TweenService:Create(object, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true), { Scale = original * 1.08 })
 		tween.Completed:Once(function()
