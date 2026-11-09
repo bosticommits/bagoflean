@@ -16,6 +16,7 @@
 -- something skips it, and nothing here can grant anything. Finishing or skipping tells the server
 -- once (TutorialDone), and it never shows again. The first Short Film is shortened server-side.
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -27,6 +28,7 @@ local Fx = require(script.Parent.Fx)
 local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
+local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
 
 -- The guide color: brighter and yellower than the UI's gold, so directions read as directions.
 local GUIDE = Color3.fromRGB(255, 222, 26)
@@ -67,65 +69,16 @@ do
 	end
 end
 
--- Dialogue layout (pixels). Regular: the card, then the instruction under it. Compact (phones in
--- landscape): one row, the card on the left and the instruction on the right.
-local MAX_WIDTH = 640
-local CARD_HEIGHT = 92
-local PILL_HEIGHT = 38
-local TIP_HEIGHT = 22
-local GAP = 6
-local TOP_PAD = 14 -- room above the card for the Skip tab
-local ROW_HEIGHT = 56
-local COMPACT_TIP = 18
+-- Dialogue layout (pixels). The speech bubble is a cream screenplay page; Lucien's bust sits in a
+-- top-right corner after the intro, with the bubble to its left and Skip under the bust.
+local BUBBLE_MAX_PHONE = 206
+local BUBBLE_MAX_PC = 400
+local BUST_PHONE = 76
+local BUST_PC = 110
+local EDGE = 8
 
-local CHARS_PER_SECOND = 48
+local CHARS_PER_SECOND = 60
 local FINALE_SECONDS = 8 -- the last line stays this long before the tutorial clears away
-
--- Lucien's lines (Bosti's script, 2026-10-08).
-local LINES = {
-	arrival = {
-		"Welcome to the lot, producer. I'm Director Lucien Vale. I've spent a lifetime turning brave ideas into films audiences remember.",
-		"Now this studio is yours. Let's make your first picture.",
-	},
-	cast = { "Good. Every great production needs a home. Now we need a cast." },
-	movies = { "A promising first signing! Check your actor's specialty when you choose a script. The right fit earns more." },
-	script = { "Every good cast needs a story. Let's start with a Short Film." },
-	film = {
-		"Now bring the story to life. Open Stages and tap Start Movie.",
-		"Choose your Short Film and the actor you just signed. One actor is enough to begin.",
-	},
-	filming = { "Cameras are rolling! Your first short finishes quickly." },
-	ready = { "The audience is waiting. Let's see what they think." },
-	collect = "Your cinema is earning now. Let's collect your box office.",
-	finale = {
-		"Excellent work, producer. Your first film is complete; this studio is yours to grow.",
-		"Free presents unlock as you play. The first arrives after 2 minutes; the present shows the timer.",
-		"The bar above CAST tracks your next guarantee. Casting Odds explains pity for each agency.",
-		"Tap the X beside Box Office to tuck the HUD away; the purple trophy tab brings it back.",
-		"Visit shows Film Sets and other studios. Preview a set's Luck bonus or jump to its gate.",
-	},
-}
-
--- What Lucien says after the first premiere's reveal, by result.
-local RESULT_LINES: { [string]: string } = {
-	Flop = "A difficult opening. Every great director has one. We'll learn from it and make the next film.",
-	Hit = "A solid premiere! The audience came out to see your work.",
-	Blockbuster = "Look at that crowd! Your first picture has made a splash.",
-	Cult = "They found something special in it. Some films only grow more beloved with time.",
-	Masterpiece = "A masterpiece on your first premiere! The whole lot will remember this one.",
-}
-
-local INSTRUCTIONS = {
-	claim = "Step onto a glowing green CLAIM pad to choose your lot.",
-	cast = "Press CAST to hold your first Casting Call.",
-	movies = "Find the MOVIES stand in the plaza, or open Studio from the menu.",
-	script = "In Studio, open Scripts and buy a Short Film script.",
-	film = "Choose your script and actor, then start filming.",
-	filming = "Tap CLAP to speed up filming. When the stage says Ready, press PREMIERE.",
-	ready = "Your film is Ready. Press PREMIERE!",
-	collect = "Follow the yellow guide to the gold collection pad on your lot and step on it.",
-	finale = "These are optional tips. Skip any time, or explore when you're ready.",
-}
 
 -- A place in the world to guide the player to. "primary" gets the arrow, glow, the chevron trail
 -- on the ground and an arrow at the screen edge while it is out of view; "secondary" an arrow and
@@ -141,9 +94,7 @@ type WorldTarget = {
 
 type View = {
 	linesKey: string, -- the dialogue restarts when this changes
-	lines: { string },
-	instruction: string,
-	tip: string?,
+	lines: { string }, -- keys of TutorialLines.LINES
 	ui: { GuiObject },
 	world: { WorldTarget },
 }
@@ -214,27 +165,6 @@ local function makeArrow(parent: Instance, size: number, zIndex: number): Frame
 	shine.Parent = shaft
 	holder.Parent = parent
 	return holder
-end
-
--- Splits a line into sentences of a readable length, for small screens.
-local function sentences(text: string): { string }
-	local out: { string } = {}
-	local current = ""
-	for sentence in string.gmatch(text, "[^%.!%?]+[%.!%?]*%s*") do
-		local trimmed = string.gsub(sentence, "%s+$", "")
-		if current == "" then
-			current = trimmed
-		elseif #current < 40 then
-			current ..= " " .. trimmed
-		else
-			table.insert(out, current)
-			current = trimmed
-		end
-	end
-	if current ~= "" then
-		table.insert(out, current)
-	end
-	return if #out > 0 then out else { text }
 end
 
 local function reducedMotion(): boolean
