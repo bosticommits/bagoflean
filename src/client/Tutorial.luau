@@ -1278,6 +1278,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		local backdropGui = screen("TutorialIntroBackdrop", 15, Enum.ScreenInsets.None)
 		local safeGui = screen("TutorialIntroSafe", 16, Enum.ScreenInsets.CoreUISafeInsets)
+		-- Curtains sit between the stage (16) and the dialogue (18), so they cover Lucien until they
+		-- open, yet Skip stays tappable above them.
+		local curtainGui = screen("TutorialIntroCurtains", 17, Enum.ScreenInsets.None)
+		local dialogueGui = screen("TutorialIntroDialogue", 18, Enum.ScreenInsets.CoreUISafeInsets)
 		local backdrop = Instance.new("Frame")
 		backdrop.Name = "Backdrop"
 		backdrop.Size = UDim2.fromScale(1, 1)
@@ -1299,7 +1303,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		overlay.BackgroundTransparency = 1
 		overlay.ZIndex = 7
 		overlay.Parent = safeGui
-		container.Parent = safeGui
+		container.Parent = dialogueGui
 
 		-- Spotlight, the floor it lands on, and Lucien.
 		local stage = Instance.new("Frame")
@@ -1419,7 +1423,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			curtain.BackgroundColor3 = CURTAIN
 			curtain.BorderSizePixel = 0
 			curtain.ZIndex = 9
-			curtain.Parent = backdrop
+			curtain.Parent = curtainGui
 			-- Velvet folds: light and dark bands across the curtain.
 			local folds = Instance.new("UIGradient")
 			local keys = {}
