@@ -11,6 +11,7 @@
 -- which lot to jump to.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local SocialService = game:GetService("SocialService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -294,6 +295,9 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		UiKit.corner(rule, 2)
 	end
 
+	-- Invite friends: shown only when Roblox says this player can send invites (checked once, below).
+	local canInvite = false
+
 	local function build()
 		UiKit.clear(list)
 		table.clear(statusLabels)
@@ -458,6 +462,25 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 				end
 			end)
 		end
+
+		if canInvite then
+			order += 1
+			local row = UiKit.addRow(list, order, 56)
+			UiKit.plainRow(row)
+			-- shortcut: text-only, no two-person icon asset exists yet (artist to make one).
+			local invite = makeButton(row, "Invite friends", UiKit.BLUE, UDim2.new(0.5, 0, 0, 44), UDim2.new(0.25, 0, 0, 6))
+			invite.Name = "InviteFriends"
+			invite.Activated:Connect(function()
+				local options = Instance.new("ExperienceInviteOptions")
+				options.PromptMessage = "Join my studio!"
+				local ok = pcall(function()
+					SocialService:PromptGameInvite(player, options)
+				end)
+				if not ok then
+					UiKit.toast(gui, "Invites aren't available right now")
+				end
+			end)
+		end
 	end
 
 	-- A short fingerprint of what the list shows, so it rebuilds only when that changes (countdowns
@@ -495,6 +518,22 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		end)
 	end)
 	Screens.register("Visit", open)
+
+	-- The prompt closing is the only signal we use; the recipients list is not trusted.
+	SocialService.GameInvitePromptClosed:Connect(function(sender: Player)
+		if sender == player then
+			UiKit.toast(gui, "Invite sent!")
+		end
+	end)
+	task.spawn(function()
+		local ok, can = pcall(function()
+			return SocialService:CanSendGameInviteAsync(player)
+		end)
+		canInvite = ok and can == true
+		if canInvite and panel.Visible then
+			build()
+		end
+	end)
 
 	-- Side menu chip: how many other studios there are to tour.
 	local function updateChip()
