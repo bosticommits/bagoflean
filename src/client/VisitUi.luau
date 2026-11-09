@@ -24,6 +24,7 @@ local LotModels = require(ReplicatedStorage.Shared.Models.LotModels)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local Visits = require(ReplicatedStorage.Shared.Visits)
 local Fx = require(script.Parent.Fx)
+local Juice = require(script.Parent.Juice)
 local Screens = require(script.Parent.Screens)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -540,6 +541,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 	local applaud = makeButton(card, "👏 APPLAUD", UiKit.AWARD_GOLD, UDim2.new(1, -24, 0, 54), UDim2.fromOffset(12, 112))
 	applaud.Name = "Applaud"
 	applaud:SetAttribute("Silent", true) -- the clap itself makes the sound
+	Juice.dropPress(applaud) -- it has its own clap scale; one UIScale per button
 	local applaudScale = Instance.new("UIScale")
 	applaudScale.Parent = applaud
 	local home = makeButton(card, "HOME", UiKit.BLUE, UDim2.fromOffset(66, 30), UDim2.new(1, -78, 0, 10))
