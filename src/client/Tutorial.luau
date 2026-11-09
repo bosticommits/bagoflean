@@ -1532,8 +1532,15 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local area = safeGui.AbsoluteSize
 			local side = math.floor(1.6 * 0.86 * area.Y)
 			figure.AnchorPoint = Vector2.new(0, 0)
+			local left = math.floor(area.X * 0.08)
+			if joyAmount ~= nil and compact() then
+				-- Phone joy screen: Lucien and the ticket stub side by side, no overlap.
+				local stubLeft = area.X * 0.74 - math.min(area.X * 0.44, 420) / 2
+				left = EDGE
+				side = math.max(120, math.min(side, math.floor(stubLeft - left - EDGE)))
+			end
 			figure.Size = UDim2.fromOffset(side, side)
-			figure.Position = UDim2.fromOffset(math.floor(area.X * 0.08), math.floor(area.Y * 0.02))
+			figure.Position = UDim2.fromOffset(left, math.floor(area.Y * 0.02))
 			layout()
 		end
 		place()
@@ -1596,6 +1603,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Driver ----------------------------------------------------------------------------------------
 	local currentStep = 0
+	local joyWaiting = false
 	local collectedAmount = 0 -- royalties the first collect paid out
 	local renderConnection: RBXScriptConnection? = nil
 
@@ -1656,6 +1664,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			end
 		end
 		if index == nil then
+			if revealShowing() then
+				joyWaiting = true -- the joy screen waits until no reveal is showing (onRender retries)
+				return
+			end
 			finish(false)
 			return
 		end
@@ -1694,6 +1706,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Every frame: the typewriter, the line timer, the moving arrows, the finale's end.
 	local function onRender(dt: number)
+		if joyWaiting and not revealShowing() then
+			joyWaiting = false
+			update()
+		end
 		if not revealShowing() then
 			if typing then
 				typed += dt * CHARS_PER_SECOND
