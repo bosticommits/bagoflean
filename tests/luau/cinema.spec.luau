@@ -50,6 +50,15 @@ test("the part fallback keeps the four old tiers and still returns the marquee",
 	end
 end)
 
+test("the level 6 dome finial is decoration: players cannot stand on it", function()
+	local folder = roblox.Instance.new("Folder")
+	LotModels.cinema(H.require("Models/Build").new(folder, roblox.CFrame.new()), 6, roblox.Color3.new(1, 0, 0))
+	local finial = folder:FindFirstChild("DomeTop", true)
+	expect(finial ~= nil, "level 6 cinema has a DomeTop part")
+	equal(finial.CanCollide, false, "DomeTop CanCollide")
+	equal(finial.CanTouch, false, "DomeTop CanTouch")
+end)
+
 test("every cinema part stays inside the squeezed body width and the level 6 dome has a ball hitbox", function()
 	for level = 0, 6 do
 		local look = LotModels.CinemaLooks[level]
