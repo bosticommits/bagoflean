@@ -393,7 +393,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 10)
 	pad.Parent = body
 	local stack = Instance.new("UIListLayout")
-	stack.Padding = UDim.new(0, 4)
+	stack.Padding = UDim.new(0, 8)
 	stack.SortOrder = Enum.SortOrder.LayoutOrder
 	stack.Parent = body
 
@@ -495,6 +495,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		return lowest
 	end
 
+	local guideTarget: () -> GuiObject? = function()
+		return nil
+	end -- set once the guides exist
+
 	local function layout()
 		if not container.Visible then
 			return
@@ -516,15 +520,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		skip.Size = if small then UDim2.fromOffset(64, 28) else UDim2.fromOffset(80, 34)
 
 		local bustSize = if small then BUST_PHONE else BUST_PC
-		local stackHeight = bustSize + 4 + skip.Size.Y.Offset
+		-- On a phone Skip overlaps the bust's lower edge instead of hanging under it (keeps PanelTop low).
+		local stackHeight = if small then bustSize else bustSize + 4 + skip.Size.Y.Offset
 		local panelOpen = anyPanelOpen()
 
 		if splashOpen then
 			-- The intro: the bubble from the middle of the safe area, Skip bottom-right.
 			bust.Visible = false
 			card.AnchorPoint = Vector2.new(0, 0)
-			card.Position = UDim2.fromOffset(math.floor(area.X * 0.5), math.floor(area.Y * 0.28))
-			card.Size = UDim2.fromOffset(math.min(math.floor(area.X * 0.46), BUBBLE_MAX_PC + 40), 0)
+			local cardW = math.min(math.floor(area.X * (if small then 0.4 else 0.46)), BUBBLE_MAX_PC + 40)
+			-- On a phone the bubble hugs the right edge, clear of Lucien's glasses (taste rule 2).
+			local cardX = if small then area.X - EDGE - cardW else math.floor(area.X * 0.5)
+			card.Position = UDim2.fromOffset(cardX, math.floor(area.Y * 0.28))
+			card.Size = UDim2.fromOffset(cardW, 0)
 			skip.AnchorPoint = Vector2.new(1, 1)
 			skip.Position = UDim2.fromOffset(area.X - EDGE, area.Y - EDGE)
 		else
@@ -540,12 +548,59 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				y = math.max(top - 6, hudBottom(right - bustSize - 8 - bubbleWidth, right) - 4)
 			end
 			local right = area.X - EDGE
+			if small and not panelOpen then
+				-- Phone: try the corners in turn and take the first where the bubble and bust cover
+				-- neither the HUD readouts / buttons nor the step's target.
+				local o = container.AbsolutePosition
+				local blocks: { { number } } = {}
+				local function block(object: Instance?)
+					if object ~= nil and object:IsA("GuiObject") and object.Visible and object.AbsoluteSize.Y > 0 then
+						local at, size = object.AbsolutePosition - o, object.AbsoluteSize
+						if size.X < area.X * 0.5 and size.Y < area.Y * 0.5 then
+							table.insert(blocks, { at.X, at.Y, at.X + size.X, at.Y + size.Y })
+						end
+					end
+				end
+				for _, child in gui:GetChildren() do
+					if child:IsA("GuiObject") and child.Name ~= "Hud" then
+						block(child)
+					end
+				end
+				local hud = gui:FindFirstChild("Hud")
+				if hud ~= nil then
+					for _, child in hud:GetChildren() do
+						block(child)
+					end
+				end
+				block(guideTarget())
+				local w = bubbleWidth + 8 + bustSize
+				local h = math.max(stackHeight, card.AbsoluteSize.Y)
+				local function free(r: number, cy: number): boolean
+					for _, b in blocks do
+						if r > b[1] and r - w < b[3] and cy + h > b[2] and cy < b[4] then
+							return false
+						end
+					end
+					return true
+				end
+				for _, spot in { { right, y }, { right, area.Y - h - EDGE }, { EDGE + w, y }, { EDGE + w, area.Y - h - EDGE } } do
+					if free(spot[1], spot[2]) then
+						right, y = spot[1], spot[2]
+						break
+					end
+				end
+			end
 			bust.Position = UDim2.fromOffset(right, y)
 			card.AnchorPoint = Vector2.new(1, 0)
 			card.Position = UDim2.fromOffset(right - bustSize - 8, y)
 			card.Size = UDim2.fromOffset(bubbleWidth, 0)
-			skip.AnchorPoint = Vector2.new(1, 0)
-			skip.Position = UDim2.fromOffset(right, y + bustSize + 4)
+			if small then
+				skip.AnchorPoint = Vector2.new(1, 1)
+				skip.Position = UDim2.fromOffset(right, y + bustSize)
+			else
+				skip.AnchorPoint = Vector2.new(1, 0)
+				skip.Position = UDim2.fromOffset(right, y + bustSize + 4)
+			end
 		end
 
 		-- Panels start under the bust and bubble as they sit while a panel is open. Only set on a
@@ -628,6 +683,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	type WorldGuide = { target: WorldTarget, cleanup: () -> (), trail: Trail?, edge: Frame? }
 	local uiGuides: { UiGuide } = {}
 	local worldGuides: { WorldGuide } = {}
+	guideTarget = function()
+		return if uiGuides[1] ~= nil then uiGuides[1].target else nil
+	end
 
 	-- The dim: four black bands around a hole at the target, in its own screen above the HUD (0)
 	-- and below the dialogue (2). Visual only: nothing in it takes input.
@@ -1371,7 +1429,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		keep.Name = "KeepRolling"
 		keep.LayoutOrder = 4
 		keep.ZIndex = 12
-		keep.TextColor3 = UiKit.INK
 		UiKit.textConstraint(keep, 26)
 		keep.Activated:Connect(function()
 			teardown()
