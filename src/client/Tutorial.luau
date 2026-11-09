@@ -267,8 +267,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local function revealShowing(): boolean
 		-- The premiere overlay lives in its own screen (PremiereReveal.start).
 		local backdrop = if playerGui ~= nil then playerGui:FindFirstChild("PremiereRevealBackdrop") else nil
+		local castSafe = if playerGui ~= nil then playerGui:FindFirstChild("CastRevealSafe") else nil
 		for _, name in { "Reveal", "PremiereReveal" } do
-			local overlay = gui:FindFirstChild(name) or (if backdrop ~= nil then backdrop:FindFirstChild(name) else nil)
+			local overlay = (if castSafe ~= nil then castSafe:FindFirstChild(name) else nil) or (if backdrop ~= nil then backdrop:FindFirstChild(name) else nil)
 			if overlay ~= nil and overlay:IsA("GuiObject") and overlay.Visible then
 				return true
 			end

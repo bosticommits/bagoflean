@@ -60,7 +60,9 @@ function Announcements.start(gui: ScreenGui, remotes: Instance)
 	end
 
 	local function revealOpen(): boolean
-		local reveal = gui:FindFirstChild("Reveal")
+		local playerGui = gui.Parent
+		local safe = if playerGui ~= nil then playerGui:FindFirstChild("CastRevealSafe") else nil
+		local reveal = if safe ~= nil then safe:FindFirstChild("Reveal") else nil
 		return reveal ~= nil and reveal:IsA("GuiObject") and reveal.Visible
 	end
 
