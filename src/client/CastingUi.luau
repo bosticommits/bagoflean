@@ -698,22 +698,18 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	overlay.ZIndex = 10
 	overlay.Parent = gui
 	UiKit.watchOverlay(overlay)
-	-- The dim covers the whole screen, top bar included; the card stays in the safe area.
+	-- The dim is centred and oversized, so it covers every inset (top bar, side cut-outs) with no
+	-- measuring. Nothing above it clips (a ScreenGui has no ClipsDescendants); the card sits on top.
 	local dimFill = Instance.new("Frame")
 	dimFill.Name = "Dim"
+	dimFill.AnchorPoint = Vector2.new(0.5, 0.5)
+	dimFill.Position = UDim2.fromScale(0.5, 0.5)
+	dimFill.Size = UDim2.fromOffset(10000, 10000)
 	dimFill.BackgroundColor3 = UiKit.DARK
 	dimFill.BackgroundTransparency = 0.25
 	dimFill.BorderSizePixel = 0
 	dimFill.ZIndex = 10
 	dimFill.Parent = overlay
-	local function fitDim()
-		local at = overlay.AbsolutePosition
-		dimFill.Position = UDim2.fromOffset(-at.X, -at.Y)
-		dimFill.Size = UDim2.fromOffset(UiKit.viewport().X, UiKit.viewport().Y)
-	end
-	overlay:GetPropertyChangedSignal("AbsolutePosition"):Connect(fitDim)
-	overlay:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitDim)
-	fitDim()
 
 	local card = Instance.new("Frame")
 	card.AnchorPoint = Vector2.new(0.5, 0.5)
