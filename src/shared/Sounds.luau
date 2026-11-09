@@ -145,27 +145,23 @@ Sounds.Slots = {
 	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger", delay = 0.9 }, -- "Heads up, Hollywood! A special event just started!"
 	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)
 
-	-- Tutorial lines (src/shared/TutorialLines.luau VOICE): id = 0 until recorded; the tutorial skips them.
-	lucienTut1 = slot("pop"),
-	lucienTut2 = slot("pop"),
-	lucienTut3 = slot("pop"),
-	lucienTut4 = slot("pop"),
-	lucienTut5 = slot("pop"),
-	lucienTut6 = slot("pop"),
-	lucienTut7 = slot("pop"),
-	lucienTut8 = slot("pop"),
-	lucienTut9 = slot("pop"),
-	lucienTut10 = slot("pop"),
-	lucienTut11 = slot("pop"),
-	lucienTut12 = slot("pop"),
-	lucienTut13 = slot("pop"),
-	lucienTut14 = slot("pop"),
-	lucienTut15 = slot("pop"),
-	lucienTut16 = slot("pop"),
-	lucienTut17 = slot("pop"),
-	lucienTut18 = slot("pop"),
-	lucienTut19 = slot("pop"),
-	lucienTut20 = slot("pop"),
+	-- Tutorial lines (src/shared/TutorialLines.luau VOICE), in moderation at first: the fallback plays until cleared.
+	lucienTutWelcome = { id = 121927678146970, volume = 0.9, fallback = "jingle" }, -- "Welcome to Hollywood RNG! I'm Director Lucien Vale."
+	lucienTutIntro = { id = 139724568132856, volume = 0.9, fallback = "indicator" }, -- "Let's make your first hit. Ready?"
+	lucienTutCast = { id = 127130101707747, volume = 0.9, fallback = "whoosh" }, -- "Tap CAST to sign your first star!"
+	lucienTutPad = { id = 107476571378416, volume = 0.9, fallback = "indicator" }, -- "Walk onto the green pad!" (the bubble says a little more)
+	lucienTutStudio = { id = 107257095906240, volume = 0.9, fallback = "indicator" }, -- "Now a story. Tap Studio."
+	lucienTutBuyFilm = { id = 133263863557184, volume = 0.9, fallback = "indicator" }, -- "Buy a Short Film. It films fast."
+	lucienTutStart = { id = 81577580984182, volume = 0.9, fallback = "indicator" }, -- "Lights, camera... tap Start!"
+	lucienTutClap = { id = 106623625415403, volume = 0.9, fallback = "clap" }, -- "Cameras rolling! Tap CLAP to speed it up."
+	lucienTutPremiere = { id = 139080483041912, volume = 0.9, fallback = "whoosh" }, -- "It's ready. Tap PREMIERE!"
+	lucienTutFlop = { id = 131116922584716, volume = 0.9, fallback = "low", delay = 0.9 },
+	lucienTutHit = { id = 75005350147019, volume = 0.9, fallback = "pop", delay = 0.8 },
+	lucienTutBlockbuster = { id = 99720615343109, volume = 0.9, fallback = "stinger", delay = 0.9 },
+	lucienTutCult = { id = 95671648577392, volume = 0.9, fallback = "stinger", delay = 1 },
+	lucienTutMasterpiece = { id = 78835020017152, volume = 0.9, fallback = "jingle", delay = 1 },
+	lucienTutCollect = { id = 90406561306710, volume = 0.9, fallback = "indicator" }, -- "Step on your gold pad to collect!"
+	lucienTutWrap = { id = 90292490491488, volume = 0.9, fallback = "jingle" }, -- "That's a wrap! Your first movie, producer." (joy screen, PR 2)
 
 	-- Studio visits
 	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio

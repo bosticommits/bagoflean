@@ -1,8 +1,8 @@
 --!strict
 -- Director Lucien's tutorial lines: one short line per view key (Tutorial.luau), so a line can be
 -- read at a glance. Tests (tests/luau/tutoriallines.spec.luau) keep each at 12 words / 60 chars.
--- VOICE maps a key to the Sounds slot of its spoken clip. The lucienTut slots have id = 0 until
--- the recordings are uploaded; the tutorial skips a slot with no id.
+-- VOICE maps a key to the Sounds slot of its spoken clip (lines without one, such as "Open
+-- Scripts.", stay silent).
 local TutorialLines = {}
 
 TutorialLines.LINES = {
@@ -43,28 +43,22 @@ function TutorialLines.resultKey(resultId: string): string
 end
 
 TutorialLines.VOICE = {
-	intro1 = "lucienWelcome",
-	intro2 = "lucienTut1",
-	cast = "lucienFirstCast",
-	claim = "lucienTut2",
-	studio = "lucienTut3",
-	studioNear = "lucienTut4",
-	scriptOpen = "lucienTut5",
-	scriptBuy = "lucienTut6",
-	filmStages = "lucienTut7",
-	filmStart = "lucienTut8",
-	filmScript = "lucienTut9",
-	filmActor = "lucienTut10",
-	filmGo = "lucienTut11",
-	shoot = "lucienTut12",
-	ready = "lucienTut13",
-	resultFlop = "lucienTut14",
-	resultHit = "lucienTut15",
-	resultBlockbuster = "lucienTut16",
-	resultCult = "lucienTut17",
-	resultMasterpiece = "lucienTut18",
-	collect = "lucienTut19",
-	joy = "lucienTut20",
+	intro1 = "lucienTutWelcome",
+	intro2 = "lucienTutIntro",
+	cast = "lucienTutCast",
+	claim = "lucienTutPad",
+	studio = "lucienTutStudio",
+	scriptBuy = "lucienTutBuyFilm",
+	filmGo = "lucienTutStart",
+	shoot = "lucienTutClap",
+	ready = "lucienTutPremiere",
+	resultFlop = "lucienTutFlop",
+	resultHit = "lucienTutHit",
+	resultBlockbuster = "lucienTutBlockbuster",
+	resultCult = "lucienTutCult",
+	resultMasterpiece = "lucienTutMasterpiece",
+	collect = "lucienTutCollect",
+	joy = "lucienTutWrap",
 }
 
 return TutorialLines
