@@ -22,11 +22,13 @@ local ShopUi = {}
 
 local prices: { [string]: number } = {} -- "pass:<key>" / "product:<key>" -> Robux
 local fetching: { [string]: boolean } = {}
+local notForSale: { [string]: boolean } = {} -- cacheKey -> Roblox says IsForSale is false
 
 -- Fetches a price once in the background and calls `onPrice` when it arrives.
 local function fetchPrice(kind: string, id: number, key: string, onPrice: () -> ())
 	local cacheKey = kind .. ":" .. key
-	if prices[cacheKey] ~= nil or fetching[cacheKey] or id == 0 then
+	-- shortcut: an off-sale item stays "Soon" until the player rejoins (no re-check), upgrade if sales toggle often.
+	if prices[cacheKey] ~= nil or notForSale[cacheKey] or fetching[cacheKey] or id == 0 then
 		return
 	end
 	fetching[cacheKey] = true
@@ -36,9 +38,15 @@ local function fetchPrice(kind: string, id: number, key: string, onPrice: () -> 
 			return MarketplaceService:GetProductInfo(id, infoType)
 		end)
 		fetching[cacheKey] = nil
-		if ok and type(info) == "table" and type(info.PriceInRobux) == "number" then
-			prices[cacheKey] = info.PriceInRobux
-			onPrice()
+		-- A failed lookup (ok false) changes nothing, so a purchasable item keeps showing "Buy".
+		if ok and type(info) == "table" then
+			if info.IsForSale == false then
+				notForSale[cacheKey] = true
+				onPrice()
+			elseif type(info.PriceInRobux) == "number" then
+				prices[cacheKey] = info.PriceInRobux
+				onPrice()
+			end
 		end
 	end)
 end
@@ -157,8 +165,11 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		if id == 0 then
 			return "Soon"
 		end
-		local price = prices[kind .. ":" .. key]
 		fetchPrice(kind, id, key, rebuildIfOpen)
+		if notForSale[kind .. ":" .. key] then
+			return "Soon"
+		end
+		local price = prices[kind .. ":" .. key]
 		return if price ~= nil then "R$ " .. Hud.comma(price) else "Buy"
 	end
 
@@ -279,8 +290,9 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			elseif not ShopUi.offered(pass) then
 				ownedLabel(c, "Not available", UiKit.MUTED)
 			else
-				priceButton(c, priceText("pass", pass.id, pass.key), pass.id ~= 0).Activated:Connect(function()
-					if pass.id == 0 then
+				local text = priceText("pass", pass.id, pass.key)
+				priceButton(c, text, text ~= "Soon").Activated:Connect(function()
+					if text == "Soon" then
 						UiKit.toast(gui, "Coming soon!")
 					elseif promptAllowed() then
 						MarketplaceService:PromptGamePassPurchase(player, pass.id)
@@ -295,7 +307,14 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		-- the grid below.
 		local featured = Shop.getPass(FEATURED)
 		local featuredShown = false
-		if featured ~= nil and player:GetAttribute("Pass" .. featured.key) ~= true and ShopUi.offered(featured) then
+		-- An off-sale or unset pass is not the one main action: it stays a normal "Soon" card in the grid.
+		if
+			featured ~= nil
+			and featured.id ~= 0
+			and not notForSale["pass:" .. featured.key]
+			and player:GetAttribute("Pass" .. featured.key) ~= true
+			and ShopUi.offered(featured)
+		then
 			featuredShown = true
 			order += 1
 			local holder = Instance.new("Frame")
@@ -364,7 +383,12 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 				ownedLabel(c, "Not available", UiKit.MUTED)
 				continue
 			end
-			priceButton(c, priceText("product", product.id, product.key), product.id ~= 0).Activated:Connect(function()
+			local text = priceText("product", product.id, product.key)
+			priceButton(c, text, text ~= "Soon").Activated:Connect(function()
+				if text == "Soon" then
+					UiKit.toast(gui, "Coming soon!")
+					return
+				end
 				if not promptAllowed() then
 					return
 				end
