@@ -520,7 +520,7 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		column.Position = UDim2.new(1, -10, 0.5, 0)
 		column.Size = UDim2.fromOffset(150, 34)
 		column.BackgroundTransparency = 1
-		column.ZIndex = 6
+		column.ZIndex = 0 -- never over a panel
 		column.Parent = gui
 		local toggle = UiKit.makeButton(column, "Events (Studio)", UiKit.PURPLE, UDim2.fromOffset(150, 34), UDim2.new())
 		toggle.ZIndex = 6

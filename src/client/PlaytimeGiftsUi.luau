@@ -87,7 +87,7 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 	row.BackgroundTransparency = 1
 	row.Size = UDim2.fromOffset((COUNT - 1) * (SLOT + GAP) + BIG, BIG + LABEL)
 	row.Visible = false
-	row.ZIndex = 5
+	row.ZIndex = 0 -- never over a panel (panels are 1 and up)
 	row.Parent = gui
 	local rowScale = Instance.new("UIScale")
 	rowScale.Parent = row
@@ -108,7 +108,7 @@ function PlaytimeGiftsUi.start(gui: ScreenGui, remotes: Instance)
 	mini.ScaleType = Enum.ScaleType.Fit
 	mini.Size = UDim2.fromOffset(MINI, MINI)
 	mini.Visible = false
-	mini.ZIndex = 5
+	mini.ZIndex = 0
 	mini.Parent = gui
 	local miniHalo = UiKit.halo(mini, 10, 2)
 	miniHalo.Visible = false

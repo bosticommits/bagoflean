@@ -8,6 +8,7 @@ local Announcements = require(script.Parent.Announcements)
 local ActorLife = require(script.Parent.ActorLife)
 local AreaMood = require(script.Parent.AreaMood)
 local CastingUi = require(script.Parent.CastingUi)
+local Declutter = require(script.Parent.Declutter)
 local ClientState = require(script.Parent.ClientState)
 local DayNightWorld = require(script.Parent.DayNightWorld)
 local FilmSetWorld = require(script.Parent.FilmSetWorld)
@@ -91,6 +92,7 @@ if remotes ~= nil then
 	VisitUi.start(gui, side.visit)
 	MascotUi.start(gui, side.mascots, remotes)
 	task.spawn(PlaytimeGiftsUi.start, gui, remotes)
+	Declutter.start(gui)
 else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
