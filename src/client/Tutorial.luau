@@ -1387,20 +1387,21 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		-- The stage fills the room under the dialogue: the button (at least 56 px tall, for
 		-- thumbs) and the name plate at the bottom, Lucien in the space above them.
 		local function place()
-			local area = gui.AbsoluteSize
+			-- Size from the safe-area screen the stage lives in: gui.AbsoluteSize is stale at open time.
+			local area = safeGui.AbsoluteSize
 			local topEdge = gui:GetAttribute("PanelTop")
 			local y = if typeof(topEdge) == "number" then topEdge else 120
 			local width = math.min(area.X, 560)
-			local height = math.max(200, area.Y - y - 8)
+			local height = math.max(120, area.Y - y - 8)
 			stage.Position = UDim2.new(0.5, 0, 0, y)
 			stage.Size = UDim2.fromOffset(width, height)
-			local buttonHeight = math.clamp(math.floor(height * 0.14), 56, 64)
-			local plateHeight = math.clamp(math.floor(height * 0.15), 44, 80)
+			local buttonHeight = math.clamp(math.floor(height * 0.14), 48, 64)
+			local plateHeight = math.clamp(math.floor(height * 0.15), 36, 80)
 			begin.Size = UDim2.fromOffset(math.clamp(math.floor(width * 0.5), 200, 280), buttonHeight)
 			begin.Position = UDim2.fromOffset(width / 2, height - buttonHeight)
 			plate.Size = UDim2.fromOffset(math.min(math.floor(width * 0.9), 400), plateHeight)
 			plate.Position = UDim2.fromOffset(width / 2, height - buttonHeight - 10 - plateHeight)
-			local figureBottom = height - buttonHeight - plateHeight - 16
+			local figureBottom = math.max(24, height - buttonHeight - plateHeight - 16)
 			figure.Size = UDim2.fromOffset(figureBottom, figureBottom)
 			figure.Position = UDim2.fromOffset(width / 2, figureBottom)
 			floor.Position = UDim2.fromOffset(width / 2, figureBottom - 4)
@@ -1408,8 +1409,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		place()
 		local placing = gui:GetAttributeChangedSignal("PanelTop"):Connect(place)
+		local resizing = safeGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 		marker.Destroying:Connect(function()
 			placing:Disconnect()
+			resizing:Disconnect()
 		end)
 
 		-- Curtains, opening from the middle.
