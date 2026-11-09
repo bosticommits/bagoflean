@@ -23,7 +23,9 @@ local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 
 local ClientState = require(script.Parent.ClientState)
+local CountUp = require(ReplicatedStorage.Shared.CountUp)
 local Fx = require(script.Parent.Fx)
+local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
@@ -1242,7 +1244,133 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		layout()
 	end
 
-	local function openSplash()
+	local teardown: () -> ()
+
+	-- The joy screen's right half: a spinning gold sunburst behind a cream ticket stub, "Your first
+	-- box office" with the amount counting up, Lucien's wrap line and one Keep rolling button.
+	-- Lucien and the dark backdrop come from openSplash.
+	local function buildJoy(overlay: Frame, safeGui: ScreenGui, marker: Frame, amount: number, still: boolean)
+		local small = compact()
+		local burst = Instance.new("Frame")
+		burst.Name = "Sunburst"
+		burst.BackgroundTransparency = 1
+		burst.AnchorPoint = Vector2.new(0.5, 0.5)
+		burst.ZIndex = 7
+		burst.Parent = overlay
+		for index = 0, 5 do
+			local ray = Instance.new("Frame")
+			ray.Name = "Ray"
+			ray.AnchorPoint = Vector2.new(0.5, 0.5)
+			ray.Position = UDim2.fromScale(0.5, 0.5)
+			ray.Size = UDim2.fromScale(0.1, 1)
+			ray.Rotation = index * 30
+			ray.BackgroundColor3 = UiKit.GOLD
+			ray.BackgroundTransparency = 0.82
+			ray.BorderSizePixel = 0
+			ray.ZIndex = 7
+			ray.Parent = burst
+		end
+		if not still then
+			local spin = TweenService:Create(burst, TweenInfo.new(30, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1), { Rotation = 360 })
+			spin:Play()
+			marker.Destroying:Connect(function()
+				spin:Cancel()
+			end)
+		end
+
+		local stub = Instance.new("Frame")
+		stub.Name = "TicketStub"
+		stub.AnchorPoint = Vector2.new(0.5, 0.5)
+		stub.Position = UDim2.fromScale(0.74, 0.5)
+		stub.Size = UDim2.fromScale(0.44, 0.84)
+		stub.BackgroundColor3 = UiKit.CREAM
+		stub.ZIndex = 9
+		stub.Parent = overlay
+		UiKit.corner(stub, 16)
+		UiKit.border(stub, 4, UiKit.INK)
+		local limit = Instance.new("UISizeConstraint")
+		limit.MaxSize = Vector2.new(420, 330)
+		limit.Parent = stub
+		-- Ticket notches in the backdrop colour on both sides.
+		for _, side in { 0, 1 } do
+			local notch = Instance.new("Frame")
+			notch.Name = "Notch"
+			notch.AnchorPoint = Vector2.new(0.5, 0.5)
+			notch.Position = UDim2.fromScale(side, 0.5)
+			notch.Size = UDim2.fromOffset(22, 22)
+			notch.BackgroundColor3 = UiKit.DARK
+			notch.ZIndex = 10
+			notch.Parent = stub
+			UiKit.corner(notch, 11)
+		end
+		local body = Instance.new("Frame")
+		body.Name = "Body"
+		body.BackgroundTransparency = 1
+		body.Size = UDim2.fromScale(1, 1)
+		body.ZIndex = 10
+		body.Parent = stub
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 16), UDim.new(0, 16)
+		pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 10), UDim.new(0, 12)
+		pad.Parent = body
+		local list = Instance.new("UIListLayout")
+		list.Padding = UDim.new(0, if small then 4 else 8)
+		list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		list.VerticalAlignment = Enum.VerticalAlignment.Center
+		list.SortOrder = Enum.SortOrder.LayoutOrder
+		list.Parent = body
+
+		local heading = UiKit.makeLabel(body, "Your first box office", UiKit.BURGUNDY, UDim2.new(1, 0, 0, if small then 22 else 28))
+		heading.LayoutOrder = 1
+		heading.ZIndex = 11
+		local money = UiKit.makeTitle(body, "$0", UiKit.GOLD, UDim2.new(1, 0, 0, if small then 56 else 74), nil, 3)
+		money.LayoutOrder = 2
+		money.ZIndex = 11
+		UiKit.textConstraint(money, 72)
+		local wrap = UiKit.makeLabel(body, TutorialLines.LINES.joy, UiKit.INK, UDim2.new(1, 0, 0, if small then 40 else 52))
+		wrap.LayoutOrder = 3
+		wrap.TextWrapped = true
+		wrap.ZIndex = 11
+		UiKit.textConstraint(wrap, if small then 18 else 22)
+		local keep = UiKit.makeButton(body, "Keep rolling", UiKit.GOLD, UDim2.new(1, 0, 0, if small then 44 else 52))
+		keep.Name = "KeepRolling"
+		keep.LayoutOrder = 4
+		keep.ZIndex = 12
+		keep.TextColor3 = UiKit.INK
+		UiKit.textConstraint(keep, 26)
+		keep.Activated:Connect(function()
+			teardown()
+		end)
+
+		if still then
+			money.Text = "$" .. Hud.comma(amount)
+		else
+			task.spawn(function()
+				local started = os.clock()
+				while marker.Parent ~= nil do
+					local alpha = (os.clock() - started) / 1.4
+					money.Text = "$" .. Hud.comma(CountUp.at(0, amount, alpha))
+					if alpha >= 1 then
+						break
+					end
+					task.wait()
+				end
+			end)
+		end
+
+		local function place()
+			local area = safeGui.AbsoluteSize
+			burst.Position = stub.Position
+			burst.Size = UDim2.fromOffset(math.floor(area.Y * 1.3), math.floor(area.Y * 1.3))
+		end
+		place()
+		local resizing = safeGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+		marker.Destroying:Connect(function()
+			resizing:Disconnect()
+		end)
+	end
+
+	local function openSplash(joyAmount: number?)
 		local still = reducedMotion()
 		-- Own screens above the HUD (order 0) and the panels, below the confetti (Fx, 20): an opaque
 		-- full-bleed backdrop and curtains with no insets (hides the HUD and the strip under the
@@ -1322,6 +1450,12 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			resizing:Disconnect()
 		end)
 
+		if joyAmount ~= nil then
+			rise.Scale = 1
+			buildJoy(overlay, safeGui, marker, joyAmount, still)
+			return
+		end
+
 		-- Curtains, opening from the middle.
 		local curtains: { Frame } = {}
 		for _, side in { 0, 1 } do
@@ -1372,52 +1506,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local currentStep = 0
 	local stepStartedAt = os.clock()
 	local hinted = false
-	local finaleEndsAt: number? = nil
-	local finaleGuideLine = 0
+	local collectedAmount = 0 -- royalties the first collect paid out
 	local renderConnection: RBXScriptConnection? = nil
 
-	-- The final feature tour follows its dialogue, so only one real control is highlighted at a
-	-- time. The existing guide hides arrows for controls that are not visible on this device/state.
-	local function updateFinaleGuide()
-		if not finale or finaleGuideLine == lineIndex then
-			return
-		end
-		finaleGuideLine = lineIndex
-		local ui: { GuiObject } = {}
-		local world: { WorldTarget } = {}
-		if lineIndex == 2 then
-			-- Touch screens show one present button instead of the row (PlaytimeGiftsUi).
-			local button = gui:FindFirstChild("PlaytimeGiftsButton")
-			local row = gui:FindFirstChild("PlaytimeGifts")
-			local gift = if row ~= nil then row:FindFirstChild("Gift1") else nil
-			local present = if button ~= nil and button:IsA("GuiObject") and button.Visible then button else findGui(gift, "Present")
-			if present ~= nil then
-				table.insert(ui, present)
-			end
-		elseif lineIndex == 3 then
-			local bar = findGui(gui:FindFirstChild("CastingBar"), "HotStart")
-			if bar ~= nil then
-				table.insert(ui, bar)
-			end
-			local odds = standTarget("Odds", "CASTING ODDS", "secondary")
-			if odds ~= nil then
-				table.insert(world, odds)
-			end
-		elseif lineIndex == 4 then
-			local tuck = findGui(gui:FindFirstChild("Hud"), "Tuck")
-			if tuck ~= nil then
-				table.insert(ui, tuck)
-			end
-		elseif lineIndex == 5 then
-			local visit = sideButton("VisitButton")
-			if visit ~= nil then
-				table.insert(ui, visit)
-			end
-		end
-		syncGuides(ui, world)
-	end
-
-	local function teardown()
+	function teardown()
 		active = false
 		clearGuides()
 		dimGui.Enabled = false
@@ -1431,16 +1523,21 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		gui:SetAttribute("TutorialBottom", nil)
 	end
 
-	local function startFinale()
+	-- The end: one moment of joy instead of a tip tour. Lucien's wrap line is voiced; the stub's
+	-- button is the only way on. TutorialDone fires once, here.
+	local function openJoy(amount: number)
 		finale = true
 		closeSplash()
+		clearGuides()
+		container.Visible = false -- the screen carries its own line; no corner bubble
+		queue = {}
+		lineIndex = 0
+		typing = false
 		tutorialDone:FireServer()
+		openSplash(amount)
 		Sfx.play("welcome")
-		Fx.confetti(40, { UiKit.GOLD, UiKit.CREAM, GUIDE })
-		playLines(TutorialLines.FINALE)
-		finaleGuideLine = 0
-		updateFinaleGuide()
-		layout()
+		Sfx.play(TutorialLines.VOICE.joy)
+		Fx.confetti(40, { UiKit.GOLD, UiKit.CREAM, GUIDE }, true)
 	end
 
 	local function finish(skipped: boolean)
@@ -1453,7 +1550,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			teardown()
 			return
 		end
-		startFinale()
+		openJoy(collectedAmount)
 	end
 
 	local function update()
@@ -1504,7 +1601,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Every frame: the typewriter, the line timer, the moving arrows, the finale's end.
 	local function onRender(dt: number)
-		updateFinaleGuide()
 		if not revealShowing() then
 			if typing then
 				typed += dt * CHARS_PER_SECOND
@@ -1522,14 +1618,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				end
 			elseif lineIndex < #queue and os.clock() - lineDoneAt > holdTime(speech.Text) then
 				showLine(lineIndex + 1)
-			elseif finale and lineIndex >= #queue then
-				local ends = finaleEndsAt
-				if ends == nil then
-					finaleEndsAt = os.clock() + FINALE_SECONDS
-				elseif os.clock() > ends then
-					teardown()
-					return
-				end
 			end
 		end
 		animateGuides(dt)
@@ -1565,6 +1653,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local pending = player:GetAttribute("Pending") or 0
 			if pending < lastPending - 0.5 then
 				collected = true
+				collectedAmount = lastPending - pending
 			end
 			lastPending = pending
 		end
