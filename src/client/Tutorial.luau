@@ -483,7 +483,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local active = false
 	local finished = false
 	local finale = false
-	local splash: Frame? = nil
+	local splash: Frame? = nil -- the DirectorPanel marker in the HUD
 	local tipText: string? = nil
 	local studioOpened = false
 	local collected = false
@@ -1243,27 +1243,67 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	-- Intro screen ---------------------------------------------------------------------------------
 	-- The one big moment: red curtains open on Lucien in a spotlight, with his name on a plate.
 	-- His lines play in the dialogue at the top as usual.
+	local introScreens: { ScreenGui } = {}
 	local function closeSplash()
 		local open = splash
 		if open == nil then
 			return
 		end
 		splash = nil
+		container.Parent = gui -- back from the intro's safe-area screen before it is destroyed
 		open:Destroy()
+		for _, screen in introScreens do
+			screen:Destroy()
+		end
+		table.clear(introScreens)
 		layout()
 	end
 
 	local function openSplash()
 		local still = reducedMotion()
+		-- Own screens above the HUD (order 0) and the panels, below the confetti (Fx, 20): an opaque
+		-- full-bleed backdrop and curtains with no insets (hides the HUD and the strip under the
+		-- Roblox buttons), and a safe-area screen for the stage and the dialogue.
+		local function screen(name: string, order: number, insets: Enum.ScreenInsets): ScreenGui
+			local made = Instance.new("ScreenGui")
+			made.Name = name
+			made.ResetOnSpawn = false
+			made.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			made.ScreenInsets = insets
+			made.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
+			made.DisplayOrder = order
+			made.Parent = playerGui
+			table.insert(introScreens, made)
+			return made
+		end
+		local backdropGui = screen("TutorialIntroBackdrop", 15, Enum.ScreenInsets.None)
+		local safeGui = screen("TutorialIntroSafe", 16, Enum.ScreenInsets.CoreUISafeInsets)
+		-- Curtains sit between the stage (16) and the dialogue (18), so they cover Lucien until they
+		-- open, yet Skip stays tappable above them.
+		local curtainGui = screen("TutorialIntroCurtains", 17, Enum.ScreenInsets.None)
+		local dialogueGui = screen("TutorialIntroDialogue", 18, Enum.ScreenInsets.CoreUISafeInsets)
+		local backdrop = Instance.new("Frame")
+		backdrop.Name = "Backdrop"
+		backdrop.Size = UDim2.fromScale(1, 1)
+		backdrop.BackgroundColor3 = UiKit.DARK
+		backdrop.BorderSizePixel = 0
+		backdrop.Active = true
+		backdrop.ZIndex = 1
+		backdrop.Parent = backdropGui
+		-- Zero-size marker in the HUD: a "Panel" that special events wait for.
+		local marker = Instance.new("Frame")
+		marker.Name = "DirectorPanel"
+		marker.Size = UDim2.new()
+		marker.BackgroundTransparency = 1
+		marker.Parent = gui
+		splash = marker
 		local overlay = Instance.new("Frame")
-		overlay.Name = "DirectorPanel" -- a "Panel": special events wait for it to close
+		overlay.Name = "Intro"
 		overlay.Size = UDim2.fromScale(1, 1)
-		overlay.BackgroundColor3 = UiKit.DARK
-		overlay.BackgroundTransparency = 0.15
-		overlay.Active = true
+		overlay.BackgroundTransparency = 1
 		overlay.ZIndex = 7
-		overlay.Parent = gui
-		splash = overlay
+		overlay.Parent = safeGui
+		container.Parent = dialogueGui
 
 		-- Spotlight, the floor it lands on, and Lucien.
 		local stage = Instance.new("Frame")
@@ -1311,7 +1351,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		square.Parent = figure
 		local view = Icon3D.director(figure, false, true)
 		local stopSway = Icon3D.wobble(view)
-		overlay.Destroying:Connect(stopSway)
+		marker.Destroying:Connect(stopSway)
 		local rise = Instance.new("UIScale")
 		rise.Scale = if still then 1 else 0.7
 		rise.Parent = figure
@@ -1347,20 +1387,21 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		-- The stage fills the room under the dialogue: the button (at least 56 px tall, for
 		-- thumbs) and the name plate at the bottom, Lucien in the space above them.
 		local function place()
-			local area = gui.AbsoluteSize
+			-- Size from the safe-area screen the stage lives in: gui.AbsoluteSize is stale at open time.
+			local area = safeGui.AbsoluteSize
 			local topEdge = gui:GetAttribute("PanelTop")
 			local y = if typeof(topEdge) == "number" then topEdge else 120
 			local width = math.min(area.X, 560)
-			local height = math.max(200, area.Y - y - 8)
+			local height = math.max(120, area.Y - y - 8)
 			stage.Position = UDim2.new(0.5, 0, 0, y)
 			stage.Size = UDim2.fromOffset(width, height)
-			local buttonHeight = math.clamp(math.floor(height * 0.14), 56, 64)
-			local plateHeight = math.clamp(math.floor(height * 0.15), 44, 80)
+			local buttonHeight = math.clamp(math.floor(height * 0.14), 48, 64)
+			local plateHeight = math.clamp(math.floor(height * 0.15), 36, 80)
 			begin.Size = UDim2.fromOffset(math.clamp(math.floor(width * 0.5), 200, 280), buttonHeight)
 			begin.Position = UDim2.fromOffset(width / 2, height - buttonHeight)
 			plate.Size = UDim2.fromOffset(math.min(math.floor(width * 0.9), 400), plateHeight)
 			plate.Position = UDim2.fromOffset(width / 2, height - buttonHeight - 10 - plateHeight)
-			local figureBottom = height - buttonHeight - plateHeight - 16
+			local figureBottom = math.max(24, height - buttonHeight - plateHeight - 16)
 			figure.Size = UDim2.fromOffset(figureBottom, figureBottom)
 			figure.Position = UDim2.fromOffset(width / 2, figureBottom)
 			floor.Position = UDim2.fromOffset(width / 2, figureBottom - 4)
@@ -1368,8 +1409,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		place()
 		local placing = gui:GetAttributeChangedSignal("PanelTop"):Connect(place)
-		overlay.Destroying:Connect(function()
+		local resizing = safeGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+		marker.Destroying:Connect(function()
 			placing:Disconnect()
+			resizing:Disconnect()
 		end)
 
 		-- Curtains, opening from the middle.
@@ -1383,7 +1426,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			curtain.BackgroundColor3 = CURTAIN
 			curtain.BorderSizePixel = 0
 			curtain.ZIndex = 9
-			curtain.Parent = overlay
+			curtain.Parent = curtainGui
 			-- Velvet folds: light and dark bands across the curtain.
 			local folds = Instance.new("UIGradient")
 			local keys = {}
@@ -1412,7 +1455,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			end
 			TweenService:Create(rise, TweenInfo.new(0.9, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0.3), { Scale = 1 }):Play()
 			task.delay(0.5, function()
-				if splash == overlay then
+				if splash == marker then
 					Fx.confetti(30, { UiKit.GOLD, UiKit.CREAM, GUIDE })
 				end
 			end)
