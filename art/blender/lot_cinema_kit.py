@@ -234,9 +234,8 @@ def look(lv, accent_preview=None):
         ]
         # Players can stand on the gold-ringed drum (top h + 3.45), which rises above the roof slab.
         parts.append(part("Hitbox", B((0, d / 2 + 2, h + 2.625), (8.2, 8.2, 1.65), "#FFFFFF"), hit=True))
-        # Two stacked steps follow the dome (rises from the drum rim, top h + 9) so nobody sinks into it.
-        for sw, ht in ((6.0, 4.4), (3.0, 5.55)):
-            parts.append(part("Hitbox", B((0, d / 2 + 2, h + 3.45 + ht / 2), (sw, sw, ht), "#FFFFFF"), hit=True))
+        # A ball collider matching the dome (radius 3.5) so nobody sinks into it or perches on a box edge.
+        parts.append(part("Hitbox", E((0, d / 2 + 2, h + 3.3), (3.5, 3.5, 3.5), "#FFFFFF"), hit=True))
         parts.append(part("DomeTop", E((0, d / 2 + 2, h + 9.8), (0.6, 0.6, 0.6), "Gold", neon=True)))
         for x in (w / 2 - 2, -w / 2 + 2):  # game's left first (LotModels turns it -25 degrees)
             lights.append((x, d - 2, h + 1.8))

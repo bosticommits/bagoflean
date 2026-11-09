@@ -33,7 +33,7 @@ test("every Cinema Size level has its own Blender look that grows with the level
 	for level = 0, 6 do
 		local look = LotModels.CinemaLooks[level]
 		equal(count(look, "BladeFace"), if level >= 2 then 1 else 0, `blade sign at level {level}`)
-		equal(count(look, "Hitbox"), if level >= 6 then 5 elseif level >= 4 then 2 else 1, `wing and dome hitbox at level {level}`)
+		equal(count(look, "Hitbox"), if level >= 6 then 4 elseif level >= 4 then 2 else 1, `wing and dome hitbox at level {level}`)
 		equal(#look.lights, if level >= 6 then 2 else 0, `searchlights at level {level}`)
 		equal(count(look, "DomeTop"), if level >= 6 then 1 else 0, `dome at level {level}`)
 	end
@@ -50,7 +50,7 @@ test("the part fallback keeps the four old tiers and still returns the marquee",
 	end
 end)
 
-test("every cinema part stays inside the squeezed body width and the level 6 dome has step hitboxes", function()
+test("every cinema part stays inside the squeezed body width and the level 6 dome has a ball hitbox", function()
 	for level = 0, 6 do
 		local look = LotModels.CinemaLooks[level]
 		local sx = LotModels.cinemaWidthScale(level)
@@ -71,5 +71,5 @@ test("every cinema part stays inside the squeezed body width and the level 6 dom
 			top = math.max(top, p.cf.Y + p.size.Y / 2)
 		end
 	end
-	expect(math.abs(top - 24) < 1e-6, `level 6 dome step hitbox top is {top}`)
+	expect(math.abs(top - 21.8) < 1e-6, `level 6 dome hitbox top is {top}`)
 end)
