@@ -73,7 +73,7 @@ end
 
 -- Dialogue layout (pixels). The speech bubble is a cream screenplay page; Lucien's bust sits in a
 -- top-right corner after the intro, with the bubble to its left and Skip under the bust.
-local BUBBLE_MAX_PHONE = 206
+local BUBBLE_MAX_PHONE = 260
 local BUBBLE_MAX_PC = 400
 local BUST_PHONE = 76
 local BUST_PC = 110
@@ -568,6 +568,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local typing = false
 	local lineDoneAt = 0
 	local linesKey = ""
+	local stepStartedAt = os.clock() -- idle-hint clock: reset on a step, line change or splash close
+	local hinted = false
 
 	-- A line key's text. The Studio stand's line follows the player's own input.
 	local promptHint: () -> string?
@@ -589,6 +591,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		typed = 0
 		typing = true
 		local voice = if key ~= nil then TutorialLines.VOICE[key] else nil
+		Sfx.cutVoice() -- a new line never talks over the last one
 		if voice ~= nil then
 			Sfx.play(voice)
 		end
@@ -667,6 +670,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		return tween
 	end
 
+	-- The idle hint: one ~1 s swell (out and back) of the target, then everything is removed again.
+	-- Only a temporary UIScale is added; the ring's outline tween and restore are not touched.
+	local function idlePulse(target: GuiObject)
+		local scale = Instance.new("UIScale")
+		scale.Name = "IdleHint"
+		scale.Parent = target
+		local tween = TweenService:Create(scale, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true), { Scale = 1.08 })
+		tween.Completed:Once(function()
+			scale:Destroy()
+		end)
+		tween:Play()
+	end
+
 	-- A pulsing yellow ring on a control. A button keeps one border stroke ("Outline"), so the ring
 	-- borrows it and puts its color and thickness back afterwards.
 	local function guideGui(target: GuiObject): UiGuide
@@ -696,7 +712,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				list.CanvasPosition = Vector2.new(list.CanvasPosition.X, math.max(0, list.CanvasPosition.Y + offset - 8))
 			end
 		end)
-		local arrow = makeHand(gui, if compact() then 44 else 58, 9)
+		local arrow = makeHand(dialogueMain, if compact() then 44 else 58, 7) -- under the bubble (8)
 		arrow.Visible = false
 		return {
 			target = target,
@@ -1234,6 +1250,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		splash = nil
 		introTyped = false
+		stepStartedAt = os.clock()
 		begin.Visible = false
 		container.Parent = dialogueMain -- back from the intro's safe-area screen before it is destroyed
 		open:Destroy()
@@ -1504,8 +1521,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Driver ----------------------------------------------------------------------------------------
 	local currentStep = 0
-	local stepStartedAt = os.clock()
-	local hinted = false
 	local collectedAmount = 0 -- royalties the first collect paid out
 	local renderConnection: RBXScriptConnection? = nil
 
@@ -1513,6 +1528,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		active = false
 		clearGuides()
 		dimGui.Enabled = false
+		Sfx.cutVoice()
 		closeSplash()
 		if renderConnection ~= nil then
 			renderConnection:Disconnect()
@@ -1585,7 +1601,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local guide = uiGuides[1]
 			if guide ~= nil and guide.arrow.Visible then
 				hinted = true
-				UiKit.pulse(guide.target)
+				idlePulse(guide.target)
 				Sfx.play("notify")
 			end
 		end
@@ -1594,6 +1610,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		if view.linesKey ~= linesKey then
 			linesKey = view.linesKey
+			stepStartedAt = os.clock()
+			hinted = false
 			playLines(view.lines)
 		end
 		syncGuides(view.ui, view.world)

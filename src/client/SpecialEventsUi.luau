@@ -223,7 +223,12 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		end
 		consider(gui:FindFirstChild("Wallet"))
 		local dialogue = if gui.Parent ~= nil then gui.Parent:FindFirstChild("TutorialDialogue") else nil
-		consider(if dialogue ~= nil then dialogue:FindFirstChild("Tutorial") else nil)
+		-- The tutorial container is full-screen: measure just the bubble and the bust.
+		local tutorial = if dialogue ~= nil then dialogue:FindFirstChild("Tutorial") else nil
+		if tutorial ~= nil and tutorial:IsA("GuiObject") and tutorial.Visible then
+			consider(tutorial:FindFirstChild("Card"))
+			consider(tutorial:FindFirstChild("Portrait"))
+		end
 		return lowest + 4
 	end
 
