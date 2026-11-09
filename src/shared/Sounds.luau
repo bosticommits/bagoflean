@@ -145,6 +145,28 @@ Sounds.Slots = {
 	lucienEventStart = { id = 110851102217227, volume = 0.9, fallback = "stinger", delay = 0.9 }, -- "Heads up, Hollywood! A special event just started!"
 	lucienFestivalWin = { id = 110138148663833, volume = 0.9, fallback = "jingle" }, -- "And the Festival Laurel goes to... YOU!" (matched by name, check it)
 
+	-- Tutorial lines (src/shared/TutorialLines.luau VOICE): id = 0 until recorded; the tutorial skips them.
+	lucienTut1 = slot("pop"),
+	lucienTut2 = slot("pop"),
+	lucienTut3 = slot("pop"),
+	lucienTut4 = slot("pop"),
+	lucienTut5 = slot("pop"),
+	lucienTut6 = slot("pop"),
+	lucienTut7 = slot("pop"),
+	lucienTut8 = slot("pop"),
+	lucienTut9 = slot("pop"),
+	lucienTut10 = slot("pop"),
+	lucienTut11 = slot("pop"),
+	lucienTut12 = slot("pop"),
+	lucienTut13 = slot("pop"),
+	lucienTut14 = slot("pop"),
+	lucienTut15 = slot("pop"),
+	lucienTut16 = slot("pop"),
+	lucienTut17 = slot("pop"),
+	lucienTut18 = slot("pop"),
+	lucienTut19 = slot("pop"),
+	lucienTut20 = slot("pop"),
+
 	-- Studio visits
 	visitJump = slot("whoosh", 1.2), -- the Visit menu jumps you to a studio
 	applause = slot("clap", 1.1), -- someone applauds a studio near you (each clap)
