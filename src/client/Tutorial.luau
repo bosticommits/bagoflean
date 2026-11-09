@@ -658,10 +658,15 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local at = target.AbsolutePosition - dimGui.AbsolutePosition
 		local area = dimGui.AbsoluteSize
 		local size = target.AbsoluteSize
-		for index, rect in Spotlight.rects(area.X, area.Y, at.X, at.Y, size.X, size.Y, DIM_PAD) do
+		local r = Spotlight.rects(area.X, area.Y, at.X, at.Y, size.X, size.Y, DIM_PAD)
+		-- Whole-pixel edges; the right and bottom bands are sized to the screen edge by scale.
+		for index, rect in r do
 			dimBands[index].Position = UDim2.fromOffset(rect.x, rect.y)
-			dimBands[index].Size = UDim2.fromOffset(rect.w, rect.h)
 		end
+		dimBands[1].Size = UDim2.new(1, 0, 0, r[1].h)
+		dimBands[2].Size = UDim2.new(1, 0, 1, -r[2].y)
+		dimBands[3].Size = UDim2.fromOffset(r[3].w, r[3].h)
+		dimBands[4].Size = UDim2.new(1, -r[4].x, 0, r[4].h)
 	end
 
 	local function pulseTween(object: Instance, seconds: number, goal: { [string]: any }): Tween
