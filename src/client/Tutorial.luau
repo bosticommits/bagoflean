@@ -29,6 +29,7 @@ local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
+local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
 local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
 local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
 
@@ -78,6 +79,10 @@ local BUBBLE_MAX_PC = 400
 local BUST_PHONE = 76
 local BUST_PC = 110
 local EDGE = 8
+
+type Rect = BubblePlacer.Rect
+type Spot = { rects: { Rect }, bustRight: number, bustY: number, cardRight: number, cardY: number }
+type Option = { spot: Spot, width: number, textSize: number }
 
 local CHARS_PER_SECOND = 60
 
@@ -495,6 +500,78 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		return lowest
 	end
 
+	-- Every visible HUD part the bubble must keep clear of, in the container's space. Big
+	-- containers (the side menu, panels) are replaced by their children.
+	local function hudRects(origin: Vector2, area: Vector2): { Rect }
+		local out: { Rect } = {}
+		local function add(object: Instance, depth: number)
+			if not object:IsA("GuiObject") or not object.Visible then
+				return
+			end
+			local at, size = object.AbsolutePosition - origin, object.AbsoluteSize
+			if size.X <= 0 or size.Y <= 0 then
+				return
+			end
+			if size.X >= area.X * 0.5 or size.Y >= area.Y * 0.5 or object.Name == "Hud" then
+				if depth < 2 then
+					for _, child in object:GetChildren() do
+						add(child, depth + 1)
+					end
+				end
+			elseif object.BackgroundTransparency < 1 or #object:GetChildren() > 0 then
+				table.insert(out, { x = at.X, y = at.Y, w = size.X, h = size.Y })
+			end
+		end
+		for _, child in gui:GetChildren() do
+			add(child, 0)
+		end
+		return out
+	end
+
+	-- The candidate spots, in order: under the bust, left of the bust, bottom centre above the
+	-- CAST bar, bottom left, top centre. Each lists the bust and bubble rects it would take.
+	local function phoneSpots(area: Vector2, obstacles: { Rect }, b: number, w: number, h: number): { Spot }
+		local spots: { Spot } = {}
+		local function spot(bustRight: number, bustY: number, cardRight: number, cardY: number)
+			table.insert(spots, {
+				rects = { { x = bustRight - b, y = bustY, w = b, h = b }, { x = cardRight - w, y = cardY, w = w, h = h } },
+				bustRight = bustRight,
+				bustY = bustY,
+				cardRight = cardRight,
+				cardY = cardY,
+			})
+		end
+		-- Below the HUD readouts over the band [left, right] in the top 40 % of the screen.
+		local function below(left: number, right: number): number
+			local lowest = 0
+			for _, r in obstacles do
+				if r.y < area.Y * 0.4 and r.x < right and r.x + r.w > left then
+					lowest = math.max(lowest, r.y + r.h)
+				end
+			end
+			return lowest
+		end
+		local right = area.X - EDGE
+		local gw, gh = w + 8 + b, math.max(h, b)
+		local centre = math.floor((area.X - gw) / 2)
+		local y1 = below(right - w, right) + 8
+		spot(right, y1, right, y1 + b + 6)
+		local y2 = below(right - gw, right) + 8
+		spot(right, y2, right - b - 8, y2)
+		-- Bottom centre: the group's bottom edge sits on the top of whatever is below it (the CAST bar).
+		local floor = area.Y - EDGE
+		for _, r in obstacles do
+			if r.y > area.Y * 0.5 and r.x < centre + gw and r.x + r.w > centre then
+				floor = math.min(floor, r.y - 8)
+			end
+		end
+		spot(centre + gw, floor - gh, centre + w, floor - gh)
+		spot(EDGE + gw, area.Y - EDGE - gh, EDGE + w, area.Y - EDGE - gh)
+		local top = below(centre, centre + gw) + 8
+		spot(centre + gw, top, centre + w, top)
+		return spots
+	end
+
 	local guideTarget: () -> GuiObject? = function()
 		return nil
 	end -- set once the guides exist
@@ -548,55 +625,54 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				y = math.max(top - 6, hudBottom(right - bustSize - 8 - bubbleWidth, right) - 4)
 			end
 			local right = area.X - EDGE
+			-- Where the bust and the bubble sit: right edges and tops (both anchored top-right).
+			local bustRight, bustY, cardRight, cardY = right, y, right - bustSize - 8, y
 			if small and not panelOpen then
-				-- Phone: try the corners in turn and take the first where the bubble and bust cover
-				-- neither the HUD readouts / buttons nor the step's target.
+				-- Phone: the first spot that overlaps no HUD part and not the step's target, at 260 px
+				-- then at 220 px / size 15; else the least-overlap spot that leaves the target clear.
 				local o = container.AbsolutePosition
-				local blocks: { { number } } = {}
-				local function block(object: Instance?)
-					if object ~= nil and object:IsA("GuiObject") and object.Visible and object.AbsoluteSize.Y > 0 then
-						local at, size = object.AbsolutePosition - o, object.AbsoluteSize
-						if size.X < area.X * 0.5 and size.Y < area.Y * 0.5 then
-							table.insert(blocks, { at.X, at.Y, at.X + size.X, at.Y + size.Y })
-						end
-					end
+				local obstacles = hudRects(o, area)
+				local targetRect: Rect? = nil
+				local target = guideTarget()
+				if target ~= nil and target.Visible and target.AbsoluteSize.Y > 0 then
+					local at, size = target.AbsolutePosition - o, target.AbsoluteSize
+					targetRect = { x = at.X, y = at.Y, w = size.X, h = size.Y }
+					table.insert(obstacles, targetRect :: Rect)
 				end
-				for _, child in gui:GetChildren() do
-					if child:IsA("GuiObject") and child.Name ~= "Hud" then
-						block(child)
+				local bounds: Rect = { x = 0, y = 0, w = area.X, h = area.Y }
+				local options: { Option } = {}
+				local rects: { { Rect } } = {}
+				local chosen: Option? = nil
+				for _, fit in { { math.min(BUBBLE_MAX_PHONE, bubbleWidth), 16 }, { 220, 15 } } do
+					local w, size = fit[1], fit[2]
+					local first = #options + 1
+					for _, spot in phoneSpots(area, obstacles, bustSize, w, BubblePlacer.cardHeight(speech.Text, w, size)) do
+						table.insert(options, { spot = spot, width = w, textSize = size })
+						table.insert(rects, spot.rects)
 					end
-				end
-				local hud = gui:FindFirstChild("Hud")
-				if hud ~= nil then
-					for _, child in hud:GetChildren() do
-						block(child)
-					end
-				end
-				block(guideTarget())
-				local w = bubbleWidth + 8 + bustSize
-				local h = math.max(stackHeight, card.AbsoluteSize.Y)
-				local function free(r: number, cy: number): boolean
-					for _, b in blocks do
-						if r > b[1] and r - w < b[3] and cy + h > b[2] and cy < b[4] then
-							return false
-						end
-					end
-					return true
-				end
-				for _, spot in { { right, y }, { right, area.Y - h - EDGE }, { EDGE + w, y }, { EDGE + w, area.Y - h - EDGE } } do
-					if free(spot[1], spot[2]) then
-						right, y = spot[1], spot[2]
+					local free = BubblePlacer.firstFree(table.move(rects, first, #rects, 1, {}), obstacles, bounds, 8)
+					if free ~= nil then
+						chosen = options[first + free - 1]
 						break
 					end
 				end
+				if chosen == nil then
+					chosen = options[BubblePlacer.leastOverlap(rects, obstacles, targetRect, bounds, 8)]
+				end
+				if chosen ~= nil then
+					local spot = chosen.spot
+					bustRight, bustY, cardRight, cardY, bubbleWidth = spot.bustRight, spot.bustY, spot.cardRight, spot.cardY, chosen.width
+					nameLabel.TextSize = chosen.textSize
+					speech.TextSize = chosen.textSize
+				end
 			end
-			bust.Position = UDim2.fromOffset(right, y)
+			bust.Position = UDim2.fromOffset(bustRight, bustY)
 			card.AnchorPoint = Vector2.new(1, 0)
-			card.Position = UDim2.fromOffset(right - bustSize - 8, y)
+			card.Position = UDim2.fromOffset(cardRight, cardY)
 			card.Size = UDim2.fromOffset(bubbleWidth, 0)
 			if small then
 				skip.AnchorPoint = Vector2.new(1, 1)
-				skip.Position = UDim2.fromOffset(right, y + bustSize)
+				skip.Position = UDim2.fromOffset(bustRight, bustY + bustSize)
 			else
 				skip.AnchorPoint = Vector2.new(1, 0)
 				skip.Position = UDim2.fromOffset(right, y + bustSize + 4)
@@ -650,6 +726,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		if voice ~= nil then
 			Sfx.play(voice)
 		end
+		layout() -- the new text may need another spot
 	end
 
 	local function playLines(lines: { string })
@@ -1618,6 +1695,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			renderConnection = nil
 		end
 		container.Visible = false
+		dialogueMain.Enabled = false
 		gui:SetAttribute("PanelTop", nil)
 		gui:SetAttribute("TutorialBottom", nil)
 	end
@@ -1674,7 +1752,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		if splash ~= nil and index > 1 then
 			closeSplash()
 		end
-		if index ~= currentStep then
+		local stepChanged = index ~= currentStep
+		if stepChanged then
 			if currentStep ~= 0 then
 				Sfx.play("notify")
 			end
@@ -1702,6 +1781,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			playLines(view.lines)
 		end
 		syncGuides(view.ui, view.world)
+		if stepChanged then
+			layout() -- the bubble re-picks its spot for the new target
+		end
 	end
 
 	-- Every frame: the typewriter, the line timer, the moving arrows, the finale's end.
@@ -1734,6 +1816,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	local function activate()
 		active = true
+		dialogueMain.Enabled = true
 		container.Visible = true
 		renderConnection = RunService.RenderStepped:Connect(onRender)
 		-- A brand-new producer meets Lucien first; someone back mid-tutorial goes straight on.
