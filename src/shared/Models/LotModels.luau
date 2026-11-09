@@ -538,7 +538,9 @@ local function cinemaParts(b: Builder, tier: number, accent: Color3): TextLabel
 		b:cylinder("DomeBase", 1.4, 8, v(0, h + 2.6, d / 2 + 2), P.Burgundy)
 		b:ball("Dome", 7, v(0, h + 3.3, d / 2 + 2), P.Gold, METAL)
 		b:cylinder("DomeSpire", 3, 0.5, v(0, h + 8, d / 2 + 2), P.Gold, METAL)
-		b:ball("DomeTop", 1.2, v(0, h + 9.8, d / 2 + 2), P.Gold, NEON)
+		local finial = b:ball("DomeTop", 1.2, v(0, h + 9.8, d / 2 + 2), P.Gold, NEON)
+		finial.CanCollide = false
+		finial.CanTouch = false
 		for i, x in { -w / 2 + 2, w / 2 - 2 } do
 			LotModels.searchlight(b:sub(v(x, h + 1.8, d - 2)), if i == 1 then -25 else 25)
 		end
@@ -752,6 +754,10 @@ function LotModels.cinema(b: Builder, level: number, accent: Color3): TextLabel
 			-- The mesh doesn't collide; this keeps players out of the building.
 			p.Transparency = 1
 			p.CastShadow = false
+			p.CanTouch = false
+		elseif info.name == "DomeTop" then
+			-- The finial is decoration; players must not stand on it.
+			p.CanCollide = false
 			p.CanTouch = false
 		elseif info.name == "MarqueeSign" then
 			marquee = Build.sign(p, Enum.NormalId.Front, "", P.Gold)
