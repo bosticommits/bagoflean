@@ -222,7 +222,8 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			end
 		end
 		consider(gui:FindFirstChild("Wallet"))
-		consider(gui:FindFirstChild("Tutorial"))
+		local dialogue = if gui.Parent ~= nil then gui.Parent:FindFirstChild("TutorialDialogue") else nil
+		consider(if dialogue ~= nil then dialogue:FindFirstChild("Tutorial") else nil)
 		return lowest + 4
 	end
 

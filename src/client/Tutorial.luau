@@ -27,6 +27,7 @@ local Fx = require(script.Parent.Fx)
 local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
+local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
 local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
 
 -- The guide color: brighter and yellower than the UI's gold, so directions read as directions.
@@ -77,7 +78,14 @@ local BUST_PC = 110
 local EDGE = 8
 
 local CHARS_PER_SECOND = 60
-local FINALE_SECONDS = 8 -- the last line stays this long before the tutorial clears away
+
+-- Spotlight: one UI target at a time gets a gold ring and a pointing hand. The dim around it is
+-- optional (video research: arrow-only works too) and never blocks a tap.
+local DIM_ENABLED = true
+local DIM_TRANSPARENCY = 0.55
+local DIM_PAD = 8 -- px of breathing room around the target's hole
+local HAND_IMAGE_ID = 0 -- the white glove pointer's asset id; 0 = not uploaded yet, the arrow stands in
+local IDLE_HINT_SECONDS = 9 -- no progress on a step for this long: pulse the target once
 
 -- A place in the world to guide the player to. "primary" gets the arrow, glow, the chevron trail
 -- on the ground and an arrow at the screen edge while it is out of view; "secondary" an arrow and
@@ -171,6 +179,23 @@ local function reducedMotion(): boolean
 		return (GuiService :: any).ReducedMotionEnabled
 	end)
 	return ok and value == true
+end
+
+-- The pointer over a UI target: the white glove once HAND_IMAGE_ID is set, else the arrow. Same
+-- turning rules as makeArrow (0 points down).
+local function makeHand(parent: Instance, size: number, zIndex: number): GuiObject
+	if HAND_IMAGE_ID == 0 then
+		return makeArrow(parent, size, zIndex)
+	end
+	local hand = Instance.new("ImageLabel")
+	hand.Name = "GuideHand"
+	hand.BackgroundTransparency = 1
+	hand.Image = `rbxassetid://{HAND_IMAGE_ID}`
+	hand.AnchorPoint = Vector2.new(0.5, 0.5)
+	hand.Size = UDim2.fromOffset(size, size)
+	hand.ZIndex = zIndex
+	hand.Parent = parent
+	return hand
 end
 
 function Tutorial.start(gui: ScreenGui, remotes: Instance)
@@ -332,8 +357,18 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	container.BackgroundTransparency = 1
 	container.Size = UDim2.fromScale(1, 1)
 	container.Visible = false
-	container.ZIndex = 8 -- above panels and the intro screen, below the reveal overlays
-	container.Parent = gui
+	container.ZIndex = 8
+	-- Its own screen: above the HUD (0) and the spotlight dim (1), below the reveals (5+). Same
+	-- insets as the HUD, so positions match. SpecialEventsUi finds it by this name.
+	local dialogueMain = Instance.new("ScreenGui")
+	dialogueMain.Name = "TutorialDialogue"
+	dialogueMain.ResetOnSpawn = false
+	dialogueMain.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	dialogueMain.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	dialogueMain.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
+	dialogueMain.DisplayOrder = 2
+	dialogueMain.Parent = playerGui
+	container.Parent = dialogueMain
 
 	-- The speech bubble: a cream screenplay page with the cue "LUCIEN" over the line.
 	local card = Instance.new("Frame")
@@ -583,11 +618,46 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	end)
 
 	-- Guides --------------------------------------------------------------------------------------
-	type UiGuide = { target: GuiObject, arrow: Frame, cleanup: () -> () }
+	type UiGuide = { target: GuiObject, arrow: GuiObject, cleanup: () -> () }
 	type Trail = { folder: Folder, parts: { BasePart }, fades: { number }, scales: { number } }
 	type WorldGuide = { target: WorldTarget, cleanup: () -> (), trail: Trail?, edge: Frame? }
 	local uiGuides: { UiGuide } = {}
 	local worldGuides: { WorldGuide } = {}
+
+	-- The dim: four black bands around a hole at the target, in its own screen above the HUD (0)
+	-- and below the dialogue (2). Visual only: nothing in it takes input.
+	local dimGui = Instance.new("ScreenGui")
+	dimGui.Name = "TutorialDim"
+	dimGui.ResetOnSpawn = false
+	dimGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	dimGui.ScreenInsets = Enum.ScreenInsets.None
+	dimGui.DisplayOrder = 1
+	dimGui.Enabled = false
+	dimGui.Parent = playerGui
+	local dimBands: { Frame } = {}
+	for index = 1, 4 do
+		local band = Instance.new("Frame")
+		band.Name = `Dim{index}`
+		band.BackgroundColor3 = Color3.new(0, 0, 0)
+		band.BackgroundTransparency = DIM_TRANSPARENCY
+		band.BorderSizePixel = 0
+		band.Active = false
+		table.insert(dimBands, band)
+		band.Parent = dimGui
+	end
+	local function placeDim(target: GuiObject?)
+		dimGui.Enabled = DIM_ENABLED and target ~= nil
+		if target == nil or not DIM_ENABLED then
+			return
+		end
+		local at = target.AbsolutePosition - dimGui.AbsolutePosition
+		local area = dimGui.AbsoluteSize
+		local size = target.AbsoluteSize
+		for index, rect in Spotlight.rects(area.X, area.Y, at.X, at.Y, size.X, size.Y, DIM_PAD) do
+			dimBands[index].Position = UDim2.fromOffset(rect.x, rect.y)
+			dimBands[index].Size = UDim2.fromOffset(rect.w, rect.h)
+		end
+	end
 
 	local function pulseTween(object: Instance, seconds: number, goal: { [string]: any }): Tween
 		local tween = TweenService:Create(object, TweenInfo.new(seconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), goal)
@@ -624,7 +694,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				list.CanvasPosition = Vector2.new(list.CanvasPosition.X, math.max(0, list.CanvasPosition.Y + offset - 8))
 			end
 		end)
-		local arrow = makeArrow(gui, if compact() then 44 else 58, 9)
+		local arrow = makeHand(gui, if compact() then 44 else 58, 9)
 		arrow.Visible = false
 		return {
 			target = target,
@@ -919,12 +989,14 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local origin = gui.AbsolutePosition
 		local area = gui.AbsoluteSize
 		local bob = math.sin(clock * 6) * 6
+		local spot: GuiObject? = nil -- one UI target at a time
 		for _, guide in uiGuides do
 			local target, arrow = guide.target, guide.arrow
-			if target.Parent == nil or not shown(target) or revealShowing() then
+			if spot ~= nil or target.Parent == nil or not shown(target) or revealShowing() or splash ~= nil then
 				arrow.Visible = false
 				continue
 			end
+			spot = target
 			arrow.Visible = true
 			local at = target.AbsolutePosition - origin
 			local size = target.AbsoluteSize
@@ -941,6 +1013,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				arrow.Position = UDim2.fromOffset(centre.X, at.Y + size.Y + half + bob)
 			end
 		end
+
+		placeDim(spot)
+		dialogueMain.Enabled = not revealShowing() -- Lucien waits behind a reveal
 
 		local character = player.Character
 		local rootPart = if character ~= nil then character:FindFirstChild("HumanoidRootPart") else nil
@@ -991,7 +1066,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			table.insert(ui, studioButton)
 		end
 		local world = {}
-		local stand = standTarget("Studio", "MAKE A MOVIE", "primary")
+		local stand = standTarget("Studio", "MAKE A MOVIE", "hint")
 		if stand ~= nil then
 			table.insert(world, stand)
 		end
@@ -1158,7 +1233,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		splash = nil
 		introTyped = false
 		begin.Visible = false
-		container.Parent = gui -- back from the intro's safe-area screen before it is destroyed
+		container.Parent = dialogueMain -- back from the intro's safe-area screen before it is destroyed
 		open:Destroy()
 		for _, screen in introScreens do
 			screen:Destroy()
@@ -1295,6 +1370,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Driver ----------------------------------------------------------------------------------------
 	local currentStep = 0
+	local stepStartedAt = os.clock()
+	local hinted = false
 	local finaleEndsAt: number? = nil
 	local finaleGuideLine = 0
 	local renderConnection: RBXScriptConnection? = nil
@@ -1343,6 +1420,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local function teardown()
 		active = false
 		clearGuides()
+		dimGui.Enabled = false
 		closeSplash()
 		if renderConnection ~= nil then
 			renderConnection:Disconnect()
@@ -1401,8 +1479,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				Sfx.play("notify")
 			end
 			currentStep = index
+			stepStartedAt = os.clock()
+			hinted = false
 		end
 		local view = steps[index].view()
+		-- Stuck for a while: pulse the target once (rule: one timed hint, after the idle wait).
+		if not hinted and os.clock() - stepStartedAt > IDLE_HINT_SECONDS then
+			local guide = uiGuides[1]
+			if guide ~= nil and guide.arrow.Visible then
+				hinted = true
+				UiKit.pulse(guide.target)
+				Sfx.play("notify")
+			end
+		end
 		if splash ~= nil then
 			view = { linesKey = "intro", lines = { "intro1", "intro2" }, ui = {}, world = {} }
 		end
