@@ -546,6 +546,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		local small = compact()
 		local touch = gui:GetAttribute("HudRight") == true
+		local pushHud = false
 		local hudTop = gui:GetAttribute("HudTop")
 		local top = if typeof(hudTop) == "number" then hudTop else 8
 		local splashOpen = splash ~= nil
@@ -579,6 +580,21 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local panelY = if touch then 0 else math.max(0, top - 8)
 			local y = panelY
 			local bubbleWidth = math.min(if small then BUBBLE_MAX_PHONE else BUBBLE_MAX_PC, area.X - bustSize - EDGE * 3)
+			-- PC: the bubble sits right of the HUD stack (and its Tuck X); only if even 260 px does not
+			-- fit there, the HUD is pushed below it (TutorialBottom). The stack's X never depends on that push.
+			if not small and not touch then
+				local hudFrame = gui:FindFirstChild("Hud")
+				if hudFrame ~= nil and hudFrame:IsA("GuiObject") and hudFrame.Visible and hudFrame.AbsolutePosition.X < container.AbsolutePosition.X + area.X then
+					local hudRight = hudFrame.AbsolutePosition.X + hudFrame.AbsoluteSize.X
+					local tuckButton = hudFrame:FindFirstChild("Tuck", true)
+					if tuckButton ~= nil and tuckButton:IsA("GuiObject") then
+						hudRight = math.max(hudRight, tuckButton.AbsolutePosition.X + tuckButton.AbsoluteSize.X)
+					end
+					local fits
+					bubbleWidth, fits = BubblePlacer.widthRightOf(area.X, EDGE, bustSize, hudRight - container.AbsolutePosition.X, 12, bubbleWidth, 260)
+					pushHud = not fits
+				end
+			end
 			if not panelOpen and touch then
 				local right = area.X - EDGE
 				y = math.max(top - 6, hudBottom(right - bustSize - 8 - bubbleWidth, right) - 4)
@@ -634,7 +650,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		if gui:GetAttribute("PanelTop") ~= panelTop then
 			gui:SetAttribute("PanelTop", panelTop)
 		end
-		local bottom = if touch then nil else card.Position.Y.Offset + math.max(stackHeight, card.AbsoluteSize.Y) + 4
+		local bottom = if touch or not pushHud then nil else card.Position.Y.Offset + math.max(stackHeight, card.AbsoluteSize.Y) + 4
 		if gui:GetAttribute("TutorialBottom") ~= bottom then
 			gui:SetAttribute("TutorialBottom", bottom)
 		end

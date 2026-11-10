@@ -74,6 +74,13 @@ function BubblePlacer.cardHeight(text: string, width: number, textSize: number):
 	return math.ceil((lines + 1) * textSize * 1.17) + 18 + 8 + 6
 end
 
+-- PC corner bubble: the widest card (up to `maxWidth`, at least `minWidth`) whose left edge stays
+-- `gap` right of `hudRight`. Second value: false when even `minWidth` does not clear it.
+function BubblePlacer.widthRightOf(areaW: number, edge: number, bust: number, hudRight: number, gap: number, maxWidth: number, minWidth: number): (number, boolean)
+	local room = areaW - edge - bust - 8 - hudRight - gap
+	return math.max(minWidth, math.min(maxWidth, room)), room >= minWidth
+end
+
 -- Placement ---------------------------------------------------------------------------------------
 export type Pick = {
 	bustRight: number,

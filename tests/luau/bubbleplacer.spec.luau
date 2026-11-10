@@ -138,3 +138,17 @@ test("spots: five candidates, all on screen horizontally", function()
 		expect(p.cardRight - p.width >= 0 and p.cardRight <= area.w, "inside")
 	end
 end)
+
+test("widthRightOf: wide screens keep the full bubble, narrow ones shrink it to stay 12 px clear", function()
+	-- Hud (with Tuck X) ends at x 878 on a 1336 screen; bust 110, edge 8.
+	local wide = Placer.widthRightOf(1920, 8, 110, 1200, 12, 400, 260)
+	expect(wide == 400, "full width")
+	local w, fits = Placer.widthRightOf(1366, 8, 110, 900, 12, 400, 260)
+	expect(fits and w == 1366 - 8 - 110 - 8 - 900 - 12, "shrunk to the room")
+	expect(1366 - 8 - 110 - 8 - w >= 900 + 12, "left edge 12 px right of the HUD")
+end)
+
+test("widthRightOf: never below the minimum, and says when it does not fit", function()
+	local w, fits = Placer.widthRightOf(1280, 8, 110, 1000, 12, 400, 260)
+	expect(w == 260 and not fits, "minimum, no fit")
+end)
