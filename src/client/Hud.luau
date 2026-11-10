@@ -202,15 +202,14 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local awardBadge, awardTitle, awardTimer = makeBadge(1, UiKit.PURPLE, "trophy")
 	local awardStroke = awardBadge:FindFirstChild("Outline") :: UIStroke
 	local luckyBadge, luckyTitle, luckyTimer = makeBadge(3, UiKit.FRESH_GREEN, "clover")
-	luckyTitle.Text = "Lucky casting"
+	luckyTitle.Text = "Lucky Casting"
 	luckyBadge.Visible = false
-	luckyBadge.LayoutOrder = 3
 	local surpriseBadge, surpriseTitle, surpriseTimer = makeBadge(2, UiKit.BLUE, "gift")
 	local surpriseStroke = surpriseBadge:FindFirstChild("Outline") :: UIStroke
 	surpriseBadge.Visible = false
 	-- Three badges are wider than the event lines: the frame grows so the tutorial's obstacle is true.
 	badgeLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		frame.Size = UDim2.fromOffset(math.max(HUD_WIDTH, badgeLayout.AbsoluteContentSize.X), 108)
+		frame.Size = UDim2.fromOffset(math.max(HUD_WIDTH, badgeLayout.AbsoluteContentSize.X / frameScale.Scale), 108)
 	end)
 
 	-- Box office bar: the cinema's pile, filling towards the offline cap (the most it holds, see
@@ -524,7 +523,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 
 	task.spawn(function()
 		local wasActive: boolean? = nil
-		local wasSurpriseLive = false
+		local wasSurpriseLive: boolean? = nil -- nil on the first pass, so joining mid-event does not pop
 		local flash = false
 		while frame.Parent ~= nil do
 			local now = workspace:GetServerTimeNow()
@@ -573,7 +572,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			surpriseBadge.Visible = showSurprise
 			luckyBadge.Visible = showLucky
 			-- Going live pops the badge once.
-			if surpriseLive and not wasSurpriseLive then
+			if surpriseLive and wasSurpriseLive == false then
 				TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH * 1.15, 44 * 1.15) }):Play()
 				task.delay(0.25, function()
 					TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH, 44) }):Play()
