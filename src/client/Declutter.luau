@@ -2,6 +2,9 @@
 -- While any panel is open, the floating HUD that would draw over it (gift timers, the Studio-only
 -- Events buttons, the top boards) steps aside, and comes back when the last panel closes. One
 -- place for every panel: a panel is any visible child of the main screen named "...Panel".
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
+local UiKit = require(script.Parent.UiKit)
 local Declutter = {}
 
 local FLOATING = { "PlaytimeGifts", "PlaytimeGiftsButton", "EventTests", "Hud" }
@@ -47,18 +50,26 @@ function Declutter.start(gui: ScreenGui)
 
 	task.spawn(function()
 		while true do
-			if panelOpen() then
+			local open = panelOpen()
+			-- Names to hold hidden right now. The Wallet joins only on a phone, while the tutorial bubble shows over a panel.
+			local want: { [string]: boolean } = {}
+			if open then
 				for _, name in FLOATING do
-					local object = gui:FindFirstChild(name)
-					if object ~= nil and object:IsA("GuiObject") and held[object] == nil then
-						watch(object)
-						held[object] = object.Visible
-						mine[object] = (mine[object] or 0) + 1
-						object.Visible = false
-					end
+					want[name] = true
 				end
-			else
-				for object, wanted in held do
+				want.Wallet = BubblePlacer.hidesWallet(UiKit.isCompact(), true, gui:GetAttribute("PanelTop") ~= nil)
+			end
+			for name in want do
+				local object = gui:FindFirstChild(name)
+				if want[name] and object ~= nil and object:IsA("GuiObject") and held[object] == nil then
+					watch(object)
+					held[object] = object.Visible
+					mine[object] = (mine[object] or 0) + 1
+					object.Visible = false
+				end
+			end
+			for object, wanted in held do
+				if not want[object.Name] then
 					held[object] = nil
 					object.Visible = wanted
 				end

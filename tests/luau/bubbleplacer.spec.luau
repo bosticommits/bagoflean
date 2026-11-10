@@ -152,3 +152,10 @@ test("widthRightOf: never below the minimum, and says when it does not fit", fun
 	local w, fits = Placer.widthRightOf(1280, 8, 110, 1000, 12, 400, 260)
 	expect(w == 260 and not fits, "minimum, no fit")
 end)
+
+test("hidesWallet: phone + panel + tutorial hides it; tutorial over or no tutorial keeps it", function()
+	expect(Placer.hidesWallet(true, true, true), "hidden")
+	expect(not Placer.hidesWallet(true, true, false), "tutorial ended: shown")
+	expect(not Placer.hidesWallet(true, false, true), "no panel: shown")
+	expect(not Placer.hidesWallet(false, true, true), "not a phone: shown")
+end)

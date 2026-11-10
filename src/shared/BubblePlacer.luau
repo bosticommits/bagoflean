@@ -81,6 +81,12 @@ function BubblePlacer.widthRightOf(areaW: number, edge: number, bust: number, hu
 	return math.max(minWidth, math.min(maxWidth, room)), room >= minWidth
 end
 
+-- The Wallet (top centre on phones) would sit under the corner bubble, so a phone hides it while a
+-- panel is open and the tutorial bubble shows; normal shopping keeps it.
+function BubblePlacer.hidesWallet(compact: boolean, panelOpen: boolean, tutorial: boolean): boolean
+	return compact and panelOpen and tutorial
+end
+
 -- Placement ---------------------------------------------------------------------------------------
 export type Pick = {
 	bustRight: number,
