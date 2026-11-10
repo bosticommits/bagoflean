@@ -191,6 +191,21 @@ function Movies.payout(length: Length, power: number, result: Result, genreBonus
 	return math.clamp(math.floor(raw), 1, Movies.MaxPayout)
 end
 
+-- Best cast: go down `shown` (best first, each with its free copies) and add copies until the
+-- cast holds `maxCast`. Returns only the keys to add; the caller appends them.
+function Movies.fillCast(shown: { { key: string, free: number } }, slotsLeft: number): { string }
+	local add = {}
+	for _, item in shown do
+		for _ = 1, math.min(item.free, slotsLeft - #add) do
+			table.insert(add, item.key)
+		end
+		if #add >= slotsLeft then
+			break
+		end
+	end
+	return add
+end
+
 -- Fame never resets and is never spent; the unlock thresholds are set from this curve (ECONOMY.md).
 function Movies.fame(payout: number): number
 	return math.max(1, math.floor(math.sqrt(payout)))
