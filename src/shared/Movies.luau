@@ -193,7 +193,7 @@ end
 
 -- Best cast: go down `shown` (best first, each with its free copies) and add copies until the
 -- cast holds `maxCast`. Returns only the keys to add; the caller appends them.
-function Movies.fillCast(shown: { { key: string, free: number } }, slotsLeft: number): { string }
+function Movies.fillCast(shown: { { key: string, free: number, power: number? } }, slotsLeft: number): { string }
 	local add = {}
 	for _, item in shown do
 		for _ = 1, math.min(item.free, slotsLeft - #add) do
