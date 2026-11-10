@@ -516,8 +516,11 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		local testRemote = test :: RemoteEvent
 		local column = Instance.new("Frame")
 		column.Name = "EventTests"
-		column.AnchorPoint = Vector2.new(1, 0.5)
-		column.Position = UDim2.new(1, -10, 0.5, 0)
+		-- PC: bottom left, right of the menu and wallet, the list opening upward, clear of the gift row
+		-- and the sound button on the right. Phones keep the right edge, mid-height.
+		local pc = not game:GetService("UserInputService").TouchEnabled
+		column.AnchorPoint = if pc then Vector2.new(0, 1) else Vector2.new(1, 0.5)
+		column.Position = if pc then UDim2.new(0, 280, 1, -16) else UDim2.new(1, -10, 0.5, 0)
 		column.Size = UDim2.fromOffset(150, 34)
 		column.BackgroundTransparency = 1
 		column.ZIndex = 0 -- never over a panel
@@ -534,7 +537,7 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		table.insert(names, "FestivalGoals") -- finishes this week's festival goals
 		table.insert(names, "Stop")
 		for index, id in names do
-			local button = UiKit.makeButton(column, id, if id == "Stop" then UiKit.CLOSE_RED else UiKit.TAB_OFF, UDim2.fromOffset(150, 30), UDim2.fromOffset(0, 34 + index * 34))
+			local button = UiKit.makeButton(column, id, if id == "Stop" then UiKit.CLOSE_RED else UiKit.TAB_OFF, UDim2.fromOffset(150, 30), UDim2.fromOffset(0, if pc then -index * 34 else 34 + index * 34))
 			button.ZIndex = 6
 			button.Visible = false
 			UiKit.textConstraint(button, 16)

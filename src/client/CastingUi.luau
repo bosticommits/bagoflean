@@ -736,6 +736,12 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	card.ZIndex = 11
 	card.Parent = overlay
 	corner(card, 20)
+	-- Short screens (phones in landscape): a taller card, so the 44 px buttons stay 20 px clear of the stats.
+	local function fitCard()
+		card.Size = UDim2.fromScale(0.85, if overlay.AbsoluteSize.Y < 500 then 0.9 else 0.72)
+	end
+	overlay:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCard)
+	fitCard()
 	local cardLimit = Instance.new("UISizeConstraint")
 	cardLimit.MaxSize = Vector2.new(440, 600)
 	cardLimit.Parent = card
@@ -990,7 +996,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 
 	-- Cast again, the odds it casts with, and Continue: 44 px tall at least, along the card's foot.
 	local function footButton(text: string, color: Color3, width: number, x: number): TextButton
-		local button = makeButton(card, text, color, UDim2.fromScale(width, 0.13), UDim2.fromScale(x, 0.96))
+		local button = makeButton(card, text, color, UDim2.fromScale(width, 0.12), UDim2.fromScale(x, 0.985))
 		button.AnchorPoint = Vector2.new(0, 1)
 		button.ZIndex = 12
 		local least = Instance.new("UISizeConstraint")

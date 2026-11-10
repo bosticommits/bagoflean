@@ -116,11 +116,9 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		if gui:GetAttribute("HudRight") == true then
 			return Vector2.new(1, 0), UDim2.new(1, -12, 0, 8)
 		end
-		-- Under the tutorial's dialogue while it is up ("TutorialBottom", set by Tutorial).
+		-- Top centre, at the very top (the tutorial bubble sits at the right, so it does not push this down).
 		local top = gui:GetAttribute("HudTop")
-		local below = gui:GetAttribute("TutorialBottom")
-		local y = if typeof(top) == "number" then top else 8
-		return Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, if typeof(below) == "number" then math.max(y, below) else y)
+		return Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, if typeof(top) == "number" then top else 8)
 	end
 	local function away(position: UDim2): UDim2
 		return UDim2.new(1, 24, 0, position.Y.Offset)
@@ -140,7 +138,6 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	end
 	gui:GetAttributeChangedSignal("HudTop"):Connect(placeFrame)
 	gui:GetAttributeChangedSignal("HudRight"):Connect(placeFrame)
-	gui:GetAttributeChangedSignal("TutorialBottom"):Connect(placeFrame)
 
 	local function makeLabel(y: number, height: number, color: Color3): TextLabel
 		local label = UiKit.makeTitle(frame, "", color, UDim2.new(1, 0, 0, height), UDim2.fromOffset(0, y), if height >= 40 then 3.5 else 2.5)
