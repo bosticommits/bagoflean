@@ -196,6 +196,17 @@ local function playSlot(name: string, pitch: number?, at: Vector3?, range: numbe
 	end
 end
 
+-- Seconds the spoken slot `name` runs (its delay not counted), or nil while the clip's length is
+-- not known yet. Tutorial.luau paces its lines by it.
+function Sfx.voiceSeconds(name: string): number?
+	local id, _, pitch = Sounds.resolve(name)
+	local base = if id ~= nil then template(id) else nil
+	if base == nil or base.TimeLength <= 0 then
+		return nil
+	end
+	return base.TimeLength / pitch
+end
+
 -- A big moment (a premiere result) cuts the chatter off: the voice line playing fades out over
 -- 0.15 s, lines still waiting are dropped, and the SFX come back up. Lines after this start fresh.
 function Sfx.cutVoice()

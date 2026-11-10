@@ -32,6 +32,8 @@ local UiKit = require(script.Parent.UiKit)
 local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
 local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
 local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
+local TutorialPacing = require(ReplicatedStorage.Shared.TutorialPacing)
+local Sounds = require(ReplicatedStorage.Shared.Sounds)
 
 -- The guide color: brighter and yellower than the UI's gold, so directions read as directions.
 local GUIDE = Color3.fromRGB(255, 222, 26)
@@ -662,6 +664,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local typed = 0
 	local typing = false
 	local lineDoneAt = 0
+	local lineVoice: string? = nil -- the voiced slot of the current line
+	local lineStartedAt = 0
 	local linesKey = ""
 	local stepStartedAt = os.clock() -- idle-hint clock: reset on a step, line change or splash close
 	local hinted = false
@@ -687,6 +691,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		typing = true
 		local voice = if key ~= nil then TutorialLines.VOICE[key] else nil
 		Sfx.cutVoice() -- a new line never talks over the last one
+		lineVoice = voice
+		lineStartedAt = os.clock()
 		if voice ~= nil then
 			Sfx.play(voice)
 		end
@@ -700,7 +706,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- How long a finished line stays before the next one.
 	local function holdTime(text: string): number
-		return math.clamp(#text * 0.045, 2.2, 4)
+		local chars = utf8.len(text) or #text
+		local voice = lineVoice
+		return TutorialPacing.hold(chars, if voice ~= nil then Sfx.voiceSeconds(voice) else nil, chars / CHARS_PER_SECOND)
+	end
+
+	-- When the current line's clip ends (now, if it has none or its length is not known yet).
+	local function clipEndsAt(): number
+		local voice = lineVoice
+		local seconds = if voice ~= nil then Sfx.voiceSeconds(voice) else nil
+		if voice == nil or seconds == nil then
+			return 0
+		end
+		return lineStartedAt + Sounds.delayOf(voice) + seconds
 	end
 
 	tapper.Activated:Connect(function()
@@ -712,7 +730,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				introTyped = true
 				layout()
 			end
-		elseif lineIndex < #queue then
+		elseif lineIndex < #queue and TutorialPacing.canAdvance(os.clock(), clipEndsAt()) then
 			Sfx.play("click")
 			showLine(lineIndex + 1)
 		end
@@ -1771,7 +1789,11 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				else
 					speech.MaxVisibleGraphemes = math.floor(typed)
 				end
-			elseif lineIndex < #queue and os.clock() - lineDoneAt > holdTime(speech.Text) then
+			elseif
+				lineIndex < #queue
+				and os.clock() - lineDoneAt > holdTime(speech.Text)
+				and TutorialPacing.canAdvance(os.clock(), clipEndsAt() + TutorialPacing.GAP) -- a tapped-through line still lets its clip finish
+			then
 				showLine(lineIndex + 1)
 			end
 		end
