@@ -1236,7 +1236,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	-- Headshot toast (below Star): no overlay, no pause. A face in its rarity colour, the name, the
 	-- real "1 in N", a gold NEW! stamp on a first find (else xN). It sits in the Cast bar (so it
 	-- scales with it) above the guarantee and limited tags, and a newer one replaces the old at once.
-	local headToast: CanvasGroup? = nil
+	local headToast: Frame? = nil
 	local function showHeadshotToast(result: any)
 		local actor = Actors.getActor(result.actorId)
 		local variant = Actors.getVariant(result.variantId)
@@ -1248,14 +1248,13 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			headToast:Destroy()
 		end
 		local rank = table.find(Actors.Tiers, tier) or 1
-		local toast = Instance.new("CanvasGroup")
+		local toast = Instance.new("Frame")
 		toast.Name = "HeadshotToast"
 		toast.AnchorPoint = Vector2.new(0.5, 1)
 		local home = UDim2.new(0.5, 0, 0, -80)
 		toast.Position = home + UDim2.fromOffset(0, 16)
 		toast.Size = UDim2.fromOffset(320, 72)
 		toast.BackgroundColor3 = UiKit.NAVY
-		toast.GroupTransparency = 1
 		toast.ZIndex = 20
 		toast.Parent = bar
 		headToast = toast
@@ -1286,7 +1285,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		corner(stamp, 6)
 		textConstraint(stamp, 16)
 		if variant.id ~= "Normal" then
-			local chip = UiKit.makeTitle(toast, string.upper(if variant.id == "Award" then "Award" else variant.name), WHITE, UDim2.fromOffset(52, 22), UDim2.fromOffset(256, 41), 1.5)
+			local chip = UiKit.makeTitle(toast, variant.name, WHITE, UDim2.fromOffset(52, 22), UDim2.fromOffset(256, 41), 1.5)
 			chip.BackgroundTransparency = 0
 			chip.BackgroundColor3 = variant.color
 			chip.ZIndex = 21
@@ -1294,18 +1293,46 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			textConstraint(chip, 14)
 		end
 		Sfx.play(if rank >= 3 then "revealRare" else "revealCommon")
-		TweenService:Create(toast, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = home, GroupTransparency = 0 }):Play()
+		-- Fade by tweening each element (a CanvasGroup can blur or blank the 3D face on phones).
+		local fades: { { inst: Instance, prop: string, shown: number } } = {}
+		local function track(inst: Instance, prop: string)
+			table.insert(fades, { inst = inst, prop = prop, shown = (inst :: any)[prop] })
+		end
+		for _, inst in toast:GetDescendants() do
+			if inst:IsA("ViewportFrame") then
+				track(inst, "ImageTransparency")
+			end
+			if inst:IsA("GuiObject") then
+				track(inst, "BackgroundTransparency")
+			end
+			if inst:IsA("TextLabel") then
+				track(inst, "TextTransparency")
+				track(inst, "TextStrokeTransparency")
+			end
+			if inst:IsA("UIStroke") then
+				track(inst, "Transparency")
+			end
+		end
+		track(toast, "BackgroundTransparency")
+		local function fade(info: TweenInfo, shown: boolean)
+			for _, f in fades do
+				if f.inst.Parent ~= nil then
+					TweenService:Create(f.inst, info, { [f.prop] = if shown then f.shown else 1 }):Play()
+				end
+			end
+		end
+		for _, f in fades do
+			(f.inst :: any)[f.prop] = 1
+		end
+		TweenService:Create(toast, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = home }):Play()
+		fade(TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), true)
 		task.delay(if result.isNew then 1.8 else 1.5, function()
 			if headToast ~= toast then
 				return
 			end
-			local out = TweenService:Create(toast, TweenInfo.new(0.25), { GroupTransparency = 1 })
-			out:Play()
-			out.Completed:Wait()
-			if headToast == toast then
-				headToast = nil
-			end
-			toast:Destroy()
+			headToast = nil
+			fade(TweenInfo.new(0.25), false)
+			task.delay(0.25, toast.Destroy, toast)
 		end)
 	end
 
@@ -1342,8 +1369,14 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	end
 	-- Casts before the tutorial is done keep the "Casting..." card (the tutorial waits for the first
 	-- star); every other cast has no overlay until the answer says it earns the full card.
+	local lastAsk = -math.huge
 	local function beginCast()
+		-- A tap inside the server's cooldown is dropped here, so it never earns "Slow down!".
+		if os.clock() - lastAsk < Config.CastCooldown then
+			return false
+		end
 		if requestCast() then
+			lastAsk = os.clock()
 			setWaiting()
 			if not tutorialDone() then
 				showSuspense()
@@ -1373,6 +1406,21 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			return
 		end
 		overlay.Visible = false
+	end)
+	-- "Tap to continue": once the guard ends, a tap anywhere on a Star+ card closes it.
+	-- A transparent button under the card: buttons above it take their own taps first.
+	local tapAway = Instance.new("TextButton")
+	tapAway.Name = "TapAway"
+	tapAway.Text = ""
+	tapAway.AutoButtonColor = false
+	tapAway.BackgroundTransparency = 1
+	tapAway.Size = UDim2.fromScale(1, 1)
+	tapAway.ZIndex = overlay.ZIndex
+	tapAway.Parent = overlay
+	tapAway.Activated:Connect(function()
+		if hintLabel.TextTransparency < 1 and os.clock() >= guardUntil then
+			overlay.Visible = false
+		end
 	end)
 	oddsRevealButton.Activated:Connect(function()
 		if os.clock() < guardUntil then
