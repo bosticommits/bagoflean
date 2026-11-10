@@ -597,7 +597,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					local at, size = target.AbsolutePosition - o, target.AbsoluteSize
 					targetRect = { x = at.X, y = at.Y, w = size.X, h = size.Y }
 				end
-				lastPick = BubblePlacer.place({
+				local pick = BubblePlacer.place({
 					areaW = area.X,
 					areaH = area.Y,
 					hud = hud,
@@ -609,9 +609,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					margin = EDGE,
 					previous = lastPick,
 				})
-				bustRight, bustY, cardRight, cardY, bubbleWidth = lastPick.bustRight, lastPick.bustY, lastPick.cardRight, lastPick.cardY, lastPick.width
-				nameLabel.TextSize = lastPick.textSize
-				speech.TextSize = lastPick.textSize
+				lastPick = pick
+				bustRight, bustY, cardRight, cardY, bubbleWidth = pick.bustRight, pick.bustY, pick.cardRight, pick.cardY, pick.width
+				nameLabel.TextSize = pick.textSize
+				speech.TextSize = pick.textSize
 			end
 			bust.Position = UDim2.fromOffset(bustRight, bustY)
 			card.AnchorPoint = Vector2.new(1, 0)
