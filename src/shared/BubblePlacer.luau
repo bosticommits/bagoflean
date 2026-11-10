@@ -74,4 +74,125 @@ function BubblePlacer.cardHeight(text: string, width: number, textSize: number):
 	return math.ceil((lines + 1) * textSize * 1.17) + 18 + 8 + 6
 end
 
+-- Placement ---------------------------------------------------------------------------------------
+export type Pick = {
+	bustRight: number,
+	bustY: number,
+	cardRight: number,
+	cardY: number,
+	width: number,
+	textSize: number,
+	clean: boolean, -- no overlap at all; false for a last-resort pick
+}
+
+export type Input = {
+	areaW: number,
+	areaH: number,
+	hud: { Rect }, -- visible HUD parts
+	panels: { Rect }, -- open panels (they move aside for the bubble, so they only decide the pick)
+	target: Rect?, -- the step's target
+	bust: number, -- bust size
+	text: string, -- the line shown
+	maxWidth: number, -- card width to try first
+	margin: number, -- clearance from everything, also from the screen edge
+	previous: Pick?, -- the last pick: kept while it stays clean
+}
+
+local BORDER = 3 -- the card and bust outlines draw this far outside their frames
+-- Spots keep margin + BORDER from neighbours so the drawn outline still clears them.
+local TIERS = { { 1, 16 }, { 220, 15 }, { 200, 14 } } -- width (1 = Input.maxWidth), TextSize
+
+local function grow(r: Rect, by: number): Rect
+	return { x = r.x - by, y = r.y - by, w = r.w + 2 * by, h = r.h + 2 * by }
+end
+
+local function spotRects(p: Pick, bust: number, h: number): { Rect }
+	return {
+		grow({ x = p.bustRight - bust, y = p.bustY, w = bust, h = bust }, BORDER),
+		grow({ x = p.cardRight - p.width, y = p.cardY, w = p.width, h = h }, BORDER),
+	}
+end
+
+-- The candidate spots, in order: under the bust, left of the bust, bottom centre above whatever
+-- sits at the bottom (the CAST bar), bottom left, top centre.
+function BubblePlacer.spots(areaW: number, areaH: number, hud: { Rect }, margin: number, bust: number, w: number, textSize: number, h: number): { Pick }
+	local picks: { Pick } = {}
+	local function add(bustRight: number, bustY: number, cardRight: number, cardY: number)
+		table.insert(picks, { bustRight = bustRight, bustY = bustY, cardRight = cardRight, cardY = cardY, width = w, textSize = textSize, clean = false })
+	end
+	-- Under the HUD readouts over the band [left, right] in the top 40 % of the screen.
+	local function below(left: number, right: number): number
+		local lowest = 0
+		for _, r in hud do
+			if r.y < areaH * 0.4 and r.x < right and r.x + r.w > left then
+				lowest = math.max(lowest, r.y + r.h)
+			end
+		end
+		return lowest
+	end
+	local right = areaW - margin
+	local gw, gh = w + 8 + bust, math.max(h, bust)
+	local centre = math.floor((areaW - gw) / 2)
+	local y1 = below(right - w, right) + margin
+	add(right, y1, right, y1 + bust + 6)
+	local y2 = below(right - gw, right) + margin
+	add(right, y2, right - bust - 8, y2)
+	local floor = areaH - margin
+	for _, r in hud do
+		if r.y > areaH * 0.5 and r.x < centre + gw and r.x + r.w > centre then
+			floor = math.min(floor, r.y - margin)
+		end
+	end
+	add(centre + gw, floor - gh, centre + w, floor - gh)
+	add(margin + gw, areaH - margin - gh, margin + w, areaH - margin - gh)
+	local top = below(centre, centre + gw) + margin
+	add(centre + gw, top, centre + w, top)
+	return picks
+end
+
+-- Where the bubble and bust go. Keeps `previous` while it stays clean (so a toast does not make it
+-- hop); else the first clean spot at 260 px, 220 px, then 200 px; with a panel open and nothing
+-- clean, a compact bubble under the bust (the panel gives way); else the least-overlap spot that
+-- leaves the target alone.
+function BubblePlacer.place(input: Input): Pick
+	local bounds: Rect = { x = 0, y = 0, w = input.areaW, h = input.areaH }
+	local obstacles = table.clone(input.hud)
+	for _, r in input.panels do
+		table.insert(obstacles, r)
+	end
+	if input.target ~= nil then
+		table.insert(obstacles, input.target)
+	end
+	local function heightFor(width: number, textSize: number): number
+		return BubblePlacer.cardHeight(input.text, width, textSize)
+	end
+	local prev = input.previous
+	if prev ~= nil and prev.clean then
+		if BubblePlacer.cost(spotRects(prev, input.bust, heightFor(prev.width, prev.textSize)), obstacles, bounds, input.margin) == 0 then
+			return prev
+		end
+	end
+	local all: { Pick } = {}
+	local allRects: { { Rect } } = {}
+	for _, tier in TIERS do
+		local w = if tier[1] == 1 then math.min(input.maxWidth, 260) else tier[1]
+		local h = heightFor(w, tier[2])
+		for _, pick in BubblePlacer.spots(input.areaW, input.areaH, input.hud, input.margin + BORDER, input.bust, w, tier[2], h) do
+			local rects = spotRects(pick, input.bust, h)
+			if BubblePlacer.cost(rects, obstacles, bounds, input.margin) == 0 then
+				pick.clean = true
+				return pick
+			end
+			table.insert(all, pick)
+			table.insert(allRects, rects)
+		end
+	end
+	if #input.panels > 0 then
+		local last = TIERS[#TIERS]
+		local compact = BubblePlacer.spots(input.areaW, input.areaH, input.hud, input.margin + BORDER, input.bust, last[1], last[2], heightFor(last[1], last[2]))[1]
+		return compact
+	end
+	return all[BubblePlacer.leastOverlap(allRects, obstacles, input.target, bounds, input.margin)]
+end
+
 return BubblePlacer

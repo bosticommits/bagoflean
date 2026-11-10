@@ -81,8 +81,6 @@ local BUST_PC = 110
 local EDGE = 8
 
 type Rect = BubblePlacer.Rect
-type Spot = { rects: { Rect }, bustRight: number, bustY: number, cardRight: number, cardY: number }
-type Option = { spot: Spot, width: number, textSize: number }
 
 local CHARS_PER_SECOND = 60
 
@@ -503,8 +501,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Every visible HUD part the bubble must keep clear of, in the container's space. Big
 	-- containers (the side menu, panels) are replaced by their children.
-	local function hudRects(origin: Vector2, area: Vector2): { Rect }
+	local function hudRects(origin: Vector2, area: Vector2): ({ Rect }, { Rect })
 		local out: { Rect } = {}
+		local panels: { Rect } = {}
 		local function add(object: Instance, depth: number)
 			if not object:IsA("GuiObject") or not object.Visible then
 				return
@@ -513,7 +512,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			if size.X <= 0 or size.Y <= 0 then
 				return
 			end
-			if size.X >= area.X * 0.5 or size.Y >= area.Y * 0.5 or object.Name == "Hud" then
+			if depth == 0 and string.sub(object.Name, -5) == "Panel" then
+				table.insert(panels, { x = at.X, y = at.Y, w = size.X, h = size.Y })
+			elseif size.X >= area.X * 0.5 or size.Y >= area.Y * 0.5 or object.Name == "Hud" then
 				if depth < 2 then
 					for _, child in object:GetChildren() do
 						add(child, depth + 1)
@@ -526,57 +527,14 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		for _, child in gui:GetChildren() do
 			add(child, 0)
 		end
-		return out
-	end
-
-	-- The candidate spots, in order: under the bust, left of the bust, bottom centre above the
-	-- CAST bar, bottom left, top centre. Each lists the bust and bubble rects it would take.
-	local function phoneSpots(area: Vector2, obstacles: { Rect }, b: number, w: number, h: number): { Spot }
-		local spots: { Spot } = {}
-		local function spot(bustRight: number, bustY: number, cardRight: number, cardY: number)
-			table.insert(spots, {
-				rects = { { x = bustRight - b, y = bustY, w = b, h = b }, { x = cardRight - w, y = cardY, w = w, h = h } },
-				bustRight = bustRight,
-				bustY = bustY,
-				cardRight = cardRight,
-				cardY = cardY,
-			})
-		end
-		-- Below the HUD readouts over the band [left, right] in the top 40 % of the screen.
-		local function below(left: number, right: number): number
-			local lowest = 0
-			for _, r in obstacles do
-				if r.y < area.Y * 0.4 and r.x < right and r.x + r.w > left then
-					lowest = math.max(lowest, r.y + r.h)
-				end
-			end
-			return lowest
-		end
-		local right = area.X - EDGE
-		local gw, gh = w + 8 + b, math.max(h, b)
-		local centre = math.floor((area.X - gw) / 2)
-		local y1 = below(right - w, right) + 8
-		spot(right, y1, right, y1 + b + 6)
-		local y2 = below(right - gw, right) + 8
-		spot(right, y2, right - b - 8, y2)
-		-- Bottom centre: the group's bottom edge sits on the top of whatever is below it (the CAST bar).
-		local floor = area.Y - EDGE
-		for _, r in obstacles do
-			if r.y > area.Y * 0.5 and r.x < centre + gw and r.x + r.w > centre then
-				floor = math.min(floor, r.y - 8)
-			end
-		end
-		spot(centre + gw, floor - gh, centre + w, floor - gh)
-		spot(EDGE + gw, area.Y - EDGE - gh, EDGE + w, area.Y - EDGE - gh)
-		local top = below(centre, centre + gw) + 8
-		spot(centre + gw, top, centre + w, top)
-		return spots
+		return out, panels
 	end
 
 	local guideTarget: () -> GuiObject? = function()
 		return nil
 	end -- set once the guides exist
 
+	local lastPick: BubblePlacer.Pick? = nil
 	local function layout()
 		if not container.Visible then
 			return
@@ -628,44 +586,32 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local right = area.X - EDGE
 			-- Where the bust and the bubble sit: right edges and tops (both anchored top-right).
 			local bustRight, bustY, cardRight, cardY = right, y, right - bustSize - 8, y
-			if small and not panelOpen then
-				-- Phone: the first spot that overlaps no HUD part and not the step's target, at 260 px
-				-- then at 220 px / size 15; else the least-overlap spot that leaves the target clear.
+			if small then
+				-- Phone: the first spot that overlaps no HUD part, open panel or the step's target
+				-- (BubblePlacer); the last pick stays while it is still clean.
 				local o = container.AbsolutePosition
-				local obstacles = hudRects(o, area)
+				local hud, panels = hudRects(o, area)
 				local targetRect: Rect? = nil
 				local target = guideTarget()
 				if target ~= nil and target.Visible and target.AbsoluteSize.Y > 0 then
 					local at, size = target.AbsolutePosition - o, target.AbsoluteSize
 					targetRect = { x = at.X, y = at.Y, w = size.X, h = size.Y }
-					table.insert(obstacles, targetRect :: Rect)
 				end
-				local bounds: Rect = { x = 0, y = 0, w = area.X, h = area.Y }
-				local options: { Option } = {}
-				local rects: { { Rect } } = {}
-				local chosen: Option? = nil
-				for _, fit in { { math.min(BUBBLE_MAX_PHONE, bubbleWidth), 16 }, { 220, 15 } } do
-					local w, size = fit[1], fit[2]
-					local first = #options + 1
-					for _, spot in phoneSpots(area, obstacles, bustSize, w, BubblePlacer.cardHeight(speech.Text, w, size)) do
-						table.insert(options, { spot = spot, width = w, textSize = size })
-						table.insert(rects, spot.rects)
-					end
-					local free = BubblePlacer.firstFree(table.move(rects, first, #rects, 1, {}), obstacles, bounds, 8)
-					if free ~= nil then
-						chosen = options[first + free - 1]
-						break
-					end
-				end
-				if chosen == nil then
-					chosen = options[BubblePlacer.leastOverlap(rects, obstacles, targetRect, bounds, 8)]
-				end
-				if chosen ~= nil then
-					local spot = chosen.spot
-					bustRight, bustY, cardRight, cardY, bubbleWidth = spot.bustRight, spot.bustY, spot.cardRight, spot.cardY, chosen.width
-					nameLabel.TextSize = chosen.textSize
-					speech.TextSize = chosen.textSize
-				end
+				lastPick = BubblePlacer.place({
+					areaW = area.X,
+					areaH = area.Y,
+					hud = hud,
+					panels = panels,
+					target = targetRect,
+					bust = bustSize,
+					text = speech.Text,
+					maxWidth = bubbleWidth,
+					margin = EDGE,
+					previous = lastPick,
+				})
+				bustRight, bustY, cardRight, cardY, bubbleWidth = lastPick.bustRight, lastPick.bustY, lastPick.cardRight, lastPick.cardY, lastPick.width
+				nameLabel.TextSize = lastPick.textSize
+				speech.TextSize = lastPick.textSize
 			end
 			bust.Position = UDim2.fromOffset(bustRight, bustY)
 			card.AnchorPoint = Vector2.new(1, 0)
