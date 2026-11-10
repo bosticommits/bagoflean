@@ -30,4 +30,12 @@ function Reveal.plan(rank: number, roll: number): Plan
 	return { seconds = seconds, steps = steps, fakeOut = fakeOut }
 end
 
+-- Full-screen card or small headshot toast? Star (rank 4) and up, Award-Winning variants, server
+-- guarantees (hot start, pity, first Superstar) and every cast before the tutorial is done get the
+-- card; the rest get the toast. `ctx.tutorialDone` is false while unknown, so early casts stay full.
+Reveal.CardRank = 4
+function Reveal.useCard(rank: number, result: { variantId: string?, guarantee: string? }, ctx: { tutorialDone: boolean }): boolean
+	return rank >= Reveal.CardRank or result.variantId == "Award" or result.guarantee ~= nil or not ctx.tutorialDone
+end
+
 return Reveal

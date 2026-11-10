@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local PhoneLayout = require(ReplicatedStorage.Shared.PhoneLayout)
 local Reveal = require(ReplicatedStorage.Shared.Reveal)
+local RevealVoice = require(ReplicatedStorage.Shared.RevealVoice)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
@@ -1027,6 +1028,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	fitCard()
 
 	local revealToken = 0
+	local voice = RevealVoice.new() -- Lucien's throttle lives for the session
 	local function setCardVisible(visible: boolean)
 		for _, child in card:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -1188,13 +1190,90 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 				else nil
 			noteLabel.Visible = note ~= nil
 			noteLabel.Text = note or ""
-			Fx.castReveal(tier.id, variant.id)
+			local lines = RevealVoice.pick(voice, rank, result.isNew == true, os.clock(), math.random())
+			Fx.castReveal(tier.id, variant.id, lines)
 			if rank >= 5 then
 				Fx.releaseOwnPull()
 			end
 			local scale = CardLayout.cardScale(overlay.AbsoluteSize.Y)
 			card.Size = UDim2.fromScale(0.05, scale)
 			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, scale) }):Play()
+		end)
+	end
+
+	-- Headshot toast (below Star): no overlay, no pause. A face in its rarity colour, the name, the
+	-- real "1 in N", a gold NEW! stamp on a first find (else xN). It sits in the Cast bar (so it
+	-- scales with it) above the guarantee and limited tags, and a newer one replaces the old at once.
+	local headToast: CanvasGroup? = nil
+	local function showHeadshotToast(result: any)
+		local actor = Actors.getActor(result.actorId)
+		local variant = Actors.getVariant(result.variantId)
+		local tier = if actor ~= nil then Actors.getTier(actor.tier) else nil
+		if actor == nil or variant == nil or tier == nil then
+			return
+		end
+		if headToast ~= nil then
+			headToast:Destroy()
+		end
+		local rank = table.find(Actors.Tiers, tier) or 1
+		local toast = Instance.new("CanvasGroup")
+		toast.Name = "HeadshotToast"
+		toast.AnchorPoint = Vector2.new(0.5, 1)
+		local home = UDim2.new(0.5, 0, 0, -80)
+		toast.Position = home + UDim2.fromOffset(0, 16)
+		toast.Size = UDim2.fromOffset(320, 72)
+		toast.BackgroundColor3 = UiKit.NAVY
+		toast.GroupTransparency = 1
+		toast.ZIndex = 20
+		toast.Parent = bar
+		headToast = toast
+		corner(toast, 12)
+		UiKit.border(toast, 4, tier.color)
+		local face = Instance.new("Frame")
+		face.Size = UDim2.fromOffset(56, 56)
+		face.Position = UDim2.fromOffset(8, 8)
+		face.BackgroundColor3 = tier.color:Lerp(UiKit.NAVY, 0.45)
+		face.ZIndex = 21
+		face.Parent = toast
+		corner(face, 8)
+		UiKit.border(face, 3, tier.color)
+		Icon3D.actor(face, actor.id, variant.id)
+		local name = UiKit.makeTitle(toast, actor.name, tier.color:Lerp(WHITE, 0.25), UDim2.new(1, -78, 0, 28), UDim2.fromOffset(72, 6), 2)
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		name.ZIndex = 21
+		textConstraint(name, 20)
+		local chance = if type(result.chance) == "number" then Actors.oneIn(result.chance) else "?"
+		local detail = makeLabel(toast, chance, UiKit.MUTED, UDim2.new(0, 120, 0, 20), UDim2.fromOffset(72, 40))
+		detail.TextXAlignment = Enum.TextXAlignment.Left
+		detail.ZIndex = 21
+		textConstraint(detail, 14)
+		local stamp = UiKit.makeTitle(toast, if result.isNew then "NEW!" else `x{result.count}`, if result.isNew then UiKit.INK else WHITE, UDim2.fromOffset(52, 22), UDim2.fromOffset(196, 41), 1.5)
+		stamp.BackgroundTransparency = 0
+		stamp.BackgroundColor3 = if result.isNew then UiKit.GOLD else UiKit.TAB_OFF
+		stamp.ZIndex = 21
+		corner(stamp, 6)
+		textConstraint(stamp, 16)
+		if variant.id ~= "Normal" then
+			local chip = UiKit.makeTitle(toast, string.upper(if variant.id == "Award" then "Award" else variant.name), WHITE, UDim2.fromOffset(52, 22), UDim2.fromOffset(256, 41), 1.5)
+			chip.BackgroundTransparency = 0
+			chip.BackgroundColor3 = variant.color
+			chip.ZIndex = 21
+			corner(chip, 6)
+			textConstraint(chip, 14)
+		end
+		Sfx.play(if rank >= 3 then "revealRare" else "revealCommon")
+		TweenService:Create(toast, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = home, GroupTransparency = 0 }):Play()
+		task.delay(if result.isNew then 1.8 else 1.5, function()
+			if headToast ~= toast then
+				return
+			end
+			local out = TweenService:Create(toast, TweenInfo.new(0.25), { GroupTransparency = 1 })
+			out:Play()
+			out.Completed:Wait()
+			if headToast == toast then
+				headToast = nil
+			end
+			toast:Destroy()
 		end)
 	end
 
@@ -1212,20 +1291,46 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		castRemote:FireServer(agency.id)
 		return true
 	end
+	-- One cast at a time: set when asked, cleared by the answer (or after the suspense timeout).
+	local waiting = false
+	local castSeq = 0
+	local function setWaiting()
+		waiting = true
+		castSeq += 1
+		local mine = castSeq
+		task.delay(SUSPENSE_TIMEOUT_SECONDS, function()
+			if castSeq == mine then
+				waiting = false
+			end
+		end)
+	end
+	local function tutorialDone(): boolean
+		local studio = ClientState.studio
+		return studio ~= nil and studio.tutorialDone == true
+	end
+	-- Casts before the tutorial is done keep the "Casting..." card (the tutorial waits for the first
+	-- star); every other cast has no overlay until the answer says it earns the full card.
+	local function beginCast()
+		if requestCast() then
+			setWaiting()
+			if not tutorialDone() then
+				showSuspense()
+			end
+			return true
+		end
+		return false
+	end
 
 	castButton.Activated:Connect(function()
-		if overlay.Visible or not player:GetAttribute("DataLoaded") then
+		if overlay.Visible or waiting or not player:GetAttribute("DataLoaded") then
 			return
 		end
-		if requestCast() then
-			showSuspense()
-		end
+		beginCast()
 	end)
 	againButton.Activated:Connect(function()
-		if requestCast() then
-			showSuspense()
-		else
-			overlay.Visible = false
+		overlay.Visible = false
+		if not waiting then
+			beginCast()
 		end
 	end)
 	doneButton.Activated:Connect(function()
@@ -1241,8 +1346,18 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		if type(result) ~= "table" then
 			return
 		end
+		waiting = false
 		if result.ok then
-			showReveal(result)
+			local actor = Actors.getActor(result.actorId)
+			local tier = if actor ~= nil then Actors.getTier(actor.tier) else nil
+			local rank = if tier ~= nil then table.find(Actors.Tiers, tier) or 1 else 1
+			if Reveal.useCard(rank, result, { tutorialDone = tutorialDone() }) then
+				showReveal(result)
+			else
+				revealToken += 1 -- closes a "Casting..." card that is still up
+				overlay.Visible = false
+				showHeadshotToast(result)
+			end
 		else
 			overlay.Visible = false
 			if result.reason == "cash" then
