@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
+local NumberConfig = require(ReplicatedStorage.Shared.LiveConfigNumbers)
 local ClientState = require(script.Parent.ClientState)
 local EventWorld = require(script.Parent.EventWorld)
 local Fx = require(script.Parent.Fx)
@@ -174,6 +175,35 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			end
 		end
 	end
+
+	-- Update warning: "Update in m:ss", same outlined-letter style, under the event banner.
+	local updateAt = ReplicatedStorage:GetAttribute("LiveConfig_UpdateAt")
+	ReplicatedStorage:GetAttributeChangedSignal("LiveConfig_UpdateAt"):Connect(function()
+		updateAt = ReplicatedStorage:GetAttribute("LiveConfig_UpdateAt")
+	end)
+	local warning = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(WIDTH, INFO_HEIGHT + 4), UDim2.new(), 3)
+	warning.Name = "UpdateWarning"
+	warning.AnchorPoint = Vector2.new(0.5, 0)
+	warning.Visible = false
+	warning.ZIndex = 7
+	UiKit.textConstraint(warning, 26)
+	task.spawn(function()
+		while warning.Parent ~= nil do
+			local left = if type(updateAt) == "number" then NumberConfig.updateWarning(updateAt, os.time()) else nil
+			warning.Visible = left ~= nil
+			if left ~= nil then
+				warning.Text = `Update in {Hud.clock(left)} - the server restarts`
+				local top = 8
+				for _, child in gui:GetChildren() do -- just below the event banner when it is up
+					if child.Name == "SpecialEvent" and child:IsA("GuiObject") and child.Visible then
+						top = child.AbsolutePosition.Y - gui.AbsolutePosition.Y + child.AbsoluteSize.Y + 4
+					end
+				end
+				warning.Position = UDim2.new(0.5, 0, 0, math.max(top, if banner.Visible then 0 else 40))
+			end
+			task.wait(1)
+		end
+	end)
 
 	-- Layout --------------------------------------------------------------------------------------
 	-- How big the banner can be: clear of the side menu on the left (and as far from the right
