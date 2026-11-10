@@ -458,7 +458,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		slotButton.AutoButtonColor = false
 		slotButton.BackgroundColor3 = UiKit.DARK
 		slotButton.Size = UDim2.fromOffset(44, 44)
-		slotButton.Position = UDim2.fromOffset((slot - 1) * 50, 0)
+		slotButton.AnchorPoint = Vector2.new(0.5, 0.5) -- so the pop grows from the centre
+		slotButton.Position = UDim2.fromOffset((slot - 1) * 50 + 22, 22)
 		slotButton.Parent = footer
 		corner(slotButton, 8)
 		UiKit.border(slotButton, 2)
@@ -528,13 +529,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 	local function updatePickerFooter()
 		local fill = canFill()
-		if state ~= nil and state.tutorialDone and pickScript == nil then
-			clearButton.Text = "Best cast"
-			UiKit.setEnabled(clearButton, false, UiKit.BLUE)
-		else
-			clearButton.Text = if fill then "Best cast" else "Clear cast"
-			UiKit.setEnabled(clearButton, true, if fill then UiKit.BLUE else UiKit.BURGUNDY)
-		end
+		clearButton.Text = if fill then "Best cast" else "Clear cast"
+		UiKit.setEnabled(clearButton, true, if fill then UiKit.BLUE else UiKit.BURGUNDY)
 		local names = {}
 		for _, key in pickCast do
 			table.insert(names, actorLabel(key))
@@ -796,7 +792,6 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			for _, key in Movies.fillCast(shownActors, Config.MaxCast - from) do
 				table.insert(pickCast, key)
 			end
-			Sfx.play("click")
 			refreshPicker()
 			-- Filled slots pop in (0.18 s Back Out, 0.06 s stagger).
 			for slot = from + 1, #pickCast do
@@ -811,7 +806,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					tween:Play()
 				end)
 			end
-		elseif pickScript ~= nil or not (state ~= nil and state.tutorialDone) then
+		else
 			pickCast = {}
 			refreshPicker()
 		end
