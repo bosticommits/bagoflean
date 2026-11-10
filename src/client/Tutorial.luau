@@ -604,20 +604,11 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local right = area.X - EDGE
 			-- Where the bust and the bubble sit: right edges and tops (both anchored top-right).
 			local bustRight, bustY, cardRight, cardY = right, y, right - bustSize - 8, y
-			if small then
+			if small and not panelOpen then
 				-- Phone: the first spot that overlaps no HUD part or the step's target (BubblePlacer);
-				-- the last pick stays while it is still clean. With a panel open the HUD is hidden
-				-- (Declutter) and the panel moves aside for the bubble, so only the Wallet counts.
+				-- the last pick stays while it is still clean. With a panel open the fixed corner is used.
 				local o = container.AbsolutePosition
 				local hud, panels = hudRects(o, area)
-				if panelOpen then
-					hud, panels = {}, {}
-					local wallet = gui:FindFirstChild("Wallet")
-					if wallet ~= nil and wallet:IsA("GuiObject") and wallet.Visible and wallet.AbsoluteSize.Y > 0 then
-						local at, size = wallet.AbsolutePosition - o, wallet.AbsoluteSize
-						table.insert(hud, { x = at.X, y = at.Y, w = size.X, h = size.Y })
-					end
-				end
 				local targetRect: Rect? = nil
 				local target = guideTarget()
 				if target ~= nil and target.Visible and target.AbsoluteSize.Y > 0 then
@@ -633,7 +624,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					bust = bustSize,
 					text = speech.Text,
 					maxWidth = bubbleWidth,
-					margin = 12, -- UI Taste Rules: 12 px clearance
+					margin = EDGE,
 					previous = lastPick,
 				})
 				lastPick = pick

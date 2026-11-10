@@ -131,14 +131,6 @@ test("place: a panel rect is avoided like the HUD", function()
 	expect(Placer.overlapArea({ x = p.cardRight - p.width, y = p.cardY, w = p.width, h = 60 }, panel, 0) == 0, "panel clear")
 end)
 
-test("place: panel open, Hud hidden, Wallet top right: the pick clears the Wallet by 12 px", function()
-	local wallet = { x = 470, y = 4, w = 176, h = 37 }
-	local p = Placer.place(input({ hud = { wallet }, panels = {}, margin = 12 }))
-	local x0, y0 = p.cardRight - p.width, p.cardY
-	expect(Placer.overlapArea({ x = x0, y = y0, w = p.width, h = 60 }, wallet, 12) == 0, "card clear")
-	expect(Placer.overlapArea({ x = p.bustRight - bust, y = p.bustY, w = bust, h = bust }, wallet, 12) == 0, "bust clear")
-end)
-
 test("spots: five candidates, all on screen horizontally", function()
 	local s = Placer.spots(area.w, area.h, hud, 8, bust, 260, 16, 95)
 	expect(#s == 5, "five")
