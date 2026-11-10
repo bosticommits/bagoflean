@@ -11,6 +11,7 @@
 -- which lot to jump to.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local SocialService = game:GetService("SocialService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -33,6 +34,8 @@ local makeLabel, makeTitle, makeButton = UiKit.makeLabel, UiKit.makeTitle, UiKit
 
 local VisitUi = {}
 
+-- Two-person invite picture (ForgeGUI art in art/ui/invite_friends.png). 0 = no icon yet.
+local INVITE_ICON = 0
 local CARD_WIDTH = 260
 local CARD_HEIGHT = 178
 local PREMIERE_SHOW_SECONDS = 7
@@ -294,6 +297,9 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		UiKit.corner(rule, 2)
 	end
 
+	-- Invite friends: shown only when Roblox says this player can send invites (checked once, below).
+	local canInvite = false
+
 	local function build()
 		UiKit.clear(list)
 		table.clear(statusLabels)
@@ -301,6 +307,37 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		local mine = myLot()
 		local here = standingOn()
 		local order = 0
+
+		-- Invite friends first, so it shows without scrolling on a phone.
+		if canInvite then
+			order += 1
+			local row = UiKit.addRow(list, order, 56)
+			UiKit.plainRow(row)
+			local invite = makeButton(row, "Invite friends", UiKit.BLUE, UDim2.new(0.5, 0, 0, 44), UDim2.new(0.25, 0, 0, 6))
+			invite.Name = "InviteFriends"
+			if INVITE_ICON ~= 0 then
+				local icon = Instance.new("ImageLabel")
+				icon.Name = "InviteIcon"
+				icon.BackgroundTransparency = 1
+				icon.Image = "rbxassetid://" .. INVITE_ICON
+				icon.ScaleType = Enum.ScaleType.Fit
+				icon.AnchorPoint = Vector2.new(0, 0.5)
+				icon.Size = UDim2.fromOffset(34, 34)
+				icon.Position = UDim2.new(0, 10, 0.5, -2)
+				icon.ZIndex = invite.ZIndex + 1
+				icon.Parent = invite
+			end
+			invite.Activated:Connect(function()
+				local options = Instance.new("ExperienceInviteOptions")
+				options.PromptMessage = "Join my studio!"
+				local ok = pcall(function()
+					SocialService:PromptGameInvite(player, options)
+				end)
+				if not ok then
+					UiKit.toast(gui, "Invites aren't available right now")
+				end
+			end)
+		end
 
 		-- Your own studio first, with the way home.
 		if mine ~= nil then
@@ -495,6 +532,23 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		end)
 	end)
 	Screens.register("Visit", open)
+
+	-- The prompt fires on cancel too, so toast only when it names at least one recipient. A missing
+	-- toast is harmless; the list is never used for rewards.
+	SocialService.GameInvitePromptClosed:Connect(function(sender: Player, recipientIds: { number })
+		if sender == player and #recipientIds > 0 then
+			UiKit.toast(gui, "Invite sent!")
+		end
+	end)
+	task.spawn(function()
+		local ok, can = pcall(function()
+			return SocialService:CanSendGameInviteAsync(player)
+		end)
+		canInvite = ok and can == true
+		if canInvite and panel.Visible then
+			build()
+		end
+	end)
 
 	-- Side menu chip: how many other studios there are to tour.
 	local function updateChip()
