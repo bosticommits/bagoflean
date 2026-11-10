@@ -134,7 +134,7 @@ end
 
 -- Glow on a world target and (unless it is a "hint") a bobbing arrow with its label over it.
 -- Returns the cleanup and the arrow's board, so a caller can add pieces (the tutorial's trail).
-function Guides.world(target: WorldTarget, playerGui: Instance): { cleanup: () -> (), board: BillboardGui? }
+function Guides.world(target: WorldTarget, playerGui: Instance?): { cleanup: () -> (), board: BillboardGui? }
 	local made: { Instance } = {}
 	local tweens: { Tween } = {}
 	local boardOut: BillboardGui? = nil

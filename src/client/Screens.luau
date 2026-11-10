@@ -4,19 +4,20 @@
 -- Names: Shop, Daily, Requests, Codes, Upgrades, Odds, Actors, Studio, Rebirth, Goals, Quests.
 local Screens = {}
 
-local openers: { [string]: () -> () } = {}
+local openers: { [string]: (focus: string?) -> () } = {}
 
-function Screens.register(name: string, open: () -> ())
+function Screens.register(name: string, open: (focus: string?) -> ())
 	openers[name] = open
 end
 
--- Open screen `name` (left open if it already is). Returns false for a screen that isn't there.
-function Screens.open(name: string): boolean
+-- Open screen `name` (left open if it already is). `focus` picks what to show inside it (Upgrades:
+-- an upgrade id, Studio: a tab). Returns false for a screen that isn't there.
+function Screens.open(name: string, focus: string?): boolean
 	local open = openers[name]
 	if open == nil then
 		return false
 	end
-	open()
+	open(focus)
 	return true
 end
 
