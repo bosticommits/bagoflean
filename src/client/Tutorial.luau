@@ -586,9 +586,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local right = area.X - EDGE
 			-- Where the bust and the bubble sit: right edges and tops (both anchored top-right).
 			local bustRight, bustY, cardRight, cardY = right, y, right - bustSize - 8, y
-			if small then
-				-- Phone: the first spot that overlaps no HUD part, open panel or the step's target
-				-- (BubblePlacer); the last pick stays while it is still clean.
+			if small and not panelOpen then
+				-- Phone: the first spot that overlaps no HUD part or the step's target (BubblePlacer);
+				-- the last pick stays while it is still clean. With a panel open the fixed corner is used.
 				local o = container.AbsolutePosition
 				local hud, panels = hudRects(o, area)
 				local targetRect: Rect? = nil

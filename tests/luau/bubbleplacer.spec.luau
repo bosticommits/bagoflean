@@ -124,9 +124,11 @@ test("place: the target is never covered when something else fits", function()
 	expect(not hit, "target clear")
 end)
 
-test("place: with a panel open and nothing clean, a compact bubble under the bust", function()
-	local p = Placer.place(input({ panels = { { x = 0, y = 0, w = 654, h = 388 } } }))
-	expect(p.width == 200 and not p.clean, "compact, unclean")
+test("place: a panel rect is avoided like the HUD", function()
+	local first = Placer.place(input())
+	local panel = { x = first.cardRight - first.width, y = first.cardY, w = first.width, h = 90 }
+	local p = Placer.place(input({ panels = { panel } }))
+	expect(Placer.overlapArea({ x = p.cardRight - p.width, y = p.cardY, w = p.width, h = 60 }, panel, 0) == 0, "panel clear")
 end)
 
 test("spots: five candidates, all on screen horizontally", function()

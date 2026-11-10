@@ -151,9 +151,8 @@ function BubblePlacer.spots(areaW: number, areaH: number, hud: { Rect }, margin:
 end
 
 -- Where the bubble and bust go. Keeps `previous` while it stays clean (so a toast does not make it
--- hop); else the first clean spot at 260 px, 220 px, then 200 px; with a panel open and nothing
--- clean, a compact bubble under the bust (the panel gives way); else the least-overlap spot that
--- leaves the target alone.
+-- hop); else the first clean spot at 260 px, 220 px, then 200 px; else the least-overlap spot that
+-- leaves the target alone. (Tutorial skips this while a panel is open and uses the fixed corner.)
 function BubblePlacer.place(input: Input): Pick
 	local bounds: Rect = { x = 0, y = 0, w = input.areaW, h = input.areaH }
 	local obstacles = table.clone(input.hud)
@@ -186,11 +185,6 @@ function BubblePlacer.place(input: Input): Pick
 			table.insert(all, pick)
 			table.insert(allRects, rects)
 		end
-	end
-	if #input.panels > 0 then
-		local last = TIERS[#TIERS]
-		local compact = BubblePlacer.spots(input.areaW, input.areaH, input.hud, input.margin + BORDER, input.bust, last[1], last[2], heightFor(last[1], last[2]))[1]
-		return compact
 	end
 	return all[BubblePlacer.leastOverlap(allRects, obstacles, input.target, bounds, input.margin)]
 end

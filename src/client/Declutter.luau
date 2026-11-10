@@ -10,7 +10,7 @@ function Declutter.start(gui: ScreenGui)
 	-- Object -> what its owner last wanted while we hold it hidden (an owner can still toggle it).
 	local held: { [GuiObject]: boolean } = {}
 	local watched: { [GuiObject]: boolean } = {}
-	local own = false
+	local mine: { [GuiObject]: number } = {} -- our own Visible=false writes still to be seen (Deferred signals run late)
 
 	local function watch(object: GuiObject)
 		if watched[object] then
@@ -18,14 +18,17 @@ function Declutter.start(gui: ScreenGui)
 		end
 		watched[object] = true
 		object:GetPropertyChangedSignal("Visible"):Connect(function()
-			if own or held[object] == nil then
+			if not object.Visible and (mine[object] or 0) > 0 then
+				mine[object] -= 1
+				return
+			end
+			if held[object] == nil then
 				return
 			end
 			held[object] = object.Visible
 			if object.Visible then
-				own = true
+				mine[object] = (mine[object] or 0) + 1
 				object.Visible = false
-				own = false
 			end
 		end)
 	end
@@ -36,7 +39,10 @@ function Declutter.start(gui: ScreenGui)
 				return true
 			end
 		end
-		return false
+		-- The premiere covers the screen (and hides the panels), so it counts as a panel too.
+		local backdrop = gui.Parent and gui.Parent:FindFirstChild("PremiereRevealBackdrop")
+		local reveal = backdrop and backdrop:FindFirstChild("PremiereReveal")
+		return reveal ~= nil and reveal:IsA("GuiObject") and reveal.Visible
 	end
 
 	task.spawn(function()
@@ -47,9 +53,8 @@ function Declutter.start(gui: ScreenGui)
 					if object ~= nil and object:IsA("GuiObject") and held[object] == nil then
 						watch(object)
 						held[object] = object.Visible
-						own = true
+						mine[object] = (mine[object] or 0) + 1
 						object.Visible = false
-						own = false
 					end
 				end
 			else

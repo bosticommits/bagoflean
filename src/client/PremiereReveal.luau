@@ -707,7 +707,7 @@ function PremiereReveal.start(gui: ScreenGui, format: Format): ((result: any) ->
 	local function hideHud(on: boolean)
 		if on then
 			for _, child in gui:GetChildren() do
-				if child:IsA("GuiObject") and child.Visible and child ~= overlay and child.Name ~= "Tutorial" and child.Name ~= "Reveal" then
+				if child:IsA("GuiObject") and child.Visible and child ~= overlay and child.Name ~= "Tutorial" then
 					child.Visible = false
 					table.insert(hidden, child)
 				end
