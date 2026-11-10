@@ -187,24 +187,6 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 	warning.Visible = false
 	warning.ZIndex = 7
 	UiKit.textConstraint(warning, 26)
-	task.spawn(function()
-		while warning.Parent ~= nil do
-			local left = if type(updateAt) == "number" then NumberConfig.updateWarning(updateAt, os.time()) else nil
-			warning.Visible = left ~= nil
-			if left ~= nil then
-				warning.Text = `Update in {Hud.clock(left)} - the server restarts`
-				local top = 8
-				for _, child in gui:GetChildren() do -- just below the event banner when it is up
-					if child.Name == "SpecialEvent" and child:IsA("GuiObject") and child.Visible then
-						top = child.AbsolutePosition.Y - gui.AbsolutePosition.Y + child.AbsoluteSize.Y + 4
-					end
-				end
-				warning.Position = UDim2.new(0.5, 0, 0, math.max(top, if banner.Visible then 0 else 40))
-			end
-			task.wait(1)
-		end
-	end)
-
 	-- Layout --------------------------------------------------------------------------------------
 	-- How big the banner can be: clear of the side menu on the left (and as far from the right
 	-- edge, since it is centred), never bigger than its design size.
@@ -281,6 +263,26 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 	local grow: Tween? = nil -- the slam's growth, stopped if it docks early
 	local passing = false -- the slam is the festival's: it leaves after the intro instead of docking
 	local festivalShown = false -- once per visit
+
+	-- Placed with the event banner's own rules: clear of the HUD and the side menu (dockTop,
+	-- fitScale), under the banner when it is docked, hidden during its slam.
+	task.spawn(function()
+		while warning.Parent ~= nil do
+			local left = if type(updateAt) == "number" then NumberConfig.updateWarning(updateAt, workspace:GetServerTimeNow()) else nil
+			warning.Visible = left ~= nil and mode ~= "intro"
+			if warning.Visible and left ~= nil then
+				warning.Text = `Update in {Hud.clock(left)} - the server restarts`
+				local width = WIDTH * fitScale()
+				warning.Size = UDim2.fromOffset(width, INFO_HEIGHT + 4)
+				local top = dockTop()
+				if banner.Visible and mode ~= "hidden" then
+					top = math.max(top, banner.AbsolutePosition.Y - gui.AbsolutePosition.Y + banner.AbsoluteSize.Y + 4)
+				end
+				warning.Position = UDim2.new(0.5, 0, 0, top)
+			end
+			task.wait(1)
+		end
+	end)
 
 	local function dock(animated: boolean)
 		mode = "docked"
