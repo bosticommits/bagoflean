@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
+local CardLayout = require(ReplicatedStorage.Shared.CardLayout)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
 local PhoneLayout = require(ReplicatedStorage.Shared.PhoneLayout)
@@ -736,15 +737,16 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	card.ZIndex = 11
 	card.Parent = overlay
 	corner(card, 20)
-	-- Short screens (phones in landscape): a taller card, so the 44 px buttons stay 20 px clear of the stats.
-	local function fitCard()
-		card.Size = UDim2.fromScale(0.85, if overlay.AbsoluteSize.Y < 500 then 0.9 else 0.72)
-	end
-	overlay:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCard)
-	fitCard()
 	local cardLimit = Instance.new("UISizeConstraint")
 	cardLimit.MaxSize = Vector2.new(440, 600)
 	cardLimit.Parent = card
+	-- Filled in below; fitCard sizes the card (taller on short screens) and lays its rows out.
+	local fitRows: (number) -> () = function() end
+	local function fitCard()
+		card.Size = UDim2.fromScale(0.85, CardLayout.cardScale(overlay.AbsoluteSize.Y))
+		fitRows(math.min(card.Size.Y.Scale * overlay.AbsoluteSize.Y, cardLimit.MaxSize.Y))
+	end
+	overlay:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCard)
 	-- The card's frame glows in the rarity color; the Icon tier gets a rainbow.
 	local stroke = UiKit.border(card, 6, WHITE)
 	local rainbow = Instance.new("UIGradient")
@@ -1007,6 +1009,22 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	local againButton = footButton("Cast again", UiKit.GREEN, 0.36, 0.04)
 	local oddsRevealButton = footButton("Odds", UiKit.TAB_OFF, 0.16, 0.42)
 	local doneButton = footButton("Continue", UiKit.BLUE, 0.36, 0.6)
+	fitRows = function(cardHeight: number)
+		local l = CardLayout.compute(cardHeight)
+		art.Position = UDim2.fromScale(0.5, l.artY)
+		art.Size = UDim2.fromScale(0.8, l.artH)
+		nameLabel.Position = UDim2.fromScale(0.05, l.nameY)
+		nameLabel.Size = UDim2.fromScale(0.9, l.nameH)
+		ribbon.Position = UDim2.fromScale(0.5, l.ribbonY)
+		ribbon.Size = UDim2.fromScale(1.1, l.ribbonH)
+		chipRow.Position = UDim2.fromScale(0.04, l.statsY)
+		chipRow.Size = UDim2.fromScale(0.92, l.statsH)
+		for _, button in { againButton, oddsRevealButton, doneButton } do
+			button.Size = UDim2.fromScale(button.Size.X.Scale, l.buttonH)
+			button.Position = UDim2.fromScale(button.Position.X.Scale, l.buttonBottom)
+		end
+	end
+	fitCard()
 
 	local revealToken = 0
 	local function setCardVisible(visible: boolean)
@@ -1126,7 +1144,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 				return
 			end
 			-- The flip: the card squeezes to an edge and opens on the result.
-			TweenService:Create(card, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.fromScale(0, 0.72) }):Play()
+			TweenService:Create(card, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.fromScale(0, card.Size.Y.Scale) }):Play()
 			task.wait(0.12)
 			if revealToken ~= mine then
 				return
@@ -1174,8 +1192,9 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			if rank >= 5 then
 				Fx.releaseOwnPull()
 			end
-			card.Size = UDim2.fromScale(0.05, 0.72)
-			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, 0.72) }):Play()
+			local scale = CardLayout.cardScale(overlay.AbsoluteSize.Y)
+			card.Size = UDim2.fromScale(0.05, scale)
+			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, scale) }):Play()
 		end)
 	end
 
