@@ -621,7 +621,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			local found, total = Upgrades.tierProgress(ClientState.index, tier.id)
 			local rewardId = "tier:" .. tier.id
 			order += 1
-			local head = tierHeader(order, tier, 44, `{tier.name}  {found}/{total}`, `{Actors.oneIn(1 / tier.oneIn)} base`)
+			local head = tierHeader(order, tier, 44, `{tier.name}  {found}/{total}`, `Base odds {Actors.oneIn(1 / tier.oneIn)}`)
 			rewardControl(head, rewardId, found == total, rewards[rewardId] == true, `+{Config.TierRewardLuck} Luck`)
 			order += 1
 			tierCards(order, tier, function(_key, hasIt)
