@@ -17,6 +17,7 @@ local ShowMeUi = {}
 local LIFETIME = 12 -- seconds
 local RESOLVE_EVERY = 0.15
 local NEAR_STUDS = 10
+local NEAR_LINGER = 1.5 -- seconds the guide stays once the player is already at the pad
 
 local player = Players.LocalPlayer
 
@@ -131,7 +132,7 @@ function ShowMeUi.start(gui: ScreenGui)
 				return found
 			end
 		end
-		-- Inside the closed More flyout: ring the More tile until it opens.
+		-- Inside the closed More flyout: ring the More tile until it opens (PR F adds the tile named MoreButton).
 		local more = playerGui:FindFirstChild("MoreButton", true)
 		if more ~= nil and more:IsA("GuiObject") and onScreen(more) and root:FindFirstChild(ui.name, true) ~= nil then
 			return more
@@ -148,6 +149,9 @@ function ShowMeUi.start(gui: ScreenGui)
 		local startedAt = os.clock()
 		local sinceResolve = RESOLVE_EVERY
 		local sawPanel = false
+		local pad: BasePart? = nil
+		local sincePad = RESOLVE_EVERY
+		local nearSince: number? = nil
 		if target.screen ~= nil then
 			Screens.open(target.screen, target.focus)
 		end
@@ -172,9 +176,21 @@ function ShowMeUi.start(gui: ScreenGui)
 			-- World guide: only while there is no lot yet.
 			local lotless = player:GetAttribute("LotIndex") == nil
 			if target.world == "claimPad" and lotless and root ~= nil and root:IsA("BasePart") then
-				local pad = nearestClaimPad(root.Position)
-				if pad == nil or (pad.Position - root.Position).Magnitude < NEAR_STUDS then
+				sincePad += dt
+				if pad == nil or pad.Parent == nil or sincePad >= RESOLVE_EVERY then
+					sincePad = 0
+					pad = nearestClaimPad(root.Position)
+				end
+				if pad == nil then
 					return finish()
+				end
+				if (pad.Position - root.Position).Magnitude < NEAR_STUDS then
+					nearSince = nearSince or os.clock()
+					if os.clock() - nearSince > NEAR_LINGER then
+						return finish()
+					end
+				else
+					nearSince = nil
 				end
 				if hidden then
 					clearWorld()
