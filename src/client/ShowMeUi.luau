@@ -185,8 +185,9 @@ function ShowMeUi.start(gui: ScreenGui)
 					return finish()
 				end
 				if (pad.Position - root.Position).Magnitude < NEAR_STUDS then
-					nearSince = nearSince or os.clock()
-					if os.clock() - nearSince > NEAR_LINGER then
+					local since = nearSince or os.clock()
+					nearSince = since
+					if os.clock() - since > NEAR_LINGER then
 						return finish()
 					end
 				else
