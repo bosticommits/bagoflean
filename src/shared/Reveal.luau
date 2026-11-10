@@ -38,4 +38,12 @@ function Reveal.useCard(rank: number, result: { variantId: string?, guarantee: s
 	return rank >= Reveal.CardRank or result.variantId == "Award" or result.guarantee ~= nil or not ctx.tutorialDone
 end
 
+-- After a Star+ card flips, the buttons ignore taps (and gamepad A) this long, so a button-mashing
+-- player cannot skip the moment by accident: 0.6 s Star, 0.9 Superstar, 1.2 s Legend and Icon.
+-- Cards below Star (tutorial, guaranteed pulls) are never held.
+Reveal.GuardSeconds = { [4] = 0.6, [5] = 0.9, [6] = 1.2, [7] = 1.2 }
+function Reveal.guardSeconds(rank: number): number
+	return Reveal.GuardSeconds[rank] or 0
+end
+
 return Reveal

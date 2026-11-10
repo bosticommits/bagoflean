@@ -57,3 +57,14 @@ test("card or toast", function()
 	expect(Reveal.useCard(2, { variantId = "Normal", guarantee = "hotStart" }, done), "guarantee is a card")
 	expect(Reveal.useCard(1, { variantId = "Normal" }, early), "tutorial cast is a card")
 end)
+
+test("input guard after the flip grows with rank and spares small cards", function()
+	equal(Reveal.guardSeconds(1), 0, "Newcomer card")
+	equal(Reveal.guardSeconds(3), 0, "Pro card")
+	equal(Reveal.guardSeconds(4), 0.6, "Star")
+	equal(Reveal.guardSeconds(6), 1.2, "Legend")
+	equal(Reveal.guardSeconds(7), 1.2, "Icon")
+	for rank = 4, 6 do
+		expect(Reveal.guardSeconds(rank) < Reveal.guardSeconds(rank + 1) or rank == 6, "never shrinks")
+	end
+end)

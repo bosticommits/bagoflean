@@ -1010,8 +1010,17 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	local againButton = footButton("Cast again", UiKit.GREEN, 0.36, 0.04)
 	local oddsRevealButton = footButton("Odds", UiKit.TAB_OFF, 0.16, 0.42)
 	local doneButton = footButton("Continue", UiKit.BLUE, 0.36, 0.6)
+	-- "Tap to continue" fades in once the post-flip input guard ends (see Reveal.guardSeconds).
+	local hintLabel = UiKit.makeTitle(card, "Tap to continue", WHITE, UDim2.fromScale(0.6, 0.06), UDim2.fromScale(0.5, 0.9), 2)
+	hintLabel.AnchorPoint = Vector2.new(0.5, 1)
+	hintLabel.TextTransparency = 1
+	hintLabel.TextStrokeTransparency = 1
+	hintLabel.ZIndex = 12
+	textConstraint(hintLabel, 16)
+	local guardUntil = 0
 	fitRows = function(cardHeight: number)
 		local l = CardLayout.compute(cardHeight)
+		hintLabel.Position = UDim2.fromScale(0.5, l.buttonBottom - l.buttonH - 0.01)
 		art.Position = UDim2.fromScale(0.5, l.artY)
 		art.Size = UDim2.fromScale(0.8, l.artH)
 		nameLabel.Position = UDim2.fromScale(0.05, l.nameY)
@@ -1048,6 +1057,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			end
 		end)
 		overlay.Visible = true
+		guardUntil = 0
 		setCardVisible(false)
 		stroke.Color = UiKit.FAINT
 		rainbow.Enabled = false
@@ -1195,6 +1205,28 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			if rank >= 5 then
 				Fx.releaseOwnPull()
 			end
+			-- Star+ cards ignore the buttons for a moment; they dim, then light up with the hint.
+			local guard = Reveal.guardSeconds(rank)
+			guardUntil = os.clock() + guard
+			hintLabel.TextTransparency, hintLabel.TextStrokeTransparency = 1, 1
+			if guard > 0 then
+				for _, button in { againButton, oddsRevealButton, doneButton } do
+					button.BackgroundTransparency = 0.6
+				end
+				task.delay(guard, function()
+					if revealToken ~= mine then
+						return
+					end
+					for _, button in { againButton, oddsRevealButton, doneButton } do
+						button.BackgroundTransparency = 0
+					end
+					TweenService:Create(hintLabel, TweenInfo.new(0.25), { TextTransparency = 0, TextStrokeTransparency = 0 }):Play()
+				end)
+			else
+				for _, button in { againButton, oddsRevealButton, doneButton } do
+					button.BackgroundTransparency = 0
+				end
+			end
 			local scale = CardLayout.cardScale(overlay.AbsoluteSize.Y)
 			card.Size = UDim2.fromScale(0.05, scale)
 			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.85, scale) }):Play()
@@ -1328,15 +1360,24 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		beginCast()
 	end)
 	againButton.Activated:Connect(function()
+		if os.clock() < guardUntil then
+			return
+		end
 		overlay.Visible = false
 		if not waiting then
 			beginCast()
 		end
 	end)
 	doneButton.Activated:Connect(function()
+		if os.clock() < guardUntil then
+			return
+		end
 		overlay.Visible = false
 	end)
 	oddsRevealButton.Activated:Connect(function()
+		if os.clock() < guardUntil then
+			return
+		end
 		overlay.Visible = false
 		UiKit.closePanels()
 		UiKit.togglePanel(oddsPanel, buildOdds)
