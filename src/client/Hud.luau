@@ -572,7 +572,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		end
 		local away = makeLabel(0, 34, UiKit.WHITE)
 		away.Name = "AwayEarnings"
-		away.Text = `Your cinema earned ${comma(pending)} while you were away! Collect it at the gold pad`
+		local _, _, _, full = Hud.boxOffice()
+		away.Text = Upgrades.awayText("$" .. comma(pending), ClientState.stats().passes.AutoCollect == true, full)
 		away.BackgroundTransparency = 0
 		away.BackgroundColor3 = UiKit.NAVY
 		away.Position = if gui:GetAttribute("HudRight") == true then UDim2.new(0, -80, 1, 8) else UDim2.new(0, -40, 1, 8)

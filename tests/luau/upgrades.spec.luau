@@ -93,3 +93,10 @@ test("Index rewards are earned only when the whole row or genre is found", funct
 	expect(not Upgrades.rewardEarned(all, "tier:Nope"), "unknown tier")
 	expect(not Upgrades.rewardEarned(all, "garbage"), "bad id")
 end)
+
+test("the welcome-back line picks full, Auto-Collect or the default", function()
+	expect(string.find(Upgrades.awayText("$5", false, true), "full", 1, true) ~= nil, "full cinema")
+	expect(string.find(Upgrades.awayText("$5", true, true), "full", 1, true) ~= nil, "full beats Auto-Collect")
+	expect(string.find(Upgrades.awayText("$5", true, false), "Auto-Collect", 1, true) ~= nil, "Auto-Collect owner")
+	expect(string.find(Upgrades.awayText("$5", false, false), "gold pad", 1, true) ~= nil, "default")
+end)
