@@ -30,8 +30,8 @@ local Analytics = {}
 -- Onboarding funnel steps, in order. Roblox back-fills skipped steps.
 Analytics.Steps = table.freeze({
 	Joined = 1,
-	ClaimedLot = 2,
-	FirstCast = 3,
+	FirstCast = 2, -- the tutorial casts before it claims a lot
+	ClaimedLot = 3,
 	FirstScript = 4,
 	FirstFilm = 5,
 	FirstPremiere = 6,

@@ -438,7 +438,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	-- Start-movie picker -----------------------------------------------------------------------
-	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130, UiKit.FRESH_GREEN)
+	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130, UiKit.FRESH_GREEN, 60)
 	UiKit.panelIcon(picker, pickerHeader, "clapper")
 	local footer = Instance.new("Frame")
 	footer.BackgroundTransparency = 1
@@ -472,6 +472,35 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local clearButton = makeButton(footer, "Clear cast", UiKit.BURGUNDY, UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76))
 	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76))
 	goButton.Name = "StartFilming"
+
+	-- PC: the slots over the summary, the preview, then Clear and Start filming (118 px). Phone
+	-- (compact): one 48 px row, so the list gets the height: slots, summary over preview, Clear, Start.
+	local function layoutFooter()
+		local compact = UiKit.isCompact()
+		footer.Size = UDim2.new(1, -20, 0, if compact then 48 else 118)
+		footer.Position = UDim2.new(0, 10, 1, if compact then -54 else -126)
+		local pitch = if compact then 38 else 50
+		for slot, slotButton in castSlots do
+			slotButton.Size = if compact then UDim2.fromOffset(34, 34) else UDim2.fromOffset(44, 44)
+			slotButton.Position = UDim2.fromOffset((slot - 1) * pitch, if compact then 7 else 0)
+		end
+		if compact then
+			local left = Config.MaxCast * pitch + 4
+			local clearW, goW = 64, 132
+			local textW = UDim2.new(1, -(left + clearW + goW + 12), 0, 22)
+			summaryLabel.Size, summaryLabel.Position = textW, UDim2.fromOffset(left, 2)
+			previewLabel.Size, previewLabel.Position = textW, UDim2.fromOffset(left, 25)
+			clearButton.Size, clearButton.Position = UDim2.fromOffset(clearW, 40), UDim2.new(1, -(goW + clearW + 6), 0, 4)
+			goButton.Size, goButton.Position = UDim2.fromOffset(goW, 44), UDim2.new(1, -goW, 0, 2)
+		else
+			summaryLabel.Size, summaryLabel.Position = UDim2.new(1, -slotsWidth, 0, 40), UDim2.fromOffset(slotsWidth, 2)
+			previewLabel.Size, previewLabel.Position = UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48)
+			clearButton.Size, clearButton.Position = UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76)
+			goButton.Size, goButton.Position = UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76)
+		end
+	end
+	UiKit.onViewportChanged(layoutFooter)
+	picker:GetPropertyChangedSignal("Visible"):Connect(layoutFooter)
 
 	local pickStage = 1
 	local pickScript: string? = nil

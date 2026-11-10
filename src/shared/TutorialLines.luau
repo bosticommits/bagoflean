@@ -27,15 +27,9 @@ TutorialLines.LINES = {
 	resultCult = "A cult classic! They'll quote this for years.",
 	resultMasterpiece = "A masterpiece! The lot will never forget it.",
 	collect = "Step on your gold pad to collect!",
-	-- The wrap-up; lines 2 to 5 each point at a control (Tutorial.updateFinaleGuide).
+	-- The joy screen's wrap-up (Tutorial.openJoy).
 	joy = "That's a wrap! Your first movie, producer.",
-	tipGifts = "Free presents unlock as you play.",
-	tipBar = "This bar tracks your next guaranteed star.",
-	tipTuck = "Tap X to tuck the HUD away.",
-	tipVisit = "Visit lets you tour other studios.",
 }
-
-TutorialLines.FINALE = { "joy", "tipGifts", "tipBar", "tipTuck", "tipVisit" }
 
 -- A premiere result id (Flop, Hit...) to its line key.
 function TutorialLines.resultKey(resultId: string): string

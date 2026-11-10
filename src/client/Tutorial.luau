@@ -23,11 +23,17 @@ local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 
 local ClientState = require(script.Parent.ClientState)
+local CountUp = require(ReplicatedStorage.Shared.CountUp)
 local Fx = require(script.Parent.Fx)
+local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local UiKit = require(script.Parent.UiKit)
+local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
+local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
 local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
+local TutorialPacing = require(ReplicatedStorage.Shared.TutorialPacing)
+local Sounds = require(ReplicatedStorage.Shared.Sounds)
 
 -- The guide color: brighter and yellower than the UI's gold, so directions read as directions.
 local GUIDE = Color3.fromRGB(255, 222, 26)
@@ -70,14 +76,23 @@ end
 
 -- Dialogue layout (pixels). The speech bubble is a cream screenplay page; Lucien's bust sits in a
 -- top-right corner after the intro, with the bubble to its left and Skip under the bust.
-local BUBBLE_MAX_PHONE = 206
+local BUBBLE_MAX_PHONE = 260
 local BUBBLE_MAX_PC = 400
 local BUST_PHONE = 76
 local BUST_PC = 110
 local EDGE = 8
 
+type Rect = BubblePlacer.Rect
+
 local CHARS_PER_SECOND = 60
-local FINALE_SECONDS = 8 -- the last line stays this long before the tutorial clears away
+
+-- Spotlight: one UI target at a time gets a gold ring and a pointing hand. The dim around it is
+-- optional (video research: arrow-only works too) and never blocks a tap.
+local DIM_ENABLED = true
+local DIM_TRANSPARENCY = 0.55
+local DIM_PAD = 8 -- px of breathing room around the target's hole
+local HAND_IMAGE_ID = 0 -- the white glove pointer's asset id; 0 = not uploaded yet, the arrow stands in
+local IDLE_HINT_SECONDS = 9 -- no progress on a step for this long: pulse the target once
 
 -- A place in the world to guide the player to. "primary" gets the arrow, glow, the chevron trail
 -- on the ground and an arrow at the screen edge while it is out of view; "secondary" an arrow and
@@ -173,6 +188,23 @@ local function reducedMotion(): boolean
 	return ok and value == true
 end
 
+-- The pointer over a UI target: the white glove once HAND_IMAGE_ID is set, else the arrow. Same
+-- turning rules as makeArrow (0 points down).
+local function makeHand(parent: Instance, size: number, zIndex: number): GuiObject
+	if HAND_IMAGE_ID == 0 then
+		return makeArrow(parent, size, zIndex)
+	end
+	local hand = Instance.new("ImageLabel")
+	hand.Name = "GuideHand"
+	hand.BackgroundTransparency = 1
+	hand.Image = `rbxassetid://{HAND_IMAGE_ID}`
+	hand.AnchorPoint = Vector2.new(0.5, 0.5)
+	hand.Size = UDim2.fromOffset(size, size)
+	hand.ZIndex = zIndex
+	hand.Parent = parent
+	return hand
+end
+
 function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local player = Players.LocalPlayer
 	local tutorialDone = remotes:WaitForChild("TutorialDone", 10) :: RemoteEvent?
@@ -235,8 +267,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local function revealShowing(): boolean
 		-- The premiere overlay lives in its own screen (PremiereReveal.start).
 		local backdrop = if playerGui ~= nil then playerGui:FindFirstChild("PremiereRevealBackdrop") else nil
+		local castSafe = if playerGui ~= nil then playerGui:FindFirstChild("CastRevealSafe") else nil
 		for _, name in { "Reveal", "PremiereReveal" } do
-			local overlay = gui:FindFirstChild(name) or (if backdrop ~= nil then backdrop:FindFirstChild(name) else nil)
+			local overlay = (if castSafe ~= nil then castSafe:FindFirstChild(name) else nil) or (if backdrop ~= nil then backdrop:FindFirstChild(name) else nil)
 			if overlay ~= nil and overlay:IsA("GuiObject") and overlay.Visible then
 				return true
 			end
@@ -332,8 +365,18 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	container.BackgroundTransparency = 1
 	container.Size = UDim2.fromScale(1, 1)
 	container.Visible = false
-	container.ZIndex = 8 -- above panels and the intro screen, below the reveal overlays
-	container.Parent = gui
+	container.ZIndex = 8
+	-- Its own screen: above the HUD (0) and the spotlight dim (1), below the reveals (5+). Same
+	-- insets as the HUD, so positions match. SpecialEventsUi finds it by this name.
+	local dialogueMain = Instance.new("ScreenGui")
+	dialogueMain.Name = "TutorialDialogue"
+	dialogueMain.ResetOnSpawn = false
+	dialogueMain.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	dialogueMain.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	dialogueMain.SafeAreaCompatibility = Enum.SafeAreaCompatibility.None
+	dialogueMain.DisplayOrder = 2
+	dialogueMain.Parent = playerGui
+	container.Parent = dialogueMain
 
 	-- The speech bubble: a cream screenplay page with the cue "LUCIEN" over the line.
 	local card = Instance.new("Frame")
@@ -356,7 +399,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 10)
 	pad.Parent = body
 	local stack = Instance.new("UIListLayout")
-	stack.Padding = UDim.new(0, 4)
+	stack.Padding = UDim.new(0, 8)
 	stack.SortOrder = Enum.SortOrder.LayoutOrder
 	stack.Parent = body
 
@@ -458,6 +501,42 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		return lowest
 	end
 
+	-- Every visible HUD part the bubble must keep clear of, in the container's space. Big
+	-- containers (the side menu, panels) are replaced by their children.
+	local function hudRects(origin: Vector2, area: Vector2): ({ Rect }, { Rect })
+		local out: { Rect } = {}
+		local panels: { Rect } = {}
+		local function add(object: Instance, depth: number)
+			if not object:IsA("GuiObject") or not object.Visible then
+				return
+			end
+			local at, size = object.AbsolutePosition - origin, object.AbsoluteSize
+			if size.X <= 0 or size.Y <= 0 then
+				return
+			end
+			if depth == 0 and string.sub(object.Name, -5) == "Panel" then
+				table.insert(panels, { x = at.X, y = at.Y, w = size.X, h = size.Y })
+			elseif size.X >= area.X * 0.5 or size.Y >= area.Y * 0.5 or object.Name == "Hud" then
+				if depth < 2 then
+					for _, child in object:GetChildren() do
+						add(child, depth + 1)
+					end
+				end
+			elseif object.BackgroundTransparency < 1 or #object:GetChildren() > 0 then
+				table.insert(out, { x = at.X, y = at.Y, w = size.X, h = size.Y })
+			end
+		end
+		for _, child in gui:GetChildren() do
+			add(child, 0)
+		end
+		return out, panels
+	end
+
+	local guideTarget: () -> GuiObject? = function()
+		return nil
+	end -- set once the guides exist
+
+	local lastPick: BubblePlacer.Pick? = nil
 	local function layout()
 		if not container.Visible then
 			return
@@ -469,6 +548,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		local small = compact()
 		local touch = gui:GetAttribute("HudRight") == true
+		local pushHud = false
 		local hudTop = gui:GetAttribute("HudTop")
 		local top = if typeof(hudTop) == "number" then hudTop else 8
 		local splashOpen = splash ~= nil
@@ -479,15 +559,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		skip.Size = if small then UDim2.fromOffset(64, 28) else UDim2.fromOffset(80, 34)
 
 		local bustSize = if small then BUST_PHONE else BUST_PC
-		local stackHeight = bustSize + 4 + skip.Size.Y.Offset
+		-- On a phone Skip overlaps the bust's lower edge instead of hanging under it (keeps PanelTop low).
+		local stackHeight = if small then bustSize else bustSize + 4 + skip.Size.Y.Offset
 		local panelOpen = anyPanelOpen()
 
 		if splashOpen then
 			-- The intro: the bubble from the middle of the safe area, Skip bottom-right.
 			bust.Visible = false
 			card.AnchorPoint = Vector2.new(0, 0)
-			card.Position = UDim2.fromOffset(math.floor(area.X * 0.5), math.floor(area.Y * 0.28))
-			card.Size = UDim2.fromOffset(math.min(math.floor(area.X * 0.46), BUBBLE_MAX_PC + 40), 0)
+			local cardW = math.min(math.floor(area.X * (if small then 0.4 else 0.46)), BUBBLE_MAX_PC + 40)
+			-- On a phone the bubble hugs the right edge, clear of Lucien's glasses (taste rule 2).
+			local cardX = if small then area.X - EDGE - cardW else math.floor(area.X * 0.5)
+			card.Position = UDim2.fromOffset(cardX, math.floor(area.Y * 0.28))
+			card.Size = UDim2.fromOffset(cardW, 0)
 			skip.AnchorPoint = Vector2.new(1, 1)
 			skip.Position = UDim2.fromOffset(area.X - EDGE, area.Y - EDGE)
 		else
@@ -498,17 +582,67 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local panelY = if touch then 0 else math.max(0, top - 8)
 			local y = panelY
 			local bubbleWidth = math.min(if small then BUBBLE_MAX_PHONE else BUBBLE_MAX_PC, area.X - bustSize - EDGE * 3)
+			-- PC: the bubble sits right of the HUD stack (and its Tuck X); only if even 260 px does not
+			-- fit there, the HUD is pushed below it (TutorialBottom). The stack's X never depends on that push.
+			if not small and not touch then
+				local hudFrame = gui:FindFirstChild("Hud")
+				if hudFrame ~= nil and hudFrame:IsA("GuiObject") and hudFrame.Visible and hudFrame.AbsolutePosition.X < container.AbsolutePosition.X + area.X then
+					local hudRight = hudFrame.AbsolutePosition.X + hudFrame.AbsoluteSize.X
+					local tuckButton = hudFrame:FindFirstChild("Tuck", true)
+					if tuckButton ~= nil and tuckButton:IsA("GuiObject") then
+						hudRight = math.max(hudRight, tuckButton.AbsolutePosition.X + tuckButton.AbsoluteSize.X)
+					end
+					local fits
+					bubbleWidth, fits = BubblePlacer.widthRightOf(area.X, EDGE, bustSize, hudRight - container.AbsolutePosition.X, 12, bubbleWidth, 260)
+					pushHud = not fits
+				end
+			end
 			if not panelOpen and touch then
 				local right = area.X - EDGE
 				y = math.max(top - 6, hudBottom(right - bustSize - 8 - bubbleWidth, right) - 4)
 			end
 			local right = area.X - EDGE
-			bust.Position = UDim2.fromOffset(right, y)
+			-- Where the bust and the bubble sit: right edges and tops (both anchored top-right).
+			local bustRight, bustY, cardRight, cardY = right, y, right - bustSize - 8, y
+			if small and not panelOpen then
+				-- Phone: the first spot that overlaps no HUD part or the step's target (BubblePlacer);
+				-- the last pick stays while it is still clean. With a panel open the fixed corner is used.
+				local o = container.AbsolutePosition
+				local hud, panels = hudRects(o, area)
+				local targetRect: Rect? = nil
+				local target = guideTarget()
+				if target ~= nil and target.Visible and target.AbsoluteSize.Y > 0 then
+					local at, size = target.AbsolutePosition - o, target.AbsoluteSize
+					targetRect = { x = at.X, y = at.Y, w = size.X, h = size.Y }
+				end
+				local pick = BubblePlacer.place({
+					areaW = area.X,
+					areaH = area.Y,
+					hud = hud,
+					panels = panels,
+					target = targetRect,
+					bust = bustSize,
+					text = speech.Text,
+					maxWidth = bubbleWidth,
+					margin = EDGE,
+					previous = lastPick,
+				})
+				lastPick = pick
+				bustRight, bustY, cardRight, cardY, bubbleWidth = pick.bustRight, pick.bustY, pick.cardRight, pick.cardY, pick.width
+				nameLabel.TextSize = pick.textSize
+				speech.TextSize = pick.textSize
+			end
+			bust.Position = UDim2.fromOffset(bustRight, bustY)
 			card.AnchorPoint = Vector2.new(1, 0)
-			card.Position = UDim2.fromOffset(right - bustSize - 8, y)
+			card.Position = UDim2.fromOffset(cardRight, cardY)
 			card.Size = UDim2.fromOffset(bubbleWidth, 0)
-			skip.AnchorPoint = Vector2.new(1, 0)
-			skip.Position = UDim2.fromOffset(right, y + bustSize + 4)
+			if small then
+				skip.AnchorPoint = Vector2.new(1, 1)
+				skip.Position = UDim2.fromOffset(bustRight, bustY + bustSize)
+			else
+				skip.AnchorPoint = Vector2.new(1, 0)
+				skip.Position = UDim2.fromOffset(right, y + bustSize + 4)
+			end
 		end
 
 		-- Panels start under the bust and bubble as they sit while a panel is open. Only set on a
@@ -518,7 +652,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		if gui:GetAttribute("PanelTop") ~= panelTop then
 			gui:SetAttribute("PanelTop", panelTop)
 		end
-		local bottom = if touch then nil else card.Position.Y.Offset + math.max(stackHeight, card.AbsoluteSize.Y) + 4
+		local bottom = if touch or not pushHud then nil else card.Position.Y.Offset + math.max(stackHeight, card.AbsoluteSize.Y) + 4
 		if gui:GetAttribute("TutorialBottom") ~= bottom then
 			gui:SetAttribute("TutorialBottom", bottom)
 		end
@@ -530,7 +664,11 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local typed = 0
 	local typing = false
 	local lineDoneAt = 0
+	local lineVoice: string? = nil -- the voiced slot of the current line
+	local lineStartedAt = 0
 	local linesKey = ""
+	local stepStartedAt = os.clock() -- idle-hint clock: reset on a step, line change or splash close
+	local hinted = false
 
 	-- A line key's text. The Studio stand's line follows the player's own input.
 	local promptHint: () -> string?
@@ -552,9 +690,13 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		typed = 0
 		typing = true
 		local voice = if key ~= nil then TutorialLines.VOICE[key] else nil
+		Sfx.cutVoice() -- a new line never talks over the last one
+		lineVoice = voice
+		lineStartedAt = os.clock()
 		if voice ~= nil then
 			Sfx.play(voice)
 		end
+		layout() -- the new text may need another spot
 	end
 
 	local function playLines(lines: { string })
@@ -564,7 +706,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- How long a finished line stays before the next one.
 	local function holdTime(text: string): number
-		return math.clamp(#text * 0.045, 2.2, 4)
+		local chars = utf8.len(text) or #text
+		local voice = lineVoice
+		return TutorialPacing.hold(chars, if voice ~= nil then Sfx.voiceSeconds(voice) else nil, chars / CHARS_PER_SECOND)
+	end
+
+	-- When the current line's clip ends (now, if it has none or its length is not known yet).
+	local function clipEndsAt(): number
+		local voice = lineVoice
+		local seconds = if voice ~= nil then Sfx.voiceSeconds(voice) else nil
+		if voice == nil or seconds == nil then
+			return 0
+		end
+		return lineStartedAt + Sounds.delayOf(voice) + seconds
 	end
 
 	tapper.Activated:Connect(function()
@@ -576,23 +730,92 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				introTyped = true
 				layout()
 			end
-		elseif lineIndex < #queue then
+		elseif lineIndex < #queue and TutorialPacing.canAdvance(os.clock(), clipEndsAt()) then
 			Sfx.play("click")
 			showLine(lineIndex + 1)
 		end
 	end)
 
 	-- Guides --------------------------------------------------------------------------------------
-	type UiGuide = { target: GuiObject, arrow: Frame, cleanup: () -> () }
+	type UiGuide = { target: GuiObject, arrow: GuiObject, cleanup: () -> () }
 	type Trail = { folder: Folder, parts: { BasePart }, fades: { number }, scales: { number } }
 	type WorldGuide = { target: WorldTarget, cleanup: () -> (), trail: Trail?, edge: Frame? }
 	local uiGuides: { UiGuide } = {}
 	local worldGuides: { WorldGuide } = {}
+	guideTarget = function()
+		return if uiGuides[1] ~= nil then uiGuides[1].target else nil
+	end
+
+	-- The dim: four black bands around a hole at the target, in its own screen above the HUD (0)
+	-- and below the dialogue (2). Visual only: nothing in it takes input.
+	local dimGui = Instance.new("ScreenGui")
+	dimGui.Name = "TutorialDim"
+	dimGui.ResetOnSpawn = false
+	dimGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	dimGui.ScreenInsets = Enum.ScreenInsets.None
+	dimGui.DisplayOrder = 1
+	dimGui.Enabled = false
+	dimGui.Parent = playerGui
+	local dimBands: { Frame } = {}
+	for index = 1, 4 do
+		local band = Instance.new("Frame")
+		band.Name = `Dim{index}`
+		band.BackgroundColor3 = Color3.new(0, 0, 0)
+		band.BackgroundTransparency = DIM_TRANSPARENCY
+		band.BorderSizePixel = 0
+		band.Active = false
+		table.insert(dimBands, band)
+		band.Parent = dimGui
+	end
+	local function placeDim(target: GuiObject?)
+		dimGui.Enabled = DIM_ENABLED and target ~= nil
+		if target == nil or not DIM_ENABLED then
+			return
+		end
+		local at = target.AbsolutePosition - dimGui.AbsolutePosition
+		local area = dimGui.AbsoluteSize
+		local size = target.AbsoluteSize
+		local r = Spotlight.rects(area.X, area.Y, at.X, at.Y, size.X, size.Y, DIM_PAD)
+		-- Whole-pixel edges; the right and bottom bands are sized to the screen edge by scale.
+		for index, rect in r do
+			dimBands[index].Position = UDim2.fromOffset(rect.x, rect.y)
+		end
+		dimBands[1].Size = UDim2.new(1, 0, 0, r[1].h)
+		dimBands[2].Size = UDim2.new(1, 0, 1, -r[2].y)
+		dimBands[3].Size = UDim2.fromOffset(r[3].w, r[3].h)
+		dimBands[4].Size = UDim2.new(1, -r[4].x, 0, r[4].h)
+	end
 
 	local function pulseTween(object: Instance, seconds: number, goal: { [string]: any }): Tween
 		local tween = TweenService:Create(object, TweenInfo.new(seconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), goal)
 		tween:Play()
 		return tween
+	end
+
+	-- The idle hint: one ~1 s swell (out and back) of the target. A button never carries two
+	-- UIScales (Juice.luau), so reuse its own and restore the value; add a temporary one only if
+	-- there is none. Anchor and position are left alone, so it grows from the anchor point.
+	local function idlePulse(target: GuiObject)
+		local existing = target:FindFirstChildWhichIsA("UIScale")
+		local temporary = existing == nil
+		local object: UIScale
+		if existing ~= nil then
+			object = existing
+		else
+			object = Instance.new("UIScale")
+			object.Name = "IdleHint"
+			object.Parent = target
+		end
+		local original = object.Scale
+		local tween = TweenService:Create(object, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true), { Scale = original * 1.08 })
+		tween.Completed:Once(function()
+			if temporary then
+				object:Destroy()
+			else
+				object.Scale = original
+			end
+		end)
+		tween:Play()
 	end
 
 	-- A pulsing yellow ring on a control. A button keeps one border stroke ("Outline"), so the ring
@@ -624,7 +847,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				list.CanvasPosition = Vector2.new(list.CanvasPosition.X, math.max(0, list.CanvasPosition.Y + offset - 8))
 			end
 		end)
-		local arrow = makeArrow(gui, if compact() then 44 else 58, 9)
+		local arrow = makeHand(dialogueMain, if compact() then 44 else 58, 7) -- under the bubble (8)
 		arrow.Visible = false
 		return {
 			target = target,
@@ -919,12 +1142,14 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local origin = gui.AbsolutePosition
 		local area = gui.AbsoluteSize
 		local bob = math.sin(clock * 6) * 6
+		local spot: GuiObject? = nil -- one UI target at a time
 		for _, guide in uiGuides do
 			local target, arrow = guide.target, guide.arrow
-			if target.Parent == nil or not shown(target) or revealShowing() then
+			if spot ~= nil or target.Parent == nil or not shown(target) or revealShowing() or splash ~= nil then
 				arrow.Visible = false
 				continue
 			end
+			spot = target
 			arrow.Visible = true
 			local at = target.AbsolutePosition - origin
 			local size = target.AbsoluteSize
@@ -941,6 +1166,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				arrow.Position = UDim2.fromOffset(centre.X, at.Y + size.Y + half + bob)
 			end
 		end
+
+		placeDim(spot)
+		dialogueMain.Enabled = not revealShowing() -- Lucien waits behind a reveal
 
 		local character = player.Character
 		local rootPart = if character ~= nil then character:FindFirstChild("HumanoidRootPart") else nil
@@ -991,7 +1219,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			table.insert(ui, studioButton)
 		end
 		local world = {}
-		local stand = standTarget("Studio", "MAKE A MOVIE", "primary")
+		local stand = standTarget("Studio", "MAKE A MOVIE", "hint")
 		if stand ~= nil then
 			table.insert(world, stand)
 		end
@@ -1157,8 +1385,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		end
 		splash = nil
 		introTyped = false
+		stepStartedAt = os.clock()
 		begin.Visible = false
-		container.Parent = gui -- back from the intro's safe-area screen before it is destroyed
+		container.Parent = dialogueMain -- back from the intro's safe-area screen before it is destroyed
 		open:Destroy()
 		for _, screen in introScreens do
 			screen:Destroy()
@@ -1167,7 +1396,132 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		layout()
 	end
 
-	local function openSplash()
+	local teardown: () -> ()
+
+	-- The joy screen's right half: a spinning gold sunburst behind a cream ticket stub, "Your first
+	-- box office" with the amount counting up, Lucien's wrap line and one Keep rolling button.
+	-- Lucien and the dark backdrop come from openSplash.
+	local function buildJoy(overlay: Frame, safeGui: ScreenGui, marker: Frame, amount: number, still: boolean)
+		local small = compact()
+		local burst = Instance.new("Frame")
+		burst.Name = "Sunburst"
+		burst.BackgroundTransparency = 1
+		burst.AnchorPoint = Vector2.new(0.5, 0.5)
+		burst.ZIndex = 7
+		burst.Parent = overlay
+		for index = 0, 5 do
+			local ray = Instance.new("Frame")
+			ray.Name = "Ray"
+			ray.AnchorPoint = Vector2.new(0.5, 0.5)
+			ray.Position = UDim2.fromScale(0.5, 0.5)
+			ray.Size = UDim2.fromScale(0.1, 1)
+			ray.Rotation = index * 30
+			ray.BackgroundColor3 = UiKit.GOLD
+			ray.BackgroundTransparency = 0.82
+			ray.BorderSizePixel = 0
+			ray.ZIndex = 7
+			ray.Parent = burst
+		end
+		if not still then
+			local spin = TweenService:Create(burst, TweenInfo.new(30, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1), { Rotation = 360 })
+			spin:Play()
+			marker.Destroying:Connect(function()
+				spin:Cancel()
+			end)
+		end
+
+		local stub = Instance.new("Frame")
+		stub.Name = "TicketStub"
+		stub.AnchorPoint = Vector2.new(0.5, 0.5)
+		stub.Position = UDim2.fromScale(0.74, 0.5)
+		stub.Size = UDim2.fromScale(0.44, 0.84)
+		stub.BackgroundColor3 = UiKit.CREAM
+		stub.ZIndex = 9
+		stub.Parent = overlay
+		UiKit.corner(stub, 16)
+		UiKit.border(stub, 4, UiKit.INK)
+		local limit = Instance.new("UISizeConstraint")
+		limit.MaxSize = Vector2.new(420, 330)
+		limit.Parent = stub
+		-- Ticket notches in the backdrop colour on both sides.
+		for _, side in { 0, 1 } do
+			local notch = Instance.new("Frame")
+			notch.Name = "Notch"
+			notch.AnchorPoint = Vector2.new(0.5, 0.5)
+			notch.Position = UDim2.fromScale(side, 0.5)
+			notch.Size = UDim2.fromOffset(22, 22)
+			notch.BackgroundColor3 = UiKit.DARK
+			notch.ZIndex = 10
+			notch.Parent = stub
+			UiKit.corner(notch, 11)
+		end
+		local body = Instance.new("Frame")
+		body.Name = "Body"
+		body.BackgroundTransparency = 1
+		body.Size = UDim2.fromScale(1, 1)
+		body.ZIndex = 10
+		body.Parent = stub
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 16), UDim.new(0, 16)
+		pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 10), UDim.new(0, 12)
+		pad.Parent = body
+		local list = Instance.new("UIListLayout")
+		list.Padding = UDim.new(0, if small then 4 else 8)
+		list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		list.VerticalAlignment = Enum.VerticalAlignment.Center
+		list.SortOrder = Enum.SortOrder.LayoutOrder
+		list.Parent = body
+
+		local heading = UiKit.makeLabel(body, "Your first box office", UiKit.BURGUNDY, UDim2.new(1, 0, 0, if small then 22 else 28))
+		heading.LayoutOrder = 1
+		heading.ZIndex = 11
+		local money = UiKit.makeTitle(body, "$0", UiKit.GOLD, UDim2.new(1, 0, 0, if small then 56 else 74), nil, 3)
+		money.LayoutOrder = 2
+		money.ZIndex = 11
+		UiKit.textConstraint(money, 72)
+		local wrap = UiKit.makeLabel(body, TutorialLines.LINES.joy, UiKit.INK, UDim2.new(1, 0, 0, if small then 40 else 52))
+		wrap.LayoutOrder = 3
+		wrap.TextWrapped = true
+		wrap.ZIndex = 11
+		UiKit.textConstraint(wrap, if small then 18 else 22)
+		local keep = UiKit.makeButton(body, "Keep rolling", UiKit.GOLD, UDim2.new(1, 0, 0, if small then 44 else 52))
+		keep.Name = "KeepRolling"
+		keep.LayoutOrder = 4
+		keep.ZIndex = 12
+		UiKit.textConstraint(keep, 26)
+		keep.Activated:Connect(function()
+			teardown()
+		end)
+
+		if still then
+			money.Text = "$" .. Hud.comma(amount)
+		else
+			task.spawn(function()
+				local started = os.clock()
+				while marker.Parent ~= nil do
+					local alpha = (os.clock() - started) / 1.4
+					money.Text = "$" .. Hud.comma(CountUp.at(0, amount, alpha))
+					if alpha >= 1 then
+						break
+					end
+					task.wait()
+				end
+			end)
+		end
+
+		local function place()
+			local area = safeGui.AbsoluteSize
+			burst.Position = stub.Position
+			burst.Size = UDim2.fromOffset(math.floor(area.Y * 1.3), math.floor(area.Y * 1.3))
+		end
+		place()
+		local resizing = safeGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+		marker.Destroying:Connect(function()
+			resizing:Disconnect()
+		end)
+	end
+
+	local function openSplash(joyAmount: number?)
 		local still = reducedMotion()
 		-- Own screens above the HUD (order 0) and the panels, below the confetti (Fx, 20): an opaque
 		-- full-bleed backdrop and curtains with no insets (hides the HUD and the strip under the
@@ -1237,8 +1591,15 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local area = safeGui.AbsoluteSize
 			local side = math.floor(1.6 * 0.86 * area.Y)
 			figure.AnchorPoint = Vector2.new(0, 0)
+			local left = math.floor(area.X * 0.08)
+			if joyAmount ~= nil and compact() then
+				-- Phone joy screen: Lucien and the ticket stub side by side, no overlap.
+				local stubLeft = area.X * 0.74 - math.min(area.X * 0.44, 420) / 2
+				left = EDGE
+				side = math.max(120, math.min(side, math.floor(stubLeft - left - EDGE)))
+			end
 			figure.Size = UDim2.fromOffset(side, side)
-			figure.Position = UDim2.fromOffset(math.floor(area.X * 0.08), math.floor(area.Y * 0.02))
+			figure.Position = UDim2.fromOffset(left, math.floor(area.Y * 0.02))
 			layout()
 		end
 		place()
@@ -1246,6 +1607,12 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		marker.Destroying:Connect(function()
 			resizing:Disconnect()
 		end)
+
+		if joyAmount ~= nil then
+			rise.Scale = 1
+			buildJoy(overlay, safeGui, marker, joyAmount, still)
+			return
+		end
 
 		-- Curtains, opening from the middle.
 		local curtains: { Frame } = {}
@@ -1295,74 +1662,41 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Driver ----------------------------------------------------------------------------------------
 	local currentStep = 0
-	local finaleEndsAt: number? = nil
-	local finaleGuideLine = 0
+	local joyWaiting = false
+	local collectedAmount = 0 -- royalties the first collect paid out
 	local renderConnection: RBXScriptConnection? = nil
 
-	-- The final feature tour follows its dialogue, so only one real control is highlighted at a
-	-- time. The existing guide hides arrows for controls that are not visible on this device/state.
-	local function updateFinaleGuide()
-		if not finale or finaleGuideLine == lineIndex then
-			return
-		end
-		finaleGuideLine = lineIndex
-		local ui: { GuiObject } = {}
-		local world: { WorldTarget } = {}
-		if lineIndex == 2 then
-			-- Touch screens show one present button instead of the row (PlaytimeGiftsUi).
-			local button = gui:FindFirstChild("PlaytimeGiftsButton")
-			local row = gui:FindFirstChild("PlaytimeGifts")
-			local gift = if row ~= nil then row:FindFirstChild("Gift1") else nil
-			local present = if button ~= nil and button:IsA("GuiObject") and button.Visible then button else findGui(gift, "Present")
-			if present ~= nil then
-				table.insert(ui, present)
-			end
-		elseif lineIndex == 3 then
-			local bar = findGui(gui:FindFirstChild("CastingBar"), "HotStart")
-			if bar ~= nil then
-				table.insert(ui, bar)
-			end
-			local odds = standTarget("Odds", "CASTING ODDS", "secondary")
-			if odds ~= nil then
-				table.insert(world, odds)
-			end
-		elseif lineIndex == 4 then
-			local tuck = findGui(gui:FindFirstChild("Hud"), "Tuck")
-			if tuck ~= nil then
-				table.insert(ui, tuck)
-			end
-		elseif lineIndex == 5 then
-			local visit = sideButton("VisitButton")
-			if visit ~= nil then
-				table.insert(ui, visit)
-			end
-		end
-		syncGuides(ui, world)
-	end
-
-	local function teardown()
+	function teardown()
 		active = false
 		clearGuides()
+		dimGui.Enabled = false
+		Sfx.cutVoice()
 		closeSplash()
 		if renderConnection ~= nil then
 			renderConnection:Disconnect()
 			renderConnection = nil
 		end
 		container.Visible = false
+		dialogueMain.Enabled = false
 		gui:SetAttribute("PanelTop", nil)
 		gui:SetAttribute("TutorialBottom", nil)
 	end
 
-	local function startFinale()
+	-- The end: one moment of joy instead of a tip tour. Lucien's wrap line is voiced; the stub's
+	-- button is the only way on. TutorialDone fires once, here.
+	local function openJoy(amount: number)
 		finale = true
 		closeSplash()
+		clearGuides()
+		container.Visible = false -- the screen carries its own line; no corner bubble
+		queue = {}
+		lineIndex = 0
+		typing = false
 		tutorialDone:FireServer()
+		openSplash(amount)
 		Sfx.play("welcome")
-		Fx.confetti(40, { UiKit.GOLD, UiKit.CREAM, GUIDE })
-		playLines(TutorialLines.FINALE)
-		finaleGuideLine = 0
-		updateFinaleGuide()
-		layout()
+		Sfx.play(TutorialLines.VOICE.joy)
+		Fx.confetti(40, { UiKit.GOLD, UiKit.CREAM, GUIDE }, true)
 	end
 
 	local function finish(skipped: boolean)
@@ -1375,7 +1709,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			teardown()
 			return
 		end
-		startFinale()
+		openJoy(collectedAmount)
 	end
 
 	local function update()
@@ -1390,32 +1724,56 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			end
 		end
 		if index == nil then
+			if revealShowing() then
+				joyWaiting = true -- the joy screen waits until no reveal is showing (onRender retries)
+				return
+			end
 			finish(false)
 			return
 		end
 		if splash ~= nil and index > 1 then
 			closeSplash()
 		end
-		if index ~= currentStep then
+		local stepChanged = index ~= currentStep
+		if stepChanged then
 			if currentStep ~= 0 then
 				Sfx.play("notify")
 			end
 			currentStep = index
+			stepStartedAt = os.clock()
+			hinted = false
 		end
 		local view = steps[index].view()
+		-- Stuck for a while: pulse the target once (rule: one timed hint, after the idle wait).
+		if not hinted and os.clock() - stepStartedAt > IDLE_HINT_SECONDS then
+			local guide = uiGuides[1]
+			if guide ~= nil and guide.arrow.Visible then
+				hinted = true
+				idlePulse(guide.target)
+				Sfx.play("notify")
+			end
+		end
 		if splash ~= nil then
 			view = { linesKey = "intro", lines = { "intro1", "intro2" }, ui = {}, world = {} }
 		end
 		if view.linesKey ~= linesKey then
 			linesKey = view.linesKey
+			stepStartedAt = os.clock()
+			hinted = false
 			playLines(view.lines)
 		end
 		syncGuides(view.ui, view.world)
+		if stepChanged then
+			layout() -- the bubble re-picks its spot for the new target
+		end
 	end
 
 	-- Every frame: the typewriter, the line timer, the moving arrows, the finale's end.
 	local function onRender(dt: number)
-		updateFinaleGuide()
+		if joyWaiting and not revealShowing() then
+			joyWaiting = false
+			update()
+		end
 		if not revealShowing() then
 			if typing then
 				typed += dt * CHARS_PER_SECOND
@@ -1431,16 +1789,12 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				else
 					speech.MaxVisibleGraphemes = math.floor(typed)
 				end
-			elseif lineIndex < #queue and os.clock() - lineDoneAt > holdTime(speech.Text) then
+			elseif
+				lineIndex < #queue
+				and os.clock() - lineDoneAt > holdTime(speech.Text)
+				and TutorialPacing.canAdvance(os.clock(), clipEndsAt() + TutorialPacing.GAP) -- a tapped-through line still lets its clip finish
+			then
 				showLine(lineIndex + 1)
-			elseif finale and lineIndex >= #queue then
-				local ends = finaleEndsAt
-				if ends == nil then
-					finaleEndsAt = os.clock() + FINALE_SECONDS
-				elseif os.clock() > ends then
-					teardown()
-					return
-				end
 			end
 		end
 		animateGuides(dt)
@@ -1448,6 +1802,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	local function activate()
 		active = true
+		dialogueMain.Enabled = true
 		container.Visible = true
 		renderConnection = RunService.RenderStepped:Connect(onRender)
 		-- A brand-new producer meets Lucien first; someone back mid-tutorial goes straight on.
@@ -1476,6 +1831,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local pending = player:GetAttribute("Pending") or 0
 			if pending < lastPending - 0.5 then
 				collected = true
+				collectedAmount = lastPending - pending
 			end
 			lastPending = pending
 		end

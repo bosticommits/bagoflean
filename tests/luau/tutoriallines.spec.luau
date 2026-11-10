@@ -16,9 +16,6 @@ test("every voiced line has a line and a real sound slot", function()
 		expect(Lines.LINES[key] ~= nil, `voice for unknown line {key}`)
 		expect(Sounds.Slots[slotName] ~= nil, `{key} names unknown slot {slotName}`)
 	end
-	for _, key in Lines.FINALE do
-		expect(Lines.LINES[key] ~= nil, `finale names unknown line {key}`)
-	end
 	for _, result in { "Flop", "Hit", "Blockbuster", "Cult", "Masterpiece" } do
 		expect(Lines.LINES[Lines.resultKey(result)] ~= nil, `no line for result {result}`)
 	end

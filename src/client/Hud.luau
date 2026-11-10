@@ -116,7 +116,8 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		if gui:GetAttribute("HudRight") == true then
 			return Vector2.new(1, 0), UDim2.new(1, -12, 0, 8)
 		end
-		-- Under the tutorial's dialogue while it is up ("TutorialBottom", set by Tutorial).
+		-- Top centre. The tutorial sets "TutorialBottom" only when its narrowest bubble would
+		-- still overlap this stack, then it waits under the dialogue.
 		local top = gui:GetAttribute("HudTop")
 		local below = gui:GetAttribute("TutorialBottom")
 		local y = if typeof(top) == "number" then top else 8
