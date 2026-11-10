@@ -187,12 +187,12 @@ function Upgrades.rewardEarned(index: { [string]: boolean }, rewardId: string): 
 end
 
 -- Welcome-back line for the cinema's pile (`cash` already formatted): Auto-Collect owners, a full
--- cinema, or the default. `full` wins over the pass because a full box is not being banked.
+-- cinema, or the default. Auto-Collect wins: it banks a full box within seconds, so no gold pad trip.
 function Upgrades.awayText(cash: string, autoCollect: boolean, full: boolean): string
-	if full then
-		return `Your cinema is full at ${cash}! Collect it at the gold pad to keep earning`
-	elseif autoCollect then
+	if autoCollect then
 		return `Auto-Collect kept your cinema earning: ${cash} while you were away!`
+	elseif full then
+		return `Your cinema is full at ${cash}! Collect it at the gold pad to keep earning`
 	end
 	return `Your cinema earned ${cash} while you were away! Collect it at the gold pad`
 end
