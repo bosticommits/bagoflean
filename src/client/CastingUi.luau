@@ -1278,12 +1278,14 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		detail.TextXAlignment = Enum.TextXAlignment.Left
 		detail.ZIndex = 21
 		textConstraint(detail, 14)
-		local stamp = UiKit.makeTitle(toast, if result.isNew then "NEW!" else `x{result.count}`, if result.isNew then UiKit.INK else WHITE, UDim2.fromOffset(52, 22), UDim2.fromOffset(196, 41), 1.5)
+		-- White text with no dark stroke: the dark outline turned the small gold chip into a blob.
+		local stamp = UiKit.makeLabel(toast, if result.isNew then "NEW!" else `x{result.count}`, WHITE, UDim2.fromOffset(58, 26), UDim2.fromOffset(194, 39))
+		stamp.Font = UiKit.DISPLAY_FONT
 		stamp.BackgroundTransparency = 0
 		stamp.BackgroundColor3 = if result.isNew then UiKit.GOLD else UiKit.TAB_OFF
 		stamp.ZIndex = 21
 		corner(stamp, 6)
-		textConstraint(stamp, 16)
+		textConstraint(stamp, 18)
 		if variant.id ~= "Normal" then
 			local chip = UiKit.makeTitle(toast, variant.name, WHITE, UDim2.fromOffset(52, 22), UDim2.fromOffset(256, 41), 1.5)
 			chip.BackgroundTransparency = 0
