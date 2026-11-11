@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Clock = require(ReplicatedStorage.Shared.Clock)
 local Events = require(ReplicatedStorage.Shared.Events)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local CountUp = require(ReplicatedStorage.Shared.CountUp)
@@ -19,6 +20,7 @@ local Icon3D = require(script.Parent.Icon3D)
 local Juice = require(script.Parent.Juice)
 local Screens = require(script.Parent.Screens)
 local Sfx = require(script.Parent.Sfx)
+local SpecialEventsUi = require(script.Parent.SpecialEventsUi)
 local UiKit = require(script.Parent.UiKit)
 
 local Hud = {}
@@ -69,15 +71,7 @@ local function comma(n: number): string
 end
 Hud.comma = comma
 
--- "m:ss", or "h:mm:ss" past an hour.
-local function clock(seconds: number): string
-	local total = math.max(0, math.ceil(seconds))
-	local h, m, sec = total // 3600, (total % 3600) // 60, total % 60
-	if h > 0 then
-		return string.format("%d:%02d:%02d", h, m, sec)
-	end
-	return string.format("%d:%02d", m, sec)
-end
+local clock = Clock.format
 Hud.clock = clock
 
 -- The cinema's pile and the most it holds (the offline cap, see EconomyService): (pending, cap,
@@ -161,7 +155,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	badgeLayout.FillDirection = Enum.FillDirection.Horizontal
 	badgeLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	badgeLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	badgeLayout.Padding = UDim.new(0, 22)
+	badgeLayout.Padding = UDim.new(0, 12)
 	badgeLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	badgeLayout.Parent = badgeRow
 
@@ -207,9 +201,16 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	end
 	local awardBadge, awardTitle, awardTimer = makeBadge(1, UiKit.PURPLE, "trophy")
 	local awardStroke = awardBadge:FindFirstChild("Outline") :: UIStroke
-	local luckyBadge, luckyTitle, luckyTimer = makeBadge(2, UiKit.FRESH_GREEN, "clover")
-	luckyTitle.Text = "LUCKY CASTING"
+	local luckyBadge, luckyTitle, luckyTimer = makeBadge(3, UiKit.FRESH_GREEN, "clover")
+	luckyTitle.Text = "Lucky Casting"
 	luckyBadge.Visible = false
+	local surpriseBadge, surpriseTitle, surpriseTimer = makeBadge(2, UiKit.BLUE, "gift")
+	local surpriseStroke = surpriseBadge:FindFirstChild("Outline") :: UIStroke
+	surpriseBadge.Visible = false
+	-- Three badges are wider than the event lines: the frame grows so the tutorial's obstacle is true.
+	badgeLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		frame.Size = UDim2.fromOffset(math.max(HUD_WIDTH, badgeLayout.AbsoluteContentSize.X / frameScale.Scale), 108)
+	end)
 
 	-- Box office bar: the cinema's pile, filling towards the offline cap (the most it holds, see
 	-- EconomyService), with the amount in big green numbers. At the cap it turns red and flashes
@@ -522,6 +523,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 
 	task.spawn(function()
 		local wasActive: boolean? = nil
+		local wasSurpriseLive: boolean? = nil -- nil on the first pass, so joining mid-event does not pop
 		local flash = false
 		while frame.Parent ~= nil do
 			local now = workspace:GetServerTimeNow()
@@ -531,19 +533,52 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			end
 			wasActive = active
 			if active then
-				awardTitle.Text = "AWARD NIGHT LIVE!"
+				awardTitle.Text = "Award Night live!"
 				awardTimer.Text = `x{Config.AwardNightLuckMultiplier} LUCK  {clock(left)}`
 				awardBadge.BackgroundColor3 = UiKit.AWARD_GOLD
 			else
-				awardTitle.Text = "AWARD NIGHT IN"
+				awardTitle.Text = "Award Night in"
 				awardTimer.Text = clock(left)
 				awardBadge.BackgroundColor3 = UiKit.PURPLE
 			end
 			local boostLeft = (player:GetAttribute("LuckBoostUntil") or 0) - now
-			luckyBadge.Visible = boostLeft > 0
 			if boostLeft > 0 then
 				luckyTimer.Text = clock(boostLeft)
 			end
+
+			-- The surprise event: live (its own name, gold) or counting down to the next one.
+			local live = SpecialEventsUi.readLive()
+			if live ~= nil and live.ends <= now then
+				live = nil
+			end
+			local upcoming = ReplicatedStorage:GetAttribute("SpecialEventNext")
+			local surpriseLeft = if live == nil and typeof(upcoming) == "number" and upcoming > now then upcoming - now else math.huge
+			local surpriseLive = live ~= nil
+			if live ~= nil then
+				surpriseTitle.Text = `{string.sub(live.event.name, 1, 1)}{string.lower(string.sub(live.event.name, 2))} live!`
+				surpriseTimer.Text = clock(live.ends - now)
+				surpriseBadge.BackgroundColor3 = UiKit.AWARD_GOLD
+			elseif surpriseLeft < math.huge then
+				surpriseTitle.Text = "Surprise in"
+				surpriseTimer.Text = clock(surpriseLeft)
+				surpriseBadge.BackgroundColor3 = UiKit.BLUE
+			end
+			local showAward, showSurprise, showLucky = true, surpriseLive or surpriseLeft < math.huge, boostLeft > 0
+			if gui:GetAttribute("HudRight") == true then
+				local pick = Events.phoneBadge(active, surpriseLive, boostLeft, left, surpriseLeft)
+				showAward, showSurprise, showLucky = pick == "award", pick == "surprise", pick == "lucky"
+			end
+			awardBadge.Visible = showAward
+			surpriseBadge.Visible = showSurprise
+			luckyBadge.Visible = showLucky
+			-- Going live pops the badge once.
+			if surpriseLive and wasSurpriseLive == false then
+				TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH * 1.15, 44 * 1.15) }):Play()
+				task.delay(0.25, function()
+					TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH, 44) }):Play()
+				end)
+			end
+			wasSurpriseLive = surpriseLive
 
 			-- Studio tours put their card at the right middle (VisitUi): the tab waits for it.
 			local tour = gui:FindFirstChild("TourCard")
@@ -556,6 +591,9 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			flash = not flash
 			-- Live Award Night flashes its rim white, like a marquee.
 			awardStroke.Color = if active and flash then UiKit.WHITE else UiKit.INK
+			surpriseStroke.Color = if surpriseLive and flash then UiKit.WHITE else UiKit.INK
+			-- The last 10 s of a live surprise: the timer flashes gold each second.
+			surpriseTimer.TextColor3 = if live ~= nil and live.ends - now <= 10 and flash then UiKit.GOLD else UiKit.WHITE
 			if boxFull then
 				boxStroke.Color = if flash then UiKit.CLOSE_RED else UiKit.INK
 				barText.TextColor3 = if flash then UiKit.GOLD else UiKit.WHITE
