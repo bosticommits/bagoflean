@@ -378,3 +378,19 @@ test("event props build and never get in the way", function()
 	expect(hi - lo > 20 and hi - lo < 30, `star is {hi - lo} studs tall`)
 	expect(math.abs((hi + lo) / 2 - 40) < 3, "star centred")
 end)
+
+test("phone badge: live award, live surprise, lucky boost, then the sooner countdown", function()
+	local huge = math.huge
+	local cases = {
+		{ true, true, 30, 5, 5, "award" },
+		{ false, true, 30, 100, 5, "surprise" },
+		{ false, false, 30, 100, 5, "lucky" },
+		{ false, false, 0, 100, 5, "surprise" },
+		{ false, false, 0, 5, 100, "award" },
+		{ false, false, 0, 50, 50, "award" },
+		{ false, false, 0, 50, huge, "award" },
+	}
+	for index, case in cases do
+		equal(Events.phoneBadge(case[1], case[2], case[3], case[4], case[5]), case[6], `case {index}`)
+	end
+end)

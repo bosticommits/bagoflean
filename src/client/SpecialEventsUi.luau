@@ -14,12 +14,12 @@ local TextChatService = game:GetService("TextChatService")
 local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
+local Clock = require(ReplicatedStorage.Shared.Clock)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local NumberConfig = require(ReplicatedStorage.Shared.LiveConfigNumbers)
 local ClientState = require(script.Parent.ClientState)
 local EventWorld = require(script.Parent.EventWorld)
 local Fx = require(script.Parent.Fx)
-local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
 local Sounds = require(ReplicatedStorage.Shared.Sounds)
 local Music = require(script.Parent.Music)
@@ -484,7 +484,7 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			local state = live
 			if state ~= nil then
 				local status = EventWorld.status() or state.event.tagline
-				info.Text = `{escape(status)}  <font color="#FFD23F">{Hud.clock(state.ends - now)}</font>`
+				info.Text = `{escape(status)}  <font color="#FFD23F">{Clock.format(state.ends - now)}</font>`
 				if mode == "docked" and EventWorld.finished() then
 					hide() -- the crate is open and gone: the banner has nothing more to say
 				end
