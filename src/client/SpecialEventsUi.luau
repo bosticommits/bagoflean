@@ -271,7 +271,7 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 			local left = if type(updateAt) == "number" then NumberConfig.updateWarning(updateAt, workspace:GetServerTimeNow()) else nil
 			warning.Visible = left ~= nil and mode ~= "intro"
 			if warning.Visible and left ~= nil then
-				warning.Text = `Update in {Hud.clock(left)} - the server restarts`
+				warning.Text = `Update in {Clock.format(left)} - the server restarts`
 				local width = WIDTH * fitScale()
 				warning.Size = UDim2.fromOffset(width, INFO_HEIGHT + 4)
 				local top = dockTop()
