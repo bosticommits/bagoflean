@@ -512,13 +512,17 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	footerTop.BackgroundColor3 = UiKit.DARK
 	footerTop.BorderSizePixel = 0
 	footerTop.Size = UDim2.new(1, 0, 0, 16)
+	footerTop.ZIndex = 1
 	footerTop.Parent = footer
 	local footerEdge = Instance.new("Frame")
 	footerEdge.Name = "Edge"
 	footerEdge.BackgroundColor3 = UiKit.INK
 	footerEdge.BorderSizePixel = 0
 	footerEdge.Size = UDim2.new(1, 0, 0, 3)
+	footerEdge.ZIndex = 2
 	footerEdge.Parent = footer
+	-- Everything the footer holds draws above its filler and top line (ZIndex 3), whatever the creation order.
+	local FOOTER_CONTENT_Z = 3
 	-- Cast slots: the picked actors' portraits (tap one to take it out), then empty "+" slots.
 	local castSlots: { TextButton } = {}
 	local slotOutlines: { UIStroke } = {}
@@ -534,6 +538,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		slotButton.Size = UDim2.fromOffset(56, 56)
 		slotButton.AnchorPoint = Vector2.new(0.5, 0.5) -- so the pop grows from the centre
 		slotButton.Position = UDim2.fromOffset(40 + (slot - 1) * 64, 42) -- centre; layoutPicker sets the real one
+		slotButton.ZIndex = FOOTER_CONTENT_Z
 		slotButton.Parent = footer
 		corner(slotButton, 8)
 		slotOutlines[slot] = UiKit.border(slotButton, 2, UiKit.MUTED)
@@ -543,13 +548,17 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	-- Two lines, left-aligned: "Star Power 60" over "Hit pays $720" (no names: the slots show the faces).
 	local line1 = UiKit.makeTitle(footer, "", WHITE, UDim2.fromOffset(100, 24), nil, 2)
 	line1.Name = "Line1"
+	line1.ZIndex = FOOTER_CONTENT_Z
 	line1.TextXAlignment = Enum.TextXAlignment.Left
 	local line2 = makeLabel(footer, "", UiKit.GOLD, UDim2.fromOffset(100, 24))
 	line2.Name = "Line2"
+	line2.ZIndex = FOOTER_CONTENT_Z
 	line2.TextXAlignment = Enum.TextXAlignment.Left
 	local clearButton = makeButton(footer, "Clear cast", UiKit.TAB_OFF, UDim2.fromOffset(130, 52))
 	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.fromOffset(210, 56))
 	goButton.Name = "StartFilming"
+	clearButton.ZIndex = FOOTER_CONTENT_Z
+	goButton.ZIndex = FOOTER_CONTENT_Z
 
 	local pickStage = 1
 	local pickScript: string? = nil
@@ -704,16 +713,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		local genre = if pickScript ~= nil then string.split(pickScript, ":")[1] else nil
 		for key, button in scriptButtons do
 			local picked = key == pickScript
-			-- The row keeps its genre colour; the pick is a gold outline and a tick in the icon's place.
+			-- The row keeps its genre colour; the pick is a gold outline and a gold tick on the right.
 			button.BackgroundColor3 = GENRE_COLORS[string.split(key, ":")[1]] or UiKit.BLUE
 			local outline = button:FindFirstChild("Outline")
 			if outline ~= nil and outline:IsA("UIStroke") then
 				outline.Color = if picked then UiKit.GOLD else UiKit.INK
 				outline.Thickness = if picked then 4 else 3
-			end
-			local icon = button:FindFirstChild("Icon")
-			if icon ~= nil and icon:IsA("GuiObject") then
-				icon.Visible = not picked
 			end
 			local tickBox = button:FindFirstChild("SelectTick")
 			if tickBox ~= nil and tickBox:IsA("GuiObject") then
@@ -770,16 +775,21 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		pickerHeader.Text = `Start movie · Stage {pickStage}`
 		local order = 0
 
-		-- Scripts: one row each, two lines (genre, then length and time) with the copies chip; the
-		-- picked row gets a gold outline and a tick where the icon was.
+		-- Scripts: one row each, two lines (genre, then length and time). The right edge holds the
+		-- copies chip over a tick; the picked row gets a gold outline and the gold tick.
 		local rowH = if compact then 44 else 56
 		local iconSize = if compact then 28 else 36
 		local iconX = if compact then 6 else 8
 		local iconY = (rowH - iconSize) // 2
-		local textX = iconX + iconSize + (if compact then 6 else 8)
+		local textX = iconX + iconSize + (if compact then 4 else 8)
 		local line1H = if compact then 20 else 24
 		local line2H = if compact then 16 else 22
 		local textY = (rowH - line1H - line2H - 2) // 2
+		local chipH = if compact then 18 else 22
+		local chipTop = if compact then 3 else 4
+		local tickSize = rowH - chipTop - chipH - 3 -- the square under the chip (phone 20, PC 27)
+		local line1Reserve = if compact then 36 else 40
+		local line2Reserve = tickSize + 8
 		local anyScript = false
 		for _, genre in Movies.Genres do
 			for _, length in Movies.Lengths do
@@ -793,23 +803,40 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					button.LayoutOrder = order
 					button:SetAttribute("ChipInset", true)
 					smallIcon(button, "script", iconSize, UDim2.fromOffset(iconX, iconY))
-					local tickBox = Instance.new("Frame")
-					tickBox.Name = "SelectTick"
-					tickBox.BackgroundTransparency = 1
-					tickBox.Size = UDim2.fromOffset(iconSize, iconSize)
-					tickBox.Position = UDim2.fromOffset(iconX, iconY)
-					tickBox.Visible = false
-					tickBox.ZIndex = button.ZIndex + 2
-					tickBox.Parent = button
-					UiKit.tick(tickBox, tickBox.ZIndex)
-					local genreLabel = UiKit.makeTitle(button, genre, WHITE, UDim2.new(1, -(textX + 38), 0, line1H), UDim2.fromOffset(textX, textY), 2)
+					local genreLabel = UiKit.makeTitle(button, genre, WHITE, UDim2.new(1, -(textX + line1Reserve), 0, line1H), UDim2.fromOffset(textX, textY), 2)
 					genreLabel.TextXAlignment = Enum.TextXAlignment.Left
 					UiKit.textConstraint(genreLabel, if compact then 16 else 26)
-					local lengthName = if compact then string.gsub(length.name, " Film$", "") else length.name
-					local detail = makeLabel(button, `{lengthName} · {fmtTime(length.seconds)}`, WHITE, UDim2.new(1, -(textX + 6), 0, line2H), UDim2.fromOffset(textX, textY + line1H + 2))
+					local lengthName = string.gsub(length.name, " Film$", "") -- "Short · 2:00"
+					local detail = makeLabel(button, `{lengthName} · {fmtTime(length.seconds)}`, WHITE, UDim2.new(1, -(textX + line2Reserve), 0, line2H), UDim2.fromOffset(textX, textY + line1H + 2))
 					detail.TextXAlignment = Enum.TextXAlignment.Left
 					UiKit.textConstraint(detail, if compact then 14 else 18)
 					UiKit.chip(button, `x{count}`)
+					local chip = button:FindFirstChild("Chip")
+					if chip ~= nil and chip:IsA("GuiObject") then
+						chip.Size = UDim2.fromOffset(chip.Size.X.Offset, chipH) -- a slimmer chip leaves room for the tick
+						chip.Position = UDim2.new(1, -(chip.Size.X.Offset + 4), 0, chipTop)
+					end
+					-- The pick's tick: gold (Start filming is the only green), small outlines to suit its size.
+					local tickBox = Instance.new("Frame")
+					tickBox.Name = "SelectTick"
+					tickBox.BackgroundTransparency = 1
+					tickBox.AnchorPoint = Vector2.new(1, 0)
+					tickBox.Size = UDim2.fromOffset(tickSize, tickSize)
+					tickBox.Position = UDim2.new(1, -4, 0, chipTop + chipH + 2)
+					tickBox.Visible = false
+					tickBox.ZIndex = button.ZIndex + 2
+					tickBox.Parent = button
+					local tick = UiKit.tick(tickBox, tickBox.ZIndex)
+					tick.Size = UDim2.fromScale(0.9, 0.9)
+					for _, piece in tick:GetChildren() do
+						if piece:IsA("Frame") then
+							piece.BackgroundColor3 = UiKit.GOLD
+							local pieceOutline = piece:FindFirstChild("Outline")
+							if pieceOutline ~= nil and pieceOutline:IsA("UIStroke") then
+								pieceOutline.Thickness = 2
+							end
+						end
+					end
 					button.Activated:Connect(function()
 						pickScript = key
 						refreshPicker()
@@ -822,7 +849,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			order += 1
 			local row = UiKit.addRow(pickerList, order, 44)
 			row.Size = UDim2.new(1, 0, 0, 44)
-			makeLabel(row, "No scripts - buy one in the Scripts tab", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
+			makeLabel(row, "No scripts yet", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
 		end
 
 		local emptyRow = UiKit.addRow(castList, 1, 44)
@@ -926,12 +953,6 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		goButton.Size = UDim2.fromOffset(geo.go.w, geo.go.h)
 		goButton.Position = UDim2.fromOffset(geo.go.x, geo.go.y)
 		UiKit.textConstraint(goButton, if compact then 16 else 26)
-		-- The Start halo (gap + 5 px stroke) must not poke out of a 60 px phone footer: a tighter gap there.
-		local halo = goButton:FindFirstChild("Halo")
-		if halo ~= nil and halo:IsA("Frame") then
-			local haloGap = if compact then 3 else 5
-			halo.Size = UDim2.new(1, haloGap * 2, 1, haloGap * 2)
-		end
 
 		local thickness = if compact then 4 else 6
 		pickerList.ScrollBarThickness = thickness
