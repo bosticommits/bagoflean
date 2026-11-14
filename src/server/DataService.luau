@@ -10,6 +10,7 @@ local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local PlaytimeGifts = require(ReplicatedStorage.Shared.PlaytimeGifts)
 local Posters = require(ReplicatedStorage.Shared.Posters)
+local SaveVersion = require(ReplicatedStorage.Shared.SaveVersion)
 local ProfileStore = require(script.Parent.ProfileStore)
 
 -- A movie being filmed. Times are os.time() stamps, so filming continues while offline.
@@ -102,6 +103,11 @@ export type Laurel = { week: number, genre: string, season: string? }
 local CURRENT_VERSION = 12 -- 6: rebirths, 7: weekly quests, 8: studio visits, 9: hot start, 10: film festival, 11: playtime gifts, 12: pity + early pulls
 local RELEASE_WAIT_SECONDS = 30
 
+-- Upgrade steps for changes that alter the MEANING of existing data, ascending by version. Each one
+-- runs once per save, on saves older than its version (SaveVersion.apply). Empty today: versions
+-- 6 to 12 only added fields, which Reconcile and the repairs in migrate() cover.
+local UPGRADE_STEPS: { SaveVersion.Step } = {}
+
 local TEMPLATE: PlayerData = {
 	version = CURRENT_VERSION,
 	cash = 0,
@@ -170,9 +176,10 @@ local DataService = {}
 
 -- Repairs malformed fields. New fields need nothing here (Reconcile fills them from TEMPLATE).
 -- When a change alters the MEANING of existing data (a rescaled price, a renamed key, a changed
--- multiplier), add a step before the final `data.version = CURRENT_VERSION` line, for example:
---   if data.version < 9 then ... convert the old data ... end
--- and raise CURRENT_VERSION. Run steps in order; never skip one for old profiles.
+-- multiplier), add a { version = N, run = function(data) ... end } entry to UPGRADE_STEPS and raise
+-- CURRENT_VERSION to N. Steps run in order, once per save; never skip one for old profiles.
+-- The stored version is max(saved, CURRENT_VERSION): a rollback build never lowers a newer save's
+-- version, so a newer build's steps do not run twice (SaveVersion, tests/luau/saveversion.spec).
 local function migrate(data: any)
 	if type(data.cash) ~= "number" or data.cash ~= data.cash or data.cash < 0 then
 		data.cash = 0
@@ -294,7 +301,7 @@ local function migrate(data: any)
 	end
 	data.laurels = laurels
 	data.gifts = PlaytimeGifts.fresh(data.gifts)
-	data.version = CURRENT_VERSION
+	SaveVersion.apply(data, CURRENT_VERSION, UPGRADE_STEPS)
 end
 
 -- Yields. Returns the player's data, or nil if it could not be loaded safely.
