@@ -505,14 +505,21 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		end
 	end
 
-	local function tierHeader(order: number, tier: Actors.Tier, height: number, text: string): Frame
+	local function tierHeader(order: number, tier: Actors.Tier, height: number, text: string, odds: string?): Frame
 		local head = UiKit.addRow(collectionList, order, height)
 		head.BackgroundColor3 = tier.color
 		local shade = Instance.new("UIGradient")
 		shade.Rotation = 90
 		shade.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190))
 		shade.Parent = head
-		UiKit.makeTitle(head, text, WHITE, UDim2.new(0.5, 0, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+		local title = UiKit.makeTitle(head, text, WHITE, UDim2.new(0.5, 0, if odds ~= nil then 0.62 else 1, 0), UDim2.fromOffset(10, 0))
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		if odds ~= nil then
+			-- Scaled text stays inside the left half, clear of the Claim button on the right.
+			local line = makeLabel(head, odds, WHITE, UDim2.new(0.5, -10, 0.36, 0), UDim2.new(0, 10, 0.62, 0))
+			line.TextXAlignment = Enum.TextXAlignment.Left
+			textConstraint(line, 16)
+		end
 		return head
 	end
 
@@ -615,7 +622,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 			local found, total = Upgrades.tierProgress(ClientState.index, tier.id)
 			local rewardId = "tier:" .. tier.id
 			order += 1
-			local head = tierHeader(order, tier, 44, `{tier.name}  {found}/{total}`)
+			local head = tierHeader(order, tier, 44, `{tier.name}  {found}/{total}`, `Base odds {Actors.oneIn(1 / tier.oneIn)}`)
 			rewardControl(head, rewardId, found == total, rewards[rewardId] == true, `+{Config.TierRewardLuck} Luck`)
 			order += 1
 			tierCards(order, tier, function(_key, hasIt)
