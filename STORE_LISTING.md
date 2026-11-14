@@ -11,10 +11,40 @@ Hollywood RNG
 
 ## Description
 
-Paste this into the Description field (about 860 characters, under Roblox's 1,000 limit):
+### Opening hook (pick one, then paste the matching description below)
+
+The first line is what players see in the search results and on the game card, so it is one
+short sentence with the two verbs the game is about (roll, make). Each is 60 characters or fewer.
+
+| # | Hook | Chars | Note |
+|---|---|---|---|
+| A (recommended) | `Roll rare actors. Make hit movies.` | 34 | Shortest, nothing to skip. Matches the trend scan: one-sentence pitches won every breakout. "Roll" is the search word for RNG games |
+| B | `Roll rare actors. Make hit movies. Be a legend!` | 47 | Adds the "become a legend" payoff. Still one glance |
+| C | `Roll an actor. Film a hit. Rule Hollywood!` | 42 | Punchier and more playful; says less about rarity, the main draw |
+
+Policy check: no "best", "#1" or "free Robux" claims, nothing the game does not do, nothing
+that is unsafe for kids. "Rare" is true (1 in 5,000,000 Icons).
+
+If you pick B or C, replace the first line of the description with it; the rest stays the same.
+
+Short thumbnail or Shorts line to match the hook (on-screen text, 4 to 6 words per line):
+
+| Hook | Thumbnail / Shorts CTA |
+|---|---|
+| A | `ROLL RARE ACTORS. MAKE HIT MOVIES. Play free!` |
+| B | `ROLL. FILM. BECOME A LEGEND. Play free!` |
+| C | `ROLL AN ACTOR. FILM A HIT. Play free!` |
+
+"Play free" is true: the game is free to play and everything can be earned for free.
+
+### Description (hook A, about 930 characters, under Roblox's 1,000 limit)
+
+Paste this into the Description field:
 
 ```
-🎬 Run your own film studio and become a Hollywood legend!
+🎬 Roll rare actors. Make hit movies.
+
+Run your own film studio and become a Hollywood legend!
 
 ⭐ CAST RARE ACTORS
 Hold Casting Calls to discover 21 original actors, from Nervous Intern to the 1 in 5,000,000 Icons like the Golden Muse. Find Shiny and Award-Winning versions too!
@@ -38,7 +68,7 @@ Odds for every tier, actor and variant are shown as percentages on the casting s
 ## Short pitch (for social posts and the group page)
 
 ```
-Cast rare actors, make movies that film while you're offline, and pray your premiere is a Masterpiece. 🎬
+Roll rare actors, make hit movies that film while you're offline, and pray your premiere is a Masterpiece. 🎬
 ```
 
 ## Settings

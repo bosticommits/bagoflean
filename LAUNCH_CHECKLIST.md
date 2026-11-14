@@ -150,6 +150,9 @@ reach everything.
       filled in, using the answers in STORE_LISTING.md.
       *Done when:* every Creator Dashboard field is complete.
 - [ ] Social links (group, Discord or X) for the codes. *Done when:* linked on the game page.
+- [ ] Models in the place: run `tools/studio/rebuild_lot_meshes.luau`, import FounderStar and the
+      map kit, then start a server. *Done when:* the output line says `Lot models: 366 of 366
+      present (0 missing)`. Do this before the publish checklist below.
 - [ ] Run the publish checklist (the `roblox-publish-checklist` skill).
       *Done when:* it says READY, with evidence for each gate.
 - [ ] Create the real game pass and developer product ids in the Creator Dashboard and paste
