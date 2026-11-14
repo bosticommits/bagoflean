@@ -482,22 +482,22 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	end -- set once the guides exist
 
 	-- The open panel whose title-bar slot can hold the pill (the top-most one wide enough), or nil.
-	local function pillSlot(): Frame?
-		local best: Frame? = nil
-		local bestZ = -math.huge
+	local function pillSlot(compact: boolean): Frame?
+		local top: GuiObject? = nil
 		for _, child in gui:GetChildren() do
-			if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" then
-				local slot = child:FindFirstChild("DialogueSlot")
-				if slot ~= nil and slot:IsA("Frame") and TutorialPill.fits(slot.AbsoluteSize.X) and slot.AbsoluteSize.Y > 0 and child.ZIndex >= bestZ then
-					best, bestZ = slot, child.ZIndex
-				end
+			if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" and (top == nil or child.ZIndex >= top.ZIndex) then
+				top = child
 			end
 		end
-		return best
+		local slot = if top ~= nil then top:FindFirstChild("DialogueSlot") else nil
+		if slot ~= nil and slot:IsA("Frame") and TutorialPill.fits(slot.AbsoluteSize.X, compact) and slot.AbsoluteSize.Y > 0 then
+			return slot
+		end
+		return nil
 	end
 
 	-- Restores what pill mode changed on the bubble, for the corner and the intro.
-	local function leavePill()
+	local function leavePill(textSize: number)
 		card.AutomaticSize = Enum.AutomaticSize.Y
 		body.AutomaticSize = Enum.AutomaticSize.Y
 		body.Size = UDim2.fromScale(1, 0)
@@ -505,6 +505,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 10)
 		nameLabel.Visible = true
 		speech.TextScaled = false
+		nameLabel.TextSize = textSize -- only while not scaled
+		speech.TextSize = textSize
 		speech.AutomaticSize = Enum.AutomaticSize.Y
 		speech.Size = UDim2.fromScale(1, 0)
 		speech.TextYAlignment = Enum.TextYAlignment.Top
@@ -529,8 +531,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local top = if typeof(hudTop) == "number" then hudTop else 8
 		local splashOpen = splash ~= nil
 		local textSize = if small then 16 else 20
-		nameLabel.TextSize = textSize
-		speech.TextSize = textSize
 		begin.Visible = splashOpen and introTyped
 		skip.Size = if small then UDim2.fromOffset(64, 28) else UDim2.fromOffset(80, 34)
 
@@ -539,7 +539,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local stackHeight = if small then bustSize else bustSize + 4 + skip.Size.Y.Offset
 		local panelOpen = anyPanelOpen()
 
-		local slot = if splashOpen or not panelOpen then nil else pillSlot()
+		local slot = if splashOpen or not panelOpen then nil else pillSlot(small)
 		if slot ~= nil then
 			-- A panel is open: the line becomes a cream pill in its title bar, Lucien's bust at the
 			-- left and Skip at the right, 12 px clear of the X. The panel keeps its full height.
@@ -554,10 +554,10 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			card.AutomaticSize = Enum.AutomaticSize.None
 			card.AnchorPoint = Vector2.new(0, 0.5)
 			card.Position = UDim2.fromOffset(at.X + p.pillX, at.Y + size.Y / 2)
-			card.Size = UDim2.fromOffset(p.pillW, size.Y)
+			card.Size = UDim2.fromOffset(p.pillW, p.pillH)
 			body.AutomaticSize = Enum.AutomaticSize.None
 			body.Size = UDim2.fromScale(1, 1)
-			pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 8), UDim.new(0, 8)
+			pad.PaddingLeft, pad.PaddingRight = UDim.new(0, if small then 12 else 14), UDim.new(0, if small then 12 else 14)
 			pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 1), UDim.new(0, 1)
 			speech.AutomaticSize = Enum.AutomaticSize.None
 			speech.Size = UDim2.fromScale(1, 1)
@@ -569,7 +569,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			skip.AnchorPoint = Vector2.new(0, 0.5)
 			skip.Position = UDim2.fromOffset(at.X + p.skipX, at.Y + size.Y / 2)
 		elseif splashOpen then
-			leavePill()
+			leavePill(textSize)
 			-- The intro: the bubble from the middle of the safe area, Skip bottom-right.
 			bust.Visible = false
 			card.AnchorPoint = Vector2.new(0, 0)
@@ -583,7 +583,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		else
 			-- Corner: the bust at the top right, the bubble to its left, Skip under the bust. On
 			-- touch screens it drops under the wallet and the event lines; a panel pulls it to the top.
-			leavePill()
+			leavePill(textSize)
 			bust.Visible = true
 			bust.Size = UDim2.fromOffset(bustSize, bustSize)
 			local panelY = if touch then 0 else math.max(0, top - 8)
@@ -1781,6 +1781,30 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	for _, attribute in { "HudTop", "HudRight", "MenuRight" } do
 		gui:GetAttributeChangedSignal(attribute):Connect(layout)
 	end
+	-- A panel opening or closing re-lays the dialogue at once (deferred: the panel lays itself out
+	-- first), and so does its title-bar slot moving or resizing.
+	local hooked: { [Instance]: boolean } = {}
+	local function hookPanel(child: Instance)
+		if hooked[child] or not child:IsA("GuiObject") or string.sub(child.Name, -5) ~= "Panel" then
+			return
+		end
+		hooked[child] = true
+		child:GetPropertyChangedSignal("Visible"):Connect(function()
+			task.defer(layout)
+		end)
+		local slot = child:WaitForChild("DialogueSlot", 5)
+		if slot ~= nil then
+			slot:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+			slot:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
+		end
+	end
+	for _, child in gui:GetChildren() do
+		task.spawn(hookPanel, child)
+	end
+	gui.ChildAdded:Connect(function(child)
+		task.spawn(hookPanel, child)
+		task.defer(layout)
+	end)
 	local lastPanelOpen = false
 	task.spawn(function()
 		while not finished or active do

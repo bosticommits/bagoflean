@@ -416,7 +416,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			renderedSignature = "loading"
 			return
 		end
-		header.Text = `Studio  -  Fame {Hud.comma(state.fame)}`
+		-- While Lucien talks the title is short, so his line fits the title bar.
+		header.Text = if gui:GetAttribute("TutorialActive") == true then "Studio" else `Studio  -  Fame {Hud.comma(state.fame)}`
 		panel:SetAttribute("Tab", tab)
 		if tab == "Stages" then
 			renderStages()
