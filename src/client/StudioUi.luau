@@ -439,7 +439,11 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	-- Start-movie picker -----------------------------------------------------------------------
-	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130, UiKit.FRESH_GREEN, 60)
+	-- The actor scroller ends this far above the panel bottom: footer height + its 8 px inset + a 14 px
+	-- (PC) / 12 px (phone) gap, so the last tile row never sits under the footer.
+	local PICKER_LIST_BOTTOM = 118 + 8 + 14
+	local PICKER_LIST_BOTTOM_COMPACT = 48 + 6 + 12
+	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, PICKER_LIST_BOTTOM, UiKit.FRESH_GREEN, PICKER_LIST_BOTTOM_COMPACT)
 	UiKit.panelIcon(picker, pickerHeader, "clapper")
 	local footer = Instance.new("Frame")
 	footer.BackgroundTransparency = 1
@@ -721,6 +725,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		local pad = Instance.new("UIPadding")
 		pad.PaddingLeft = UDim.new(0, 3)
 		pad.PaddingTop = UDim.new(0, 8)
+		pad.PaddingBottom = UDim.new(0, 10) -- the last row scrolls fully clear of the footer
 		pad.Parent = grid
 		local busy = busyCopies()
 		for key, count in roster do
