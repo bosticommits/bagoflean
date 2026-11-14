@@ -11,11 +11,11 @@ const TOP_BAR = 36; // Roblox top bar, px
 // Roblox draws the thumbstick and jump button over the game; fractions of the screen (roblox-ui-verify).
 const THUMBSTICK = [0.0, 0.62, 0.3, 1.0];
 const JUMP = [0.76, 0.68, 1.0, 1.0];
-const MODALS = new Set(["PickerPanel"]); // panels that hide the touch controls while open
+// On phones every open panel hides the touch controls (Declutter, UiKit.holdTouchControls), the picker too.
 const PICKER_COLUMNS = 3;
 const SLACK = 1.5; // px of rounding / stroke tolerance
 // Parts that overhang on purpose or are pure decoration: never reported as outside / off-screen / overlapping.
-const DECOR = /(^|\.)(PanelIcon|[A-Za-z]*Shadow|[A-Za-z]*Scrim|[A-Za-z]*Dim|Glow|Halo|Shine|Backdrop|Outline)(\.|$)/;
+const DECOR = /(^|\.)(PanelIcon|[A-Za-z]*Shadow|[A-Za-z]*Scrim|[A-Za-z]*Dim|Glow|Halo|Shine|Backdrop|Outline|Next)(\.|$)/;
 
 const area = (r) => Math.max(0, r[2]) * Math.max(0, r[3]);
 function intersect(a, b) {
@@ -58,8 +58,7 @@ function checkScene(dir) {
 	const isButton = (n) => n.class === "TextButton" || n.class === "ImageButton";
 	const text = (n) => (typeof n.props?.text === "string" ? n.props.text : "");
 	const drawn = (n) => (n.bg && n.bg.transparency < 1) || text(n) !== "" || n.image || isButton(n);
-	const modalOpen = nodes.some((n) => MODALS.has(n.name) && info.get(n.id).vis);
-
+	
 	// Real extent of a label: the text itself, not its (often much wider) box.
 	function extent(n) {
 		const lines = n.text?.lines;
@@ -157,10 +156,10 @@ function checkScene(dir) {
 		for (const n of nodes) {
 			const i = info.get(n.id);
 			if (!isButton(n) || !i.vis || i.decor) continue;
-			if (i.panel && MODALS.has(i.panel.name)) continue;
 			const r = i.clip;
-			const level = i.panel ? "warn" : "error"; // a dialog over the thumbstick is a smaller sin than a HUD button
 			if (r[1] < TOP_BAR - SLACK) add("safe-zone", "error", n, `inside the top ${TOP_BAR} px bar`);
+			if (i.panel) continue; // a panel's buttons: the touch controls are hidden while it is open
+			const level = "error";
 			for (const [z, label] of [[THUMBSTICK, "thumbstick"], [JUMP, "jump button"]]) {
 				const x = intersect(r, zone(z));
 				if (x && x[2] > 4 && x[3] > 4) add("safe-zone", level, n, `in the ${label} zone (${Math.round(x[2])}x${Math.round(x[3])} px)`);

@@ -2,6 +2,7 @@
 -- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
@@ -633,11 +634,18 @@ function UiKit.badge(button: GuiObject, text: string?)
 	badge.Visible = true
 end
 
--- Bottom-of-screen message that fades after two seconds.
+-- Bottom-of-screen message that fades after two seconds. On a phone, a `passive` message (a goal
+-- reached, a new mascot: news, not an answer to a tap) waits while a full-screen panel is open, so it
+-- never sits over the panel's content; it shows, in order, once the panels close.
 local toastLabel: TextLabel? = nil
 local toastToken = 0
 local TOAST_MAX_WIDTH = 340
-function UiKit.toast(gui: ScreenGui, text: string)
+local TOAST_SECONDS = 2
+local TOAST_QUEUE_MAX = 3
+local toastQueue: { { gui: ScreenGui, text: string } } = {}
+local toastDrain = false
+
+local function showToast(gui: ScreenGui, text: string)
 	local label = toastLabel
 	if label == nil then
 		local created = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.new(0.9, 0, 0, 44), UDim2.new(0.5, 0, 1, -144))
@@ -667,11 +675,37 @@ function UiKit.toast(gui: ScreenGui, text: string)
 	local mine = toastToken
 	label.Text = text
 	label.Visible = true
-	task.delay(2, function()
+	task.delay(TOAST_SECONDS, function()
 		if toastToken == mine then
 			label.Visible = false
 		end
 	end)
+end
+
+function UiKit.toast(gui: ScreenGui, text: string, passive: boolean?)
+	if passive == true and UiKit.isCompact() and UiKit.anyPanelOpen() then
+		if #toastQueue < TOAST_QUEUE_MAX then
+			table.insert(toastQueue, { gui = gui, text = text })
+		end
+		if not toastDrain then
+			toastDrain = true
+			task.spawn(function()
+				while #toastQueue > 0 do
+					task.wait(0.3)
+					if not UiKit.anyPanelOpen() then
+						local nextToast = table.remove(toastQueue, 1)
+						if nextToast ~= nil and nextToast.gui.Parent ~= nil then
+							showToast(nextToast.gui, nextToast.text)
+							task.wait(TOAST_SECONDS + 0.2)
+						end
+					end
+				end
+				toastDrain = false
+			end)
+		end
+		return
+	end
+	showToast(gui, text)
 end
 
 -- Layout ---------------------------------------------------------------------------------------
@@ -778,6 +812,34 @@ function UiKit.overlayOpen(): boolean
 		end
 	end
 	return false
+end
+
+-- Roblox's thumbstick and jump button are drawn by CoreGui above every ScreenGui, so they sit on top of
+-- a panel's corners. While a panel (or the picker modal) is open on a phone it asks to hide them:
+-- each `owner` holds or releases its own request, and the original setting comes back exactly as it
+-- was when the last owner lets go.
+local touchHolds: { [string]: boolean? } = {}
+local savedTouchControls: boolean? = nil
+function UiKit.holdTouchControls(owner: string, hidden: boolean)
+	touchHolds[owner] = if hidden then true else nil
+	local held = next(touchHolds) ~= nil
+	if held and savedTouchControls == nil then
+		local ok, current = pcall(function()
+			return GuiService.TouchControlsEnabled
+		end)
+		if ok then
+			savedTouchControls = current
+			pcall(function()
+				GuiService.TouchControlsEnabled = false
+			end)
+		end
+	elseif not held and savedTouchControls ~= nil then
+		local saved = savedTouchControls
+		savedTouchControls = nil
+		pcall(function()
+			GuiService.TouchControlsEnabled = saved
+		end)
+	end
 end
 
 -- Opens `panel` (building it first) and closes the other panels; opens nothing if it was open.

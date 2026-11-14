@@ -1,6 +1,6 @@
 --!strict
 -- While any panel is open, the floating HUD that would draw over it (gift timers, the Studio-only
--- Events buttons, the top boards) steps aside, and comes back when the last panel closes. One
+-- Events buttons, the top boards, and the phone sound button) steps aside, and comes back when the last panel closes. One
 -- place for every panel: a panel is any visible child of the main screen named "...Panel".
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
@@ -58,7 +58,11 @@ function Declutter.start(gui: ScreenGui)
 					want[name] = true
 				end
 				want.Wallet = BubblePlacer.hidesWallet(UiKit.isCompact(), true, gui:GetAttribute("TutorialActive") == true)
+				-- Phones: the speaker button sits top right, over the tabs and corner of full-screen panels.
+				want.SoundButton = UiKit.isCompact()
 			end
+			-- Phones: the thumbstick and jump button (drawn by Roblox over everything) leave with the panels.
+			UiKit.holdTouchControls("panel", open and UiKit.isCompact())
 			for name in want do
 				local object = gui:FindFirstChild(name)
 				if want[name] and object ~= nil and object:IsA("GuiObject") and held[object] == nil then
