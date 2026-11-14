@@ -416,7 +416,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			renderedSignature = "loading"
 			return
 		end
-		header.Text = `Studio  -  Fame {Hud.comma(state.fame)}`
+		-- While Lucien talks the title is short, so his line fits the title bar.
+		header.Text = if gui:GetAttribute("TutorialActive") == true then "Studio" else `Studio  -  Fame {Hud.comma(state.fame)}`
 		panel:SetAttribute("Tab", tab)
 		if tab == "Stages" then
 			renderStages()
@@ -772,7 +773,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		UiKit.clear(castList)
 		table.clear(scriptButtons)
 		table.clear(actorCards)
-		pickerHeader.Text = `Start movie · Stage {pickStage}`
+		-- While Lucien talks (the line may sit in the title bar) the title is short.
+		pickerHeader.Text = if gui:GetAttribute("TutorialActive") == true then `Stage {pickStage}` else `Start movie · Stage {pickStage}`
 		local order = 0
 
 		-- Scripts: one row each, two lines (genre, then length and time). The right edge holds the
