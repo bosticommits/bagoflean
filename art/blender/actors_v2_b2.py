@@ -119,7 +119,7 @@ def heartthrob(f):
     """Star (Romance). The teen heartthrob: a towering swept pompadour, a wink with a shine, a lopsided open grin,
     red letterman jacket with white sleeves, collar and a gold letter patch, jeans and white sneakers, a
     blue guitar held up high, and fan hearts floating round him."""
-    skin, red, white, jeans, hair, hair_lt = "#E8B98A", "#C8202F", "#FAF6EC", "#3A5A9A", "#1A1626", "#3A3452"
+    skin, red, white, jeans, hair, hair_lt = "#E8B98A", "#C8202F", "#FAF6EC", "#3A5A9A", "#1A1626", "#5C5078"
     gold, blue, wood = "#F5B82E", "#2E86DE", "#9A6434"
     RAISE = 0.3
     legs_kid(f, jeans, white, "#C8C2B4", r=0.38)
@@ -175,18 +175,16 @@ def heartthrob(f):
             # tight dark cap, clear forehead
             f.ball((0, 0.12, top - 0.28), (1.3, 1.03, 0.62), hair, seg=8, rings=5)
             f.ball((0, 0.62, top - 1.2), (1.28, 0.95, 1.25), hair, seg=8, rings=5)
-            # the pompadour: a tall swept wave of three lobes rising over the front, brighter highlight band
-            # the pompadour: a tall wave that rises from the back and curls forward over the brow line, with a swept highlight
-            f.rbox((0.0, 0.25, top + 0.75), (2.3, 1.7, 1.5), hair, rot=(-6, 0, -4), bevel=0.55, segs=2)
-            f.leaf((0.1, 0.7, top + 0.1), (52, 0, -12), 2.3, 2.2, 1.0, hair, tip=0.55, widest=0.5)  # the wave rolls forward
-            f.leaf((0.5, 0.3, top + 0.7), (62, 0, -34), 1.9, 0.9, 0.35, hair_lt, tip=0.5, widest=0.5)  # highlight sweep
+            # the pompadour, a swept curl: a rolled slab over the brow, a tilted leaf that sweeps up and back off it,
+            # and a lighter highlight leaf on top (low and wide, so it never reads as a tall black block)
+            f.rcyl((-0.1, -0.3, top + 0.02), 0.58, 0.58, 1.9, hair, rot=(0, 90, -18), seg=8, bevel=0.2, segs=2)  # the roll
+            f.leaf((-1.0, -0.25, top + 0.0), (-14, 62, 0), 2.7, 1.1, 0.8, hair, tip=0.2, widest=0.4)  # sweeps up and over, tip high on the right
+            f.leaf((-0.75, -0.62, top + 0.3), (-14, 62, 0), 2.2, 0.5, 0.22, hair_lt, tip=0.45, widest=0.45)  # highlight along the sweep
             for s_ in (-1, 1):  # sideburns
                 f.rbox((s_ * 1.2, -0.15, top - 1.2), (0.2, 0.5, 0.65), hair, bevel=0.05)
-    for p, s in (((-2.25, 0.2, 3.9), 1.0), ((2.25, 0.5, 5.7), 0.8)):  # fan hearts floating by
-        with f.piece("Body"):
-            heart(f, p, s)
-    with f.piece("Body"):
-        heart(f, (-2.05, 0.3, 5.6), 0.7, color="#FF9AC4")
+    with f.piece("Body"):  # fan hearts floating by
+        heart(f, (-2.25, 0.2, 3.9), 1.0)
+        heart(f, (2.3, 0.5, 5.6), 0.8)
 
 
 # --- 3. Method Knight (Star, Horror) ----------------------------------------------------------
