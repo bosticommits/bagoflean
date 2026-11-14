@@ -15,8 +15,8 @@ end)
 
 test("missing: real manifest against an empty place reports every template", function()
 	local missing, total = LotMeshCheck.missing(Manifest.meshes, {})
-	equal(total, 411)
-	equal(#missing, 411)
+	equal(total, 516)
+	equal(#missing, 516)
 end)
 
 test("summary: all present, and truncation to the first 20", function()
@@ -31,15 +31,16 @@ test("summary: all present, and truncation to the first 20", function()
 	expect(string.find(s, "(+5 more)", 1, true) ~= nil, s)
 end)
 
-test("every Actors v2 actor has its five rig-piece rows in the manifest (pending id 0 until uploaded)", function()
+test("every actor (all 30) has its five rig-piece rows in the manifest (real ids)", function()
 	local ActorShapes = H.require("Models/ActorShapes")
 	local Actors = H.require("Actors")
 	local byName = {}
 	for _, entry in Manifest.meshes do
 		byName[entry.name] = entry
 	end
-	local V2 = { "WerewolfPup", "CardboardAstronaut", "RodeoRookie", "WobblyWitch", "LagoonMermaid", "TimeTourist", "CaptainKapow", "InspectorWhoops", "PirateCaptain" }
-	for _, id in V2 do
+	for _, actorEntry in Actors.List do
+		local id = actorEntry.id
+		expect(ActorShapes.Actors[id] ~= nil, `{id} has no ActorShapes rig`)
 		expect(Actors.getActor(id) ~= nil, `{id} is not an actor`)
 		for _, piece in ActorShapes.Pieces do
 			local entry = byName[`{id}_{piece}`]
@@ -61,7 +62,7 @@ test("pending rows are exactly the placeholders: real rows have an id and a real
 			pending += 1
 		end
 	end
-	equal(pending, 45, "the nine new actors' pieces")
+	equal(pending, 0, "no pending rows: all 30 actors are uploaded")
 end)
 
 test("manifest names are unique", function()
@@ -70,4 +71,8 @@ test("manifest names are unique", function()
 		expect(not seen[entry.name], `duplicate manifest name {entry.name}`)
 		seen[entry.name] = true
 	end
+end)
+
+test("Captain Kapow hovers", function()
+	expect(H.require("Models/ActorShapes").Actors.CaptainKapow.float == true, "Kapow hovers")
 end)
