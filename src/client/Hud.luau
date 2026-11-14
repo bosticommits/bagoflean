@@ -528,6 +528,12 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			end
 		end)
 	end
+	-- Phones: the side menu's More flyout has its own X, so this one steps aside while it is open.
+	local function syncTuckForMore()
+		tuck.Visible = gui:GetAttribute("MoreOpen") ~= true
+	end
+	gui:GetAttributeChangedSignal("MoreOpen"):Connect(syncTuckForMore)
+	syncTuckForMore()
 	tuck.Activated:Connect(function()
 		setTucked(true, true)
 		save()

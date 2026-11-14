@@ -49,6 +49,7 @@ local FLY_HEIGHT = FLY_ROWS * BUTTON + (FLY_ROWS - 1) * PHONE_ROW_GAP + 2 * FLY_
 local FLY_MIN_SCALE = 0.78 -- the flyout may shrink to this to stay under the wallet (46 px tiles at the smallest)
 local FLY_GAP = 18 -- between the rail's labels and the flyout card
 local CLOSE_HIT = 46 -- px on screen
+local WALLET_SHIFT = 10 -- phones: the wallet sits this far left of centre, so the Box Office card keeps a 12 px gap
 local THUMBSTICK_TOP = 0.62 -- the thumbstick zone's top edge, as a fraction of the screen height
 local TOP_BAR = 36 -- the Roblox top bar above the safe area, px
 local CHIP_TEXT = 17 -- px a chip's box needs for 12 px text
@@ -182,24 +183,37 @@ function SideMenu.start(gui: ScreenGui): Buttons
 		end
 	end)
 
-	-- The flyout can be shrunk to fit; its red badges are scaled back up about the tile's top-right corner so their
-	-- numbers stay readable (12 px text).
-	local function boostBadge(tile: TextButton)
+	-- Badges are 24 px boxes under the menu's UIScale (and the flyout's): on phones each is scaled back up about its
+	-- tile's top-right corner so its number stays 12 px text (the box needs about 17 px). PC and tablet: untouched.
+	local railSize = 1 -- the menu's UIScale on phones
+	local function boostBadge(tile: TextButton, onScreenSize: number)
 		local badge = tile:FindFirstChild("Badge")
 		if badge == nil or not badge:IsA("TextLabel") then
 			return
 		end
 		local grow = badge:FindFirstChild("Boost") :: UIScale?
+		if not phoneRail then
+			if grow ~= nil then
+				grow.Scale = 1
+			end
+			return
+		end
 		if grow == nil then
-			grow = Instance.new("UIScale")
-			assert(grow ~= nil)
-			grow.Name = "Boost"
-			grow.Parent = badge
+			local created = Instance.new("UIScale")
+			created.Name = "Boost"
+			created.Parent = badge
 			badge.AnchorPoint = Vector2.new(1, 0)
 			badge.Position = UDim2.new(1, -2, 0, 2)
+			grow = created
 		end
-		assert(grow ~= nil)
-		grow.Scale = if phoneRail then math.min(1.4, 1.25 / flyBase) else 1
+		assert(grow ~= nil, "SideMenu: badge boost was not created")
+		grow.Scale = math.clamp(0.72 / onScreenSize, 1, 1.5)
+	end
+	local function boostBadges()
+		for _, entry in tiles do
+			boostBadge(entry.tile, if entry.more then railSize * flyBase else railSize)
+		end
+		boostBadge(more, railSize)
 	end
 	-- Red counts on the hidden tiles show on More, combined ("!" counts as 1).
 	local function refreshMore()
@@ -211,11 +225,12 @@ function SideMenu.start(gui: ScreenGui): Buttons
 			end
 		end
 		UiKit.badge(more, if total > 0 then (if total > 99 then "99+" else tostring(total)) else nil)
+		boostBadges()
 	end
 	local function watchBadges(tile: TextButton)
 		local function watch(child: Instance)
 			if child.Name == "Badge" and child:IsA("TextLabel") then
-				boostBadge(tile)
+				boostBadges()
 				child:GetPropertyChangedSignal("Visible"):Connect(refreshMore)
 				child:GetPropertyChangedSignal("Text"):Connect(refreshMore)
 				refreshMore()
@@ -283,7 +298,7 @@ function SideMenu.start(gui: ScreenGui): Buttons
 			-- The thumbstick starts at 62% of the screen height; the safe area starts under the top bar.
 			local room = THUMBSTICK_TOP * area.Y - (TOP_BAR * (1 - THUMBSTICK_TOP)) - top
 			-- Beside the wallet at the top centre (its card pokes a little past the frame).
-			local walletLeft = area.X / 2 - (WALLET_WIDTH / 2 + 18) * walletSize
+			local walletLeft = area.X / 2 - WALLET_SHIFT - (WALLET_WIDTH / 2 + 18) * walletSize
 			size = math.clamp(math.min((walletLeft - 8 - 10) / RAIL_WIDTH, room / PHONE_HEIGHT), PHONE_MIN_SCALE, PHONE_MAX_SCALE)
 			-- The flyout card hangs off the rail's right edge, its bottom level with the rail's, and shrinks (a little) so
 			-- its top stays under the wallet card. The X gets its own strip on the right, 46 px on screen.
@@ -292,11 +307,8 @@ function SideMenu.start(gui: ScreenGui): Buttons
 			local fly = math.clamp(roomUnder / (FLY_HEIGHT * size), FLY_MIN_SCALE, 1)
 			local closeBase = math.ceil(CLOSE_HIT / (size * fly))
 			flyBase = fly
-			for _, entry in tiles do
-				if entry.more then
-					boostBadge(entry.tile)
-				end
-			end
+			railSize = size
+			boostBadges()
 			flyout.Size = UDim2.fromOffset(FLY_TILES_WIDTH + 2 * FLY_PAD + closeBase, FLY_HEIGHT)
 			flyout.Position = UDim2.fromOffset(RAIL_WIDTH + 0.15 * BUTTON + FLY_GAP, PHONE_HEIGHT)
 			closeButton.Size = UDim2.fromOffset(closeBase, closeBase)
@@ -307,7 +319,7 @@ function SideMenu.start(gui: ScreenGui): Buttons
 			showFlyout()
 			menu.Position = UDim2.fromOffset(10, top)
 			wallet.AnchorPoint = Vector2.new(0.5, 0)
-			wallet.Position = UDim2.new(0.5, 0, 0, 4)
+			wallet.Position = UDim2.new(0.5, -WALLET_SHIFT, 0, 4)
 			hudTop = 4 + math.ceil(WALLET_HEIGHT * walletSize) + 2
 		elseif touch then
 			-- Thumbstick bottom left: the menu hangs from the top left, the wallet sits top centre.
