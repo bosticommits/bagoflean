@@ -869,9 +869,13 @@ function UiKit.holdTouchControls(owner: string, hidden: boolean)
 	elseif not held and savedTouchControls ~= nil then
 		local saved = savedTouchControls
 		savedTouchControls = nil
-		pcall(function()
-			GuiService.TouchControlsEnabled = saved
-		end)
+		local lpHold = Players.LocalPlayer
+		-- While the loading screen is up it restores the controls itself.
+		if lpHold == nil or lpHold:GetAttribute("LoadingScreen") == nil then
+			pcall(function()
+				GuiService.TouchControlsEnabled = saved
+			end)
+		end
 	end
 	-- Tells the loading screen not to restore the controls under an open panel.
 	local lp = Players.LocalPlayer

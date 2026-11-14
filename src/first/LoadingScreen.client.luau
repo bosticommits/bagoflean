@@ -15,14 +15,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local Logic = require(script.Parent:WaitForChild("LoadingLogic"))
-local View = require(script.Parent:WaitForChild("LoadingView"))
-
 local player = Players.LocalPlayer
 if player:GetAttribute("LoadingScreen") ~= nil then
 	return -- Rojo can run this script twice; the first run owns the screen
 end
 player:SetAttribute("LoadingScreen", "loading") -- before any yield, so the tutorial never races past it
+
+local Logic = require(script.Parent:WaitForChild("LoadingLogic"))
+local View = require(script.Parent:WaitForChild("LoadingView"))
 
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -100,7 +100,16 @@ end
 local inputs: Logic.Inputs = { loaded = game:IsLoaded(), ready = false, character = false, preload = 0 }
 local skipped = false
 view.skip.Activated:Connect(function()
+	if skipped then
+		return
+	end
 	skipped = true
+	pcall(function()
+		view.skip.Text = "..."
+		view.skip.BackgroundTransparency = 0.6
+		view.skip.TextTransparency = 0.4
+		view.skip.Active = false
+	end)
 end)
 
 local function watchReady()
@@ -193,7 +202,7 @@ connection = RunService.RenderStepped:Connect(function(dt)
 		local welcome = player:GetAttribute("LoadingWelcome")
 		local live = player:GetAttribute("LoadingLive")
 		if type(welcome) == "string" then
-			view.showWelcome(welcome, if type(live) == "string" then live else nil)
+			pcall(view.showWelcome, welcome, if type(live) == "string" then live else nil)
 		end
 	end
 	shown = Logic.step(shown, Logic.target(inputs), dt)
@@ -204,9 +213,11 @@ while reason == nil do
 	reason = Logic.decide(os.clock() - started, inputs, skipped)
 	task.wait()
 end
--- Skipped or capped before the first sync: keep the cover until it says new / returning (max 1.5 s).
+-- Skipped or capped before the first sync: keep the cover until it says new / returning (max 1.5 s,
+-- 0.75 s after a Skip press).
 local syncWait = os.clock()
-while player:GetAttribute("LoadingNew") == nil and os.clock() - syncWait < 1.5 do
+local syncMax = if skipped then 0.75 else 1.5
+while player:GetAttribute("LoadingNew") == nil and os.clock() - syncWait < syncMax do
 	task.wait()
 end
 connection:Disconnect()
