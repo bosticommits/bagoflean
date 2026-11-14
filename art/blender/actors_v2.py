@@ -161,7 +161,7 @@ class Fig:
             self._bevel(bm, min(bevel, min(r1, r2) * 0.5, length * 0.45), segs, min_angle)
         self._place(bm, at, rot, color)
 
-    def lathe(self, at, profile, colors, rot=(0, 0, 0), seg=6):
+    def lathe(self, at, profile, colors, rot=(0, 0, 0), seg=6, scale=(1, 1, 1)):
         """Revolve a profile [(radius, z), ...] about Z; colors has one hex per band (len(profile)-1), the
         bottom cap takes the first and the top cap the last. Cheap cups, jars, hats, bulbs."""
         bm = bmesh.new()
@@ -173,9 +173,9 @@ class Fig:
         if profile[0][0] > 0:
             bm.faces.new(rings[0][::-1]).material_index = 0
         if profile[-1][0] > 0:
-            bm.faces.new(rings[-1]).material_index = len(colors) - 1
+            bm.faces.new(rings[-1]).material_index = (len(colors) - 1) if not callable(colors) else 0
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        self._place(bm, at, rot, lambda face: colors[face.material_index])
+        self._place(bm, at, rot, colors if callable(colors) else (lambda face: colors[face.material_index]), scale)
 
     def ball(self, at, radii, color, rot=(0, 0, 0), seg=8, rings=5):
         bm = bmesh.new()
@@ -678,7 +678,7 @@ def plinth(f, tier, name_plate=True):
             f.rbox((0, fy + 0.02, (z_low0 + z_low1) / 2), (1.2, 0.1, 0.22), "#2A2733", bevel=0.04, segs=1)
         # tier details
         if tier == "Pro":
-            bm = _hex_prism(2.08, z_low0 + 0.12, z_low0 + 0.2)
+            bm = _hex_prism(2.06, z_low0 + 0.12, z_low0 + 0.2)
             f._place(bm, (0, 0, 0), (0, 0, 0), "#FFFFFF")
         if tier == "Star":
             _star_inlay(f, 0.0, -(0.866 * 2.05) - 0.01, -0.12, 0.34, "#FFE58A", top)
