@@ -33,7 +33,7 @@ jobs:
           curl -fsSLo luau-lsp.zip "https://github.com/JohnnyMorganz/luau-lsp/releases/download/${LUAU_LSP_VERSION}/luau-lsp-linux-x86_64.zip"
           curl -fsSLo globalTypes.d.luau "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/${LUAU_LSP_VERSION}/scripts/globalTypes.None.d.luau"
           for z in *.zip; do unzip -oq "$z"; done
-          chmod +x rojo lune luau-lsp
+          chmod +x rojo lune luau-lsp selene
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Lint (selene, errors fail, warnings allowed)
