@@ -32,6 +32,8 @@ local FilmSetService = require(script.Parent.FilmSetService)
 local HudSettingsService = require(script.Parent.HudSettingsService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local LiveConfig = require(script.Parent.LiveConfig)
+local LotMeshCheck = require(ReplicatedStorage.Shared.LotMeshCheck)
+local LotMeshManifest = require(ReplicatedStorage.Shared.LotMeshManifest)
 local FounderService = require(script.Parent.FounderService)
 local LotService = require(script.Parent.LotService)
 local MapService = require(script.Parent.MapService)
@@ -69,6 +71,24 @@ MascotService.start()
 PullNewsService.start()
 FilmSetService.start()
 Remotes.publish()
+
+-- Read-only: warn when the published place lacks Blender models (Build.mesh would silently use parts).
+do
+	local present: { [string]: boolean } = {}
+	local folder = ReplicatedStorage:FindFirstChild("LotMeshes")
+	if folder ~= nil then
+		for _, d in folder:GetDescendants() do
+			present[d.Name] = true
+		end
+	end
+	local missing, total = LotMeshCheck.missing(LotMeshManifest.meshes, present)
+	local line = `[MovieMogul] {LotMeshCheck.summary(missing, total)}`
+	if #missing > 0 then
+		warn(line)
+	else
+		print(line)
+	end
+end
 
 local function onPlayerAdded(player: Player)
 	local data = DataService.load(player)
