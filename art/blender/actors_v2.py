@@ -752,32 +752,99 @@ def nervous_intern(f):
     arm(f, 1, shirt, skin, rot=(-50, 58, 0), held=cups, upright=True, shoulder_z=2.55)
     arm(f, -1, shirt, skin, rot=(-6, 16, 0), held=clipboard, shoulder_z=2.55, x=1.14)
     with f.at((0, 0, RAISE)):
-        head_box(f, skin, segs=2)
-        top = HEAD_Z0 + HEAD_H
-        with f.piece("Head"):  # soft messy hair: a dome cap, a back/side mass, two swept tufts, fringe, nape clumps
-            f.ball((0, 0.05, top - 0.12), (1.36, 1.26, 0.78), hair, seg=8, rings=5)
-            f.ball((0, 0.42, top - 1.2), (1.33, 1.0, 1.3), hair, seg=8, rings=5)
-            f.ball((-0.35, -0.3, top + 0.42), (0.78, 0.6, 0.42), hair_lt, rot=(0, 16, 26), seg=7, rings=4)  # swept tuft
-            f.ball((0.6, -0.1, top + 0.22), (0.6, 0.5, 0.34), hair, rot=(0, -22, -30), seg=6, rings=4)  # second, smaller
-            for x, rz in ((-0.5, 12), (0.5, -14)):  # fringe over the forehead
-                f.ball((x, -0.86, top - 0.08), (0.55, 0.36, 0.3), hair, rot=(0, rz, rz), seg=6, rings=3)
-            for x, z in ((-0.55, top - 1.95), (0.55, top - 2.0)):  # nape clumps so the back of the head is shaped
-                f.ball((x, 0.95, z), (0.6, 0.36, 0.42), hair, seg=6, rings=3)
-        with f.piece("Head"):  # ears (the side of the head was bare)
-            for s_ in (-1, 1):
-                f.ball((s_ * 1.2, 0.05, EYE_Z + 0.05), (0.2, 0.3, 0.38), shade(skin, 0.94), seg=6, rings=3)
-        face_eyes(f, skin, spread=0.6, k=1.0)
-        face_brows(f, "#4A2F1C", length=1.0, thick=0.2, angle=17, x=0.64, z=EYE_Z + 0.78, lift=(0.04, -0.03))
-        face_blush(f, x=0.9, seg=6)
-        with f.piece("Head"):  # round glasses: ring + bridge
-            for s_ in (-1, 1):
-                with head_at(f, s_ * 0.6, EYE_Z, 0.1):
-                    f.torus((0, 0, 0), 0.47, 0.08, frame, major=8, minor=3)
-            with head_at(f, 0, EYE_Z + 0.08, 0.1):
-                f.rbox((0, 0, 0), (0.3, 0.12, 0.1), frame, bevel=0.0)
-        mouth_wobble(f)
-        with f.piece("Head"), head_at(f, 1.12, EYE_Z + 0.4, 0.06):  # sweat drop on the temple
-            f.ball((0, 0, 0), (0.2, 0.15, 0.3), "#8FD6FF", rot=(0, 0, 14), seg=5, rings=3)
+        INTERN_HEADS[INTERN_VARIANT](f, skin, hair, hair_dk, hair_lt, frame)
+
+
+# --- Nervous Intern head variants (round 3: which head/face shape reads best next to Squawk) ---------------
+INTERN_VARIANT = "A"
+
+
+def _intern_face_common(f, skin, ez, spread=0.6, k=1.0, glass_r=0.44, glass_tube=0.065, brow_z=0.72, brow_len=0.95, blush_x=0.9):
+    face_eyes(f, skin, spread=spread, k=k, z=ez)
+    face_brows(f, "#4A2F1C", length=brow_len, thick=0.2, angle=15, x=spread + 0.04, z=ez + brow_z, lift=(0.04, -0.03))
+    face_blush(f, x=blush_x, z=ez - 0.3, seg=6)
+    with f.piece("Head"):  # round glasses: thin ring + bridge
+        for s_ in (-1, 1):
+            with head_at(f, s_ * spread, ez, 0.1):
+                f.torus((0, 0, 0), glass_r * k, glass_tube, "#2A3350", major=8, minor=3)
+        with head_at(f, 0, ez + 0.08, 0.1):
+            f.rbox((0, 0, 0), (0.3, 0.1, 0.09), "#2A3350", bevel=0.0)
+
+
+def _intern_mouth(f, z, w=0.5, h=0.2, teeth=True):
+    """Small clenched-teeth grimace that hugs the chin curve (same trick as Squawk's grin): thin dark lip
+    border, a big white teeth patch with two dark gaps, so it reads as gritted teeth, not lipstick."""
+    with f.piece("Head"):
+        head_patch(f, 0, z, w, h, 0.05, "#7A2836", seg=8, rings=1)
+        if teeth:
+            head_patch(f, 0, z + 0.01, w * 0.86, h * 0.72, 0.075, "#FFFFFF", seg=8, rings=1)
+            for x in (-w * 0.3, w * 0.3):
+                with head_at(f, x, z + 0.01, 0.1):
+                    f.rbox((0, 0, 0), (0.05, 0.04, h * 1.2), "#7A2836", bevel=0.0)
+
+
+def _intern_ears_sweat(f, skin, ez, x=1.2):
+    with f.piece("Head"):
+        for s_ in (-1, 1):
+            f.ball((s_ * x, 0.05, ez + 0.05), (0.2, 0.3, 0.38), shade(skin, 0.94), seg=6, rings=3)
+    with f.piece("Head"), head_at(f, 1.12, ez + 0.45, 0.06):
+        f.ball((0, 0, 0), (0.2, 0.15, 0.3), "#8FD6FF", rot=(0, 0, 14), seg=5, rings=3)
+
+
+def _intern_head_A(f, skin, hair, hair_dk, hair_lt, frame):
+    """A: Squawk's head (same pill, same eye height/spread, grin-style chin mouth). Hair is a tight cap that
+    hugs the dome and stops above the brows (clear forehead), no overhang."""
+    head_box(f, skin, segs=2)
+    top = HEAD_Z0 + HEAD_H
+    ez = EYE_Z + 0.1
+    with f.piece("Head"):
+        f.ball((0, 0.12, top - 0.28), (1.29, 1.02, 0.62), hair, seg=8, rings=5)  # dome cap
+        f.ball((0, 0.62, top - 1.2), (1.28, 0.95, 1.25), hair, seg=8, rings=5)  # back mass
+        f.ball((-0.42, -0.25, top + 0.22), (0.8, 0.6, 0.42), hair_lt, rot=(0, 16, 26), seg=7, rings=4)  # swept tuft
+        f.ball((0.6, -0.05, top + 0.1), (0.6, 0.5, 0.34), hair, rot=(0, -22, -30), seg=6, rings=4)
+        for s_ in (-1, 1):  # side locks like Squawk's, short
+            f.ball((s_ * 1.2, 0.3, top - 0.85), (0.3, 0.55, 0.62), hair, seg=6, rings=3)
+    _intern_face_common(f, skin, ez)
+    _intern_mouth(f, ez - 0.74, w=0.52, h=0.21)
+    _intern_ears_sweat(f, skin, ez, x=1.22)
+
+
+def _intern_head_B(f, skin, hair, hair_dk, hair_lt, frame):
+    """B: round-1 head (box with a soft big bevel, flat face), round-1 face, but a bowl-cut hair cap with a
+    swept tuft instead of spikes."""
+    head_box(f, skin, r=0.55, segs=2)
+    top = HEAD_Z0 + HEAD_H
+    ez = EYE_Z
+    with f.piece("Head"):
+        f.rbox((0, 0.0, top - 0.22), (2.58, 2.3, 0.62), hair, bevel=0.3, segs=2)  # cap
+        f.rbox((0, 0.98, top - 0.8), (2.5, 0.4, 1.4), hair, bevel=0.12)  # back
+        f.ball((-0.35, -0.2, top + 0.22), (0.7, 0.5, 0.34), hair_lt, rot=(0, 16, 26), seg=7, rings=4)
+        f.ball((0.55, 0.0, top + 0.12), (0.5, 0.4, 0.28), hair, rot=(0, -22, -30), seg=6, rings=4)
+    _intern_face_common(f, skin, ez, glass_r=0.47, glass_tube=0.08)
+    with f.piece("Head"), head_at(f, 0, ez - 0.85, 0.03), f.at((0, 0, 0), (0, 4, 0)):  # r1 teeth grimace
+        f.rbox((0, 0, 0), (0.9, 0.09, 0.36), "#7A2836", bevel=0.07)
+        for i in (-1, 0, 1):
+            f.rbox((i * 0.28, -0.04, 0.05), (0.24, 0.06, 0.2), "#FFFFFF", bevel=0.0)
+    _intern_ears_sweat(f, skin, ez, x=1.28)
+
+
+def _intern_head_C(f, skin, hair, hair_dk, hair_lt, frame):
+    """C: wider, shorter head with big cheeks and bigger eyes set wide; mouth tucked close under the eyes; a
+    single side-swept fringe over the upper forehead."""
+    head_box(f, skin, r=0.85, w=2.7, d=2.2, h=2.3, z0=HEAD_Z0 + 0.1, segs=2)
+    top = HEAD_Z0 + 0.1 + 2.3
+    ez = top - 1.2  # centre-ish
+    with f.piece("Head"):
+        f.ball((0, 0.1, top - 0.28), (1.4, 1.02, 0.6), hair, seg=8, rings=5)
+        f.ball((0, 0.6, top - 1.1), (1.38, 0.95, 1.1), hair, seg=8, rings=5)
+        f.ball((-0.5, -0.45, top - 0.5), (0.95, 0.5, 0.3), hair_lt, rot=(0, 24, 20), seg=7, rings=4)  # side-swept fringe
+        f.ball((0.5, -0.2, top + 0.12), (0.55, 0.45, 0.3), hair, rot=(0, -22, -30), seg=6, rings=4)
+    _intern_face_common(f, skin, ez, spread=0.68, k=1.12, glass_r=0.44, glass_tube=0.06, brow_z=0.78, brow_len=1.0, blush_x=1.02)
+    _intern_mouth(f, ez - 0.7, w=0.45, h=0.19)
+    _intern_ears_sweat(f, skin, ez, x=1.32)
+
+
+INTERN_HEADS = {"A": _intern_head_A, "B": _intern_head_B, "C": _intern_head_C}
 
 
 def mouth_wobble(f, color="#7A2836", z=EYE_Z - 0.85, w=0.9):
@@ -790,9 +857,11 @@ def mouth_wobble(f, color="#7A2836", z=EYE_Z - 0.85, w=0.9):
 
 
 def werewolf_pup(f):
-    """Newcomer (Horror), costume-blob template. A shy understudy in a too-big wolf onesie: round hood with two
-    tall pointed WOLF ears (leaning out, fur tufts inside), a soft fur ruff, belly patch and a big tail curling
-    out to the side, red sneakers. Howls, then says sorry."""
+    """Newcomer (Horror), costume-blob template. A shy understudy in a too-big wolf onesie: hood with two
+    big pointed ears and a fur ruff, belly patch, red sneakers. Howls, then says sorry.
+    Round 3: back to the ROUND-1 pup (user: 'the first one looks better'): same box-with-soft-bevel head
+    (r 0.25), flat face plate + fluffy rim, cheek tufts, ears and crest as in round 1. Only change kept from
+    round 2: the big fluffy tail curling out to the actor's left."""
     fur, fur_lt, fur_dk = "#8A8F99", "#B9BEC8", "#5E6370"
     cream, pink, red, dark = "#F4E7CF", "#F08A8A", "#D83A3A", "#3A1F2B"
     legs_kid(f, fur, red, cream, spread=0.62, hip=1.4, r=0.46)
@@ -802,11 +871,11 @@ def werewolf_pup(f):
             f.disc((0, 0, 0), 1.5, 1.3, 0.07, cream, seg=12)  # belly patch
         f.rbox((0, 1.04, 2.0), (0.2, 0.07, 2.1), fur_dk, bevel=0.0)  # back zip
         f.rbox((0, 1.07, 1.15), (0.34, 0.09, 0.36), "#F5B82E", bevel=0.0)  # zip pull
-        # big fluffy tail: base blob, a plume sweeping out to the actor's left (+X) under the waving arm, tip curls up
+        # round-2 tail: base blob, plume sweeping out to the actor's left (+X), cream tip curling up
         f.ball((0.5, 1.15, 1.25), (0.72, 0.62, 0.62), fur, seg=7, rings=4)
         f.ball((1.45, 0.8, 1.05), (0.62, 0.55, 1.15), fur, rot=(0, 78, 0), seg=8, rings=4)
-        f.ball((1.45, 0.72, 1.12), (0.46, 0.4, 0.95), fur_lt, rot=(0, 78, 0), seg=6, rings=3)  # lighter fur layer
-        f.ball((2.1, 0.62, 1.72), (0.5, 0.44, 0.62), cream, rot=(0, 20, 0), seg=7, rings=4)  # cream tip curling up
+        f.ball((1.45, 0.72, 1.12), (0.46, 0.4, 0.95), fur_lt, rot=(0, 78, 0), seg=6, rings=3)
+        f.ball((2.1, 0.62, 1.72), (0.5, 0.44, 0.62), cream, rot=(0, 20, 0), seg=7, rings=4)
 
     def pad(f):
         with f.at((0, -0.26, 0.0), (90, 0, 0)):
@@ -814,36 +883,34 @@ def werewolf_pup(f):
             for x in (-0.19, 0.0, 0.19):
                 f.disc((x, 0.22, 0), 0.12, 0.12, 0.05, pink, seg=5)
 
-    arm(f, 1, fur, fur, rot=(0, 142, 0), held=pad, x=1.5, length=0.8, sleeve_r=0.38)
+    arm(f, 1, fur, fur, rot=(0, 150, 0), held=pad, x=1.5, length=0.8, sleeve_r=0.38)
     arm(f, -1, fur, fur, rot=(-6, 8, 0), held=pad, x=1.5, length=0.8, sleeve_r=0.38)
-    head_box(f, fur, segs=2)
+    head_box(f, fur, r=0.25, segs=2)  # round-1 head: face is flat across the middle, so head_at(out=0.1) == r1 y0
     top = HEAD_Z0 + HEAD_H
-    PLATE = 0.12
+    OUT = 0.1
     with f.piece("Head"):
-        head_patch(f, 0, 3.4, 0.98, 1.05, PLATE, "#FFF4E0", seg=12, rings=2)  # face plate that hugs the round head
-        head_ring(f, 0, 3.4, 1.06, 1.12, 0.14, 0.04, fur_lt, major=14, minor=3, flat=1.1)  # fluffy hood rim
+        with f.at((0, FACE_Y - 0.03, 3.45), (90, 0, 0)):
+            f.disc((0, 0, 0), 1.9, 2.0, 0.12, "#FFF4E0", seg=14)  # face plate
+        f.torus((0, FACE_Y - 0.07, 3.45), 0.98, 0.13, fur_lt, major=14, minor=4, sz=1.02)  # fluffy hood rim
         for s_ in (-1, 1):
-            for z, ang, k in ((3.2, 35, 1.0), (2.7, 50, 0.85)):  # soft cheek fluff (no spikes), pokes out of the outline
-                with head_at(f, s_ * 1.2, z, 0.0):
-                    f.ball((s_ * 0.08, 0.1, 0), (0.46 * k, 0.26, 0.34 * k), fur_lt, rot=(0, 0, s_ * ang), seg=6, rings=3)
-            # tall pointed wolf ear leaning outward, pink inside with cream fur tufts
-            with f.at((s_ * 0.8, 0.2, top - 0.3), (-10, s_ * 28, 0)):
-                f.spike((0, 0, 0), 0.55, 1.85, fur, seg=4, squash=0.5)
-                f.spike((0, -0.2, 0.02), 0.36, 1.3, pink, seg=4, squash=0.5)
-                for dx in (-0.12, 0.12):
-                    f.spike((dx, -0.3, 0.06), 0.15, 0.6, cream, rot=(0, -s_ * 8 + dx * 40, 0), seg=4, squash=0.6)
-    face_eyes(f, cream, spread=0.56, k=1.1, out=PLATE + 0.01, z=3.5)
-    face_brows(f, "#4E5260", length=0.9, thick=0.2, angle=22, x=0.58, z=3.5 + 0.78, out=PLATE)
-    face_blush(f, pink, x=0.78, z=3.0, out=PLATE, w=0.36, h=0.24)
+            for z, ang in ((3.25, 105), (2.8, 118)):  # cheek tufts
+                f.spike((s_ * 1.18, FACE_Y + 0.35, z), 0.26, 0.42, fur_lt, rot=(0, s_ * ang, 0), seg=4, squash=0.5)
+            with f.at((s_ * 0.82, 0.05, top - 0.12), (-8, s_ * 16, 0)):  # ears
+                f.spike((0, 0, 0), 0.72, 1.25, fur, seg=4, squash=0.55)
+                f.spike((0, -0.2, 0.02), 0.44, 0.85, pink, seg=4, squash=0.5)
+        f.rbox((0, 0.4, top + 0.02), (0.9, 1.3, 0.14), fur_dk, bevel=0.0)  # hood crest
+    face_eyes(f, cream, spread=0.56, k=1.1, out=OUT, z=3.5)
+    face_brows(f, "#4E5260", length=0.9, thick=0.2, angle=22, x=0.58, z=3.5 + 0.78, out=OUT)
+    face_blush(f, pink, x=0.78, z=3.0, out=OUT, w=0.36, h=0.24)
     with f.piece("Head"):
-        with head_at(f, 0, 3.1, PLATE + 0.1):
+        with head_at(f, 0, 3.12, OUT + 0.1):
             f.ball((0, 0, 0), (0.26, 0.17, 0.19), EYE_DARK, seg=7, rings=4)  # nose
-        with head_at(f, 0, 2.72, PLATE), f.at((0, 0, 0), (90, 0, 0)):  # howl mouth: dark O, tongue
+        with head_at(f, 0, 2.72, OUT), f.at((0, 0, 0), (90, 0, 0)):  # howl mouth: dark O, tongue
             f.disc((0, 0, 0.0), 0.74, 0.54, 0.06, dark, seg=12)
             f.disc((0, -0.12, 0.04), 0.46, 0.24, 0.05, pink, seg=8)
         for s_ in (-1, 1):
-            with head_at(f, s_ * 0.22, 2.98, PLATE):
-                f.spike((0, -0.04, 0), 0.09, 0.2, "#FFFFFF", rot=(180, 0, 0), seg=4)
+            with head_at(f, s_ * 0.22, 2.98, OUT + 0.04):
+                f.spike((0, 0, 0), 0.09, 0.2, "#FFFFFF", rot=(180, 0, 0), seg=4)
 
 
 def parrot(f, green, belly, blue, yellow, red, beak, cream):
@@ -855,19 +922,21 @@ def parrot(f, green, belly, blue, yellow, red, beak, cream):
         f.rbox((1.35 + dx, -0.12, 2.95), (0.26, 0.8, 0.18), toe, bevel=0.0)
     f.ball((1.6, 0.75, 3.55), (0.85, 0.75, 1.2), green, seg=8, rings=5)  # body behind the shoulder
     f.ball((1.6, 0.3, 3.35), (0.6, 0.4, 0.82), belly, seg=7, rings=4)  # light belly
-    with f.at((2.3, 0.2, 3.95), (0, 0, 35)):  # head, turned outward
-        f.ball((0, 0, 0), (0.88, 0.82, 0.86), green, seg=8, rings=5)
-        with f.at((0, -0.7, 0.05), (90, 0, 0)):
-            f.disc((0, 0, 0), 1.2, 0.95, 0.08, cream, seg=9)  # pale face patch
+    # round 3: the head sits further out and back (behind the captain's face plane in the 3/4 view) and is
+    # turned outward, with a small hooked beak, so the face stays clear from front and 3/4
+    with f.at((2.55, 0.5, 4.0), (0, 0, 48)):
+        f.ball((0, 0, 0), (0.8, 0.76, 0.8), green, seg=8, rings=5)
+        with f.at((0, -0.64, 0.05), (90, 0, 0)):
+            f.disc((0, 0, 0), 1.05, 0.85, 0.08, cream, seg=9)  # pale face patch
             for s_ in (-1, 1):
-                f.disc((s_ * 0.3, 0.04, 0.05), 0.36, 0.44, 0.05, EYE_DARK, seg=6)
-                f.disc((s_ * 0.3 - 0.07, 0.15, 0.09), 0.12, 0.13, 0.04, "#FFFFFF", seg=4)
+                f.disc((s_ * 0.27, 0.04, 0.05), 0.33, 0.4, 0.05, EYE_DARK, seg=6)
+                f.disc((s_ * 0.27 - 0.06, 0.14, 0.09), 0.11, 0.12, 0.04, "#FFFFFF", seg=4)
         for s_ in (-1, 1):  # bossy brows
-            f.rbox((s_ * 0.34, -0.74, 0.45), (0.5, 0.1, 0.17), shade(green, 0.55), rot=(0, -s_ * 22, 0), bevel=0.0)
-        f.spike((0, -0.62, -0.02), 0.5, 1.2, beak, rot=(100, 0, 0), seg=5, squash=0.9)  # big upper beak
-        f.spike((0, -1.7, -0.22), 0.3, 0.55, shade(beak, 0.82), rot=(180, 0, 0), seg=4)  # the hook
+            f.rbox((s_ * 0.31, -0.68, 0.4), (0.44, 0.1, 0.15), shade(green, 0.55), rot=(0, -s_ * 22, 0), bevel=0.0)
+        f.spike((0, -0.6, -0.04), 0.3, 0.72, beak, rot=(100, 0, 0), seg=5, squash=0.9)  # small upper beak
+        f.spike((0, -1.22, -0.14), 0.18, 0.34, shade(beak, 0.82), rot=(180, 0, 0), seg=4)  # the hook
         for i, ry in enumerate((-20, 20)):  # crest
-            f.leaf((0, 0.05, 0.7), (-18, ry, 0), 0.9, 0.34, 0.1, red, tip=0.4)
+            f.leaf((0, 0.05, 0.64), (-18, ry, 0), 0.85, 0.32, 0.1, red, tip=0.4)
     # wings: fans of long feathers spreading out past her arms
     for side, jx, lens in ((1, 1.95, (1.65, 1.75, 1.5)), (-1, 0.7, (1.8, 1.7, 1.4))):
         f.ball((jx + side * 0.3, 1.3, 3.95), (0.55, 0.2, 0.55), green, seg=6, rings=3)  # coverts
@@ -1392,3 +1461,71 @@ def compare_intern(res=900):
         bpy.data.objects.remove(o)
         bpy.data.meshes.remove(mesh)
     return paths
+
+
+# --- round 3 deliverables ---------------------------------------------------------------------
+
+
+def intern_variants_sheet(path=None, res=640):
+    """Three Nervous Intern head/face variants (A = pick, B = round-1 style head, C = wide head), each shown
+    front and 3/4, one row per variant. Rebuilds the scene per variant; call finalize_r3() afterwards."""
+    path = path or os.path.join(OUT_DIR, "actors_v2_r3_intern_variants.png")
+    rows = []
+    for v in ("A", "B", "C"):
+        global INTERN_VARIANT
+        INTERN_VARIANT = v
+        sc, built, _ = main(("intern",))
+        f, objs = built["intern"]
+        ol = list(objs.values())
+        tiles = [load_img(shoot(sc, ol, f"/tmp/a2_var_{v}_{i}.png", az=az, el=el, res=res, margin=1.0, samples=40)) for i, (az, el) in enumerate(((0, 14), (35, 16)))]
+        # a head close-up too, so the face shape is easy to judge
+        pts = [o.matrix_world @ Vector(c) for o in ol if o.name.endswith("_Head") for c in o.bound_box]
+        ctr = sum(pts, Vector()) / len(pts)
+        tiles.append(load_img(shoot(sc, ol, f"/tmp/a2_var_{v}_2.png", az=0, el=14, res=res, center=ctr, radius=0.55, margin=1.0, samples=40)))
+        bar = {"A": "#4CC764", "B": "#A7A9AC", "C": "#A7A9AC"}[v]
+        for t in tiles:
+            t[:14, :, :3] = np.array(lin(bar)[:3])
+        rows.append(hstack(tiles, pad=6))
+    INTERN_VARIANT = "A"
+    save_img(vstack(rows, pad=8), path)
+    return path
+
+
+def compare_r3(key, prev_prefix, prev_bar="#A7A9AC"):
+    """Previous round (grey bar) vs round 3 (green bar): front and 3/4 of each."""
+    old = [load_img(os.path.join(OUT_DIR, f"{prev_prefix}_{v}.png")) for v in ("front", "34")]
+    new = [load_img(os.path.join(OUT_DIR, f"actors_v2_r3_{key}_{v}.png")) for v in ("front", "34")]
+    for a in old:
+        a[:14, :, :3] = np.array(lin(prev_bar)[:3])
+    for a in new:
+        a[:14, :, :3] = np.array(lin("#4CC764")[:3])
+    out = os.path.join(OUT_DIR, f"actors_v2_r3_{key}_compare.png")
+    save_img(hstack([old[0], new[0], old[1], new[1]], pad=6), out)
+    return out
+
+
+def finalize_r3(render=True):
+    """Build all three, QA, render every sheet as actors_v2_r3_*, compares, silhouettes, FBX."""
+    global INTERN_VARIANT
+    INTERN_VARIANT = "A"
+    sc, built, report = main(("intern", "pup", "squawk"))
+    out = {"qa": report}
+    if not render:
+        return sc, built, out
+    for key, (f, objs) in built.items():
+        ol = list(objs.values())
+        out[key] = render_set(sc, key, ol, f"r3_{key}")
+        # FBX at the origin
+        old = {o: o.location.copy() for o in ol}
+        for o in ol:
+            o.location = (0, 0, 0)
+        bpy.context.view_layer.update()
+        export_fbx(ol, os.path.join(OUT_DIR, f"actors_v2_r3_{key}.fbx"))
+        for o, l in old.items():
+            o.location = l
+        bpy.context.view_layer.update()
+    silhouette_strip(sc, [list(b[1].values()) for b in built.values()], os.path.join(OUT_DIR, "actors_v2_r3_silhouettes_64.png"))
+    compare_r3("intern", "actors_v2_r2_intern")
+    compare_r3("squawk", "actors_v2_r2_squawk")
+    compare_r3("pup", "actors_v2_pup")  # pup: round 1 vs round 3
+    return sc, built, out
