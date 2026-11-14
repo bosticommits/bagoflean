@@ -378,12 +378,12 @@ function UiKit.boostChip(button: GuiObject)
 	local grow = chip:FindFirstChild("Boost") :: UIScale?
 	if typeof(boost) == "number" and boost > 1 then
 		if grow == nil then
-			grow = Instance.new("UIScale")
-			assert(grow ~= nil)
-			grow.Name = "Boost"
-			grow.Parent = chip
+			local created = Instance.new("UIScale")
+			created.Name = "Boost"
+			created.Parent = chip
+			grow = created
 		end
-		assert(grow ~= nil)
+		assert(grow ~= nil, "UiKit: chip boost was not created")
 		grow.Scale = boost
 		chip.AnchorPoint = Vector2.new(1, 0)
 		chip.Position = UDim2.new(1, -3, 0, 3)
@@ -991,7 +991,8 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 			local rect = PickerLayout.panelRect(
 				screen.X,
 				screen.Y,
-				if typeof(menuRight) == "number" then menuRight else 0,
+				-- A modal (scrim) covers the side menu, so it keeps no room for it.
+				if typeof(menuRight) == "number" and not options.scrim then menuRight else 0,
 				compact,
 				if typeof(reserve) == "number" then reserve else nil,
 				limit.MaxSize.X,
