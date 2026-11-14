@@ -1,6 +1,10 @@
 return table.freeze({
 	GameName = "Hollywood RNG",
 
+	-- Launch-day save wipe: true switches saves to PlayerData_v2 and the Top Studios board to
+	-- TopStudiosFame_v2 (v1 is kept, read only, for the Founding Tester check). Rollback = false.
+	LaunchWipe = false,
+
 	LotCount = 6,
 
 	-- New players start with enough for the tutorial: a few casts and a Short Film script.
