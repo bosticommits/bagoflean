@@ -16,9 +16,11 @@ local Achievements = require(ReplicatedStorage.Shared.Achievements)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local Config = require(ReplicatedStorage.Shared.Config)
+local ShowMe = require(ReplicatedStorage.Shared.ShowMe)
 local Events = require(ReplicatedStorage.Shared.Events)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
+local ShowMeUi = require(script.Parent.ShowMeUi)
 local Screens = require(script.Parent.Screens)
 local SideMenu = require(script.Parent.SideMenu)
 local Sfx = require(script.Parent.Sfx)
@@ -849,6 +851,29 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 	UiKit.pulse(stripClaim)
 	local stripClaimId: string? = nil
 
+	-- "Show me": a gold pill under the count, with a taller invisible hit area over the strip's right end.
+	local showMe = Instance.new("Frame")
+	showMe.Name = "ShowMe"
+	showMe.BackgroundColor3 = UiKit.GOLD
+	showMe.Size = UDim2.fromOffset(84, 28)
+	showMe.Position = UDim2.new(1, -92, 0, 19)
+	showMe.Visible = false
+	showMe.Parent = strip
+	UiKit.corner(showMe, 10)
+	UiKit.border(showMe, 2)
+	local showMeText = UiKit.makeTitle(showMe, "Show me", UiKit.INK, UDim2.fromScale(1, 1), UDim2.new(), 0)
+	UiKit.textConstraint(showMeText, 16)
+	local showMeHit = Instance.new("TextButton")
+	showMeHit.Name = "ShowMeHit"
+	showMeHit.Text = ""
+	showMeHit.BackgroundTransparency = 1
+	showMeHit.Size = UDim2.fromOffset(100, 50)
+	showMeHit.Position = UDim2.new(1, -100, 0, 0)
+	showMeHit.Visible = false
+	showMeHit.Parent = strip
+	local stripGoalId: string? = nil
+	local stripKey = ""
+
 	-- Lined up with the box office card (Hud): centred, or on the right on touch screens.
 	local function placeStrip()
 		local right = gui:GetAttribute("HudRight") == true
@@ -869,10 +894,21 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		if current == nil or not synced or gui:GetAttribute("PanelTop") ~= nil then
 			strip.Visible = false
 			stripClaimId = nil
+			stripGoalId = nil
+			ShowMeUi.stop()
 			return
 		end
 		local value = progress[current.id] or 0
 		local ready = isReady(current)
+		-- A guide ends when its goal's progress or claim changes.
+		local key = `{current.id}:{value}:{if ready then 1 else 0}`
+		if key ~= stripKey then
+			stripKey = key
+			ShowMeUi.stop()
+		end
+		stripGoalId = if not ready and ShowMe.TARGETS[current.id] ~= nil then current.id else nil
+		showMe.Visible = stripGoalId ~= nil
+		showMeHit.Visible = stripGoalId ~= nil
 		stripClaimId = if ready then current.id else nil
 		stripTitle.Text = current.text
 		stripFill.Size = UDim2.fromScale(math.clamp(value / current.target, 0, 1), 1)
@@ -886,6 +922,13 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 	stripClaim.Activated:Connect(function()
 		if stripClaimId ~= nil then
 			claimAchievement:FireServer(stripClaimId)
+		end
+	end)
+	ShowMeUi.start(gui)
+	showMeHit.Activated:Connect(function()
+		if stripGoalId ~= nil then
+			Sfx.play("click")
+			ShowMeUi.show(stripGoalId, function() end)
 		end
 	end)
 	strip.Activated:Connect(function()

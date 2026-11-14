@@ -28,6 +28,7 @@ local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
 local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
+local Guides = require(script.Parent.Guides)
 local UiKit = require(script.Parent.UiKit)
 local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
 local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
@@ -35,9 +36,8 @@ local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
 local TutorialPacing = require(ReplicatedStorage.Shared.TutorialPacing)
 local Sounds = require(ReplicatedStorage.Shared.Sounds)
 
--- The guide color: brighter and yellower than the UI's gold, so directions read as directions.
-local GUIDE = Color3.fromRGB(255, 222, 26)
-local HINT_BLUE = Color3.fromRGB(110, 190, 255)
+-- The guide color (see Guides.luau).
+local GUIDE = Guides.GUIDE
 local CURTAIN = Color3.fromRGB(122, 18, 36)
 
 -- The chevron trail on the ground (studs). Each chevron is two see-through neon arms lying flat,
@@ -120,67 +120,6 @@ type Step = {
 
 local Tutorial = {}
 
--- A chunky, glossy yellow arrow with a dark outline, pointing down (turn it with Rotation: 90
--- points left, 180 up, 270 right). A shaft and a diamond, so the head's back edges sweep toward the
--- shaft; a top-to-bottom gold shade and a white shine down its left side make it read as glossy.
-local GLOSS = ColorSequence.new(Color3.fromRGB(255, 242, 150), Color3.fromRGB(255, 178, 20))
-local function makeArrow(parent: Instance, size: number, zIndex: number): Frame
-	local holder = Instance.new("Frame")
-	holder.Name = "GuideArrow"
-	holder.BackgroundTransparency = 1
-	holder.AnchorPoint = Vector2.new(0.5, 0.5)
-	holder.Size = UDim2.fromOffset(size, size)
-	holder.ZIndex = zIndex
-	local outline = math.max(7, math.floor(size * 0.12))
-	local function piece(name: string, color: Color3, grow: number, z: number, diamond: boolean): Frame
-		local frame = Instance.new("Frame")
-		frame.Name = name
-		frame.BorderSizePixel = 0
-		frame.BackgroundColor3 = color
-		frame.ZIndex = z
-		if diamond then
-			frame.AnchorPoint = Vector2.new(0.5, 0.5)
-			frame.Position = UDim2.fromScale(0.5, 0.6)
-			frame.Size = UDim2.new(0.48, grow, 0.48, grow)
-			frame.Rotation = 45
-		else
-			frame.Position = UDim2.new(0.35, -grow / 2, 0.04, -grow / 2)
-			frame.Size = UDim2.new(0.3, grow, 0.5, grow)
-		end
-		local round = Instance.new("UICorner")
-		round.CornerRadius = UDim.new(0, if diamond then 5 else 4)
-		round.Parent = frame
-		frame.Parent = holder
-		return frame
-	end
-	piece("ShaftOutline", UiKit.INK, outline, zIndex, false)
-	piece("HeadOutline", UiKit.INK, outline + 1, zIndex, true)
-	local shaft = piece("Shaft", GUIDE, 0, zIndex + 1, false)
-	local head = piece("Head", GUIDE, 0, zIndex + 1, true)
-	for _, frame in { shaft, head } do
-		frame.BackgroundColor3 = Color3.new(1, 1, 1)
-		local shade = Instance.new("UIGradient")
-		shade.Color = GLOSS
-		-- Screen-vertical: the diamond is turned 45 degrees, so its gradient turns back by as much.
-		shade.Rotation = if frame == head then 45 else 90
-		shade.Parent = frame
-	end
-	local shine = Instance.new("Frame")
-	shine.Name = "Shine"
-	shine.BorderSizePixel = 0
-	shine.BackgroundColor3 = Color3.new(1, 1, 1)
-	shine.BackgroundTransparency = 0.25
-	shine.Position = UDim2.fromScale(0.16, 0.12)
-	shine.Size = UDim2.fromScale(0.2, 0.62)
-	shine.ZIndex = zIndex + 2
-	local shineRound = Instance.new("UICorner")
-	shineRound.CornerRadius = UDim.new(1, 0)
-	shineRound.Parent = shine
-	shine.Parent = shaft
-	holder.Parent = parent
-	return holder
-end
-
 local function reducedMotion(): boolean
 	local ok, value = pcall(function()
 		return (GuiService :: any).ReducedMotionEnabled
@@ -192,7 +131,7 @@ end
 -- turning rules as makeArrow (0 points down).
 local function makeHand(parent: Instance, size: number, zIndex: number): GuiObject
 	if HAND_IMAGE_ID == 0 then
-		return makeArrow(parent, size, zIndex)
+		return Guides.arrow(parent, size, zIndex)
 	end
 	local hand = Instance.new("ImageLabel")
 	hand.Name = "GuideHand"
@@ -786,12 +725,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		dimBands[4].Size = UDim2.new(1, -r[4].x, 0, r[4].h)
 	end
 
-	local function pulseTween(object: Instance, seconds: number, goal: { [string]: any }): Tween
-		local tween = TweenService:Create(object, TweenInfo.new(seconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), goal)
-		tween:Play()
-		return tween
-	end
-
 	-- The idle hint: one ~1 s swell (out and back) of the target. A button never carries two
 	-- UIScales (Juice.luau), so reuse its own and restore the value; add a temporary one only if
 	-- there is none. Anchor and position are left alone, so it grows from the anchor point.
@@ -818,52 +751,16 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		tween:Play()
 	end
 
-	-- A pulsing yellow ring on a control. A button keeps one border stroke ("Outline"), so the ring
-	-- borrows it and puts its color and thickness back afterwards.
+	-- A pulsing yellow ring on a control (Guides.ring) plus the pointing hand over it.
 	local function guideGui(target: GuiObject): UiGuide
-		local existing = target:FindFirstChild("Outline")
-		local stroke: UIStroke
-		local restore: { Color: Color3, Thickness: number, Transparency: number }? = nil
-		if existing ~= nil and existing:IsA("UIStroke") then
-			stroke = existing
-			restore = { Color = stroke.Color, Thickness = stroke.Thickness, Transparency = stroke.Transparency }
-		else
-			stroke = Instance.new("UIStroke")
-			stroke.Name = "TutorialPulse"
-			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		end
-		stroke.Color = GUIDE
-		stroke.Thickness = 4
-		stroke.Parent = target
-		local tween = pulseTween(stroke, 0.45, { Thickness = 8, Transparency = 0.4 })
-		-- Scroll a list so the control is in view (once its layout has settled).
-		task.delay(0.1, function()
-			local list = target:FindFirstAncestorWhichIsA("ScrollingFrame")
-			if list == nil or target.Parent == nil then
-				return
-			end
-			local offset = target.AbsolutePosition.Y - list.AbsolutePosition.Y
-			if offset < 0 or offset + target.AbsoluteSize.Y > list.AbsoluteSize.Y then
-				list.CanvasPosition = Vector2.new(list.CanvasPosition.X, math.max(0, list.CanvasPosition.Y + offset - 8))
-			end
-		end)
+		local ringCleanup = Guides.ring(target)
 		local arrow = makeHand(dialogueMain, if compact() then 44 else 58, 7) -- under the bubble (8)
 		arrow.Visible = false
 		return {
 			target = target,
 			arrow = arrow,
 			cleanup = function()
-				tween:Cancel()
-				if restore ~= nil then
-					-- If its screen restyled the outline meanwhile (a picked script turns gold), keep that.
-					if stroke.Color == GUIDE then
-						stroke.Color = restore.Color
-						stroke.Thickness = restore.Thickness
-					end
-					stroke.Transparency = restore.Transparency
-				else
-					stroke:Destroy()
-				end
+				ringCleanup()
 				arrow:Destroy()
 			end,
 		}
@@ -876,62 +773,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	local function guideWorld(target: WorldTarget): WorldGuide
 		local made: { Instance } = {}
-		local tweens: { Tween } = {}
+		local base = Guides.world(target, playerGui)
 		local guide: WorldGuide = { target = target, cleanup = function() end }
-
-		-- Glow on the target, local to this player.
-		local glow = Instance.new("Highlight")
-		glow.Name = "TutorialGlow"
-		glow.Adornee = target.glow
-		if target.kind == "hint" then
-			glow.FillTransparency = 1
-			glow.OutlineColor = HINT_BLUE
-			glow.DepthMode = Enum.HighlightDepthMode.Occluded
-		else
-			glow.FillColor = GUIDE
-			glow.OutlineColor = GUIDE
-			local pad = target.glow:IsA("BasePart")
-			glow.FillTransparency = if pad then 0.6 else 0.8
-			glow.DepthMode = if pad then Enum.HighlightDepthMode.AlwaysOnTop else Enum.HighlightDepthMode.Occluded
-			table.insert(tweens, pulseTween(glow, 0.5, { FillTransparency = if pad then 0.15 else 0.55 }))
-		end
-		glow.Parent = target.glow
-		table.insert(made, glow)
-
-		if target.kind ~= "hint" then
-			-- A glossy arrow bobbing over the target, sized in studs so it shrinks with distance and
-			-- walls hide it (the ground chevron trail still leads around them).
-			local primary = target.kind == "primary"
-			local studs = math.max(3, target.height * 0.35) * (if primary then 1 else 0.65)
-			local board = Instance.new("BillboardGui")
-			board.Name = "TutorialArrow"
-			board.Adornee = target.adornee
-			board.AlwaysOnTop = false
-			board.LightInfluence = 0
-			board.MaxDistance = 220
-			board.Size = UDim2.fromScale(studs * 1.3, studs * 1.3 + (if target.label ~= "" then studs * 0.5 else 0))
-			board.StudsOffsetWorldSpace = Vector3.new(0, target.height, 0)
-			-- BillboardGuis do not render inside a ScreenGui; they live directly under PlayerGui.
-			board.Parent = playerGui
-			local labelShare = if target.label ~= "" then studs * 0.5 / board.Size.Y.Scale else 0
-			if target.label ~= "" then
-				local label = Instance.new("TextLabel")
-				label.BackgroundTransparency = 1
-				label.Size = UDim2.fromScale(1, labelShare)
-				label.TextColor3 = GUIDE
-				label.Font = UiKit.DISPLAY_FONT
-				label.TextScaled = true
-				label.Text = target.label
-				UiKit.outline(label, 3.5)
-				label.Parent = board
-			end
-			local arrow = makeArrow(board, 10, 1)
-			arrow.AnchorPoint = Vector2.new(0.5, 1)
-			arrow.Position = UDim2.fromScale(0.5, 1)
-			arrow.Size = UDim2.fromScale(studs / board.Size.X.Scale, studs / board.Size.Y.Scale)
-			table.insert(tweens, pulseTween(board, 0.5, { StudsOffset = Vector3.new(0, studs * 0.3, 0) }))
-			table.insert(made, board)
-		end
 
 		if target.kind == "primary" then
 			-- A trail of see-through yellow chevrons along the ground from the player to the target,
@@ -961,16 +804,14 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			guide.trail = { folder = folder, parts = parts, fades = table.create(count, 1), scales = table.create(count, 1) }
 			table.insert(made, folder)
 			-- An arrow at the edge of the screen while the target is out of view.
-			local edge = makeArrow(gui, if compact() then 48 else 64, 9)
+			local edge = Guides.arrow(gui, if compact() then 48 else 64, 9)
 			edge.Visible = false
 			guide.edge = edge
 			table.insert(made, edge)
 		end
 
 		guide.cleanup = function()
-			for _, tween in tweens do
-				tween:Cancel()
-			end
+			base.cleanup()
 			for _, instance in made do
 				instance:Destroy()
 			end
@@ -1182,26 +1023,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			local edge = guide.edge
 			if edge ~= nil and camera ~= nil then
 				local point = guide.target.adornee.Position + Vector3.new(0, guide.target.height * 0.5, 0)
-				local screen = camera:WorldToScreenPoint(point)
-				local rel = Vector2.new(screen.X, screen.Y) - origin
-				local margin = 40
-				local visible = screen.Z > 0 and rel.X > margin and rel.Y > margin and rel.X < area.X - margin and rel.Y < area.Y - margin
-				edge.Visible = not visible and not anyPanelOpen() and splash == nil and not revealShowing()
-				if edge.Visible then
-					local centre = area / 2
-					local direction = rel - centre
-					if screen.Z < 0 then
-						direction = -direction
-					end
-					if direction.Magnitude < 1 then
-						direction = Vector2.new(0, 1)
-					end
-					local inset = edge.AbsoluteSize.X / 2 + 16
-					local scale = math.min((centre.X - inset) / math.max(math.abs(direction.X), 0.001), (centre.Y - inset) / math.max(math.abs(direction.Y), 0.001))
-					local at = centre + direction * scale
-					edge.Position = UDim2.fromOffset(at.X, at.Y)
-					edge.Rotation = math.deg(math.atan2(direction.Y, direction.X)) - 90
-				end
+				Guides.placeEdge(edge, camera, point, origin, area, anyPanelOpen() or splash ~= nil or revealShowing())
 			end
 		end
 	end

@@ -956,8 +956,20 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 		end
 	end)
 
-	local function open()
+	-- Select the next level of upgrade `id` (its card opens), if there is one.
+	local function focusOn(id: string)
+		local upgrade = Upgrades.get(id)
+		local n = if upgrade ~= nil then Upgrades.level(ClientState.stats(), id) + 1 else 0
+		if upgrade ~= nil and upgrade.costs[n] ~= nil then
+			selected = { id = id, n = n }
+		end
+	end
+
+	local function open(focus: string?)
 		selected = nil
+		if focus ~= nil then
+			focusOn(focus)
+		end
 		table.clear(lastLevels) -- no celebration for levels bought while the tree was closed
 		refresh()
 		-- Sized once the screen is showing.
@@ -987,9 +999,14 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	upgradesButton.Activated:Connect(function()
 		UiKit.togglePanel(screen, open)
 	end)
-	Screens.register("Upgrades", function()
+	Screens.register("Upgrades", function(focus)
 		if not screen.Visible then
-			UiKit.togglePanel(screen, open)
+			UiKit.togglePanel(screen, function()
+				open(focus)
+			end)
+		elseif focus ~= nil then
+			focusOn(focus)
+			refresh()
 		end
 	end)
 end

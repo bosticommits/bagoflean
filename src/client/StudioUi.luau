@@ -901,11 +901,16 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		UiKit.togglePanel(panel, render)
 		studioRequest:FireServer()
 	end)
-	Screens.register("Studio", function()
+	Screens.register("Studio", function(focus)
+		if focus ~= nil and table.find(tabNames, focus) ~= nil then
+			tab = focus
+		end
 		if not panel.Visible then
 			picker.Visible = false
 			UiKit.togglePanel(panel, render)
 			studioRequest:FireServer()
+		elseif focus ~= nil then
+			render()
 		end
 	end)
 
