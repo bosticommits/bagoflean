@@ -12,6 +12,7 @@ for _, viewH in { 331, 653 } do
 		expect(l.buttonH * cardH >= 44, "tap height")
 		expect(buttonTop - CardLayout.HALO - statsBottom >= 20 - 1e-6, "clear of the halo")
 		expect(l.artY < l.nameY and l.nameY + l.nameH <= l.ribbonY + 1e-6, "art, name, ribbon in order")
+		expect((l.ribbonY - l.nameY - l.nameH) * cardH >= 8, "the name clears the tilted ribbon by 8 px or more")
 		expect(l.ribbonY + l.ribbonH <= l.statsY, "ribbon above the stats")
 		expect(l.artH * cardH >= 50, "the actor keeps room")
 	end)

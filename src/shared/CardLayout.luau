@@ -8,6 +8,7 @@ CardLayout.MIN_BUTTON = 44 -- tap height
 CardLayout.CLEAR = 20 -- stats bottom to the halo's outer edge
 CardLayout.HALO = 8 -- how far the Cast again halo reaches past the button (5 gap + half the stroke)
 CardLayout.MIN_STATS = 30
+CardLayout.NAME_GAP = 0.035 -- card heights between the name and the ribbon
 
 export type Layout = {
 	artY: number, -- every field below is a fraction of the card's height
@@ -36,7 +37,9 @@ function CardLayout.compute(cardHeight: number): Layout
 	local statsTop = buttonTop - CardLayout.HALO - CardLayout.CLEAR - statsH
 	local band = 0.09 * h -- the name and the ribbon
 	local ribbonY = statsTop - 0.02 * h - band
-	local nameY = ribbonY - band
+	-- The ribbon is tilted 3 degrees and its outline reaches past it, so the name keeps a gap above it: otherwise the
+	-- rarity banner (SUPERSTAR) cuts the bottom of the name on a phone.
+	local nameY = ribbonY - band - CardLayout.NAME_GAP * h
 	local artY = 0.08 * h
 	return {
 		artY = artY / h,

@@ -36,12 +36,9 @@ function PortraitCamera.apply(viewport: ViewportFrame): boolean
 	if type(targetY) ~= "number" or type(distance) ~= "number" then
 		return false
 	end
-	local camera = viewport.CurrentCamera
-	if camera == nil then
-		camera = Instance.new("Camera")
-		camera.Parent = viewport
-		viewport.CurrentCamera = camera
-	end
+	local camera: Camera = viewport:FindFirstChildOfClass("Camera") or Instance.new("Camera")
+	camera.Parent = viewport
+	viewport.CurrentCamera = camera
 	local target = Vector3.new(0, targetY, 0)
 	camera.FieldOfView = PortraitCamera.FieldOfView
 	camera.CFrame = CFrame.lookAt(target + PortraitCamera.Direction * distance, target)
