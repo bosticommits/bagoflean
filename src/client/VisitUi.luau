@@ -34,6 +34,10 @@ local makeLabel, makeTitle, makeButton = UiKit.makeLabel, UiKit.makeTitle, UiKit
 
 local VisitUi = {}
 
+-- Test seam (tests/ui, rur): the offline renderer's SocialService always answers "cannot invite", so a
+-- fixture sets this to true before start() to lay out the Invite friends button. Stays false in the game.
+VisitUi.assumeCanInvite = false
+
 -- Two-person invite picture (ForgeGUI art in art/ui/invite_friends.png, decal 79935846887699). 0 = no icon.
 local INVITE_ICON = 104981242732141
 local CARD_WIDTH = 260
@@ -298,7 +302,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 	end
 
 	-- Invite friends: shown only when Roblox says this player can send invites (checked once, below).
-	local canInvite = false
+	local canInvite = VisitUi.assumeCanInvite
 
 	local function build()
 		UiKit.clear(list)
@@ -559,7 +563,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 		local ok, can = pcall(function()
 			return SocialService:CanSendGameInviteAsync(player)
 		end)
-		canInvite = ok and can == true
+		canInvite = VisitUi.assumeCanInvite or (ok and can == true)
 		if canInvite and panel.Visible then
 			build()
 		end
