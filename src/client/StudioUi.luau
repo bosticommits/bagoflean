@@ -10,8 +10,10 @@ local TweenService = game:GetService("TweenService")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Movies = require(ReplicatedStorage.Shared.Movies)
+local PickerLayout = require(ReplicatedStorage.Shared.PickerLayout)
 local PremiereNight = require(ReplicatedStorage.Shared.PremiereNight)
 local Takes = require(ReplicatedStorage.Shared.Takes)
+local TopStudios = require(ReplicatedStorage.Shared.TopStudios)
 local Upgrades = require(ReplicatedStorage.Shared.Upgrades)
 local ClientState = require(script.Parent.ClientState)
 local Hud = require(script.Parent.Hud)
@@ -439,15 +441,91 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	-- Start-movie picker -----------------------------------------------------------------------
-	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130, UiKit.FRESH_GREEN, 60)
+	-- Two panes (scripts left, actors right) over an opaque "call sheet" footer: the three billing
+	-- slots, the box-office forecast, Clear / Best cast and Start filming. The sizes come from
+	-- PickerLayout (docs/design/picker-layout.md); makePanel places the panel and calls layoutPicker.
+	local layoutPicker: ((compact: boolean, size: Vector2) -> ())? = nil
+	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130, UiKit.FRESH_GREEN, 60, {
+		opaque = true,
+		scrim = true,
+		gutter = true,
+		maxSize = Vector2.new(PickerLayout.MAX_W, PickerLayout.MAX_H),
+		onLayout = function(compact: boolean, size: Vector2)
+			if layoutPicker ~= nil then
+				layoutPicker(compact, size)
+			end
+		end,
+	})
 	UiKit.panelIcon(picker, pickerHeader, "clapper")
+
+	-- The scripts pane is the panel's own "List" (the tutorial looks its buttons up there); even
+	-- padding all round keeps the selected row's 4 px outline inside the scroll window.
+	pickerList.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+	local scriptsPad = pickerList:FindFirstChildOfClass("UIPadding")
+	if scriptsPad ~= nil then
+		scriptsPad.PaddingLeft, scriptsPad.PaddingRight = UDim.new(0, 5), UDim.new(0, 5)
+		scriptsPad.PaddingTop, scriptsPad.PaddingBottom = UDim.new(0, 5), UDim.new(0, 5)
+	end
+	local scriptsLayout = pickerList:FindFirstChildOfClass("UIListLayout")
+
+	-- The cast pane: a scroll frame holding the actor grid ("Actors", found by the tutorial).
+	local castList = Instance.new("ScrollingFrame")
+	castList.Name = "CastList"
+	castList.BackgroundTransparency = 1
+	castList.BorderSizePixel = 0
+	castList.ScrollBarImageColor3 = UiKit.MUTED
+	castList.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+	castList.ScrollingDirection = Enum.ScrollingDirection.Y
+	castList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	castList.CanvasSize = UDim2.new()
+	castList.Parent = picker
+	local castLayout = Instance.new("UIListLayout")
+	castLayout.Padding = UDim.new(0, 6)
+	castLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	castLayout.Parent = castList
+	local castPad = Instance.new("UIPadding")
+	castPad.PaddingLeft, castPad.PaddingRight = UDim.new(0, PickerLayout.GRID_PADDING), UDim.new(0, PickerLayout.GRID_PADDING)
+	castPad.PaddingTop, castPad.PaddingBottom = UDim.new(0, PickerLayout.GRID_PADDING), UDim.new(0, PickerLayout.GRID_PADDING)
+	castPad.Parent = castList
+
+	-- Pane headings (PC only; the footer prompt does that job on a phone).
+	local scriptsHeading = UiKit.makeTitle(picker, "1  Script", UiKit.GOLD, UDim2.fromOffset(200, 24))
+	scriptsHeading.Name = "ScriptsHeading"
+	scriptsHeading.TextXAlignment = Enum.TextXAlignment.Left
+	local castHeading = UiKit.makeTitle(picker, `2  Cast (up to {Config.MaxCast})`, UiKit.GOLD, UDim2.fromOffset(300, 24))
+	castHeading.Name = "CastHeading"
+	castHeading.TextXAlignment = Enum.TextXAlignment.Left
+
+	-- The footer: an opaque strip like the title bar mirrored (rounded at the bottom, square on top)
+	-- with a dark line on its top edge. It is a sibling of the panes, so nothing scrolls under it.
 	local footer = Instance.new("Frame")
-	footer.BackgroundTransparency = 1
-	footer.Position = UDim2.new(0, 10, 1, -126)
-	footer.Size = UDim2.new(1, -20, 0, 118)
+	footer.Name = "Footer"
+	footer.BackgroundColor3 = UiKit.DARK
+	footer.BorderSizePixel = 0
+	footer.AnchorPoint = Vector2.new(0, 1)
+	footer.Position = UDim2.fromScale(0, 1)
+	footer.Size = UDim2.new(1, 0, 0, 84)
 	footer.Parent = picker
+	corner(footer, 16)
+	local footerTop = Instance.new("Frame")
+	footerTop.Name = "SquareTop"
+	footerTop.BackgroundColor3 = UiKit.DARK
+	footerTop.BorderSizePixel = 0
+	footerTop.Size = UDim2.new(1, 0, 0, 16)
+	footerTop.ZIndex = 1
+	footerTop.Parent = footer
+	local footerEdge = Instance.new("Frame")
+	footerEdge.Name = "Edge"
+	footerEdge.BackgroundColor3 = UiKit.INK
+	footerEdge.BorderSizePixel = 0
+	footerEdge.Size = UDim2.new(1, 0, 0, 3)
+	footerEdge.ZIndex = 2
+	footerEdge.Parent = footer
+	-- Everything the footer holds draws above its filler and top line (ZIndex 3), whatever the creation order.
+	local FOOTER_CONTENT_Z = 3
 	-- Cast slots: the picked actors' portraits (tap one to take it out), then empty "+" slots.
 	local castSlots: { TextButton } = {}
+	local slotOutlines: { UIStroke } = {}
 	for slot = 1, Config.MaxCast do
 		local slotButton = Instance.new("TextButton")
 		slotButton.Name = `CastSlot{slot}`
@@ -456,60 +534,39 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		slotButton.Font = UiKit.DISPLAY_FONT
 		slotButton.TextScaled = true
 		slotButton.AutoButtonColor = false
-		slotButton.BackgroundColor3 = UiKit.DARK
-		slotButton.Size = UDim2.fromOffset(44, 44)
+		slotButton.BackgroundColor3 = UiKit.ROW
+		slotButton.Size = UDim2.fromOffset(56, 56)
 		slotButton.AnchorPoint = Vector2.new(0.5, 0.5) -- so the pop grows from the centre
-		slotButton.Position = UDim2.fromOffset((slot - 1) * 50 + 22, 22)
+		slotButton.Position = UDim2.fromOffset(40 + (slot - 1) * 64, 42) -- centre; layoutPicker sets the real one
+		slotButton.ZIndex = FOOTER_CONTENT_Z
 		slotButton.Parent = footer
 		corner(slotButton, 8)
-		UiKit.border(slotButton, 2)
+		slotOutlines[slot] = UiKit.border(slotButton, 2, UiKit.MUTED)
 		UiKit.textConstraint(slotButton, 30)
 		castSlots[slot] = slotButton
 	end
-	local slotsWidth = Config.MaxCast * 50 + 6
-	local summaryLabel = UiKit.makeTitle(footer, "", WHITE, UDim2.new(1, -slotsWidth, 0, 40), UDim2.fromOffset(slotsWidth, 2))
-	summaryLabel.TextXAlignment = Enum.TextXAlignment.Left
-	UiKit.textConstraint(summaryLabel, 24)
-	local previewLabel = makeLabel(footer, "", UiKit.GOLD, UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48))
-	local clearButton = makeButton(footer, "Clear cast", UiKit.BURGUNDY, UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76))
-	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76))
+	-- Two lines, left-aligned: "Star Power 60" over "Hit pays $720" (no names: the slots show the faces).
+	local line1 = UiKit.makeTitle(footer, "", WHITE, UDim2.fromOffset(100, 24), nil, 2)
+	line1.Name = "Line1"
+	line1.ZIndex = FOOTER_CONTENT_Z
+	line1.TextXAlignment = Enum.TextXAlignment.Left
+	local line2 = makeLabel(footer, "", UiKit.GOLD, UDim2.fromOffset(100, 24))
+	line2.Name = "Line2"
+	line2.ZIndex = FOOTER_CONTENT_Z
+	line2.TextXAlignment = Enum.TextXAlignment.Left
+	local clearButton = makeButton(footer, "Clear cast", UiKit.TAB_OFF, UDim2.fromOffset(130, 52))
+	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.fromOffset(210, 56))
 	goButton.Name = "StartFilming"
-
-	-- PC: the slots over the summary, the preview, then Clear and Start filming (118 px). Phone
-	-- (compact): one 48 px row, so the list gets the height: slots, summary over preview, Clear, Start.
-	local function layoutFooter()
-		local compact = UiKit.isCompact()
-		footer.Size = UDim2.new(1, -20, 0, if compact then 48 else 118)
-		footer.Position = UDim2.new(0, 10, 1, if compact then -54 else -126)
-		local pitch = if compact then 38 else 50
-		for slot, slotButton in castSlots do
-			slotButton.Size = if compact then UDim2.fromOffset(34, 34) else UDim2.fromOffset(44, 44)
-			slotButton.Position = UDim2.fromOffset((slot - 1) * pitch, if compact then 7 else 0)
-		end
-		if compact then
-			local left = Config.MaxCast * pitch + 4
-			local clearW, goW = 84, 132
-			local textW = UDim2.new(1, -(left + clearW + goW + 12), 0, 22)
-			summaryLabel.Size, summaryLabel.Position = textW, UDim2.fromOffset(left, 2)
-			previewLabel.Size, previewLabel.Position = textW, UDim2.fromOffset(left, 25)
-			clearButton.Size, clearButton.Position = UDim2.fromOffset(clearW, 40), UDim2.new(1, -(goW + clearW + 6), 0, 4)
-			UiKit.textConstraint(clearButton, 16) -- max text size on phone (TextScaled still shrinks to fit)
-			goButton.Size, goButton.Position = UDim2.fromOffset(goW, 44), UDim2.new(1, -goW, 0, 2)
-		else
-			summaryLabel.Size, summaryLabel.Position = UDim2.new(1, -slotsWidth, 0, 40), UDim2.fromOffset(slotsWidth, 2)
-			previewLabel.Size, previewLabel.Position = UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48)
-			clearButton.Size, clearButton.Position = UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76)
-			UiKit.textConstraint(clearButton, 26) -- resets the phone cap (16) set in the compact branch
-			goButton.Size, goButton.Position = UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76)
-		end
-	end
-	UiKit.onViewportChanged(layoutFooter)
-	picker:GetPropertyChangedSignal("Visible"):Connect(layoutFooter)
+	clearButton.ZIndex = FOOTER_CONTENT_Z
+	goButton.ZIndex = FOOTER_CONTENT_Z
 
 	local pickStage = 1
 	local pickScript: string? = nil
 	local pickCast: { string } = {}
 	local buildPicker: () -> ()
+	local pickerCompact = UiKit.isCompact()
+	local builtCompact: boolean? = nil
+	local footerGeo: PickerLayout.Footer? = nil
 
 	local function pickedCount(key: string): number
 		local n = 0
@@ -529,15 +586,28 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		return state ~= nil and state.tutorialDone and pickScript ~= nil and #pickCast < Config.MaxCast and #shownActors > 0
 	end
 
+	-- The two footer lines sit in the text block PickerLayout gave them; with one line it is centred.
+	local function placeFooterText()
+		local geo = footerGeo
+		if geo == nil then
+			return
+		end
+		local two = line2.Text ~= ""
+		line2.Visible = two
+		local textRect = geo.text
+		local size = if pickerCompact then 14 else 18
+		UiKit.textConstraint(line1, size)
+		UiKit.textConstraint(line2, size)
+		line1.Size = UDim2.fromOffset(textRect.w, geo.lineH)
+		line2.Size = UDim2.fromOffset(textRect.w, geo.lineH)
+		line1.Position = UDim2.fromOffset(textRect.x, if two then textRect.y else textRect.y + (textRect.h - geo.lineH) / 2)
+		line2.Position = UDim2.fromOffset(textRect.x, textRect.y + geo.lineH + geo.lineGap)
+	end
+
 	local function updatePickerFooter()
 		local fill = canFill()
 		clearButton.Text = if fill then "Best cast" else "Clear cast"
-		UiKit.setEnabled(clearButton, true, if fill then UiKit.BLUE else UiKit.BURGUNDY)
-		local names = {}
-		for _, key in pickCast do
-			table.insert(names, actorLabel(key))
-		end
-		summaryLabel.Text = if #names > 0 then table.concat(names, ", ") else "Tap actors to cast them"
+		UiKit.setEnabled(clearButton, true, UiKit.TAB_OFF) -- Start filming is the only green
 		for slot, slotButton in castSlots do
 			-- Only a slot whose actor changed gets a new portrait, so the others do not redraw.
 			local key = pickCast[slot]
@@ -548,6 +618,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					old:Destroy()
 				end
 				slotButton.Text = if key == nil then "+" else ""
+				slotOutlines[slot].Color = if key == nil then UiKit.MUTED else UiKit.INK
 				if key ~= nil then
 					UiKit.portrait(slotButton, key, UDim2.fromScale(1, 1))
 				end
@@ -565,10 +636,13 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			local power = Movies.castPower(pickCast, genre)
 			local hit = Movies.getResult("Hit")
 			local estimate = if hit ~= nil then Movies.payout(length, power, hit) else 0
-			previewLabel.Text = `Star Power {fmtPower(power)}  -  a Hit pays ${Hud.comma(estimate)}`
+			line1.Text = `Star Power {fmtPower(power)}`
+			line2.Text = `Hit pays ${if estimate >= 10000 then TopStudios.short(estimate) else Hud.comma(estimate)}`
 		else
-			previewLabel.Text = if pickScript == nil then "Pick a script first" else "Pick at least one actor"
+			line1.Text = if pickScript == nil then "Pick a script" else "Tap an actor"
+			line2.Text = ""
 		end
+		placeFooterText()
 		UiKit.setEnabled(goButton, ready, UiKit.GREEN)
 		-- What is picked so far, for the tutorial's pointer.
 		picker:SetAttribute("Script", pickScript)
@@ -578,10 +652,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	-- The picker's script buttons and actor cards stay between taps and are updated in place, so
 	-- their 3D pictures are not rebuilt (which made them blink) every time an actor is picked.
 	local scriptButtons: { [string]: TextButton } = {}
-	type ActorCard = { card: TextButton, power: TextLabel, bonus: TextLabel }
+	type ActorCard = { card: TextButton, name: TextLabel, power: TextLabel, bonus: TextLabel }
 	local actorCards: { [string]: ActorCard } = {}
 	local actorGrid: Frame? = nil
 	local noActorsRow: Frame? = nil
+	-- The cast pane's scroll window width (what PickerLayout.grid wants), kept for rebuilds.
+	local castWindowW = 0
 	-- What the picker was built from (owned scripts, actors with free copies): a sync that changes
 	-- neither only refreshes it.
 	local pickerBuiltFor = ""
@@ -605,15 +681,48 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		return table.concat(parts, "|")
 	end
 
+	-- Columns, card size and card text follow the cast pane's width (not a fixed third of it).
+	local function relayoutGrid()
+		local grid = actorGrid
+		if grid == nil or castWindowW <= 0 then
+			return
+		end
+		local layout = grid:FindFirstChildOfClass("UIGridLayout")
+		if layout == nil then
+			return
+		end
+		local g = PickerLayout.grid(castWindowW, pickerCompact)
+		layout.CellSize = UDim2.fromOffset(g.cellW, g.cellH)
+		layout.CellPadding = UDim2.fromOffset(g.gap, g.gap)
+		local textSize = if pickerCompact then 14 else 18
+		for _, entry in actorCards do
+			UiKit.textConstraint(entry.name, textSize)
+			UiKit.textConstraint(entry.power, textSize)
+			entry.bonus.Size = if pickerCompact then UDim2.fromOffset(72, 18) else UDim2.fromOffset(86, 22)
+		end
+	end
+	castList:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(function()
+		local width = castList.AbsoluteWindowSize.X
+		if width > 0 and width ~= castWindowW then
+			castWindowW = width
+			relayoutGrid()
+		end
+	end)
+
 	local function refreshPicker()
 		local genre = if pickScript ~= nil then string.split(pickScript, ":")[1] else nil
 		for key, button in scriptButtons do
 			local picked = key == pickScript
-			button.BackgroundColor3 = if picked then UiKit.GREEN else GENRE_COLORS[string.split(key, ":")[1]] or UiKit.BLUE
+			-- The row keeps its genre colour; the pick is a gold outline and a gold tick on the right.
+			button.BackgroundColor3 = GENRE_COLORS[string.split(key, ":")[1]] or UiKit.BLUE
 			local outline = button:FindFirstChild("Outline")
 			if outline ~= nil and outline:IsA("UIStroke") then
 				outline.Color = if picked then UiKit.GOLD else UiKit.INK
 				outline.Thickness = if picked then 4 else 3
+			end
+			local tickBox = button:FindFirstChild("SelectTick")
+			if tickBox ~= nil and tickBox:IsA("GuiObject") then
+				tickBox.Visible = picked
 			end
 		end
 		-- Free copies left after the cast so far; actors with none left hide. Best power first.
@@ -656,15 +765,31 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	buildPicker = function()
+		local compact = UiKit.isCompact()
+		pickerCompact = compact
+		builtCompact = compact
 		UiKit.clear(pickerList)
+		UiKit.clear(castList)
 		table.clear(scriptButtons)
 		table.clear(actorCards)
-		pickerHeader.Text = `Start movie  -  Stage {pickStage}`
+		pickerHeader.Text = `Start movie · Stage {pickStage}`
 		local order = 0
 
-		order += 1
-		local h1 = UiKit.addRow(pickerList, order, 28)
-		UiKit.makeTitle(h1, "1. Script", UiKit.GOLD, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
+		-- Scripts: one row each, two lines (genre, then length and time). The right edge holds the
+		-- copies chip over a tick; the picked row gets a gold outline and the gold tick.
+		local rowH = if compact then 44 else 56
+		local iconSize = if compact then 28 else 36
+		local iconX = if compact then 6 else 8
+		local iconY = (rowH - iconSize) // 2
+		local textX = iconX + iconSize + (if compact then 4 else 8)
+		local line1H = if compact then 20 else 24
+		local line2H = if compact then 16 else 22
+		local textY = (rowH - line1H - line2H - 2) // 2
+		local chipH = if compact then 18 else 22
+		local chipTop = if compact then 3 else 4
+		local tickSize = rowH - chipTop - chipH - 3 -- the square under the chip (phone 20, PC 27)
+		local line1Reserve = if compact then 36 else 40
+		local line2Reserve = tickSize + 8
 		local anyScript = false
 		for _, genre in Movies.Genres do
 			for _, length in Movies.Lengths do
@@ -673,12 +798,45 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				if count > 0 then
 					anyScript = true
 					order += 1
-					local button = makeButton(pickerList, "", GENRE_COLORS[genre] or UiKit.BLUE, UDim2.new(1, -8, 0, 44))
+					local button = makeButton(pickerList, "", GENRE_COLORS[genre] or UiKit.BLUE, UDim2.new(1, 0, 0, rowH))
 					button.Name = "PickScript_" .. key
 					button.LayoutOrder = order
-					smallIcon(button, "script", 38, UDim2.fromOffset(8, 3))
-					local label = UiKit.makeTitle(button, `{genre} {length.name}  x{count}  ({fmtTime(length.seconds)})`, WHITE, UDim2.new(1, -62, 1, -10), UDim2.fromOffset(54, 5), 2)
-					UiKit.textConstraint(label, 22)
+					button:SetAttribute("ChipInset", true)
+					smallIcon(button, "script", iconSize, UDim2.fromOffset(iconX, iconY))
+					local genreLabel = UiKit.makeTitle(button, genre, WHITE, UDim2.new(1, -(textX + line1Reserve), 0, line1H), UDim2.fromOffset(textX, textY), 2)
+					genreLabel.TextXAlignment = Enum.TextXAlignment.Left
+					UiKit.textConstraint(genreLabel, if compact then 16 else 26)
+					local lengthName = string.gsub(length.name, " Film$", "") -- "Short · 2:00"
+					local detail = makeLabel(button, `{lengthName} · {fmtTime(length.seconds)}`, WHITE, UDim2.new(1, -(textX + line2Reserve), 0, line2H), UDim2.fromOffset(textX, textY + line1H + 2))
+					detail.TextXAlignment = Enum.TextXAlignment.Left
+					UiKit.textConstraint(detail, if compact then 14 else 18)
+					UiKit.chip(button, `x{count}`)
+					local chip = button:FindFirstChild("Chip")
+					if chip ~= nil and chip:IsA("GuiObject") then
+						chip.Size = UDim2.fromOffset(chip.Size.X.Offset, chipH) -- a slimmer chip leaves room for the tick
+						chip.Position = UDim2.new(1, -(chip.Size.X.Offset + 4), 0, chipTop)
+					end
+					-- The pick's tick: gold (Start filming is the only green), small outlines to suit its size.
+					local tickBox = Instance.new("Frame")
+					tickBox.Name = "SelectTick"
+					tickBox.BackgroundTransparency = 1
+					tickBox.AnchorPoint = Vector2.new(1, 0)
+					tickBox.Size = UDim2.fromOffset(tickSize, tickSize)
+					tickBox.Position = UDim2.new(1, -4, 0, chipTop + chipH + 2)
+					tickBox.Visible = false
+					tickBox.ZIndex = button.ZIndex + 2
+					tickBox.Parent = button
+					local tick = UiKit.tick(tickBox, tickBox.ZIndex)
+					tick.Size = UDim2.fromScale(0.9, 0.9)
+					for _, piece in tick:GetChildren() do
+						if piece:IsA("Frame") then
+							piece.BackgroundColor3 = UiKit.GOLD
+							local pieceOutline = piece:FindFirstChild("Outline")
+							if pieceOutline ~= nil and pieceOutline:IsA("UIStroke") then
+								pieceOutline.Thickness = 2
+							end
+						end
+					end
 					button.Activated:Connect(function()
 						pickScript = key
 						refreshPicker()
@@ -690,38 +848,30 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		if not anyScript then
 			order += 1
 			local row = UiKit.addRow(pickerList, order, 44)
-			makeLabel(row, "No scripts - buy one in the Scripts tab", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
+			row.Size = UDim2.new(1, 0, 0, 44)
+			makeLabel(row, "No scripts yet", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
 		end
 
-		order += 1
-		local h2 = UiKit.addRow(pickerList, order, 28)
-		UiKit.makeTitle(h2, `2. Cast (up to {Config.MaxCast})`, UiKit.GOLD, UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0)).TextXAlignment = Enum.TextXAlignment.Left
-
-		order += 1
-		local emptyRow = UiKit.addRow(pickerList, order, 44)
+		local emptyRow = UiKit.addRow(castList, 1, 44)
+		emptyRow.Size = UDim2.new(1, 0, 0, 44)
 		makeLabel(emptyRow, "No free actors - cast some first", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
 		noActorsRow = emptyRow
 
 		-- Every actor with a copy not busy filming gets a picture card in its rarity colors; tap one
 		-- to cast it. refreshPicker hides the ones whose copies are all in the cast.
-		order += 1
 		local grid = Instance.new("Frame")
 		grid.Name = "Actors"
-		grid.LayoutOrder = order
+		grid.LayoutOrder = 2
 		grid.BackgroundTransparency = 1
-		grid.Size = UDim2.new(1, -8, 0, 0)
+		grid.Size = UDim2.fromScale(1, 0)
 		grid.AutomaticSize = Enum.AutomaticSize.Y
-		grid.Parent = pickerList
+		grid.Parent = castList
 		actorGrid = grid
 		local layout = Instance.new("UIGridLayout")
-		layout.CellSize = UDim2.new(1 / 3, -8, 0, if UiKit.isCompact() then 128 else 150)
+		layout.CellSize = UDim2.fromOffset(100, 100) -- relayoutGrid sets the real size from the pane width
 		layout.CellPadding = UDim2.fromOffset(10, 10)
 		layout.SortOrder = Enum.SortOrder.LayoutOrder
 		layout.Parent = grid
-		local pad = Instance.new("UIPadding")
-		pad.PaddingLeft = UDim.new(0, 3)
-		pad.PaddingTop = UDim.new(0, 8)
-		pad.Parent = grid
 		local busy = busyCopies()
 		for key, count in roster do
 			if count - (busy[key] or 0) <= 0 then
@@ -774,10 +924,64 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					UiKit.toast(gui, `A movie takes at most {Config.MaxCast} actors`)
 				end
 			end)
-			actorCards[key] = { card = card, power = power, bonus = bonus }
+			actorCards[key] = { card = card, name = name, power = power, bonus = bonus }
 		end
 		pickerBuiltFor = pickerSignature()
+		relayoutGrid()
 		refreshPicker()
+	end
+
+	-- Places everything inside the panel from PickerLayout's numbers: the footer (one row, or two
+	-- when the text block would be too narrow), the two panes and, on PC, their headings. Runs after
+	-- every makePanel layout pass. The Clear text cap is set on both devices (a phone cap left over
+	-- on PC shrank the label), and TextWrapped is never turned off on scaled text.
+	layoutPicker = function(compact: boolean, size: Vector2)
+		pickerCompact = compact
+		local geo = PickerLayout.footer(size.X, compact, Config.MaxCast)
+		footerGeo = geo
+		local body = PickerLayout.body(size.X, size.Y, compact, geo.height)
+		footer.Size = UDim2.new(1, 0, 0, geo.height)
+		for slot, slotButton in castSlots do
+			local centre = geo.slotCentres[slot]
+			slotButton.Size = UDim2.fromOffset(geo.slotSize, geo.slotSize)
+			slotButton.Position = UDim2.fromOffset(centre.x, centre.y) -- centre-anchored: the pop grows from the middle
+			UiKit.textConstraint(slotButton, if compact then 22 else 30)
+		end
+		clearButton.Size = UDim2.fromOffset(geo.clear.w, geo.clear.h)
+		clearButton.Position = UDim2.fromOffset(geo.clear.x, geo.clear.y)
+		UiKit.textConstraint(clearButton, if compact then 16 else 26) -- 16 on a phone, 26 on PC
+		goButton.Size = UDim2.fromOffset(geo.go.w, geo.go.h)
+		goButton.Position = UDim2.fromOffset(geo.go.x, geo.go.y)
+		UiKit.textConstraint(goButton, if compact then 16 else 26)
+
+		local thickness = if compact then 4 else 6
+		pickerList.ScrollBarThickness = thickness
+		castList.ScrollBarThickness = thickness
+		if scriptsLayout ~= nil then
+			scriptsLayout.Padding = UDim.new(0, if compact then 6 else 8)
+		end
+		pickerList.Position = UDim2.fromOffset(body.scripts.x, body.scripts.y)
+		pickerList.Size = UDim2.fromOffset(body.scripts.w, body.scripts.h)
+		castList.Position = UDim2.fromOffset(body.cast.x, body.cast.y)
+		castList.Size = UDim2.fromOffset(body.cast.w, body.cast.h)
+		scriptsHeading.Visible = not compact
+		castHeading.Visible = not compact
+		if not compact then
+			scriptsHeading.Position = UDim2.fromOffset(body.scripts.x, body.headingY)
+			scriptsHeading.Size = UDim2.fromOffset(body.scripts.w, body.headingH)
+			castHeading.Position = UDim2.fromOffset(body.cast.x, body.headingY)
+			castHeading.Size = UDim2.fromOffset(body.cast.w, body.headingH)
+			UiKit.textConstraint(scriptsHeading, 18)
+			UiKit.textConstraint(castHeading, 18)
+		end
+
+		castWindowW = body.cast.w - thickness
+		relayoutGrid()
+		placeFooterText()
+		-- Rows and cards are built for one device class: rebuild if the screen changed class.
+		if builtCompact ~= nil and builtCompact ~= compact then
+			buildPicker()
+		end
 	end
 
 	openPicker = function(stage: number)

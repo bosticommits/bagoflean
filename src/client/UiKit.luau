@@ -7,6 +7,7 @@ local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
+local PickerLayout = require(ReplicatedStorage.Shared.PickerLayout)
 local Icon3D = require(script.Parent.Icon3D)
 local Juice = require(script.Parent.Juice)
 local Sfx = require(script.Parent.Sfx)
@@ -731,27 +732,41 @@ function UiKit.togglePanel(panel: Frame, build: () -> ())
 	end
 end
 
+export type PanelOpts = {
+	opaque: boolean?,
+	scrim: boolean?,
+	maxSize: Vector2?,
+	gutter: boolean?,
+	onLayout: ((compact: boolean, size: Vector2) -> ())?,
+}
+
 -- A centered window with a colored title bar, close button and scrolling list.
 -- `topOffset` leaves room under the header for a tab row; `modal` panels sit above the others and
 -- are not closed by togglePanel; `bottomReserve` leaves room under the list for a footer;
 -- `accent` colors the title bar (burgundy by default); `compactBottom` replaces `bottomReserve` on
 -- short screens, so the list takes the room a slimmer footer frees.
-function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?, bottomReserve: number?, accent: Color3?, compactBottom: number?): (Frame, ScrollingFrame, TextLabel)
+-- `opts` (all optional): `opaque` drops the see-through hint; `scrim` adds a dimmed backdrop behind a
+-- modal panel (taps on it do nothing); `maxSize` replaces the 560x640 cap; `gutter` places the panel
+-- by PickerLayout.panelRect (equal gutters to the screen edges, the HUD column and the corner icon)
+-- instead of panelSize + MenuRight + PanelTop; `onLayout(compact, size)` runs at the end of every
+-- layout pass with the gutter panel's pixel size, so a panel can lay out its insides after it.
+function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset: number?, modal: boolean?, bottomReserve: number?, accent: Color3?, compactBottom: number?, opts: PanelOpts?): (Frame, ScrollingFrame, TextLabel)
 	local top = topOffset or 60
 	local bottom = bottomReserve or 10
+	local options: PanelOpts = opts or {}
 	local panel = Instance.new("Frame")
 	panel.Name = name
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	panel.BackgroundColor3 = UiKit.PANEL
-	panel.BackgroundTransparency = 0.06 -- a hint of the world behind, like the reference games
+	panel.BackgroundTransparency = if options.opaque then 0 else 0.06 -- a hint of the world behind, like the reference games
 	panel.Visible = false
 	panel.ZIndex = if modal then 5 else 1
 	panel.Parent = gui
 	UiKit.corner(panel, 16)
 	UiKit.border(panel, UiKit.HEAVY)
 	local limit = Instance.new("UISizeConstraint")
-	limit.MaxSize = Vector2.new(560, 640)
+	limit.MaxSize = options.maxSize or Vector2.new(560, 640)
 	limit.Parent = panel
 	-- Darker toward the bottom, so the rows and buttons stand out against it.
 	local backdrop = Instance.new("UIGradient")
@@ -762,6 +777,27 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	UiKit.dropShadow(panel, 8, 16)
 	if not modal then
 		table.insert(exclusivePanels, panel)
+	end
+	if options.scrim then
+		-- Below the panel and its drop shadow (ZIndex 4), above the other panels (1). It reaches past
+		-- the screen insets and swallows taps (Active), so nothing behind the picker can be pressed.
+		local scrim = Instance.new("Frame")
+		scrim.Name = name .. "Scrim"
+		scrim.BackgroundColor3 = UiKit.INK
+		scrim.BackgroundTransparency = 0.45
+		scrim.BorderSizePixel = 0
+		scrim.Active = true
+		scrim.Position = UDim2.new(0, -200, 0, -200)
+		scrim.Size = UDim2.new(1, 400, 1, 400)
+		scrim.ZIndex = panel.ZIndex - 2
+		scrim.Visible = panel.Visible
+		scrim.Parent = gui
+		panel:GetPropertyChangedSignal("Visible"):Connect(function()
+			scrim.Visible = panel.Visible
+		end)
+		panel.Destroying:Connect(function()
+			scrim:Destroy()
+		end)
 	end
 
 	-- Title bar: rounded on top, square at the bottom, with a dark line under it.
@@ -853,7 +889,24 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		-- slide right, and on narrow screens get narrower, rather than cover the menu buttons.
 		local menuRight = gui:GetAttribute("MenuRight")
 		local screen = gui.AbsoluteSize
-		if typeof(menuRight) == "number" and screen.X > 0 then
+		local placed: PickerLayout.Rect? = nil
+		if options.gutter and screen.X > 0 and screen.Y > 0 then
+			local reserve = gui:GetAttribute("PanelTop") -- the tutorial bubble, until it moves into the title bar
+			local rect = PickerLayout.panelRect(
+				screen.X,
+				screen.Y,
+				if typeof(menuRight) == "number" then menuRight else 0,
+				compact,
+				if typeof(reserve) == "number" then reserve else nil,
+				limit.MaxSize.X,
+				limit.MaxSize.Y
+			)
+			placed = rect
+			panel.Size = UDim2.fromOffset(rect.w, rect.h)
+			panel.Position = UDim2.fromOffset(rect.x + rect.w / 2, rect.y + rect.h / 2)
+		elseif options.gutter then
+			-- Not measured yet: the next pass (open, viewport change) places it.
+		elseif typeof(menuRight) == "number" and screen.X > 0 then
 			local width = math.min(panel.Size.X.Scale * screen.X, limit.MaxSize.X)
 			local left = menuRight + 8
 			local room = screen.X - left - 8
@@ -867,7 +920,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		-- While the tutorial's dialogue is at the top ("PanelTop", set by Tutorial), a panel that
 		-- would reach under it gets shorter and starts below it, so both stay readable.
 		local reserve = gui:GetAttribute("PanelTop")
-		if typeof(reserve) == "number" and screen.Y > 0 then
+		if not options.gutter and typeof(reserve) == "number" and screen.Y > 0 then
 			local height = math.min(panel.Size.Y.Scale * screen.Y + panel.Size.Y.Offset, limit.MaxSize.Y)
 			local room = screen.Y - reserve - 8
 			if (screen.Y - height) / 2 < reserve and room > 0 then
@@ -904,10 +957,17 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		end
 		list.Position = UDim2.fromOffset(10, listTop)
 		list.Size = UDim2.new(1, -20, 1, -(listTop + (if compact and compactBottom ~= nil then compactBottom else bottom)))
+		local onLayout = options.onLayout
+		if onLayout ~= nil and placed ~= nil then
+			onLayout(compact, Vector2.new(placed.w, placed.h))
+		end
 	end
 	UiKit.onViewportChanged(applyLayout)
 	gui:GetAttributeChangedSignal("MenuRight"):Connect(applyLayout)
 	gui:GetAttributeChangedSignal("PanelTop"):Connect(applyLayout)
+	if options.gutter then
+		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout) -- safe insets changing
+	end
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		if panel.Visible then
 			applyLayout()
