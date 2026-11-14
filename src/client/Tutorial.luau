@@ -34,6 +34,7 @@ local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
 local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
 local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
 local TutorialPacing = require(ReplicatedStorage.Shared.TutorialPacing)
+local TutorialPill = require(ReplicatedStorage.Shared.TutorialPill)
 local Sounds = require(ReplicatedStorage.Shared.Sounds)
 
 -- The guide color (see Guides.luau).
@@ -362,6 +363,12 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local nameLabel = typeLabel("Cue", 1, CURTAIN)
 	nameLabel.Text = "LUCIEN"
 	local speech = typeLabel("Speech", 2, UiKit.INK)
+	-- Pill mode (a panel's title bar): the line scales to the pill, capped by this constraint.
+	local pillTextCap = Instance.new("UITextSizeConstraint")
+	pillTextCap.MinTextSize = 9
+	pillTextCap.MaxTextSize = 13
+	pillTextCap.Enabled = false
+	pillTextCap.Parent = speech
 
 	-- "Let's roll!" ends the intro; it only shows once the last intro line has been typed.
 	local begin = UiKit.makeButton(body, "Let's roll!", UiKit.GREEN, UDim2.new(1, 0, 0, 44))
@@ -475,6 +482,38 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		return nil
 	end -- set once the guides exist
 
+	-- The open panel whose title-bar slot can hold the pill (the top-most one wide enough), or nil.
+	local function pillSlot(): Frame?
+		local best: Frame? = nil
+		local bestZ = -math.huge
+		for _, child in gui:GetChildren() do
+			if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" then
+				local slot = child:FindFirstChild("DialogueSlot")
+				if slot ~= nil and slot:IsA("Frame") and TutorialPill.fits(slot.AbsoluteSize.X) and slot.AbsoluteSize.Y > 0 and child.ZIndex >= bestZ then
+					best, bestZ = slot, child.ZIndex
+				end
+			end
+		end
+		return best
+	end
+
+	-- Restores what pill mode changed on the bubble, for the corner and the intro.
+	local function leavePill()
+		card.AutomaticSize = Enum.AutomaticSize.Y
+		body.AutomaticSize = Enum.AutomaticSize.Y
+		body.Size = UDim2.fromScale(1, 0)
+		pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 12), UDim.new(0, 12)
+		pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 10)
+		nameLabel.Visible = true
+		speech.TextScaled = false
+		speech.AutomaticSize = Enum.AutomaticSize.Y
+		speech.Size = UDim2.fromScale(1, 0)
+		speech.TextYAlignment = Enum.TextYAlignment.Top
+		pillTextCap.Enabled = false
+		bust.AnchorPoint = Vector2.new(1, 0)
+		skip.AnchorPoint = Vector2.new(1, 0)
+	end
+
 	local lastPick: BubblePlacer.Pick? = nil
 	local function layout()
 		if not container.Visible then
@@ -502,7 +541,38 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local stackHeight = if small then bustSize else bustSize + 4 + skip.Size.Y.Offset
 		local panelOpen = anyPanelOpen()
 
-		if splashOpen then
+		local slot = if splashOpen or not panelOpen then nil else pillSlot()
+		if slot ~= nil then
+			-- A panel is open: the line becomes a cream pill in its title bar, Lucien's bust at the
+			-- left and Skip at the right, 12 px clear of the X. The panel keeps its full height.
+			local o = container.AbsolutePosition
+			local at, size = slot.AbsolutePosition - o, slot.AbsoluteSize
+			local p = TutorialPill.pill(size.X, size.Y, small)
+			bust.Visible = true
+			bust.AnchorPoint = Vector2.new(0, 0.5)
+			bust.Size = UDim2.fromOffset(p.bust, p.bust)
+			bust.Position = UDim2.fromOffset(at.X + p.bustX, at.Y + size.Y / 2)
+			nameLabel.Visible = false
+			card.AutomaticSize = Enum.AutomaticSize.None
+			card.AnchorPoint = Vector2.new(0, 0.5)
+			card.Position = UDim2.fromOffset(at.X + p.pillX, at.Y + size.Y / 2)
+			card.Size = UDim2.fromOffset(p.pillW, size.Y)
+			body.AutomaticSize = Enum.AutomaticSize.None
+			body.Size = UDim2.fromScale(1, 1)
+			pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 8), UDim.new(0, 8)
+			pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 1), UDim.new(0, 1)
+			speech.AutomaticSize = Enum.AutomaticSize.None
+			speech.Size = UDim2.fromScale(1, 1)
+			speech.TextYAlignment = Enum.TextYAlignment.Center
+			speech.TextWrapped = true
+			speech.TextScaled = true
+			pillTextCap.MaxTextSize = p.textMax
+			pillTextCap.Enabled = true
+			skip.Size = UDim2.fromOffset(p.skipW, p.skipH)
+			skip.AnchorPoint = Vector2.new(0, 0.5)
+			skip.Position = UDim2.fromOffset(at.X + p.skipX, at.Y + size.Y / 2)
+		elseif splashOpen then
+			leavePill()
 			-- The intro: the bubble from the middle of the safe area, Skip bottom-right.
 			bust.Visible = false
 			card.AnchorPoint = Vector2.new(0, 0)
@@ -516,6 +586,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		else
 			-- Corner: the bust at the top right, the bubble to its left, Skip under the bust. On
 			-- touch screens it drops under the wallet and the event lines; a panel pulls it to the top.
+			leavePill()
 			bust.Visible = true
 			bust.Size = UDim2.fromOffset(bustSize, bustSize)
 			local panelY = if touch then 0 else math.max(0, top - 8)
@@ -587,11 +658,14 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		-- Panels start under the bust and bubble as they sit while a panel is open. Only set on a
 		-- change: panels and the HUD re-lay themselves out when these change.
 		local panelY = if touch then 0 else math.max(0, top - 8)
-		local panelTop = panelY + math.max(stackHeight, card.AbsoluteSize.Y) + 6
+		local panelTop: number? = panelY + math.max(stackHeight, card.AbsoluteSize.Y) + 6
+		if slot ~= nil then
+			panelTop = nil -- pill mode: the panels get their full height
+		end
 		if gui:GetAttribute("PanelTop") ~= panelTop then
 			gui:SetAttribute("PanelTop", panelTop)
 		end
-		local bottom = if touch or not pushHud then nil else card.Position.Y.Offset + math.max(stackHeight, card.AbsoluteSize.Y) + 4
+		local bottom = if touch or slot ~= nil or not pushHud then nil else card.Position.Y.Offset + math.max(stackHeight, card.AbsoluteSize.Y) + 4
 		if gui:GetAttribute("TutorialBottom") ~= bottom then
 			gui:SetAttribute("TutorialBottom", bottom)
 		end
@@ -1502,6 +1576,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		dialogueMain.Enabled = false
 		gui:SetAttribute("PanelTop", nil)
 		gui:SetAttribute("TutorialBottom", nil)
+		gui:SetAttribute("TutorialActive", nil)
 	end
 
 	-- The end: one moment of joy instead of a tip tour. Lucien's wrap line is voiced; the stub's
@@ -1624,6 +1699,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	local function activate()
 		active = true
+		gui:SetAttribute("TutorialActive", true)
 		dialogueMain.Enabled = true
 		container.Visible = true
 		renderConnection = RunService.RenderStepped:Connect(onRender)

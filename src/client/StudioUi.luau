@@ -767,7 +767,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		UiKit.clear(castList)
 		table.clear(scriptButtons)
 		table.clear(actorCards)
-		pickerHeader.Text = `Start movie · Stage {pickStage}`
+		-- While Lucien talks (the line may sit in the title bar) the title is short.
+		pickerHeader.Text = if gui:GetAttribute("TutorialActive") == true then `Stage {pickStage}` else `Start movie · Stage {pickStage}`
 		local order = 0
 
 		-- Scripts: one row each, two lines (genre, then length and time) with the copies chip; the

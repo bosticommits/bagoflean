@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local PickerLayout = require(ReplicatedStorage.Shared.PickerLayout)
+local TutorialPill = require(ReplicatedStorage.Shared.TutorialPill)
 local Icon3D = require(script.Parent.Icon3D)
 local Juice = require(script.Parent.Juice)
 local Sfx = require(script.Parent.Sfx)
@@ -857,6 +858,15 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		panel.Visible = false
 	end)
 
+	-- Where Lucien's tutorial line sits while this panel is open (Tutorial.layout fills it): the
+	-- title bar between the title text and the close X. Empty and invisible otherwise.
+	local slot = Instance.new("Frame")
+	slot.Name = "DialogueSlot"
+	slot.BackgroundTransparency = 1
+	slot.Active = false
+	slot.ZIndex = 2
+	slot.Parent = panel
+
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "List"
 	list.BackgroundTransparency = 1
@@ -955,6 +965,9 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		elseif compact then
 			listTop = top - 12
 		end
+		local place = TutorialPill.slot(headerX + header.TextBounds.X, barHeight, closeSize, 10)
+		slot.Position = UDim2.fromOffset(place.x, place.y)
+		slot.Size = UDim2.new(1, -(place.x + place.rightInset), 0, place.h)
 		list.Position = UDim2.fromOffset(10, listTop)
 		list.Size = UDim2.new(1, -20, 1, -(listTop + (if compact and compactBottom ~= nil then compactBottom else bottom)))
 		local onLayout = options.onLayout
@@ -963,6 +976,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		end
 	end
 	UiKit.onViewportChanged(applyLayout)
+	header:GetPropertyChangedSignal("TextBounds"):Connect(applyLayout) -- the slot starts after the title text
 	gui:GetAttributeChangedSignal("MenuRight"):Connect(applyLayout)
 	gui:GetAttributeChangedSignal("PanelTop"):Connect(applyLayout)
 	if options.gutter then
