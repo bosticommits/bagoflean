@@ -1113,7 +1113,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				arrow.Rotation = 0 -- pointing down from above
 				-- The CAST bar's "star guaranteed" pill hangs above it: the arrow goes over the pill, not on its text.
 				local top = at.Y
-				for _, holder in { target, target.Parent } do
+				for _, holder: Instance? in { target :: Instance?, target.Parent } do
 					local pill = if holder ~= nil then holder:FindFirstChild("HotStart") else nil
 					if pill ~= nil and pill:IsA("GuiObject") and pill.Visible then
 						top = math.min(top, pill.AbsolutePosition.Y - origin.Y)
