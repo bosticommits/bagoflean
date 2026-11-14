@@ -177,12 +177,10 @@ end
 local function fadeOut(root: Instance, seconds: number)
 	local info = TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	for _, item in root:GetDescendants() do
-		if item:IsA("BasePart") then
+		if item:IsA("BasePart") or item:IsA("UIStroke") then
 			TweenService:Create(item, info, { Transparency = 1 }):Play()
 		elseif item:IsA("TextLabel") then
 			TweenService:Create(item, info, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-		elseif item:IsA("UIStroke") then
-			TweenService:Create(item, info, { Transparency = 1 }):Play()
 		elseif item:IsA("ParticleEmitter") then
 			item.Enabled = false
 		elseif item:IsA("Light") then
