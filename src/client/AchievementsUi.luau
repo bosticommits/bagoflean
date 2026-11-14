@@ -889,9 +889,9 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 				break
 			end
 		end
-		-- Hidden until the first sync, while the Director tutorial runs (it sets "PanelTop"), and
+		-- Hidden until the first sync, while the Director tutorial runs ("TutorialActive"), and
 		-- once every goal in the chain is claimed.
-		if current == nil or not synced or gui:GetAttribute("PanelTop") ~= nil then
+		if current == nil or not synced or gui:GetAttribute("TutorialActive") == true then
 			strip.Visible = false
 			stripClaimId = nil
 			stripGoalId = nil
@@ -936,7 +936,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			openBoard()
 		end
 	end)
-	for _, attribute in { "HudRight", "PanelTop" } do
+	for _, attribute in { "HudRight", "TutorialActive" } do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			placeStrip()
 			updateStrip()

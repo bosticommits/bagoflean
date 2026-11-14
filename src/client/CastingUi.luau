@@ -678,7 +678,7 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		for name, button in collectionTabs do
 			UiKit.styleTab(button, name == collectionTab)
 		end
-		collectionHeader.Text = `Collection  -  Index {indexFound()}/{Actors.IndexSlots}`
+		collectionHeader.Text = if gui:GetAttribute("TutorialActive") == true then "Collection" else `Collection  -  Index {indexFound()}/{Actors.IndexSlots}`
 		if collectionTab == "Roster" then
 			renderRoster()
 		elseif collectionTab == "Index" then

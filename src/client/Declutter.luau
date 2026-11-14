@@ -57,7 +57,7 @@ function Declutter.start(gui: ScreenGui)
 				for _, name in FLOATING do
 					want[name] = true
 				end
-				want.Wallet = BubblePlacer.hidesWallet(UiKit.isCompact(), true, gui:GetAttribute("PanelTop") ~= nil)
+				want.Wallet = BubblePlacer.hidesWallet(UiKit.isCompact(), true, gui:GetAttribute("TutorialActive") == true)
 			end
 			for name in want do
 				local object = gui:FindFirstChild(name)
