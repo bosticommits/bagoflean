@@ -126,7 +126,7 @@ function LotLook.founderStar(parent: Instance, base: CFrame, name: string): Base
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Top
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 50
+	gui.PixelsPerStud = 100
 	gui.LightInfluence = 0
 	gui.Parent = mesh
 	-- On Face=Top the GUI is turned 90 degrees (GUI up = mesh -X, right = mesh -Z). This canvas is the
@@ -139,9 +139,9 @@ function LotLook.founderStar(parent: Instance, base: CFrame, name: string): Base
 	canvas.Size = UDim2.fromScale(1, 1)
 	canvas.Rotation = -90
 	canvas.Parent = gui
-	local function text(label: string, pos: UDim2, size: UDim2, color: Color3, stroke: Color3, maxSize: number, thick: number)
+	local function text(objName: string, label: string, pos: UDim2, size: UDim2, color: Color3, stroke: Color3, maxSize: number, outlined: boolean)
 		local t = Instance.new("TextLabel")
-		t.Name = label
+		t.Name = objName
 		t.BackgroundTransparency = 1
 		t.AnchorPoint = Vector2.new(0.5, 0.5)
 		t.Position = pos
@@ -152,7 +152,7 @@ function LotLook.founderStar(parent: Instance, base: CFrame, name: string): Base
 		t.TextScaled = true
 		t.TextTruncate = Enum.TextTruncate.AtEnd
 		t.TextStrokeColor3 = stroke
-		t.TextStrokeTransparency = if thick > 0 then 0 else 1
+		t.TextStrokeTransparency = if outlined then 0 else 1
 		local c = Instance.new("UITextSizeConstraint")
 		c.MinTextSize = 8
 		c.MaxTextSize = maxSize
@@ -162,8 +162,8 @@ function LotLook.founderStar(parent: Instance, base: CFrame, name: string): Base
 	end
 	local navy = Color3.fromRGB(11, 15, 31)
 	-- Name in the pink band above the emblem; the strip below carries the title.
-	text(name, UDim2.fromScale(0.5, 0.475), UDim2.fromScale(0.528, 0.1056), Color3.fromRGB(245, 184, 46), navy, 60, 1).Name = "Name"
-	text("Founding Tester", UDim2.fromScale(0.5, 0.9181), UDim2.fromScale(0.333, 0.0472), Color3.fromRGB(240, 236, 224), navy, 30, 0).Name = "Title"
+	text("Name", name, UDim2.fromScale(0.5, 0.475), UDim2.fromScale(0.528, 0.1056), Color3.fromRGB(245, 184, 46), navy, 60, true)
+	text("Title", "Founding Tester", UDim2.fromScale(0.5, 0.9181), UDim2.fromScale(0.333, 0.0472), Color3.fromRGB(240, 236, 224), navy, 30, false)
 	return mesh
 end
 

@@ -34,8 +34,8 @@ from mathutils import Vector
 
 try:
     HERE = os.path.dirname(os.path.abspath(__file__))
-except NameError:  # exec'd inside the live Blender
-    HERE = "/Users/bosti/Desktop/bagoflean-wt/founder-star/art/blender"
+except NameError:  # exec'd inside the live Blender: set FOUNDER_STAR_DIR to this folder first
+    HERE = os.environ["FOUNDER_STAR_DIR"]
 sys.path.insert(0, HERE)
 import mmkit  # noqa: E402
 
@@ -57,7 +57,7 @@ STAR_RHO = 0.42  # inner / outer radius of the star polygon (real star ~0.40; 0.
 TIP_R, VAL_R = 0.05, 0.05  # tiny fillets on the star's tips and valleys (centre line of the rim)
 NAME_HW, NAME_Y0, NAME_Y1 = 0.95, -0.10, 0.28  # name band: 1.9 x 0.38 centred 0.09 above tile centre
 EMB_R, EMB_Y = 0.30, -0.46
-STRIP_HW, STRIP_Y0, STRIP_Y1 = 0.60, -1.55, -1.38  # "Founding Tester" strip, between the lower legs (placed by build())
+STRIP_HW, STRIP_Y0_DEFAULT, STRIP_Y1_DEFAULT = 0.60, -1.55, -1.38  # "Founding Tester" strip, between the lower legs (placed by build())
 CHIP_LIFT = 0.010  # chips float this far above the face they sit on (no z-fight, invisible from the side)
 TRI_BUDGET = 3950
 CORAL_TRIS = 1500  # budget for the coral-star speckle (the rest of the budget goes to the charcoal)
@@ -235,7 +235,6 @@ def build():
 
     # 1. Tile body: rounded square, rounded top edge, shallow seam groove, terrazzo top.
     h = TILE / 2
-    sq = [Vector(p) for p in ((h, h), (-h, h), (-h, -h), (h, -h))]  # placeholder order, fixed below
     sq = [Vector((-h, -h)), Vector((h, -h)), Vector((h, h)), Vector((-h, h))]  # CCW
     rsq, _ = round_poly(sq, [0.22] * 4, [2] * 4)
     prof = [(0, 0), (0, 0.055), (0.014, 0.085), (0.055, SLAB_Z), (0.068, 0.092), (0.082, 0.092), (0.095, SLAB_Z), (0.14, SLAB_Z)]
@@ -274,14 +273,14 @@ def build():
         tbox(m, px, py, 0.030, ah - 0.012, zc + 0.046, zc + 0.052, C["field"], rot=arm_ang, inset=0.003)
 
     # 4. Flat strip for the "Founding Tester" text, under the star.
-    global STRIP_Y0, STRIP_Y1
-    sh = STRIP_Y1 - STRIP_Y0
+    strip_y0, strip_y1 = STRIP_Y0_DEFAULT, STRIP_Y1_DEFAULT
+    sh = strip_y1 - strip_y0
     for y1 in [-0.9 - 0.01 * k for k in range(80)]:  # highest spot in the notch where the strip clears the rim
         if all(not inside(path, sx * STRIP_HW, y) and dist_poly(path, sx * STRIP_HW, y) >= RIM_HW + 0.03 for sx in (-1, 1) for y in (y1, y1 - sh)) and y1 - sh >= -1.64:
-            STRIP_Y1, STRIP_Y0 = y1 - 0.04, y1 - 0.04 - sh
+            strip_y1, strip_y0 = y1 - 0.04, y1 - 0.04 - sh
             break
-    print(f"strip {2 * STRIP_HW:.2f} x {sh:.2f} at y {STRIP_Y0:.2f}..{STRIP_Y1:.2f}")
-    tbox(m, 0, (STRIP_Y0 + STRIP_Y1) / 2, STRIP_HW * 2, sh, SLAB_Z - 0.004, SLAB_Z + 0.008, C["strip"], inset=0.012)
+    print(f"strip {2 * STRIP_HW:.2f} x {sh:.2f} at y {strip_y0:.2f}..{strip_y1:.2f}")
+    tbox(m, 0, (strip_y0 + strip_y1) / 2, STRIP_HW * 2, sh, SLAB_Z - 0.004, SLAB_Z + 0.008, C["strip"], inset=0.012)
 
     body_tris = m.tris()
 
@@ -334,7 +333,7 @@ def build():
                     continue
                 if inside(path, x, y) or dist_poly(path, x, y) < RIM_HW + r + 0.016:
                     continue
-                if dist_rect(x, y, -STRIP_HW, STRIP_HW, STRIP_Y0, STRIP_Y1) < r + 0.02:
+                if dist_rect(x, y, -STRIP_HW, STRIP_HW, strip_y0, strip_y1) < r + 0.02:
                     continue
                 z, col = SLAB_Z + CHIP_LIFT, rng.choice(TERR_CHIPS)
             if not free(x, y, r):

@@ -205,9 +205,22 @@ local function section(lot: Lot, name: string, key: string, build: (Model) -> ()
 end
 
 -- Bring everything on the lot that depends on its owner up to date.
+-- Owner names go on lot signs and the founder star: strip Private Use glyphs (U+E000-U+F8FF), which
+-- Roblox draws as badge/Robux icons, so nobody can fake one.
+local function cleanName(displayName: string): string
+	local out = {}
+	for _, code in utf8.codes(displayName) do
+		if code < 0xE000 or code > 0xF8FF then
+			table.insert(out, utf8.char(code))
+		end
+	end
+	return table.concat(out)
+end
+
 local function render(lot: Lot)
 	local owner = lot.owner
 	local data = if owner ~= nil then DataService.getData(owner) else nil
+	local ownerName = if owner ~= nil then cleanName(owner.DisplayName) else ""
 
 	-- Claim pad: its label only while the lot is free (the owner's name is over their avatar).
 	local claimGui = lot.claimPad:FindFirstChildOfClass("BillboardGui") :: BillboardGui
@@ -272,7 +285,7 @@ local function render(lot: Lot)
 		-- After a rebirth the studio's name gets its sequel number: "BOSTI PICTURES 2".
 		local sequel = Rebirth.sequelSuffix(if data ~= nil then data.rebirths else 0)
 		marquee.Text = if owner ~= nil
-			then (if vip then "★ " else "") .. string.upper(owner.DisplayName) .. " PICTURES" .. sequel .. (if vip then " ★" else "")
+			then (if vip then "★ " else "") .. string.upper(ownerName) .. " PICTURES" .. sequel .. (if vip then " ★" else "")
 			else "STUDIO FOR LEASE"
 	end
 
@@ -286,7 +299,7 @@ local function render(lot: Lot)
 	lot.model:SetAttribute("Trophies", if data ~= nil then data.trophies else nil)
 	lot.model:SetAttribute(
 		"StudioName",
-		if owner ~= nil then string.upper(owner.DisplayName) .. " PICTURES" .. Rebirth.sequelSuffix(if data ~= nil then data.rebirths else 0) else nil
+		if owner ~= nil then string.upper(ownerName) .. " PICTURES" .. Rebirth.sequelSuffix(if data ~= nil then data.rebirths else 0) else nil
 	)
 
 	local officeLevel = if progress ~= nil then progress.office else 0
@@ -326,9 +339,9 @@ local function render(lot: Lot)
 
 	-- Founding Tester's Walk of Fame star (drawn only once the FounderStar mesh is imported).
 	local founder = owner ~= nil and data ~= nil and data.founder
-	section(lot, "Founder", if founder and owner ~= nil then owner.DisplayName else "", function(model)
+	section(lot, "Founder", if founder and owner ~= nil then ownerName else "", function(model)
 		if founder and owner ~= nil then
-			LotLook.founderStar(model, lot.base, owner.DisplayName)
+			LotLook.founderStar(model, lot.base, if ownerName ~= "" then ownerName else "Founder")
 		end
 	end)
 
@@ -349,12 +362,12 @@ local function render(lot: Lot)
 		if owner == nil then
 			setBillboard(lot, "YOUR STAR HERE", "Claim this lot", "and cast actors", Color3.fromRGB(120, 120, 130))
 		elseif actor == nil or variant == nil then
-			setBillboard(lot, owner.DisplayName, "No stars yet", "Casting Call!", Color3.fromRGB(120, 120, 130))
+			setBillboard(lot, ownerName, "No stars yet", "Casting Call!", Color3.fromRGB(120, 120, 130))
 		else
 			local tier = Actors.getTier(actor.tier)
 			local tierColor = if tier ~= nil then tier.color else Color3.new(1, 1, 1)
 			local variantText = if variant.id == "Normal" then "" else variant.name .. " "
-			setBillboard(lot, owner.DisplayName .. "'s top star", actor.name, `{variantText}{actor.tier}`, tierColor, actor.id, variant.id)
+			setBillboard(lot, ownerName .. "'s top star", actor.name, `{variantText}{actor.tier}`, tierColor, actor.id, variant.id)
 		end
 	end)
 
