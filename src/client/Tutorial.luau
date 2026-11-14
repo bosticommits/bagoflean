@@ -1137,7 +1137,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 						return one("filmScript", only(any))
 					elseif (picker:GetAttribute("Cast") or 0) == 0 then
 						-- The first actor card shown (the best one sorts first).
-						local grid = if list ~= nil then list:FindFirstChild("Actors") else nil
+						local grid = picker:FindFirstChild("Actors", true) -- in the cast pane (CastList)
 						local first: GuiObject? = nil
 						local cards: { Instance } = if grid ~= nil then grid:GetChildren() else {}
 						for _, card in cards do
