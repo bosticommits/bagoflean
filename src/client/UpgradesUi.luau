@@ -431,7 +431,7 @@ function UpgradesUi.start(gui: ScreenGui, upgradesButton: TextButton)
 	local function layout()
 		local compact = UiKit.isCompact()
 		local screenHeight = math.max(chromeGui.AbsoluteSize.Y, 200)
-		local closeSize = if compact then 42 else 56
+		local closeSize = if compact then 44 else 56
 		close.Size = UDim2.fromOffset(closeSize, closeSize)
 		close.Position = UDim2.new(1, -(closeSize + (if compact then 10 else 28)), 0, if compact then 6 else 28)
 		local sideTop

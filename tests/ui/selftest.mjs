@@ -18,6 +18,7 @@ const label = (name, rect, parent, text, extra = {}) => node(name, "TextLabel", 
 
 const cases = {
 	"touch-target": scene(844, 390, (r) => [btn("Small", [100, 100, 30, 30], r)]),
+	"flyout-tile": scene(667, 375, (r) => [{ ...btn("UpgradeButton", [170, 128, 41, 41], r), path: "CoreGui.RURStory.SideMenu.MoreFlyout.UpgradeButton" }]),
 	overlap: scene(844, 390, (r) => [btn("A", [100, 100, 60, 60], r), btn("B", [140, 120, 60, 60], r)]),
 	offscreen: scene(844, 390, (r) => [btn("Edge", [800, 100, 80, 60], r)]),
 	"safe-zone": scene(844, 390, (r) => [btn("Stick", [20, 300, 60, 60], r)]),
@@ -38,7 +39,7 @@ for (const [rule, sc] of Object.entries(cases)) {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "uicheck-"));
 	fs.writeFileSync(path.join(dir, "scene.json"), JSON.stringify(sc));
 	const res = spawnSync("node", [path.join(here, "check.mjs"), dir], { encoding: "utf8" });
-	const hit = res.stdout.includes(`FAIL ${rule}`);
+	const hit = res.stdout.includes(`FAIL ${rule === "flyout-tile" ? "touch-target" : rule}`);
 	console.log(`${hit ? "ok  " : "MISS"} ${rule} fails when broken`);
 	if (!hit || res.status !== 1) bad++;
 }
