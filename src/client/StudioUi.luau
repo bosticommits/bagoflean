@@ -488,16 +488,18 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		end
 		if compact then
 			local left = Config.MaxCast * pitch + 4
-			local clearW, goW = 64, 132
+			local clearW, goW = 84, 132
 			local textW = UDim2.new(1, -(left + clearW + goW + 12), 0, 22)
 			summaryLabel.Size, summaryLabel.Position = textW, UDim2.fromOffset(left, 2)
 			previewLabel.Size, previewLabel.Position = textW, UDim2.fromOffset(left, 25)
 			clearButton.Size, clearButton.Position = UDim2.fromOffset(clearW, 40), UDim2.new(1, -(goW + clearW + 6), 0, 4)
+			UiKit.textConstraint(clearButton, 16) -- max text size on phone (TextScaled still shrinks to fit)
 			goButton.Size, goButton.Position = UDim2.fromOffset(goW, 44), UDim2.new(1, -goW, 0, 2)
 		else
 			summaryLabel.Size, summaryLabel.Position = UDim2.new(1, -slotsWidth, 0, 40), UDim2.fromOffset(slotsWidth, 2)
 			previewLabel.Size, previewLabel.Position = UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48)
 			clearButton.Size, clearButton.Position = UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76)
+			UiKit.textConstraint(clearButton, 26) -- resets the phone cap (16) set in the compact branch
 			goButton.Size, goButton.Position = UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76)
 		end
 	end
