@@ -540,7 +540,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local panelOpen = anyPanelOpen()
 
 		local slot = if splashOpen or not panelOpen then nil else pillSlot(small)
-		if slot ~= nil then
+		if slot ~= nil and slot:IsA("GuiObject") then
 			-- A panel is open: the line becomes a cream pill in its title bar, Lucien's bust at the
 			-- left and Skip at the right, 12 px clear of the X. The panel keeps its full height.
 			local o = container.AbsolutePosition
@@ -656,7 +656,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		-- change: panels and the HUD re-lay themselves out when these change.
 		local panelY = if touch then 0 else math.max(0, top - 8)
 		local panelTop: number? = panelY + math.max(stackHeight, card.AbsoluteSize.Y) + 6
-		if slot ~= nil then
+		if slot ~= nil and slot:IsA("GuiObject") then
 			panelTop = nil -- pill mode: the panels get their full height
 		end
 		if gui:GetAttribute("PanelTop") ~= panelTop then
@@ -1793,7 +1793,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			task.defer(layout)
 		end)
 		local slot = child:WaitForChild("DialogueSlot", 5)
-		if slot ~= nil then
+		if slot ~= nil and slot:IsA("GuiObject") then
 			slot:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 			slot:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
 		end
