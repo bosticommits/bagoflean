@@ -71,7 +71,7 @@ y = centred between topBound and bottomBound
 | 667 | 518 x 277 | 132..650 | 26..303 |
 | 844 | 596 x 268 | 137..733 | 26..294 |
 
-The picker is **opaque** (`BackgroundTransparency 0`). A **scrim** sits behind it: a Frame `PickerScrim` with `ZIndex 4` (the picker is 5), INK at 0.45 transparency, Position (0,-200,0,-200), Size (1,400,1,400) so it also covers the inset strips, and `Active=true`. A tap on the scrim does nothing (Q4). Its `Visible` follows `picker.Visible`. The Studio panel stays open behind it, as now.
+The picker is **opaque** (`BackgroundTransparency 0`). A **scrim** sits behind it: a Frame `PickerPanelScrim` with `ZIndex 3` (the picker is 5 and its drop shadow 4; at 4 the scrim would draw over the shadow), INK at 0.45 transparency, Position (0,-200,0,-200), Size (1,400,1,400) so it also covers the inset strips, and `Active=true`. A tap on the scrim does nothing (Q4). Its `Visible` follows `picker.Visible`. The Studio panel stays open behind it, as now.
 
 ### 2.3 Inside the panel (panel-local px)
 - **Body:** y `TB+P .. H-F-P`, x `P .. W-P`. PC: 66..446 (380 tall, 736 wide). 667: 48..209 (161 x 502). 844: 48..200 (152 x 580).
@@ -281,3 +281,12 @@ Report each issue with its screenshot path. Also re-check the Studio panel and o
 11. **Clapper-stripe footer edge:** A) later, via a ForgeGUI draft / B) order the draft now / C) never.
 12. **Mockups:** A) the ASCII here + playtest screenshots / B) a Figma storyboard first.
 13. **Pane headings:** A) PC only / B) both devices / C) none.
+
+---
+
+## 7. As built in PR 1 (differences from the numbers above)
+- Phone footer F = 64 (was 60) with Start 128x40 (was 44) and 12 px from the panel's right edge, so the Start halo (5 px gap + up to 5 px stroke) clears the footer's top line, the bottom edge and the panel edge by about 2 px. Two-row fallback: F = pad + S + gap + row + 12 (phone 104, PC 136).
+- Phone scripts pane is at least 160 px wide (PC min stays 140), so genre names ("Romance") keep their full text size. The cast pane gets 334 px on the iPhone 7 (still 3 columns of 102).
+- Script rows: line 2 is "Short · 2:00" on every device (the "Film" is dropped). Right edge: the copies chip on top, a gold tick under it when picked. The script icon stays.
+- Both scroll panes reserve the scrollbar gutter (`ScrollBarInset.Always`), so the column count never flips.
+- Footer content sits at ZIndex 3, above the filler (1) and the top line (2).

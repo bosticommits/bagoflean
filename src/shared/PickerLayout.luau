@@ -82,15 +82,17 @@ function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 	local textGap = pick(compact, 10, 16)
 	local textRightGap = pick(compact, 10, 14)
 	local clearW, clearH = pick(compact, 84, 130), pick(compact, 40, 52)
-	local goW, goH = pick(compact, 128, 210), pick(compact, 44, 56)
+	local goW, goH = pick(compact, 128, 210), pick(compact, 40, 56)
+	-- Start's halo (5 px gap + up to 5 px stroke at full pulse) needs about 12 px to the panel edge.
+	local goRight = pick(compact, pad + 4, pad)
 	local minText = pick(compact, 110, 150)
 	local lineH, lineGap = pick(compact, 18, 24), pick(compact, 2, 4)
 	local textX = pad + slots * s + (slots - 1) * slotGap + textGap
-	local goX = w - pad - goW
+	local goX = w - goRight - goW
 	local clearX = goX - btnGap - clearW
 	local textW = clearX - textRightGap - textX
 	local twoRow = textW < minText
-	local f = pick(compact, 60, 84)
+	local f = pick(compact, 64, 84)
 	local centres: { { x: number, y: number } } = {}
 	local textRect: Rect
 	local clear: Rect
@@ -104,15 +106,16 @@ function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 		clear = { x = clearX, y = (f - clearH) / 2, w = clearW, h = clearH }
 		go = { x = goX, y = (f - goH) / 2, w = goW, h = goH }
 	else
-		f = pick(compact, 96, 132)
+		local rowGap = pick(compact, 10, 12)
+		local rowH = pick(compact, 34, 44)
+		f = pad + s + rowGap + rowH + 12 -- 12 under the buttons for the halo
 		for i = 1, slots do
 			table.insert(centres, { x = pad + s / 2 + (i - 1) * (s + slotGap), y = pad + s / 2 })
 		end
 		local block = 2 * lineH + lineGap
-		textRect = { x = textX, y = pad + (s - block) / 2, w = w - pad - textX, h = block }
-		local rowH = pick(compact, 34, 44)
-		local rowY = pad + s + pick(compact, 6, 8)
-		local inner = w - 2 * pad - btnGap
+		textRect = { x = textX, y = pad + (s - block) / 2, w = w - goRight - textX, h = block }
+		local rowY = pad + s + rowGap
+		local inner = w - pad - goRight - btnGap
 		local clearW2 = math.floor(inner * 0.34)
 		clear = { x = pad, y = rowY, w = clearW2, h = rowH }
 		go = { x = pad + clearW2 + btnGap, y = rowY, w = inner - clearW2, h = rowH }
@@ -139,7 +142,7 @@ function PickerLayout.body(w: number, h: number, compact: boolean, footerH: numb
 	local listTop = top + pick(compact, 0, 30)
 	local bottom = h - footerH - pad
 	local bodyW = w - 2 * pad
-	local scriptsW = math.clamp(math.floor(bodyW * 0.3 + 0.5), 140, 220)
+	local scriptsW = math.clamp(math.floor(bodyW * 0.3 + 0.5), pick(compact, 160, 140), 220)
 	local gap = pick(compact, 8, 12)
 	local listH = math.max(0, bottom - listTop)
 	return {

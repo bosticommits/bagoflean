@@ -54,33 +54,35 @@ for _, d in devices do
 			expect(f.clear.x + f.clear.w <= f.go.x, "two-row: Clear before Start")
 			expect(f.clear.y >= f.slotCentres[1].y + f.slotSize / 2, "two-row: buttons under the slots")
 		end
-		expect(f.go.x + f.go.w <= r.w - pad + 0.5, "Start inside the right padding")
+		expect(f.go.x + f.go.w <= r.w - pad - (if d.compact then 4 else 0) + 0.5, "Start leaves room for its halo on the right")
+		expect(f.go.y >= 12 - 2 and f.height - (f.go.y + f.go.h) >= 12 - 2, "Start leaves room for its halo above and below")
 		expect(f.go.y >= 0 and f.go.y + f.go.h <= f.height, "Start inside the footer")
 		expect(f.clear.y >= 0 and f.clear.y + f.clear.h <= f.height, "Clear inside the footer")
 		expect(f.text.y >= 0 and f.text.y + f.text.h <= f.height, "text inside the footer")
 	end)
 end
 
-test("spec footer numbers: PC slot centres 40/104/168, iPhone 7 text x150 and Start x382", function()
+test("footer numbers: PC slot centres 40/104/168, iPhone 7 text x150 and Start x378 (40 tall, 12 from the edge)", function()
 	local pc = PL.footer(760, false, 3)
 	equal(pc.height, 84)
 	equal(pc.slotCentres[1].x, 40) equal(pc.slotCentres[2].x, 104) equal(pc.slotCentres[3].x, 168)
 	equal(pc.slotCentres[1].y, 42)
 	equal(pc.text.x, 212) equal(pc.text.w, 172) equal(pc.clear.x, 398) equal(pc.go.x, 538)
 	local ph = PL.footer(518, true, 3)
-	equal(ph.height, 60)
-	equal(ph.text.x, 150) equal(ph.clear.x, 290) equal(ph.go.x, 382) equal(ph.go.w, 128)
+	equal(ph.height, 64)
+	equal(ph.text.x, 150) equal(ph.clear.x, 286) equal(ph.go.x, 378) equal(ph.go.w, 128) equal(ph.go.h, 40)
 	local ph14 = PL.footer(596, true, 3)
-	equal(ph14.go.x, 460) equal(ph14.clear.x, 368) equal(ph14.text.w, 208)
+	equal(ph14.go.x, 456) equal(ph14.clear.x, 364) equal(ph14.text.w, 204)
 end)
 
 test("a narrow panel falls back to a taller two-row footer", function()
 	local f = PL.footer(420, true, 3)
 	expect(f.twoRow, "two rows")
-	equal(f.height, 96)
+	equal(f.height, 104)
+	equal(f.go.x + f.go.w, 420 - 12) -- same right margin as one row
 	local pc = PL.footer(520, false, 3)
 	expect(pc.twoRow, "PC two rows")
-	equal(pc.height, 132)
+	equal(pc.height, 136)
 	expect(pc.go.w > pc.clear.w, "Start is the wider button")
 end)
 
@@ -100,15 +102,15 @@ for _, d in devices do
 	end)
 end
 
-test("spec panes: PC 220 | 504, iPhone 7 151 | 343", function()
+test("panes: PC 220 | 504, iPhone 7 160 | 334 (phone scripts pane is at least 160 so genre names fit)", function()
 	local b = PL.body(760, 542, false, 84)
 	equal(b.scripts.w, 220) equal(b.cast.w, 504) equal(b.scripts.y, 96) equal(b.scripts.h, 350)
-	local p = PL.body(518, 277, true, 60)
-	equal(p.scripts.w, 151) equal(p.cast.w, 343) equal(p.scripts.y, 48) equal(p.scripts.h, 161)
+	local p = PL.body(518, 277, true, 64)
+	equal(p.scripts.w, 160) equal(p.cast.w, 334) equal(p.scripts.y, 48) equal(p.scripts.h, 157)
 end)
 
 test("grid: 3 columns on every spec viewport, no wasted column, cards stay inside the window", function()
-	for _, case in { { 498, false, 3 }, { 337, true, 3 }, { 392, true, 3 } } do
+	for _, case in { { 498, false, 3 }, { 330, true, 3 }, { 392, true, 3 } } do
 		local windowW, compact, cols = case[1], case[2], case[3]
 		local g = PL.grid(windowW, compact)
 		equal(g.cols, cols)
