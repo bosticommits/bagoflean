@@ -246,7 +246,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 						LuckDetails.open(gui, m.name, (1 + m.buff.amount) / have, `Works {Mascots.WarmUp} seconds after you equip it.`)
 					end)
 				end
-				if withRobux then
+				if withRobux and (m.product or 0) ~= 0 then
 					local id = m.product or 0
 					local price = robux[m.id]
 					local ready = id ~= 0 and price ~= nil and price >= 0

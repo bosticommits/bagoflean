@@ -360,7 +360,8 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		local passGrid = grid()
 		local slot = 0
 		for _, pass in Shop.Passes do
-			if featuredShown and pass.key == FEATURED then
+			local owned = player:GetAttribute("Pass" .. pass.key) == true
+			if (featuredShown and pass.key == FEATURED) or not Shop.shouldShow(pass.id, notForSale["pass:" .. pass.key] == true, owned) then
 				continue
 			end
 			slot += 1
@@ -372,6 +373,9 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		local rate = player:GetAttribute("Rate") or 0
 		local skips = if ClientState.studio ~= nil then ClientState.studio.skips or 0 else 0
 		for index, product in Shop.Products do
+			if not Shop.shouldShow(product.id, notForSale["product:" .. product.key] == true, false) then
+				continue
+			end
 			local description = product.description
 			if product.reward.cashMinutes ~= nil then
 				description = `${Hud.comma(Rewards.cashAmount(product.reward, rate))} now`

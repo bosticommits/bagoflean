@@ -56,3 +56,11 @@ test("the server wires the gate: receipts, the Luck pass and the stored trading 
 	local casting = fs.readFile("src/server/CastingService.luau")
 	expect(string.find(casting, 'data.passes.Luck2x and Shop.paidRandomAllowed(player:GetAttribute("PaidRandomRestricted"))', 1, true), "the Luck pass pauses where restricted")
 end)
+
+test("shop hides only unset or confirmed off-sale items; owned and failed lookups still show", function()
+	equal(Shop.shouldShow(0, false, false), false, "unset id hidden")
+	equal(Shop.shouldShow(5, true, false), false, "off sale hidden")
+	equal(Shop.shouldShow(5, false, false), true, "failed lookup keeps Buy")
+	equal(Shop.shouldShow(5, true, true), true, "owned still shows")
+	equal(Shop.shouldShow(0, false, true), true, "owned with id 0 still shows")
+end)
