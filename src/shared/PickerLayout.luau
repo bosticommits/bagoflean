@@ -78,7 +78,8 @@ function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 	local pad = PickerLayout.padding(compact)
 	local s = pick(compact, 40, 56)
 	local slotGap = pick(compact, 6, 8)
-	local btnGap = pick(compact, 8, 10)
+	-- Start's halo reaches about 10 px out (5 gap + 5 stroke): keep 8 px clear of Clear cast beyond it.
+	local btnGap = 18
 	local textGap = pick(compact, 10, 16)
 	local textRightGap = pick(compact, 10, 14)
 	local clearW, clearH = pick(compact, 84, 130), pick(compact, 40, 52)
@@ -158,7 +159,7 @@ PickerLayout.GRID_PAD_Y = 5 -- top/bottom: matches the scripts pane (card outlin
 
 -- Actor card grid for a cast pane whose scroll window is `windowW` wide (padding not included).
 function PickerLayout.grid(windowW: number, compact: boolean): Grid
-	local contentW = windowW - 2 * PickerLayout.GRID_PADDING
+	local contentW = windowW - 2 * PickerLayout.GRID_PADDING - 2 -- 2 px slack so rounding can never wrap the last column
 	local gap = pick(compact, 8, 10)
 	local minW = pick(compact, 100, 140)
 	local cols = math.max(2, math.floor((contentW + gap) / (minW + gap)))
