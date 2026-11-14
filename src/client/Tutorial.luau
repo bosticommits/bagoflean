@@ -1702,6 +1702,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		animateGuides(dt)
 	end
 
+	local waitingForLoading = false
 	local function activate()
 		active = true
 		gui:SetAttribute("TutorialActive", true)
@@ -1748,6 +1749,24 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		if not active and not finished then
 			if s.tutorialDone then
 				finished = true
+				return
+			end
+			if player:GetAttribute("LoadingScreen") == "loading" then
+				-- The loading screen covers everything: the curtain intro starts when it hands off
+				-- (or after a safety timeout, should that script ever fail to clear its flag).
+				if not waitingForLoading then
+					waitingForLoading = true
+					task.spawn(function()
+						local started = os.clock()
+						while player:GetAttribute("LoadingScreen") == "loading" and os.clock() - started < 12 do
+							task.wait()
+						end
+						waitingForLoading = false
+						if not active and not finished and studio() ~= nil then
+							activate()
+						end
+					end)
+				end
 				return
 			end
 			activate()

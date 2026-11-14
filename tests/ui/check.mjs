@@ -11,7 +11,7 @@ const TOP_BAR = 36; // Roblox top bar, px
 // Roblox draws the thumbstick and jump button over the game; fractions of the screen (roblox-ui-verify).
 const THUMBSTICK = [0.0, 0.62, 0.3, 1.0];
 const JUMP = [0.76, 0.68, 1.0, 1.0];
-const MODALS = new Set(["PickerPanel"]); // panels that hide the touch controls while open
+const MODALS = new Set(["PickerPanel", "LoadingPanel"]); // panels that hide the touch controls while open
 const PICKER_COLUMNS = 3;
 const SLACK = 1.5; // px of rounding / stroke tolerance
 // Parts that overhang on purpose or are pure decoration: never reported as outside / off-screen / overlapping.

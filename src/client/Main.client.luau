@@ -14,6 +14,7 @@ local ClientState = require(script.Parent.ClientState)
 local DayNightWorld = require(script.Parent.DayNightWorld)
 local FilmSetWorld = require(script.Parent.FilmSetWorld)
 local GamepadNavigation = require(script.Parent.GamepadNavigation)
+local LoadingBridge = require(script.Parent.LoadingBridge)
 local HalloweenWorld = require(script.Parent.HalloweenWorld)
 local Fx = require(script.Parent.Fx)
 local Hud = require(script.Parent.Hud)
@@ -59,6 +60,7 @@ gui.Parent = playerGui
 
 GamepadNavigation.start()
 Sfx.start()
+LoadingBridge.startSounds()
 Music.start()
 Blimp.start()
 MapLife.start()
@@ -95,6 +97,16 @@ if remotes ~= nil then
 	MascotUi.start(gui, side.mascots, remotes)
 	task.spawn(PlaytimeGiftsUi.start, gui, remotes)
 	Declutter.start(gui)
+	-- Tell the loading screen the UI is built and the first sync is in (it also gives up on its own
+	-- after its time cap, so a missing sync never traps the player).
+	if not LoadingBridge.announce() then
+		local connection: RBXScriptConnection? = nil
+		connection = ClientState.changed:Connect(function()
+			if LoadingBridge.announce() and connection ~= nil then
+				connection:Disconnect()
+			end
+		end)
+	end
 else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
