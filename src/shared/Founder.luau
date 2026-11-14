@@ -23,4 +23,10 @@ function Founder.settle(data: { founder: boolean, founderChecked: boolean }, isF
 	return isFounder
 end
 
+-- The thank-you toast waits for the grant (FounderNew, set on one join only), a claimed lot (the
+-- star is on it) and the full-screen intro being gone, and shows once.
+function Founder.toastReady(state: { granted: boolean, claimed: boolean, introOpen: boolean, shown: boolean }): boolean
+	return state.granted and state.claimed and not state.introOpen and not state.shown
+end
+
 return Founder

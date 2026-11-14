@@ -362,8 +362,10 @@ function DataService.oldSave(userId: number): (boolean, any, number)
 		oldStore = if RunService:IsStudio() then store.Mock else store
 	end
 	local finished, readOk, profile = false, false, nil
-	local reader = task.spawn(function()
-		-- GetAsync retries failed reads on its own until shutdown; the deadline below bounds that.
+	task.spawn(function()
+		-- GetAsync retries failed reads on its own until shutdown. We stop waiting at the deadline
+		-- below but never cancel it (a cancelled update can wedge ProfileStore's queue for this key);
+		-- a late result only lands in these locals and is ignored.
 		readOk, profile = pcall(function()
 			return oldStore:GetAsync("player_" .. userId)
 		end)
@@ -373,9 +375,6 @@ function DataService.oldSave(userId: number): (boolean, any, number)
 	while not finished and waited < OLD_READ_SECONDS and not ProfileStore.IsClosing do
 		task.wait(0.2)
 		waited += 0.2
-	end
-	if not finished then
-		pcall(task.cancel, reader)
 	end
 	-- GetAsync also returns nil on shutdown: that must not be read as "no save".
 	if not finished or not readOk or ProfileStore.IsClosing then

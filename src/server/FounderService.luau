@@ -18,7 +18,7 @@ local FounderService = {}
 
 local function publish(player: Player)
 	player:SetAttribute("FoundingTester", true)
-	-- Every join, so the badge still lands if its id is added to Config.FounderBadgeId later.
+	-- Every join, so the badge still lands if its id is added to Badges.List.FoundingTester.id (Shared/Badges) later.
 	BadgeAwards.award(player, "FoundingTester")
 end
 

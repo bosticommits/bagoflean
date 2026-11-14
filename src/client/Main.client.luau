@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 
 local AchievementsUi = require(script.Parent.AchievementsUi)
+local Founder = require(ReplicatedStorage.Shared.Founder)
 local Announcements = require(script.Parent.Announcements)
 local ActorLife = require(script.Parent.ActorLife)
 local AreaMood = require(script.Parent.AreaMood)
@@ -98,13 +99,26 @@ else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
 
--- Founding Tester: the server sets FounderNew only on the join that grants it (one toast, ever).
+-- Founding Tester: the server sets FounderNew only on the join that grants it (one toast, ever). It
+-- waits until the player has claimed their lot (the star is on it) and the intro no longer covers
+-- the screen, whichever comes later.
+local founderToastShown = false
 local function founderToast()
-	if Players.LocalPlayer:GetAttribute("FounderNew") then
+	local me = Players.LocalPlayer
+	local ready = Founder.toastReady({
+		granted = me:GetAttribute("FounderNew") == true,
+		claimed = me:GetAttribute("LotIndex") ~= nil,
+		introOpen = gui:GetAttribute("IntroOpen") == true,
+		shown = founderToastShown,
+	})
+	if ready then
+		founderToastShown = true
 		UiKit.toast(gui, "Thanks for testing! Your Founding Tester star is on your lot.")
 	end
 end
 Players.LocalPlayer:GetAttributeChangedSignal("FounderNew"):Connect(founderToast)
+Players.LocalPlayer:GetAttributeChangedSignal("LotIndex"):Connect(founderToast)
+gui:GetAttributeChangedSignal("IntroOpen"):Connect(founderToast)
 founderToast()
 
 -- VIP and Founder chat tags. The server sets PassVIP on players who own the pass; this only decorates text.
