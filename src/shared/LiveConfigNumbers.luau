@@ -6,6 +6,7 @@ export type Definition = { default: number, min: number, max: number }
 
 local definitions: { [string]: Definition } = {
 	CastingLuckMultiplier = { default = 1, min = 0.5, max = 2 },
+	LuckWeekendUntil = { default = 0, min = 0, max = 4e9 }, -- os.time the Luck Weekend badge counts down to; 0 = no end shown
 	GiftCashMultiplier = { default = 1, min = 0.5, max = 2 },
 	EventCoinMultiplier = { default = 1, min = 0.5, max = 2 },
 	EventWeight_LuckyStar = { default = 1, min = 0, max = 5 },

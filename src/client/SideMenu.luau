@@ -41,12 +41,13 @@ local RAIL_WIDTH = RAIL_COLUMNS * BUTTON + (RAIL_COLUMNS - 1) * PHONE_GAP
 local PHONE_HEIGHT = RAIL_ROWS * BUTTON + (RAIL_ROWS - 1) * PHONE_ROW_GAP
 local PHONE_MIN_SCALE = 46 / BUTTON
 local PHONE_MAX_SCALE = 0.7 -- bigger would squeeze the panels, which keep clear of the menu
-local FLY_COLUMNS = 3
-local FLY_ROWS = 2
+local FLY_COLUMNS = 5 -- ONE row: two rows (3x2) were squeezed under the wallet card to ~41 px tiles on iPhone 7
+local FLY_ROWS = 1
 local FLY_PAD = 16 -- inside the flyout card
 local FLY_TILES_WIDTH = FLY_COLUMNS * BUTTON + (FLY_COLUMNS - 1) * PHONE_GAP
 local FLY_HEIGHT = FLY_ROWS * BUTTON + (FLY_ROWS - 1) * PHONE_ROW_GAP + 2 * FLY_PAD
-local FLY_MIN_SCALE = 0.78 -- the flyout may shrink to this to stay under the wallet (46 px tiles at the smallest)
+local FLY_MIN_TILE = 46 -- px on screen: the flyout never shrinks its tiles below this (44 px tap target + slack)
+local WALLET_CLEAR = 8 -- px of air between the wallet card and the flyout card
 local FLY_GAP = 18 -- between the rail's labels and the flyout card
 local CLOSE_HIT = 46 -- px on screen
 local WALLET_SHIFT = 10 -- phones: the wallet sits this far left of centre, so the Box Office card keeps a 12 px gap
@@ -302,9 +303,11 @@ function SideMenu.start(gui: ScreenGui): Buttons
 			size = math.clamp(math.min((walletLeft - 8 - 10) / RAIL_WIDTH, room / PHONE_HEIGHT), PHONE_MIN_SCALE, PHONE_MAX_SCALE)
 			-- The flyout card hangs off the rail's right edge, its bottom level with the rail's, and shrinks (a little) so
 			-- its top stays under the wallet card. The X gets its own strip on the right, 46 px on screen.
-			local walletBottom = 4 + WALLET_HEIGHT * walletSize + 6
+			local walletBottom = 4 + WALLET_HEIGHT * walletSize + 6 + WALLET_CLEAR
 			local roomUnder = (top + PHONE_HEIGHT * size) - walletBottom
-			local fly = math.clamp(roomUnder / (FLY_HEIGHT * size), FLY_MIN_SCALE, 1)
+			local roomRight = area.X - 8 - (10 + (RAIL_WIDTH + 0.15 * BUTTON + FLY_GAP) * size)
+			local flyWidth = FLY_TILES_WIDTH + 2 * FLY_PAD + math.ceil(CLOSE_HIT / size)
+			local fly = math.clamp(math.min(roomUnder / (FLY_HEIGHT * size), roomRight / (flyWidth * size)), FLY_MIN_TILE / (BUTTON * size), 1)
 			local closeBase = math.ceil(CLOSE_HIT / (size * fly))
 			flyBase = fly
 			railSize = size

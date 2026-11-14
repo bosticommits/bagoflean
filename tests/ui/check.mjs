@@ -185,7 +185,10 @@ function checkScene(dir) {
 	}
 
 	// A story that must show something (e.g. Visit's Invite friends button) lists its node names in meta.expect.
-	for (const want of meta.expect ?? []) {
+	// An entry "phone:Name" only applies at phone sizes (HudMore's flyout tiles do not exist on PC).
+	for (const entry of meta.expect ?? []) {
+		if (entry.startsWith("phone:") && !phone) continue;
+		const want = entry.replace(/^phone:/, "");
 		if (!nodes.some((n) => n.name === want && info.get(n.id).vis)) findings.push({ rule: "missing", level: "error", path: want, rect: [0, 0, 0, 0], msg: `expected a visible "${want}" in this story, none rendered` });
 	}
 
