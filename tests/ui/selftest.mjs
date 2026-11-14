@@ -42,6 +42,28 @@ for (const [rule, sc] of Object.entries(cases)) {
 	console.log(`${hit ? "ok  " : "MISS"} ${rule} fails when broken`);
 	if (!hit || res.status !== 1) bad++;
 }
+// Expected nodes: a story that lists a node that is not rendered fails.
+{
+	const d = fs.mkdtempSync(path.join(os.tmpdir(), "uicheck-"));
+	fs.writeFileSync(path.join(d, "scene.json"), JSON.stringify(scene(844, 390, (r) => [btn("Fine", [300, 120, 120, 60], r)])));
+	fs.writeFileSync(path.join(d, "meta.json"), JSON.stringify({ name: "T", expect: ["InviteFriends"] }));
+	const res = spawnSync("node", [path.join(here, "check.mjs"), d], { encoding: "utf8" });
+	const hit = res.status === 1 && res.stdout.includes("FAIL missing");
+	console.log(`${hit ? "ok  " : "MISS"} missing expected node fails`);
+	if (!hit) bad++;
+}
+// Size-aware baseline: a known touch target passes at its recorded size and fails once it gets smaller.
+for (const [recorded, shouldFail] of [[30, false], [40, true]]) {
+	const d = fs.mkdtempSync(path.join(os.tmpdir(), "uicheck-"));
+	fs.writeFileSync(path.join(d, "scene.json"), JSON.stringify(scene(844, 390, (r) => [btn("Small", [100, 100, 30, 30], r)])));
+	fs.writeFileSync(path.join(d, "meta.json"), JSON.stringify({ name: "T" }));
+	const base = path.join(d, "baseline.json");
+	fs.writeFileSync(base, JSON.stringify([`T|touch-target|Small|size=${recorded}`]));
+	const res = spawnSync("node", [path.join(here, "check.mjs"), "--baseline", base, d], { encoding: "utf8" });
+	const ok = shouldFail ? res.status === 1 : res.status === 0;
+	console.log(`${ok ? "ok  " : "MISS"} baseline size ${recorded} vs 30 px target ${shouldFail ? "fails (got smaller)" : "passes"}`);
+	if (!ok) bad++;
+}
 // A clean scene must pass.
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "uicheck-"));
 fs.writeFileSync(path.join(dir, "scene.json"), JSON.stringify(scene(844, 390, (r) => [btn("Fine", [300, 120, 120, 60], r)])));

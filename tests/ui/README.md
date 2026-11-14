@@ -31,7 +31,12 @@ offscreen (outside the safe area) · outside-panel (past its panel outline) · o
 and HUD blocks over each other) · touch-target (<44 px, phones) · safe-zone (top 36 px, thumbstick, jump button; not
 inside the picker modal, which hides touch controls; a non-modal panel only warns) · text-size (TextScaled <12 px) ·
 picker-columns (cast grid must be 3 columns). Scroll content is clipped to its window first.
-`baseline.json` lists findings known on main so the script only fails on new ones.
+`baseline.json` lists findings known on main so the script only fails on new ones (empty since the phone-size fixes; entries
+for touch-target / text-size carry `|size=N`, and a known finding that gets smaller than N fails). `warn` findings (a panel
+button over the thumbstick/jump zone) are listed but never fail the run; only `FAIL` lines do.
+A story can list nodes it must render in `stories/<Story>.expect.json` (Visit: `InviteFriends`); a missing one fails.
+These checks are a **subset** of what makes a good layout (no glyph shapes, icons, contrast, motion, taste): always look at the PNGs.
+`run.sh` only wipes `RUR_UI_OUT` when its folder name starts with `rur-ui` (or is a `mktemp -d` dir).
 
 ## Limits
 - Offline: 3D icons (ViewportFrames) and cloud fonts are missing, so icons are blank and text uses fallback metrics

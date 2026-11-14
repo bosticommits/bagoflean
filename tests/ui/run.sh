@@ -23,6 +23,9 @@ stories=(${args[@]+"${args[@]}"}); [ ${#stories[@]} -gt 0 ] || stories=(Hud Stud
 # insets), 1336x653 is PC. Every size uses a 36 px top bar inset, as the game's ScreenInsets do.
 sizes=(844x390 750x390 667x375 1336x653)
 
+# Never rm -rf an arbitrary RUR_UI_OUT: only a folder this script names (rur-ui*) or a mktemp dir may be wiped.
+case "$(basename "$out")" in rur-ui*|tmp.*|rur-ui-*) ;; *) echo "refusing to wipe RUR_UI_OUT=$out (its name must start with rur-ui, or use mktemp -d)"; exit 2;; esac
+[ "$out" != "/" ] && [ "$out" != "$HOME" ] || { echo "refusing to wipe $out"; exit 2; }
 rm -rf "$out"; mkdir -p "$out"
 cd "$repo"
 node "$here/selftest.mjs" >/dev/null || { echo "check.mjs selftest failed"; node "$here/selftest.mjs"; exit 2; }
@@ -36,7 +39,8 @@ for story in "${stories[@]}"; do
       --story "tests/ui/stories/$story.story.luau" --viewport "$size" --scale 1 --time 1.5 --offline \
       --device "$device" --topbar-inset 36 ${extra[@]+"${extra[@]}"} --dir "$d" > "$d.log" 2>&1 || { echo "render failed: $story $size"; tail -5 "$d.log"; exit 1; }
     grep -q "script errors\|rur: error" "$d.log" && { echo "script error in $story $size"; grep -v '^{' "$d.log" | tail -8; exit 1; }
-    echo "{\"name\":\"$story $size\"}" > "$d/meta.json"
+    expect="[]"; [ -f "tests/ui/stories/$story.expect.json" ] && expect="$(cat "tests/ui/stories/$story.expect.json")"
+    echo "{\"name\":\"$story $size\",\"expect\":$expect}" > "$d/meta.json"
     dirs+=("$d")
   done
 done
