@@ -290,3 +290,8 @@ Report each issue with its screenshot path. Also re-check the Studio panel and o
 - Script rows: line 2 is "Short · 2:00" on every device (the "Film" is dropped). Right edge: the copies chip on top, a gold tick under it when picked. The script icon stays.
 - Both scroll panes reserve the scrollbar gutter (`ScrollBarInset.Always`), so the column count never flips.
 - Footer content sits at ZIndex 3, above the filler (1) and the top line (2).
+
+### 7.1 Playtest fixes (2026-11-14)
+- Dim: own ScreenGui `PickerPanelDim` (no insets, DisplayOrder just under MovieMogulUI), created and destroyed with the picker; the in-gui `PickerPanelScrim` is clear but Active and only blocks taps (the HUD inside MovieMogulUI is not dimmed).
+- While the picker is open: `GuiService.TouchControlsEnabled=false` (restored exactly, also on destroy) and the Studio panel is shrunk by a `PickerHide` UIScale (stays Visible).
+- Cast pane top/bottom padding 5 (`GRID_PAD_Y`); script rows `AutoButtonColor=false`; empty-cast text at body size; phone footer 70 tall, Start 14 px from the right edge.

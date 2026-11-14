@@ -2,6 +2,7 @@
 -- Studio screen: stages (start a movie, clapperboard, premiere), script shop, and cinema.
 -- Styled after the design kit (see UiKit). The client shows server state and sends requests; it never decides
 -- Cash, timers, or results. Remaining time is the server's end stamp minus the server's clock.
+local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -486,7 +487,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	castLayout.Parent = castList
 	local castPad = Instance.new("UIPadding")
 	castPad.PaddingLeft, castPad.PaddingRight = UDim.new(0, PickerLayout.GRID_PADDING), UDim.new(0, PickerLayout.GRID_PADDING)
-	castPad.PaddingTop, castPad.PaddingBottom = UDim.new(0, PickerLayout.GRID_PADDING), UDim.new(0, PickerLayout.GRID_PADDING)
+	-- Top/bottom 5 like the scripts pane, so cards and script rows start at the same y and the 3 px
+	-- card outlines are not clipped by the scroll window.
+	castPad.PaddingTop, castPad.PaddingBottom = UDim.new(0, PickerLayout.GRID_PAD_Y), UDim.new(0, PickerLayout.GRID_PAD_Y)
 	castPad.Parent = castList
 
 	-- Pane headings (PC only; the footer prompt does that job on a phone).
@@ -802,6 +805,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 					order += 1
 					local button = makeButton(pickerList, "", GENRE_COLORS[genre] or UiKit.BLUE, UDim2.new(1, 0, 0, rowH))
 					button.Name = "PickScript_" .. key
+					button.AutoButtonColor = false -- the hover/press tint made the picked row look dark and disabled
 					button.LayoutOrder = order
 					button:SetAttribute("ChipInset", true)
 					smallIcon(button, "script", iconSize, UDim2.fromOffset(iconX, iconY))
@@ -856,7 +860,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 
 		local emptyRow = UiKit.addRow(castList, 1, 44)
 		emptyRow.Size = UDim2.new(1, 0, 0, 44)
-		makeLabel(emptyRow, "No free actors - cast some first", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
+		local emptyText = makeLabel(emptyRow, "No free actors - cast some first", UiKit.MUTED, UDim2.new(1, -20, 0.7, 0), UDim2.fromOffset(10, 6))
+		UiKit.textConstraint(emptyText, if compact then 14 else 18) -- body size, never bigger than the headings
 		noActorsRow = emptyRow
 
 		-- Every actor with a copy not busy filming gets a picture card in its rarity colors; tap one
@@ -985,6 +990,46 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			buildPicker()
 		end
 	end
+
+	-- While the picker (a modal) is open: the Roblox touch controls (jump button sits over Start
+	-- filming) and the Studio panel (bigger than the picker on a phone, so it peeked out above it)
+	-- are hidden, and put back exactly as they were when it closes. The Studio panel stays "Visible"
+	-- (the tutorial and the close-with-Studio rule rely on that); a tiny UIScale hides it.
+	local savedTouchControls: boolean? = nil
+	local studioHide = Instance.new("UIScale")
+	studioHide.Name = "PickerHide"
+	studioHide.Parent = panel
+	local function setPickerModal(open: boolean)
+		if open then
+			if savedTouchControls == nil then
+				local ok, current = pcall(function()
+					return GuiService.TouchControlsEnabled
+				end)
+				if ok then
+					savedTouchControls = current
+					pcall(function()
+						GuiService.TouchControlsEnabled = false
+					end)
+				end
+			end
+			studioHide.Scale = 0.001
+		else
+			local saved = savedTouchControls
+			if saved ~= nil then
+				savedTouchControls = nil
+				pcall(function()
+					GuiService.TouchControlsEnabled = saved
+				end)
+			end
+			studioHide.Scale = 1
+		end
+	end
+	picker:GetPropertyChangedSignal("Visible"):Connect(function()
+		setPickerModal(picker.Visible)
+	end)
+	picker.Destroying:Connect(function()
+		setPickerModal(false)
+	end)
 
 	openPicker = function(stage: number)
 		pickStage = stage

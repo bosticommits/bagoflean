@@ -780,24 +780,52 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		table.insert(exclusivePanels, panel)
 	end
 	if options.scrim then
-		-- Below the panel and its drop shadow (ZIndex 4), above the other panels (1). It reaches past
-		-- the screen insets and swallows taps (Active), so nothing behind the picker can be pressed.
-		local scrim = Instance.new("Frame")
-		scrim.Name = name .. "Scrim"
-		scrim.BackgroundColor3 = UiKit.INK
-		scrim.BackgroundTransparency = 0.45
-		scrim.BorderSizePixel = 0
-		scrim.Active = true
-		scrim.Position = UDim2.new(0, -200, 0, -200)
-		scrim.Size = UDim2.new(1, 400, 1, 400)
-		scrim.ZIndex = panel.ZIndex - 2
-		scrim.Visible = panel.Visible
-		scrim.Parent = gui
+		-- The dim lives in its own screen (like PremiereRevealBackdrop): no insets, so it reaches the
+		-- notch strips, and just under this gui so the picker stays above it. It exists only while the
+		-- panel is open. This gui's own scrim is clear but Active, so taps on the HUD behind do nothing.
+		local blocker = Instance.new("Frame")
+		blocker.Name = name .. "Scrim"
+		blocker.BackgroundTransparency = 1
+		blocker.BorderSizePixel = 0
+		blocker.Active = true
+		blocker.Position = UDim2.new(0, -200, 0, -200)
+		blocker.Size = UDim2.new(1, 400, 1, 400)
+		blocker.ZIndex = panel.ZIndex - 2
+		blocker.Visible = panel.Visible
+		blocker.Parent = gui
+		local dimGui: ScreenGui? = nil
+		local function closeDim()
+			if dimGui ~= nil then
+				dimGui:Destroy()
+				dimGui = nil
+			end
+		end
 		panel:GetPropertyChangedSignal("Visible"):Connect(function()
-			scrim.Visible = panel.Visible
+			blocker.Visible = panel.Visible
+			closeDim()
+			local parent = gui.Parent
+			if panel.Visible and parent ~= nil then
+				local shell = Instance.new("ScreenGui")
+				shell.Name = name .. "Dim"
+				shell.IgnoreGuiInset = true
+				shell.ScreenInsets = Enum.ScreenInsets.None
+				shell.DisplayOrder = gui.DisplayOrder - 1
+				shell.ResetOnSpawn = false
+				local dim = Instance.new("Frame")
+				dim.Name = "Dim"
+				dim.BackgroundColor3 = UiKit.INK
+				dim.BackgroundTransparency = 0.45
+				dim.BorderSizePixel = 0
+				dim.Active = true
+				dim.Size = UDim2.fromScale(1, 1)
+				dim.Parent = shell
+				shell.Parent = parent
+				dimGui = shell
+			end
 		end)
 		panel.Destroying:Connect(function()
-			scrim:Destroy()
+			closeDim()
+			blocker:Destroy()
 		end)
 	end
 
