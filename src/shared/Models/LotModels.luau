@@ -25,6 +25,7 @@ LotModels.Layout = table.freeze({
 	kiosk = Vector3.new(-8.5, 0, 2.4),
 	pedestal = Vector3.new(8.5, 0, -3),
 	trophyCase = Vector3.new(9, 0, -12),
+	founderStar = Vector3.new(0, 0, -23.5), -- Walk of Fame star inside the gate, between the gate and the claim pad
 	laurels = Vector3.new(7.9, 0, -8.4), -- Film Festival wins, between the trophy case and the star
 	office = Vector3.new(-19, 0, -19),
 	billboard = Vector3.new(20, 0, 24.4),

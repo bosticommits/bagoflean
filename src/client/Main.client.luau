@@ -34,6 +34,7 @@ local Stands = require(script.Parent.Stands)
 local PremiereCarpet = require(script.Parent.PremiereCarpet)
 local StudioUi = require(script.Parent.StudioUi)
 local TakeUi = require(script.Parent.TakeUi)
+local UiKit = require(script.Parent.UiKit)
 local Tutorial = require(script.Parent.Tutorial)
 local UpgradesUi = require(script.Parent.UpgradesUi)
 local VisitUi = require(script.Parent.VisitUi)
@@ -97,14 +98,30 @@ else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
 
--- VIP chat tag. The server sets PassVIP on players who own the pass; this only decorates text.
+-- Founding Tester: the server sets FounderNew only on the join that grants it (one toast, ever).
+local function founderToast()
+	if Players.LocalPlayer:GetAttribute("FounderNew") then
+		UiKit.toast(gui, "Thanks for testing! Your Founding Tester star is on your lot.")
+	end
+end
+Players.LocalPlayer:GetAttributeChangedSignal("FounderNew"):Connect(founderToast)
+founderToast()
+
+-- VIP and Founder chat tags. The server sets PassVIP on players who own the pass; this only decorates text.
 TextChatService.OnIncomingMessage = function(message: TextChatMessage)
 	local properties = Instance.new("TextChatMessageProperties")
 	local source = message.TextSource
 	if source then
 		local speaker = Players:GetPlayerByUserId(source.UserId)
+		local tag = ""
+		if speaker ~= nil and speaker:GetAttribute("FoundingTester") then
+			tag ..= `<font color="#FFCD46">[Founder]</font> `
+		end
 		if speaker ~= nil and speaker:GetAttribute("PassVIP") then
-			properties.PrefixText = `<font color="#FFCD46">[VIP]</font> {message.PrefixText}`
+			tag ..= `<font color="#FFCD46">[VIP]</font> `
+		end
+		if tag ~= "" then
+			properties.PrefixText = tag .. message.PrefixText
 		end
 	end
 	return properties

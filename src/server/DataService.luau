@@ -90,6 +90,9 @@ export type PlayerData = {
 	posters: { Posters.Poster }, -- Cult Classic collectibles shown in the Collection (Posters.luau)
 	-- Playtime gift ladder (PlaytimeGifts.luau): time played this ladder and the presents opened.
 	gifts: PlaytimeGifts.State,
+	-- Founding Tester (Founder.luau, FounderService): the verdict is made once per profile.
+	founder: boolean,
+	founderChecked: boolean,
 }
 
 export type Request = { id: string, progress: number, claimed: boolean }
@@ -143,6 +146,8 @@ local TEMPLATE: PlayerData = {
 	quickPremieres = false,
 	posters = {}, -- saves from before the Cult poster have none: Reconcile adds this, migrate cleans it
 	gifts = PlaytimeGifts.fresh(nil),
+	founder = false,
+	founderChecked = false,
 }
 
 -- Developer product receipts remembered per player. Roblox redelivers an unacknowledged receipt
@@ -152,8 +157,11 @@ local PURCHASE_ID_LOG = 100
 -- ProfileStore.Mock is isolated from every live DataStore. Always use it in Studio, including
 -- when API access is enabled, so an accidental test can never load or save the production profile.
 -- Mock has the same API as the live store; typed as the live store so callers see one type.
-local liveStore = ProfileStore.New("PlayerData_v1", TEMPLATE)
+-- "PlayerData_v1" is the soft-launch store: never delete it, it is the rollback and the founder lookup.
+local STORE_NAME = if Config.LaunchWipe then "PlayerData_v2" else "PlayerData_v1"
+local liveStore = ProfileStore.New(STORE_NAME, TEMPLATE)
 local playerStore: typeof(liveStore) = if RunService:IsStudio() then liveStore.Mock :: any else liveStore
+local OLD_READ_SECONDS = 30 -- give up on the old-save read after this long (retried on the next join)
 
 local profiles: { [Player]: any } = {}
 local releasing: { [number]: boolean } = {}
@@ -183,6 +191,12 @@ local function migrate(data: any)
 	end
 	if type(data.hudTucked) ~= "boolean" then
 		data.hudTucked = false
+	end
+	if type(data.founder) ~= "boolean" then
+		data.founder = false
+	end
+	if type(data.founderChecked) ~= "boolean" then
+		data.founderChecked = false
 	end
 	if type(data.quickPremieres) ~= "boolean" then
 		data.quickPremieres = false
@@ -335,6 +349,42 @@ function DataService.load(player: Player): PlayerData?
 		end
 	end)
 	return profile.Data :: PlayerData
+end
+
+-- Yields. Read-only look at a player's soft-launch save in the old PlayerData_v1 store: no session
+-- lock, nothing written or deleted. Returns ok, its Data and its creation time. ok is false when
+-- the read failed, timed out or the server is shutting down (a missing save is ok with nil data),
+-- so the caller can try again on the next join instead of deciding "not a founder".
+local oldStore: any = nil
+function DataService.oldSave(userId: number): (boolean, any, number)
+	if oldStore == nil then
+		local store = ProfileStore.New("PlayerData_v1", TEMPLATE)
+		oldStore = if RunService:IsStudio() then store.Mock else store
+	end
+	local finished, readOk, profile = false, false, nil
+	local reader = task.spawn(function()
+		-- GetAsync retries failed reads on its own until shutdown; the deadline below bounds that.
+		readOk, profile = pcall(function()
+			return oldStore:GetAsync("player_" .. userId)
+		end)
+		finished = true
+	end)
+	local waited = 0
+	while not finished and waited < OLD_READ_SECONDS and not ProfileStore.IsClosing do
+		task.wait(0.2)
+		waited += 0.2
+	end
+	if not finished then
+		pcall(task.cancel, reader)
+	end
+	-- GetAsync also returns nil on shutdown: that must not be read as "no save".
+	if not finished or not readOk or ProfileStore.IsClosing then
+		return false, nil, 0
+	end
+	if profile == nil then
+		return true, nil, 0
+	end
+	return true, profile.Data, profile.FirstSessionTime or 0
 end
 
 -- Live data for gameplay code. Nil while loading, after the session ends, or after release.

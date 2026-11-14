@@ -114,6 +114,34 @@ function LotLook.trophies(parent: Instance, base: CFrame, count: number): BasePa
 	return parent:FindFirstChild("CaseBase") :: BasePart?
 end
 
+-- Founding Tester's Walk of Fame star with their name, flush with the ground inside the gate. The
+-- art is the imported LotMeshes.FounderStar; without it (not uploaded yet) nothing is drawn, never a
+-- part stand-in. Returns the mesh, or nil.
+function LotLook.founderStar(parent: Instance, base: CFrame, name: string): BasePart?
+	local mesh = Build.mesh(Build.new(parent, at(base, L.founderStar + Vector3.new(0, 1, 0))), "FounderStar", Vector3.zero)
+	if mesh == nil then
+		return nil
+	end
+	mesh.Name = "FounderStar"
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Top
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 50
+	gui.LightInfluence = 0
+	gui.Parent = mesh
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.AnchorPoint = Vector2.new(0.5, 0.5)
+	label.Position = UDim2.fromScale(0.5, 0.5)
+	label.Size = UDim2.fromScale(0.56, 0.4) -- inside the star's round centre
+	label.Font = Enum.Font.FredokaOne
+	label.Text = `{name}\nFounding Tester`
+	label.TextColor3 = Color3.fromRGB(11, 15, 31)
+	label.TextScaled = true
+	label.Parent = gui
+	return mesh
+end
+
 -- Festival Laurels (the newest few); returns the stand (nil when there are none).
 function LotLook.laurels(parent: Instance, base: CFrame, plaques: { Color3 }): BasePart?
 	if #plaques == 0 then

@@ -42,7 +42,7 @@ local GOLD = Color3.fromRGB(245, 184, 46)
 
 -- The pieces that change with the owner. Each is rebuilt only when its key changes, so a casting
 -- spree doesn't rebuild the whole lot.
-local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Laurels", "Star", "Avatar", "RareWall" }
+local SECTIONS = { "Stages", "CinemaBuilding", "Office", "Trophies", "Laurels", "Founder", "Star", "Avatar", "RareWall" }
 
 type Lot = {
 	index: number,
@@ -321,6 +321,14 @@ local function render(lot: Lot)
 		local stand = LotLook.laurels(model, lot.base, plaques)
 		if stand ~= nil then
 			floatingLabel(stand, `{#laurels} Festival win{if #laurels == 1 then "" else "s"}`, GOLD, 7)
+		end
+	end)
+
+	-- Founding Tester's Walk of Fame star (drawn only once the FounderStar mesh is imported).
+	local founder = owner ~= nil and data ~= nil and data.founder
+	section(lot, "Founder", if founder and owner ~= nil then owner.DisplayName else "", function(model)
+		if founder and owner ~= nil then
+			LotLook.founderStar(model, lot.base, owner.DisplayName)
 		end
 	end)
 
