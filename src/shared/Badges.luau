@@ -18,7 +18,7 @@ Badges.List = {
 	StarDiscovered = { id = 0, name = "A Star is Born", description = "Discover a Star tier actor" },
 	IconDiscovered = { id = 0, name = "Hollywood Royalty", description = "Discover an Icon tier actor" },
 	FirstSequel = { id = 0, name = "The Sequel", description = "Perform your first Rebirth / Sequel" },
-	FoundingTester = { id = 0, name = "Founding Tester", description = "Played Hollywood RNG before launch" },
+	FoundingTester = { id = 950686223417379, name = "Founding Tester", description = "Played Hollywood RNG before launch" },
 	MascotOwner = { id = 0, name = "Studio Pet", description = "Equip or adopt a studio mascot" },
 } :: { [string]: BadgeDef }
 

@@ -42,11 +42,11 @@ test("settle: grants once, and the first verdict sticks", function()
 	equal(fresh.founder, false, "stays a non-founder")
 end)
 
-test("the switch is off and the badge id is unset until the user makes the badge", function()
+test("the switch is off and the Founding Tester badge id is set", function()
 	equal(Config.LaunchWipe, false, "LaunchWipe must stay false until launch day")
 	local badge = Badges.List.FoundingTester
 	expect(badge ~= nil, "FoundingTester badge defined")
-	equal(badge.id, 0, "no badge id yet: BadgeAwards skips id 0")
+	equal(badge.id, 950686223417379, "Creator Hub badge id")
 	equal(badge.name, "Founding Tester")
 end)
 
