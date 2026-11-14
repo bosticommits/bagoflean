@@ -439,11 +439,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	-- Start-movie picker -----------------------------------------------------------------------
-	-- The actor scroller ends this far above the panel bottom: footer height + its 8 px inset + a 14 px
-	-- (PC) / 12 px (phone) gap, so the last tile row never sits under the footer.
-	local PICKER_LIST_BOTTOM = 118 + 8 + 14
-	local PICKER_LIST_BOTTOM_COMPACT = 48 + 6 + 12
-	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, PICKER_LIST_BOTTOM, UiKit.FRESH_GREEN, PICKER_LIST_BOTTOM_COMPACT)
+	local picker, pickerList, pickerHeader = UiKit.makePanel(gui, "PickerPanel", "Start movie", 60, true, 130, UiKit.FRESH_GREEN, 60)
 	UiKit.panelIcon(picker, pickerHeader, "clapper")
 	local footer = Instance.new("Frame")
 	footer.BackgroundTransparency = 1
@@ -487,8 +483,10 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		footer.Position = UDim2.new(0, 10, 1, if compact then -54 else -126)
 		local pitch = if compact then 38 else 50
 		for slot, slotButton in castSlots do
-			slotButton.Size = if compact then UDim2.fromOffset(34, 34) else UDim2.fromOffset(44, 44)
-			slotButton.Position = UDim2.fromOffset((slot - 1) * pitch, if compact then 7 else 0)
+			local size = if compact then 34 else 44
+			slotButton.Size = UDim2.fromOffset(size, size)
+			-- Centre-anchored (the pop grows from the middle), so shift by half the size.
+			slotButton.Position = UDim2.fromOffset((slot - 1) * pitch + size / 2, (if compact then 7 else 0) + size / 2)
 		end
 		if compact then
 			local left = Config.MaxCast * pitch + 4
