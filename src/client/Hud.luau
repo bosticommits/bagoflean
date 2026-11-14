@@ -571,10 +571,10 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			local weekendLive = Events.luckWeekendLive(weekendMultiplier)
 			if weekendLive then
 				local untilAt = ReplicatedStorage:GetAttribute("LiveConfig_LuckWeekendUntil")
-				local weekendLeft = Events.luckWeekendLeft(if typeof(untilAt) == "number" then untilAt else 0, os.time())
+				local weekendLeft = Events.luckWeekendLeft(if typeof(untilAt) == "number" then untilAt else 0, now)
 				local mult = Events.luckWeekendMultiplier(weekendMultiplier)
 				weekendTitle.Text = Events.LuckWeekendName
-				weekendTimer.Text = if weekendLeft ~= nil then `{mult}  {clock(weekendLeft)}` else `{mult} LUCK`
+				weekendTimer.Text = if weekendLeft ~= nil then `{mult}  {Events.luckWeekendTime(weekendLeft, clock)}` else `{mult} LUCK`
 			end
 			local showAward, showSurprise, showLucky = true, surpriseLive or surpriseLeft < math.huge, boostLeft > 0
 			local showWeekend = weekendLive
