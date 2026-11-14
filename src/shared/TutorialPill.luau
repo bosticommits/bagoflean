@@ -5,7 +5,7 @@
 local TutorialPill = {}
 
 TutorialPill.MIN_SLOT_PHONE = 280 -- a narrower slot keeps the corner bubble
-TutorialPill.MIN_SLOT_PC = 350
+TutorialPill.MIN_SLOT_PC = 330
 TutorialPill.GAP = 12 -- slot to header text, and slot to the close X
 TutorialPill.INNER = 6 -- between bust, pill and Skip
 

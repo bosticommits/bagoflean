@@ -39,9 +39,9 @@ test("the long live titles never fit, so they cannot flap into pill mode as Fame
 	end
 end)
 
-test("thresholds: 280 on a phone, 350 on PC", function()
+test("thresholds: 280 on a phone, 330 on PC", function()
 	expect(not TP.fits(279, true) and TP.fits(280, true), "phone")
-	expect(not TP.fits(349, false) and TP.fits(350, false), "pc")
+	expect(not TP.fits(329, false) and TP.fits(330, false), "pc")
 end)
 
 test("phone Skip is 32 px tall", function()
