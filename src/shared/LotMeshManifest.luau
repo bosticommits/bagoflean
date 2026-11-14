@@ -430,9 +430,13 @@ local meshes = {
 	mesh("LotOffice4Accent", "lot_office_kit", 132714425735180, { 9.2, 14.175, 2 }, STANDARD),
 	mesh("LotOffice5", "lot_office_kit", 88522071164792, { 9.9, 23.8, 11.51 }, STANDARD),
 	mesh("LotOffice5Accent", "lot_office_kit", 77112502648695, { 9.2, 18.375, 2 }, STANDARD),
+
+	-- founder_star.fbx (model asset 135931328207166): the Founding Tester's Walk of Fame tile, art/blender/founder_star.py.
+	-- Tip toward mesh +Z; name band and "Founding Tester" strip are drawn by LotLook.founderStar's SurfaceGui.
+	mesh("FounderStar", "", 95825724892724, { 3.6, 0.21, 3.6 }, STANDARD),
 }
 
-assert(#meshes == 365, "LotMeshManifest must contain exactly 365 templates")
+assert(#meshes == 366, "LotMeshManifest must contain exactly 366 templates")
 
 return table.freeze({
 	version = 1,
