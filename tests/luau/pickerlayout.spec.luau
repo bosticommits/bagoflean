@@ -62,23 +62,23 @@ for _, d in devices do
 	end)
 end
 
-test("footer numbers: PC slot centres 40/104/168, iPhone 7 text x150 and Start x376 (40 tall, 14 from the edge)", function()
+test("footer numbers: PC slot centres 40/104/168, iPhone 7 text x156 and Start x376 (44 tall, 14 from the edge)", function()
 	local pc = PL.footer(760, false, 3)
 	equal(pc.height, 84)
 	equal(pc.slotCentres[1].x, 40) equal(pc.slotCentres[2].x, 104) equal(pc.slotCentres[3].x, 168)
 	equal(pc.slotCentres[1].y, 42)
 	equal(pc.text.x, 212) equal(pc.text.w, 164) equal(pc.clear.x, 390) equal(pc.go.x, 538)
 	local ph = PL.footer(518, true, 3)
-	equal(ph.height, 70)
-	equal(ph.text.x, 150) equal(ph.clear.x, 274) equal(ph.go.x, 376) equal(ph.go.w, 128) equal(ph.go.h, 40)
+	equal(ph.height, 72)
+	equal(ph.text.x, 156) equal(ph.clear.x, 274) equal(ph.go.x, 376) equal(ph.go.w, 128) equal(ph.go.h, 44)
 	local ph14 = PL.footer(596, true, 3)
-	equal(ph14.go.x, 454) equal(ph14.clear.x, 352) equal(ph14.text.w, 192)
+	equal(ph14.go.x, 454) equal(ph14.clear.x, 352) equal(ph14.text.w, 190)
 end)
 
 test("a narrow panel falls back to a taller two-row footer", function()
 	local f = PL.footer(420, true, 3)
 	expect(f.twoRow, "two rows")
-	equal(f.height, 104)
+	equal(f.height, 118)
 	equal(f.go.x + f.go.w, 420 - 14) -- same right margin as one row
 	local pc = PL.footer(520, false, 3)
 	expect(pc.twoRow, "PC two rows")
@@ -120,9 +120,11 @@ test("grid: 3 columns on every spec viewport, no wasted column, cards stay insid
 	end
 end)
 
-test("grid: at least two columns even in a very narrow pane, and wide panes add columns", function()
+test("grid: at least two columns even in a very narrow pane, never more than three (wide panes grow the cards)", function()
 	equal(PL.grid(120, true).cols, 2)
-	expect(PL.grid(900, false).cols > 3, "wide pane, more columns")
+	equal(PL.grid(900, false).cols, 3)
+	equal(PL.grid(474, true).cols, 3) -- the 844x390 phone once the modal ignores the side menu
+	expect(PL.grid(474, true).cellW > PL.grid(334, true).cellW, "wider pane, bigger cards")
 end)
 
 test("grid cell height follows the width", function()

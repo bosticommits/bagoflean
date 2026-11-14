@@ -107,7 +107,13 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		local viewport = UiKit.viewport()
 		local profile = PhoneLayout.profile(viewport.X, viewport.Y, UserInputService.TouchEnabled)
 		barScale.Scale = if profile.compact then 0.82 else 1
-		bar.Position = UDim2.new(0.5, 0, 1, -profile.castBottomInset)
+		-- Phones in landscape: the bar's left edge stays clear of the thumbstick zone (x < 30% of the screen).
+		local shift = 0
+		if UserInputService.TouchEnabled and profile.compact and viewport.X > viewport.Y then
+			local left = viewport.X / 2 - 340 * barScale.Scale / 2
+			shift = math.max(0, math.ceil(0.3 * viewport.X + 8 - left))
+		end
+		bar.Position = UDim2.new(0.5, shift, 1, -profile.castBottomInset)
 	end)
 
 	local castButton = makeButton(bar, "", UiKit.GREEN, UDim2.fromOffset(240, 84), UDim2.fromOffset(0, 2))

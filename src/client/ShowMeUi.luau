@@ -134,7 +134,8 @@ function ShowMeUi.start(gui: ScreenGui)
 		end
 		-- Inside the closed More flyout: ring the More tile until it opens (PR F adds the tile named MoreButton).
 		local more = playerGui:FindFirstChild("MoreButton", true)
-		if more ~= nil and more:IsA("GuiObject") and onScreen(more) and root:FindFirstChild(ui.name, true) ~= nil then
+		local hidden = root:FindFirstChild(ui.name, true)
+		if more ~= nil and more:IsA("GuiObject") and onScreen(more) and hidden ~= nil and hidden:FindFirstAncestor("MoreFlyout") ~= nil then
 			return more
 		end
 		return nil
