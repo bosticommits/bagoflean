@@ -32,6 +32,16 @@ jobs:
           curl -fsSLo selene.zip "https://github.com/Kampfkarren/selene/releases/download/${SELENE_VERSION}/selene-${SELENE_VERSION}-linux.zip"
           curl -fsSLo luau-lsp.zip "https://github.com/JohnnyMorganz/luau-lsp/releases/download/${LUAU_LSP_VERSION}/luau-lsp-linux-x86_64.zip"
           curl -fsSLo globalTypes.d.luau "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/${LUAU_LSP_VERSION}/scripts/globalTypes.None.d.luau"
+          # Verify every download before use; a mismatch fails the job.
+          # To bump a tool: change its *_VERSION above, download the new asset, run `shasum -a 256 <file>`
+          # (or `gh release download`), and paste the hash here. Bump the matching aftman.toml pin too.
+          sha256sum -c - <<EOF
+          00feb4fa0829a1dd72b49df2639da519a352bfe13cadcd83969e2ba2bb5693c4  rojo.zip
+          2e83ba5c166102a46910b9f76f22f500bafa211896088c38e0c96821a6ca9ba3  lune.zip
+          dac452422747999ec4919bbb8bb52992b66aae533b60022bf005669de8616671  selene.zip
+          1a2ea1ae4f98f8946cefd970a4b54853e11ab4775e6932faa7f60cf920346567  luau-lsp.zip
+          9ad75109b8dc9197f6d1726208bfa0b12de47c3a43672a4fa43227f0cec609ee  globalTypes.d.luau
+          EOF
           for z in *.zip; do unzip -oq "$z"; done
           chmod +x rojo lune luau-lsp selene
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
