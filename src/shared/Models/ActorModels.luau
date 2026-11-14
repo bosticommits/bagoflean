@@ -1,14 +1,15 @@
 --!strict
--- The castable actors and Director Lucien Vale. All original characters.
+-- The castable actors (ActorShapes holds rigs for all 30) and Director Lucien Vale. All original characters.
 --
--- The actors are low-poly Blender models (art/blender/actors.py): a big-headed toy body shared by
--- the whole cast, props that say the role at a glance, and more flair the rarer they are. Each is
--- split into rig pieces (Body, Head, ArmL, ArmR and a Base in the rarity color) that ActorLife
+-- The actors are low-poly Blender models (art/blender/actors_v2.py and its batches, built by
+-- actors_v2_final.py): a big-headed toy body shared by the whole cast, props that say the role at
+-- a glance, and more flair the rarer they are. Each is split into rig pieces (Body, Head, ArmL, ArmR and a Base in the rarity color) that ActorLife
 -- moves on the client: an idle bob, a look round and now and then a wave. Once the owner imports
 -- actors.fbx into ReplicatedStorage.LotMeshes (art/README.md) each piece is its mesh; until then
 -- the same Blender shapes are built from parts (ActorShapes, written by the Blender script).
 --
--- A figure is about 5.4 studs tall at scale 1, standing on its origin, facing -Z. Used for the
+-- A figure is 5.5 to 9.5 studs tall at scale 1 (most 6 to 7; the Wobbly Witch's broom and the Cardboard
+-- Astronaut are the tallest), standing on its origin, facing -Z. Used for the
 -- star on each lot's pedestal, the store keepers and the Top Studios wall; the same model can go
 -- in a ViewportFrame. The director is still built from parts, below. The limited seasonal actors
 -- (Actors.Limited) are one-piece Blender designs (art/blender/seasonal_actors.py), shown as their

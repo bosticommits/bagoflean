@@ -20,6 +20,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +29,11 @@ EXPORT_DIR = os.path.join(REPO, "art", "exports", "actors_v2")
 RIGS_JSON = os.path.join(REPO, "art", "actors_v2_rigs.json")
 LUAU_OUT = os.path.join(REPO, "src", "shared", "Models", "ActorShapes.luau")
 STUD = 0.28
+BASE_REF = "origin/main"  # where the 21 original actors' part shapes and waves are read from
+# Waves for the actors main does not have. Soap Opera Star has none: her free arm is held up to her forehead, and
+# the wave roll (140 degrees about the shoulder) would swing it down instead of up. Time Tourist, Cardboard
+# Astronaut and Lagoon Mermaid carry props in their free hand.
+NEW_WAVES = {"WerewolfPup": "ArmR", "RodeoRookie": "ArmR", "PirateCaptain": "ArmR"}
 PIECES = ("Body", "Head", "ArmL", "ArmR", "Base")
 NEW9 = ("WerewolfPup", "PirateCaptain", "CardboardAstronaut", "RodeoRookie", "WobblyWitch", "LagoonMermaid", "TimeTourist", "CaptainKapow", "InspectorWhoops")
 
@@ -88,14 +94,13 @@ def _bounds(co):
     return size, _roblox(ctr_b), lo.tolist(), hi.tolist()
 
 
-def _free_arm(co, lo, hi):
-    """A plain hanging arm: short, hangs below its shoulder. Returns the shoulder pivot (Blender xyz) or None."""
-    import numpy as np
-
-    if hi[2] - lo[2] > 1.9 or (hi[0] - lo[0]) > 1.2 or (hi[1] - lo[1]) > 1.3:
-        return None
-    top = co[co[:, 2] >= hi[2] - 0.35]
-    return (float(top[:, 0].mean()), 0.0, float(hi[2]) - 0.2)
+def _free_arm(lo, hi, shoulder):
+    """True for a plain hanging arm that can wave: short, not flung up past the shoulder, not stretched far forward.
+    Width does not matter (an arm held out sideways is still a plain arm); props that stick out show up as height."""
+    if shoulder is None:
+        return False
+    sz = shoulder[1]
+    return (hi[2] - lo[2]) <= 1.9 and (hi[1] - lo[1]) <= 1.6 and lo[2] <= sz - 0.5 and hi[2] <= sz + 0.5
 
 
 def _voxel_boxes(obj, limit=60):
@@ -181,11 +186,14 @@ def collect(K, key, objs, fig):
         size, ctr, lo, hi = _bounds(co)
         rec = {"size": [round(v, 3) for v in size], "center": [round(v, 3) for v in ctr], "lo": [round(v, 3) for v in lo], "hi": [round(v, 3) for v in hi]}
         if piece == "Head":
-            col = co[(np.abs(co[:, 0]) < 0.8) & (np.abs(co[:, 1]) < 0.8)]
-            zmin = float(col[:, 2].min()) if len(col) else lo[2]
-            rec["neck_z"] = round(zmin + 0.25, 3)
+            # where the head really sits on the body: the first head_box base (+0.25), else the head's lowest point
+            nz = getattr(fig, "neck_z", None)
+            rec["neck_z"] = round(nz if nz is not None else lo[2] + 0.25, 3)
         if piece in ("ArmL", "ArmR"):
-            rec["free_pivot"] = _free_arm(co, lo, hi)
+            sh = getattr(fig, "shoulders", {}).get(piece)  # real shoulder (x, z) recorded by arm()
+            if sh is not None:
+                rec["shoulder"] = [round(sh[0], 3), round(sh[1], 3)]
+            rec["free"] = _free_arm(lo, hi, sh)
         if piece == "Base" or name in NEW9:
             pass
         if name in NEW9 and piece != "Base":
@@ -227,7 +235,8 @@ def run_chunk(keys, export=True):
         names = sorted(o.name for o in objs.values())
         d["objects"] = names
         if export:
-            d["fbx"] = export_actor(K, objs, d["id"])
+            export_actor(K, objs, d["id"])
+        d["fbx"] = f"art/exports/actors_v2/{d['id']}.fbx"  # repo-relative (art/exports is git-ignored)
         out[d["id"]] = d
     allr = {}
     if os.path.exists(RIGS_JSON):
@@ -274,10 +283,9 @@ def pivots(rec_pieces, flt, name):
     head = rec_pieces["Head"]
     out["Head"] = (0.0, head.get("neck_z", 2.5), 0.0)
     for arm, sign in (("ArmL", 1), ("ArmR", -1)):  # Blender +X = the actor's left
-        rec = rec_pieces[arm]
-        fp = rec.get("free_pivot")
-        if fp is not None:
-            out[arm] = (round(-fp[0], 3), round(fp[2], 3), 0.0)
+        sh = rec_pieces[arm].get("shoulder")  # the real shoulder recorded by arm() while building
+        if sh is not None:
+            out[arm] = (round(-sh[0], 3), round(sh[1], 3), 0.0)
         else:
             out[arm] = (round(-sign * 1.1, 3), 2.4, 0.0)
     out["Base"] = (0.0, 0.0, 0.0)
@@ -285,7 +293,9 @@ def pivots(rec_pieces, flt, name):
 
 
 def write_luau(rigs, order):
-    text = open(LUAU_OUT).read()
+    # The 21 original actors' part shapes and waves come from the file as it is on main, never from this
+    # script's own output (a wave once lost would stay lost).
+    text = subprocess.run(["git", "-C", REPO, "show", f"{BASE_REF}:src/shared/Models/ActorShapes.luau"], check=True, capture_output=True, text=True).stdout
     old_blocks, old_waves = old_shape_blocks(text)
     head = text.split("ActorShapes.Actors = {} :: { [string]: Rig }\n")[0] + "ActorShapes.Actors = {} :: { [string]: Rig }\n\n"
     head = head.replace(
@@ -297,13 +307,16 @@ def write_luau(rigs, order):
         r = rigs[aid]
         pcs = r["pieces"]
         pv = pivots(pcs, r["float"], aid)
-        wave = None
-        free = [a for a in ("ArmR", "ArmL") if pcs[a].get("free_pivot") is not None]
-        pref = old_waves.get(aid)
-        if pref in free:
-            wave = pref
-        elif free:
-            wave = free[0]
+        free = [a for a in ("ArmR", "ArmL") if pcs[a].get("free")]
+        if aid in NEW9 or aid in NEW_WAVES:
+            # new actors: hand-picked (a prop in the hand cannot be told from a cuff by the mesh alone);
+            # a picked arm must still be a plain hanging arm
+            wave = NEW_WAVES.get(aid)
+            assert wave is None or wave in free, f"{aid}: {wave} is not a plain hanging arm"
+        else:
+            wave = old_waves.get(aid)  # an original actor waves exactly as it did on main (same arm)
+            if wave is not None and wave not in free:
+                print("NOTE:", aid, "keeps its main wave on", wave, "although that arm is not a plain hanging arm now", pcs[wave].get("shoulder"))
         lines.append(f"ActorShapes.Actors.{aid} = {{")
         if wave:
             lines.append(f'\twave = "{wave}",')

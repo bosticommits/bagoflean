@@ -1,7 +1,7 @@
 {
  "ActionVeteran": {
   "cap": 2000,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/ActionVeteran.fbx",
+  "fbx": "art/exports/actors_v2/ActionVeteran.fbx",
   "float": false,
   "id": "ActionVeteran",
   "key": "commando",
@@ -19,7 +19,7 @@
      2.672,
      -0.137
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.419,
      0.382,
@@ -29,6 +29,10 @@
      0.872,
      -0.657,
      2.174
+    ],
+    "shoulder": [
+     1.2,
+     2.55
     ],
     "size": [
      1.547,
@@ -42,11 +46,7 @@
      2.069,
      -0.1
     ],
-    "free_pivot": [
-     -1.1470080614089966,
-     0.0,
-     2.653478670120239
-    ],
+    "free": true,
     "hi": [
      -0.831,
      0.373,
@@ -56,6 +56,10 @@
      -1.783,
      -0.574,
      1.284
+    ],
+    "shoulder": [
+     -1.2,
+     2.55
     ],
     "size": [
      0.952,
@@ -152,7 +156,7 @@
  },
  "AdModel": {
   "cap": 1900,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/AdModel.fbx",
+  "fbx": "art/exports/actors_v2/AdModel.fbx",
   "float": false,
   "id": "AdModel",
   "key": "hotdog",
@@ -170,7 +174,7 @@
      3.535,
      -0.056
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.766,
      0.301,
@@ -180,6 +184,10 @@
      1.55,
      -0.414,
      2.16
+    ],
+    "shoulder": [
+     1.87,
+     3.45
     ],
     "size": [
      1.216,
@@ -193,11 +201,7 @@
      2.934,
      -0.086
     ],
-    "free_pivot": [
-     -1.822672963142395,
-     0.0,
-     3.51895432472229
-    ],
+    "free": true,
     "hi": [
      -1.558,
      0.312,
@@ -207,6 +211,10 @@
      -2.418,
      -0.483,
      2.15
+    ],
+    "shoulder": [
+     -1.87,
+     3.45
     ],
     "size": [
      0.859,
@@ -303,7 +311,7 @@
  },
  "BackgroundExtra": {
   "cap": 1900,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/BackgroundExtra.fbx",
+  "fbx": "art/exports/actors_v2/BackgroundExtra.fbx",
   "float": false,
   "id": "BackgroundExtra",
   "key": "zombie",
@@ -321,7 +329,7 @@
      2.766,
      -0.471
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.043,
      0.306,
@@ -331,6 +339,10 @@
      0.771,
      -1.247,
      1.989
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.273,
@@ -344,7 +356,7 @@
      2.403,
      -0.478
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      -0.605,
      0.295,
@@ -354,6 +366,10 @@
      -1.704,
      -1.252,
      1.955
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      1.099,
@@ -450,7 +466,7 @@
  },
  "BoxOfficeKing": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/BoxOfficeKing.fbx",
+  "fbx": "art/exports/actors_v2/BoxOfficeKing.fbx",
   "float": false,
   "id": "BoxOfficeKing",
   "key": "king",
@@ -468,7 +484,7 @@
      2.797,
      -0.61
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.263,
      0.341,
@@ -478,6 +494,10 @@
      0.938,
      -1.562,
      1.874
+    ],
+    "shoulder": [
+     1.4,
+     2.6
     ],
     "size": [
      1.325,
@@ -491,7 +511,7 @@
      2.199,
      -0.049
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      -1.001,
      0.374,
@@ -501,6 +521,10 @@
      -2.286,
      -0.471,
      1.434
+    ],
+    "shoulder": [
+     -1.4,
+     2.6
     ],
     "size": [
      1.285,
@@ -597,6 +621,7 @@
  },
  "CaptainKapow": {
   "cap": 2200,
+  "fbx": "art/exports/actors_v2/CaptainKapow.fbx",
   "float": true,
   "id": "CaptainKapow",
   "key": "kapow",
@@ -614,7 +639,7 @@
      3.795,
      0.153
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      2.308,
      0.625,
@@ -624,6 +649,10 @@
      0.913,
      -0.319,
      3.002
+    ],
+    "shoulder": [
+     1.35,
+     4.186
     ],
     "size": [
      1.395,
@@ -791,13 +820,26 @@
       "cf": [
        -2.025,
        2.925,
-       0.0
+       -0.225
       ],
       "hex": "E8E8E8",
       "size": [
        0.45,
        0.45,
-       0.9
+       0.45
+      ]
+     },
+     {
+      "cf": [
+       -2.025,
+       2.925,
+       0.225
+      ],
+      "hex": "E8E8D1",
+      "size": [
+       0.45,
+       0.45,
+       0.45
       ]
      },
      {
@@ -806,7 +848,7 @@
        3.375,
        -0.225
       ],
-      "hex": "D1D1B9",
+      "hex": "D1B9B9",
       "size": [
        0.45,
        0.45,
@@ -897,7 +939,7 @@
        3.375,
        0.225
       ],
-      "hex": "FFE8E8",
+      "hex": "E8E8E8",
       "size": [
        0.45,
        0.45,
@@ -912,7 +954,7 @@
      5.361,
      0.408
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.468,
      1.018,
@@ -922,6 +964,10 @@
      -2.655,
      -0.203,
      3.909
+    ],
+    "shoulder": [
+     -1.35,
+     4.186
     ],
     "size": [
      2.186,
@@ -1234,7 +1280,7 @@
        5.175,
        0.675
       ],
-      "hex": "A28B46",
+      "hex": "A28B5D",
       "size": [
        0.45,
        0.45,
@@ -2060,7 +2106,7 @@
        4.633,
        0.515
       ],
-      "hex": "8B2E46",
+      "hex": "8B2E5D",
       "size": [
        1.029,
        1.029,
@@ -2345,7 +2391,7 @@
      -0.949,
      3.604
     ],
-    "neck_z": 3.854,
+    "neck_z": 3.891,
     "size": [
      2.85,
      2.977,
@@ -2371,7 +2417,7 @@
        3.926,
        0.436
       ],
-      "hex": "5D462E",
+      "hex": "74462E",
       "size": [
        0.872,
        0.872,
@@ -2449,7 +2495,7 @@
        5.671,
        0.436
       ],
-      "hex": "5D462E",
+      "hex": "46462E",
       "size": [
        0.872,
        0.872,
@@ -2579,7 +2625,7 @@
        5.671,
        -0.436
       ],
-      "hex": "74745D",
+      "hex": "8B745D",
       "size": [
        0.872,
        0.872,
@@ -2590,13 +2636,26 @@
       "cf": [
        0.436,
        5.671,
-       0.872
+       0.436
       ],
       "hex": "462E2E",
       "size": [
        0.872,
        0.872,
-       1.745
+       0.872
+      ]
+     },
+     {
+      "cf": [
+       0.436,
+       5.671,
+       1.309
+      ],
+      "hex": "46462E",
+      "size": [
+       0.872,
+       0.872,
+       0.872
       ]
      },
      {
@@ -2618,7 +2677,7 @@
        6.543,
        0.436
       ],
-      "hex": "462E2E",
+      "hex": "2E2E2E",
       "size": [
        0.872,
        0.872,
@@ -2657,7 +2716,7 @@
        3.926,
        0.436
       ],
-      "hex": "5D462E",
+      "hex": "74462E",
       "size": [
        0.872,
        0.872,
@@ -2719,19 +2778,6 @@
      {
       "cf": [
        -0.436,
-       4.798,
-       2.181
-      ],
-      "hex": "171717",
-      "size": [
-       0.872,
-       0.872,
-       0.872
-      ]
-     },
-     {
-      "cf": [
-       -0.436,
        5.671,
        -1.309
       ],
@@ -2759,13 +2805,26 @@
       "cf": [
        -0.436,
        5.671,
-       0.872
+       0.436
       ],
       "hex": "462E2E",
       "size": [
        0.872,
        0.872,
-       1.745
+       0.872
+      ]
+     },
+     {
+      "cf": [
+       -0.436,
+       5.671,
+       1.309
+      ],
+      "hex": "2E2E17",
+      "size": [
+       0.872,
+       0.872,
+       0.872
       ]
      },
      {
@@ -2787,7 +2846,7 @@
        6.543,
        0.436
       ],
-      "hex": "46462E",
+      "hex": "5D462E",
       "size": [
        0.872,
        0.872,
@@ -2948,6 +3007,7 @@
  },
  "CardboardAstronaut": {
   "cap": 1900,
+  "fbx": "art/exports/actors_v2/CardboardAstronaut.fbx",
   "float": false,
   "id": "CardboardAstronaut",
   "key": "astro",
@@ -2965,7 +3025,7 @@
      2.811,
      -0.457
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      2.413,
      0.33,
@@ -2975,6 +3035,10 @@
      1.458,
      -1.244,
      2.261
+    ],
+    "shoulder": [
+     1.8,
+     3.0
     ],
     "size": [
      0.955,
@@ -3066,7 +3130,7 @@
        2.475,
        -0.675
       ],
-      "hex": "A2A28B",
+      "hex": "A28B8B",
       "size": [
        0.45,
        0.45,
@@ -3092,7 +3156,7 @@
        2.925,
        -1.125
       ],
-      "hex": "B9A2A2",
+      "hex": "B9B9A2",
       "size": [
        0.45,
        0.45,
@@ -3183,7 +3247,7 @@
        2.475,
        -1.125
       ],
-      "hex": "E8E8D1",
+      "hex": "E8D1B9",
       "size": [
        0.45,
        0.45,
@@ -3196,7 +3260,7 @@
        2.475,
        -0.675
       ],
-      "hex": "B9B9A2",
+      "hex": "B9B9B9",
       "size": [
        0.45,
        0.45,
@@ -3237,7 +3301,7 @@
      4.446,
      -0.812
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -1.275,
      0.274,
@@ -3247,6 +3311,10 @@
      -2.387,
      -1.898,
      2.657
+    ],
+    "shoulder": [
+     -1.8,
+     3.0
     ],
     "size": [
      1.112,
@@ -3726,26 +3794,13 @@
       "cf": [
        1.575,
        2.925,
-       -0.225
-      ],
-      "hex": "748B8B",
-      "size": [
-       0.45,
-       0.45,
-       0.45
-      ]
-     },
-     {
-      "cf": [
-       1.575,
-       2.925,
-       0.225
+       0.0
       ],
       "hex": "74748B",
       "size": [
        0.45,
        0.45,
-       0.45
+       0.9
       ]
      },
      {
@@ -4852,7 +4907,7 @@
        3.603,
        -0.515
       ],
-      "hex": "A27474",
+      "hex": "8B745D",
       "size": [
        1.029,
        1.029,
@@ -4941,13 +4996,26 @@
       "cf": [
        0.515,
        5.662,
-       -1.029
+       -1.544
+      ],
+      "hex": "A2745D",
+      "size": [
+       1.029,
+       1.029,
+       1.029
+      ]
+     },
+     {
+      "cf": [
+       0.515,
+       5.662,
+       -0.515
       ],
       "hex": "A28B5D",
       "size": [
        1.029,
        1.029,
-       2.059
+       1.029
       ]
      },
      {
@@ -5034,7 +5102,7 @@
        3.603,
        -0.515
       ],
-      "hex": "A27474",
+      "hex": "8B745D",
       "size": [
        1.029,
        1.029,
@@ -5416,7 +5484,7 @@
  },
  "ComedyDuo": {
   "cap": 2000,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/ComedyDuo.fbx",
+  "fbx": "art/exports/actors_v2/ComedyDuo.fbx",
   "float": false,
   "id": "ComedyDuo",
   "key": "vent",
@@ -5434,7 +5502,7 @@
      2.222,
      -0.216
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      1.988,
      0.371,
@@ -5444,6 +5512,10 @@
      0.733,
      -0.804,
      1.539
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.256,
@@ -5457,7 +5529,7 @@
      3.362,
      -0.498
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.773,
      0.367,
@@ -5467,6 +5539,10 @@
      -2.85,
      -1.364,
      1.53
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      2.076,
@@ -5563,7 +5639,7 @@
  },
  "GoldenAgeDiva": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/GoldenAgeDiva.fbx",
+  "fbx": "art/exports/actors_v2/GoldenAgeDiva.fbx",
   "float": false,
   "id": "GoldenAgeDiva",
   "key": "diva",
@@ -5581,7 +5657,7 @@
      2.981,
      -0.079
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.331,
      0.343,
@@ -5591,6 +5667,10 @@
      0.833,
      -0.501,
      2.191
+    ],
+    "shoulder": [
+     1.2,
+     2.55
     ],
     "size": [
      1.498,
@@ -5604,7 +5684,7 @@
      2.546,
      -0.316
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.847,
      0.371,
@@ -5614,6 +5694,10 @@
      -2.485,
      -1.003,
      1.866
+    ],
+    "shoulder": [
+     -1.2,
+     2.55
     ],
     "size": [
      1.637,
@@ -5710,7 +5794,7 @@
  },
  "IndieSidekick": {
   "cap": 1900,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/IndieSidekick.fbx",
+  "fbx": "art/exports/actors_v2/IndieSidekick.fbx",
   "float": false,
   "id": "IndieSidekick",
   "key": "robot",
@@ -5728,7 +5812,7 @@
      2.063,
      -0.343
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      2.017,
      0.384,
@@ -5738,6 +5822,10 @@
      0.925,
      -1.07,
      1.256
+    ],
+    "shoulder": [
+     1.3,
+     2.5
     ],
     "size": [
      1.093,
@@ -5751,7 +5839,7 @@
      2.963,
      0.018
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.929,
      0.36,
@@ -5761,6 +5849,10 @@
      -2.562,
      -0.324,
      2.132
+    ],
+    "shoulder": [
+     -1.3,
+     2.5
     ],
     "size": [
      1.634,
@@ -5828,7 +5920,7 @@
      -1.22,
      2.65
     ],
-    "neck_z": 4.93,
+    "neck_z": 2.9,
     "size": [
      3.4,
      3.68,
@@ -5857,6 +5949,7 @@
  },
  "InspectorWhoops": {
   "cap": 2200,
+  "fbx": "art/exports/actors_v2/InspectorWhoops.fbx",
   "float": false,
   "id": "InspectorWhoops",
   "key": "inspector",
@@ -5874,7 +5967,7 @@
      4.015,
      -0.616
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.355,
      0.348,
@@ -5884,6 +5977,10 @@
      0.841,
      -1.579,
      3.226
+    ],
+    "shoulder": [
+     1.2,
+     3.9
     ],
     "size": [
      1.514,
@@ -6025,19 +6122,6 @@
       "cf": [
        -1.575,
        3.825,
-       -1.575
-      ],
-      "hex": "FFD146",
-      "size": [
-       0.45,
-       0.45,
-       0.45
-      ]
-     },
-     {
-      "cf": [
-       -1.575,
-       3.825,
        -1.125
       ],
       "hex": "D1A246",
@@ -6053,7 +6137,7 @@
        3.825,
        -0.675
       ],
-      "hex": "B98B5D",
+      "hex": "B98B46",
       "size": [
        0.45,
        0.45,
@@ -6157,7 +6241,7 @@
        4.725,
        -1.125
       ],
-      "hex": "E8B946",
+      "hex": "E8D146",
       "size": [
        0.45,
        0.45,
@@ -6207,26 +6291,26 @@
       "cf": [
        -2.025,
        3.825,
-       -0.9
+       -1.125
       ],
       "hex": "D1B95D",
       "size": [
        0.45,
        0.45,
-       0.9
+       0.45
       ]
      },
      {
       "cf": [
        -2.025,
        3.825,
-       -0.225
+       -0.45
       ],
       "hex": "D1A274",
       "size": [
        0.45,
        0.45,
-       0.45
+       0.9
       ]
      },
      {
@@ -6248,7 +6332,7 @@
        4.275,
        -1.125
       ],
-      "hex": "D1A22E",
+      "hex": "B9A22E",
       "size": [
        0.45,
        0.45,
@@ -6261,7 +6345,7 @@
        4.275,
        -0.675
       ],
-      "hex": "E8B946",
+      "hex": "E8D146",
       "size": [
        0.45,
        0.45,
@@ -6274,7 +6358,7 @@
        4.725,
        -1.575
       ],
-      "hex": "745D2E",
+      "hex": "5D5D2E",
       "size": [
        0.45,
        0.45,
@@ -6285,7 +6369,20 @@
       "cf": [
        -2.025,
        4.725,
-       -1.125
+       -0.9
+      ],
+      "hex": "FFD146",
+      "size": [
+       0.45,
+       0.45,
+       0.9
+      ]
+     },
+     {
+      "cf": [
+       -2.475,
+       3.825,
+       -0.675
       ],
       "hex": "FFD146",
       "size": [
@@ -6297,7 +6394,7 @@
      {
       "cf": [
        -2.475,
-       3.825,
+       4.275,
        -1.125
       ],
       "hex": "FFD146",
@@ -6315,7 +6412,7 @@
      5.353,
      -0.872
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      0.32,
      0.292,
@@ -6325,6 +6422,10 @@
      -2.92,
      -2.036,
      3.185
+    ],
+    "shoulder": [
+     -1.2,
+     3.9
     ],
     "size": [
      3.24,
@@ -6598,7 +6699,7 @@
        3.452,
        -1.858
       ],
-      "hex": "D1A274",
+      "hex": "B9A274",
       "size": [
        0.531,
        0.531,
@@ -6611,7 +6712,7 @@
        3.452,
        -1.328
       ],
-      "hex": "B9A274",
+      "hex": "B98B74",
       "size": [
        0.531,
        0.531,
@@ -6884,7 +6985,7 @@
        6.107,
        -1.858
       ],
-      "hex": "8B8B8B",
+      "hex": "8B8B74",
       "size": [
        0.531,
        0.531,
@@ -7917,7 +8018,7 @@
        5.671,
        0.436
       ],
-      "hex": "B9A274",
+      "hex": "A28B74",
       "size": [
        0.872,
        0.872,
@@ -8281,7 +8382,7 @@
        5.671,
        -1.309
       ],
-      "hex": "74745D",
+      "hex": "745D5D",
       "size": [
        0.872,
        0.872,
@@ -8598,6 +8699,7 @@
  },
  "LagoonMermaid": {
   "cap": 2000,
+  "fbx": "art/exports/actors_v2/LagoonMermaid.fbx",
   "float": false,
   "id": "LagoonMermaid",
   "key": "mermaid",
@@ -8615,7 +8717,7 @@
      3.065,
      -0.153
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      1.319,
      0.607,
@@ -8625,6 +8727,10 @@
      0.575,
      -0.913,
      2.42
+    ],
+    "shoulder": [
+     1.05,
+     3.4
     ],
     "size": [
      0.745,
@@ -8690,7 +8796,7 @@
        2.925,
        -0.225
       ],
-      "hex": "8B7474",
+      "hex": "8B745D",
       "size": [
        0.45,
        0.45,
@@ -8742,7 +8848,7 @@
        3.375,
        0.225
       ],
-      "hex": "74462E",
+      "hex": "745D2E",
       "size": [
        0.45,
        0.45,
@@ -8874,7 +8980,7 @@
      3.41,
      -0.232
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.217,
      0.57,
@@ -8884,6 +8990,10 @@
      -1.412,
      -1.034,
      2.752
+    ],
+    "shoulder": [
+     -1.05,
+     3.4
     ],
     "size": [
      1.195,
@@ -8949,7 +9059,7 @@
        2.925,
        0.0
       ],
-      "hex": "8B5D46",
+      "hex": "74462E",
       "size": [
        0.45,
        0.45,
@@ -8973,26 +9083,13 @@
       "cf": [
        1.125,
        3.375,
-       -0.225
-      ],
-      "hex": "8B5D46",
-      "size": [
-       0.45,
-       0.45,
-       0.45
-      ]
-     },
-     {
-      "cf": [
-       1.125,
-       3.375,
-       0.45
+       0.225
       ],
       "hex": "74462E",
       "size": [
        0.45,
        0.45,
-       0.9
+       1.35
       ]
      },
      {
@@ -9372,7 +9469,7 @@
        3.926,
        0.436
       ],
-      "hex": "8B5D2E",
+      "hex": "74462E",
       "size": [
        0.872,
        0.872,
@@ -9515,7 +9612,7 @@
        3.926,
        -0.436
       ],
-      "hex": "8B748B",
+      "hex": "8B5D8B",
       "size": [
        0.872,
        0.872,
@@ -9684,7 +9781,7 @@
        6.543,
        -0.436
       ],
-      "hex": "B9B9FF",
+      "hex": "B9A2FF",
       "size": [
        0.872,
        0.872,
@@ -9865,7 +9962,7 @@
      -0.976,
      1.5
     ],
-    "neck_z": 2.4,
+    "neck_z": 3.55,
     "size": [
      3.23,
      4.68,
@@ -10455,7 +10552,7 @@
  },
  "LastActionHero": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/LastActionHero.fbx",
+  "fbx": "art/exports/actors_v2/LastActionHero.fbx",
   "float": false,
   "id": "LastActionHero",
   "key": "mech",
@@ -10473,7 +10570,7 @@
      2.3,
      -0.354
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.765,
      0.485,
@@ -10483,6 +10580,10 @@
      1.328,
      -1.192,
      1.164
+    ],
+    "shoulder": [
+     1.8,
+     3.05
     ],
     "size": [
      1.436,
@@ -10496,7 +10597,7 @@
      3.196,
      -0.832
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -1.162,
      0.234,
@@ -10506,6 +10607,10 @@
      -2.404,
      -1.898,
      2.572
+    ],
+    "shoulder": [
+     -1.8,
+     3.05
     ],
     "size": [
      1.242,
@@ -10602,7 +10707,7 @@
  },
  "MethodActor": {
   "cap": 2200,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/MethodActor.fbx",
+  "fbx": "art/exports/actors_v2/MethodActor.fbx",
   "float": false,
   "id": "MethodActor",
   "key": "knight",
@@ -10620,7 +10725,7 @@
      3.343,
      -0.192
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.56,
      0.419,
@@ -10630,6 +10735,10 @@
      1.088,
      -0.804,
      1.333
+    ],
+    "shoulder": [
+     1.5,
+     2.55
     ],
     "size": [
      1.472,
@@ -10643,7 +10752,7 @@
      1.958,
      -0.577
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.851,
      0.39,
@@ -10653,6 +10762,10 @@
      -3.176,
      -1.544,
      0.595
+    ],
+    "shoulder": [
+     -1.5,
+     2.55
     ],
     "size": [
      2.325,
@@ -10720,7 +10833,7 @@
      -1.385,
      2.65
     ],
-    "neck_z": 5.475,
+    "neck_z": 2.9,
     "size": [
      2.94,
      4.62,
@@ -10749,7 +10862,7 @@
  },
  "MogulsMuse": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/MogulsMuse.fbx",
+  "fbx": "art/exports/actors_v2/MogulsMuse.fbx",
   "float": false,
   "id": "MogulsMuse",
   "key": "muse",
@@ -10767,7 +10880,7 @@
      3.663,
      -0.042
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.704,
      0.318,
@@ -10777,6 +10890,10 @@
      0.773,
      -0.402,
      2.212
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.931,
@@ -10790,11 +10907,7 @@
      2.162,
      -0.198
     ],
-    "free_pivot": [
-     -1.0222654342651367,
-     0.0,
-     2.671814489364624
-    ],
+    "free": true,
     "hi": [
      -0.761,
      0.336,
@@ -10804,6 +10917,10 @@
      -1.921,
      -0.731,
      1.452
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      1.159,
@@ -10906,7 +11023,7 @@
  },
  "NervousIntern": {
   "cap": 1900,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/NervousIntern.fbx",
+  "fbx": "art/exports/actors_v2/NervousIntern.fbx",
   "float": false,
   "id": "NervousIntern",
   "key": "intern",
@@ -10924,7 +11041,7 @@
      3.412,
      -0.449
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.516,
      0.331,
@@ -10934,6 +11051,10 @@
      0.766,
      -1.229,
      1.904
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.75,
@@ -10947,7 +11068,7 @@
      1.694,
      -0.058
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.825,
      0.295,
@@ -10957,6 +11078,10 @@
      -2.068,
      -0.411,
      0.567
+    ],
+    "shoulder": [
+     -1.14,
+     2.55
     ],
     "size": [
      1.243,
@@ -11053,7 +11178,7 @@
  },
  "NightShiftVillain": {
   "cap": 2000,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/NightShiftVillain.fbx",
+  "fbx": "art/exports/actors_v2/NightShiftVillain.fbx",
   "float": false,
   "id": "NightShiftVillain",
   "key": "villain",
@@ -11071,7 +11196,7 @@
      1.673,
      -0.367
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.373,
      0.371,
@@ -11081,6 +11206,10 @@
      0.762,
      -1.105,
      0.428
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.612,
@@ -11094,7 +11223,7 @@
      2.424,
      -0.665
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.521,
      0.287,
@@ -11104,6 +11233,10 @@
      -1.635,
      -1.617,
      1.967
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      1.114,
@@ -11200,8 +11333,8 @@
  },
  "PhantomAuteur": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/PhantomAuteur.fbx",
-  "float": false,
+  "fbx": "art/exports/actors_v2/PhantomAuteur.fbx",
+  "float": true,
   "id": "PhantomAuteur",
   "key": "phantom",
   "objects": [
@@ -11218,7 +11351,7 @@
      3.817,
      -0.313
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      1.931,
      0.345,
@@ -11228,6 +11361,10 @@
      0.77,
      -0.971,
      2.954
+    ],
+    "shoulder": [
+     1.1,
+     3.3
     ],
     "size": [
      1.162,
@@ -11241,7 +11378,7 @@
      3.18,
      -0.402
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.848,
      0.371,
@@ -11251,6 +11388,10 @@
      -2.876,
      -1.175,
      2.439
+    ],
+    "shoulder": [
+     -1.2,
+     3.3
     ],
     "size": [
      2.027,
@@ -11347,6 +11488,7 @@
  },
  "PirateCaptain": {
   "cap": 2500,
+  "fbx": "art/exports/actors_v2/PirateCaptain.fbx",
   "float": false,
   "id": "PirateCaptain",
   "key": "squawk",
@@ -11364,11 +11506,7 @@
      2.067,
      -0.044
     ],
-    "free_pivot": [
-     1.20526123046875,
-     0.0,
-     2.6502335548400877
-    ],
+    "free": true,
     "hi": [
      2.121,
      0.449,
@@ -11378,6 +11516,10 @@
      0.929,
      -0.537,
      1.283
+    ],
+    "shoulder": [
+     1.28,
+     2.55
     ],
     "size": [
      1.192,
@@ -11640,11 +11782,7 @@
      2.049,
      -0.114
     ],
-    "free_pivot": [
-     -1.2187979221343994,
-     0.0,
-     2.6387675285339354
-    ],
+    "free": true,
     "hi": [
      -0.934,
      0.376,
@@ -11654,6 +11792,10 @@
      -2.063,
      -0.603,
      1.26
+    ],
+    "shoulder": [
+     -1.28,
+     2.55
     ],
     "size": [
      1.129,
@@ -11706,7 +11848,7 @@
        1.125,
        -0.225
       ],
-      "hex": "B97446",
+      "hex": "A27446",
       "size": [
        0.45,
        0.45,
@@ -11912,26 +12054,13 @@
       "cf": [
        1.125,
        2.475,
-       -0.225
+       0.0
       ],
       "hex": "742E2E",
       "size": [
        0.45,
        0.45,
-       0.45
-      ]
-     },
-     {
-      "cf": [
-       1.125,
-       2.475,
-       0.225
-      ],
-      "hex": "74172E",
-      "size": [
-       0.45,
-       0.45,
-       0.45
+       0.9
       ]
      },
      {
@@ -12869,7 +12998,7 @@
        2.574,
        0.515
       ],
-      "hex": "8B5D2E",
+      "hex": "8B5D46",
       "size": [
        1.029,
        1.029,
@@ -13420,6 +13549,7 @@
  },
  "RodeoRookie": {
   "cap": 1900,
+  "fbx": "art/exports/actors_v2/RodeoRookie.fbx",
   "float": false,
   "id": "RodeoRookie",
   "key": "rodeo",
@@ -13437,7 +13567,7 @@
      5.173,
      -0.226
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.609,
      1.528,
@@ -13447,6 +13577,10 @@
      -1.503,
      -1.979,
      2.22
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      4.112,
@@ -13642,7 +13776,7 @@
        2.39,
        -0.266
       ],
-      "hex": "B9A28B",
+      "hex": "A28B8B",
       "size": [
        0.531,
        0.531,
@@ -13899,6 +14033,19 @@
      {
       "cf": [
        -1.858,
+       3.982,
+       0.266
+      ],
+      "hex": "D1A274",
+      "size": [
+       0.531,
+       0.531,
+       0.531
+      ]
+     },
+     {
+      "cf": [
+       -1.858,
        4.514,
        -0.266
       ],
@@ -14032,7 +14179,7 @@
        6.107,
        0.266
       ],
-      "hex": "D1D18B",
+      "hex": "E8D18B",
       "size": [
        0.531,
        0.531,
@@ -14099,11 +14246,7 @@
      2.079,
      -0.071
     ],
-    "free_pivot": [
-     -1.0198886394500732,
-     0.0,
-     2.6491208553314207
-    ],
+    "free": true,
     "hi": [
      -0.77,
      0.307,
@@ -14114,25 +14257,16 @@
      -0.449,
      1.309
     ],
+    "shoulder": [
+     -1.1,
+     2.55
+    ],
     "size": [
      1.04,
      1.54,
      0.755
     ],
     "voxel": [
-     {
-      "cf": [
-       2.025,
-       1.575,
-       -0.225
-      ],
-      "hex": "E8A274",
-      "size": [
-       0.45,
-       0.45,
-       0.45
-      ]
-     },
      {
       "cf": [
        1.575,
@@ -14165,7 +14299,7 @@
        1.575,
        0.225
       ],
-      "hex": "B98B74",
+      "hex": "D1A274",
       "size": [
        0.45,
        0.45,
@@ -14230,7 +14364,7 @@
        1.575,
        0.225
       ],
-      "hex": "D1D1B9",
+      "hex": "B9A28B",
       "size": [
        0.45,
        0.45,
@@ -14419,7 +14553,7 @@
        1.109,
        -0.37
       ],
-      "hex": "748B8B",
+      "hex": "74748B",
       "size": [
        0.739,
        0.739,
@@ -14432,7 +14566,7 @@
        1.109,
        0.37
       ],
-      "hex": "8B8BA2",
+      "hex": "748BA2",
       "size": [
        0.739,
        0.739,
@@ -14562,7 +14696,7 @@
        1.109,
        -0.37
       ],
-      "hex": "748B8B",
+      "hex": "74748B",
       "size": [
        0.739,
        0.739,
@@ -14575,7 +14709,7 @@
        1.109,
        0.37
       ],
-      "hex": "748BA2",
+      "hex": "748B8B",
       "size": [
        0.739,
        0.739,
@@ -14939,7 +15073,7 @@
        1.109,
        -0.37
       ],
-      "hex": "748BA2",
+      "hex": "74748B",
       "size": [
        0.739,
        0.739,
@@ -15157,26 +15291,13 @@
       "cf": [
        1.309,
        4.798,
-       -1.309
-      ],
-      "hex": "A2742E",
-      "size": [
-       0.872,
-       0.872,
-       0.872
-      ]
-     },
-     {
-      "cf": [
-       1.309,
-       4.798,
-       -0.436
+       -0.872
       ],
       "hex": "A25D2E",
       "size": [
        0.872,
        0.872,
-       0.872
+       1.745
       ]
      },
      {
@@ -15237,7 +15358,7 @@
        3.054,
        -0.436
       ],
-      "hex": "B98B5D",
+      "hex": "A2745D",
       "size": [
        0.872,
        0.872,
@@ -15250,7 +15371,7 @@
        3.054,
        0.436
       ],
-      "hex": "B9745D",
+      "hex": "B98B5D",
       "size": [
        0.872,
        0.872,
@@ -15458,7 +15579,7 @@
        3.926,
        1.309
       ],
-      "hex": "A25D46",
+      "hex": "A25D2E",
       "size": [
        0.872,
        0.872,
@@ -15723,7 +15844,7 @@
  },
  "RomComSweetheart": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/RomComSweetheart.fbx",
+  "fbx": "art/exports/actors_v2/RomComSweetheart.fbx",
   "float": false,
   "id": "RomComSweetheart",
   "key": "cupid",
@@ -15741,7 +15862,7 @@
      2.152,
      -0.232
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.368,
      0.339,
@@ -15751,6 +15872,10 @@
      0.762,
      -0.804,
      0.901
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.605,
@@ -15764,7 +15889,7 @@
      2.789,
      -0.313
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.769,
      0.34,
@@ -15774,6 +15899,10 @@
      -2.347,
      -0.967,
      2.086
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      1.578,
@@ -15870,7 +15999,7 @@
  },
  "SciFiVisionary": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/SciFiVisionary.fbx",
+  "fbx": "art/exports/actors_v2/SciFiVisionary.fbx",
   "float": false,
   "id": "SciFiVisionary",
   "key": "brain",
@@ -15888,7 +16017,7 @@
      2.36,
      0.018
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      2.962,
      0.36,
@@ -15898,6 +16027,10 @@
      1.128,
      -0.324,
      1.858
+    ],
+    "shoulder": [
+     1.4,
+     2.5
     ],
     "size": [
      1.834,
@@ -15911,7 +16044,7 @@
      2.353,
      -0.161
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -1.033,
      0.38,
@@ -15921,6 +16054,10 @@
      -2.79,
      -0.701,
      1.594
+    ],
+    "shoulder": [
+     -1.4,
+     2.5
     ],
     "size": [
      1.757,
@@ -16017,7 +16154,7 @@
  },
  "ScreamQueen": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/ScreamQueen.fbx",
+  "fbx": "art/exports/actors_v2/ScreamQueen.fbx",
   "float": false,
   "id": "ScreamQueen",
   "key": "scream",
@@ -16035,7 +16172,7 @@
      2.19,
      -0.455
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      3.629,
      0.529,
@@ -16045,6 +16182,10 @@
      0.823,
      -1.439,
      1.241
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      2.806,
@@ -16058,7 +16199,7 @@
      2.861,
      -0.239
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.181,
      0.344,
@@ -16068,6 +16209,10 @@
      -1.463,
      -0.822,
      2.185
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      1.282,
@@ -16164,7 +16309,7 @@
  },
  "SilentEraClown": {
   "cap": 2500,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/SilentEraClown.fbx",
+  "fbx": "art/exports/actors_v2/SilentEraClown.fbx",
   "float": false,
   "id": "SilentEraClown",
   "key": "clown",
@@ -16182,7 +16327,7 @@
      3.029,
      -0.052
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.392,
      0.347,
@@ -16192,6 +16337,10 @@
      0.82,
      -0.452,
      2.185
+    ],
+    "shoulder": [
+     1.2,
+     2.55
     ],
     "size": [
      1.572,
@@ -16205,7 +16354,7 @@
      2.358,
      -0.112
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.815,
      0.372,
@@ -16215,6 +16364,10 @@
      -2.469,
      -0.596,
      1.246
+    ],
+    "shoulder": [
+     -1.2,
+     2.55
     ],
     "size": [
      1.654,
@@ -16311,7 +16464,7 @@
  },
  "SoapRegular": {
   "cap": 1900,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/SoapRegular.fbx",
+  "fbx": "art/exports/actors_v2/SoapRegular.fbx",
   "float": false,
   "id": "SoapRegular",
   "key": "soap",
@@ -16329,7 +16482,7 @@
      2.316,
      -0.402
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      1.704,
      0.384,
@@ -16339,6 +16492,10 @@
      0.696,
      -1.187,
      1.665
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.008,
@@ -16352,11 +16509,7 @@
      2.936,
      -0.172
     ],
-    "free_pivot": [
-     -1.5610407590866089,
-     0.0,
-     3.5004177570343016
-    ],
+    "free": false,
     "hi": [
      -0.712,
      0.382,
@@ -16366,6 +16519,10 @@
      -1.895,
      -0.727,
      2.171
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      1.183,
@@ -16433,7 +16590,7 @@
      -1.201,
      2.55
     ],
-    "neck_z": 2.8,
+    "neck_z": 2.9,
     "size": [
      4.109,
      3.4,
@@ -16462,7 +16619,7 @@
  },
  "SpaceCaptain": {
   "cap": 2200,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/SpaceCaptain.fbx",
+  "fbx": "art/exports/actors_v2/SpaceCaptain.fbx",
   "float": false,
   "id": "SpaceCaptain",
   "key": "alien",
@@ -16480,7 +16637,7 @@
      3.122,
      -0.348
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      3.245,
      0.379,
@@ -16490,6 +16647,10 @@
      0.853,
      -1.075,
      1.944
+    ],
+    "shoulder": [
+     1.2,
+     2.65
     ],
     "size": [
      2.392,
@@ -16503,11 +16664,7 @@
      2.187,
      -0.049
     ],
-    "free_pivot": [
-     -1.119444489479065,
-     0.0,
-     2.767726469039917
-    ],
+    "free": true,
     "hi": [
      -0.829,
      0.347,
@@ -16517,6 +16674,10 @@
      -1.913,
      -0.444,
      1.407
+    ],
+    "shoulder": [
+     -1.2,
+     2.65
     ],
     "size": [
      1.084,
@@ -16613,7 +16774,7 @@
  },
  "StuntDouble": {
   "cap": 1900,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/StuntDouble.fbx",
+  "fbx": "art/exports/actors_v2/StuntDouble.fbx",
   "float": false,
   "id": "StuntDouble",
   "key": "stunt",
@@ -16631,7 +16792,7 @@
      2.353,
      -0.19
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      2.254,
      0.335,
@@ -16641,6 +16802,10 @@
      0.791,
      -0.714,
      1.822
+    ],
+    "shoulder": [
+     1.1,
+     2.55
     ],
     "size": [
      1.463,
@@ -16654,7 +16819,7 @@
      2.392,
      -0.385
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      -0.299,
      0.385,
@@ -16664,6 +16829,10 @@
      -1.518,
      -1.155,
      1.824
+    ],
+    "shoulder": [
+     -1.1,
+     2.55
     ],
     "size": [
      1.219,
@@ -16760,7 +16929,7 @@
  },
  "TeenHeartthrob": {
   "cap": 2200,
-  "fbx": "/Users/bosti/Desktop/bagoflean-wt/actors-v2-art/art/exports/actors_v2/TeenHeartthrob.fbx",
+  "fbx": "art/exports/actors_v2/TeenHeartthrob.fbx",
   "float": false,
   "id": "TeenHeartthrob",
   "key": "heart",
@@ -16778,7 +16947,7 @@
      3.049,
      -0.458
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.955,
      0.366,
@@ -16788,6 +16957,10 @@
      0.844,
      -1.283,
      1.501
+    ],
+    "shoulder": [
+     1.2,
+     2.55
     ],
     "size": [
      2.111,
@@ -16801,7 +16974,7 @@
      2.15,
      -0.216
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      -0.562,
      0.371,
@@ -16811,6 +16984,10 @@
      -1.841,
      -0.804,
      1.408
+    ],
+    "shoulder": [
+     -1.2,
+     2.55
     ],
     "size": [
      1.279,
@@ -16907,6 +17084,7 @@
  },
  "TimeTourist": {
   "cap": 2000,
+  "fbx": "art/exports/actors_v2/TimeTourist.fbx",
   "float": false,
   "id": "TimeTourist",
   "key": "tourist",
@@ -16924,7 +17102,7 @@
      4.643,
      -0.348
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      1.328,
      0.319,
@@ -16934,6 +17112,10 @@
      0.662,
      -1.015,
      3.907
+    ],
+    "shoulder": [
+     1.05,
+     5.05
     ],
     "size": [
      0.666,
@@ -17131,7 +17313,7 @@
      4.643,
      -0.348
     ],
-    "free_pivot": null,
+    "free": true,
     "hi": [
      -0.662,
      0.319,
@@ -17141,6 +17323,10 @@
      -1.328,
      -1.015,
      3.907
+    ],
+    "shoulder": [
+     -1.05,
+     5.05
     ],
     "size": [
      0.666,
@@ -17232,7 +17418,7 @@
        4.725,
        0.225
       ],
-      "hex": "E874A2",
+      "hex": "E85DA2",
       "size": [
        0.45,
        0.45,
@@ -17284,7 +17470,7 @@
        4.275,
        -1.125
       ],
-      "hex": "A2745D",
+      "hex": "8B7446",
       "size": [
        0.45,
        0.45,
@@ -17434,7 +17620,7 @@
        1.822,
        0.607
       ],
-      "hex": "D1A246",
+      "hex": "B9A246",
       "size": [
        1.215,
        1.215,
@@ -17629,7 +17815,7 @@
        4.252,
        0.607
       ],
-      "hex": "B95D74",
+      "hex": "A25D5D",
       "size": [
        1.215,
        1.215,
@@ -17863,7 +18049,7 @@
        4.252,
        0.607
       ],
-      "hex": "B95D74",
+      "hex": "A25D5D",
       "size": [
        1.215,
        1.215,
@@ -18356,7 +18542,7 @@
        5.671,
        0.436
       ],
-      "hex": "8B5D2E",
+      "hex": "8B462E",
       "size": [
        0.872,
        0.872,
@@ -18595,6 +18781,7 @@
  },
  "WerewolfPup": {
   "cap": 1900,
+  "fbx": "art/exports/actors_v2/WerewolfPup.fbx",
   "float": false,
   "id": "WerewolfPup",
   "key": "pup",
@@ -18612,11 +18799,7 @@
      2.771,
      0.019
     ],
-    "free_pivot": [
-     1.906600832939148,
-     0.0,
-     3.285682487487793
-    ],
+    "free": false,
     "hi": [
      2.254,
      0.38,
@@ -18626,6 +18809,10 @@
      1.105,
      -0.342,
      2.056
+    ],
+    "shoulder": [
+     1.5,
+     2.4
     ],
     "size": [
      1.149,
@@ -18836,11 +19023,7 @@
      1.925,
      -0.028
     ],
-    "free_pivot": [
-     -1.4723178148269653,
-     0.0,
-     2.4524562835693358
-    ],
+    "free": true,
     "hi": [
      -1.134,
      0.369,
@@ -18850,6 +19033,10 @@
      -1.976,
      -0.424,
      1.198
+    ],
+    "shoulder": [
+     -1.5,
+     2.4
     ],
     "size": [
      0.843,
@@ -19753,7 +19940,7 @@
      -1.453,
      2.35
     ],
-    "neck_z": 5.05,
+    "neck_z": 2.6,
     "size": [
      3.171,
      3.57,
@@ -20447,6 +20634,7 @@
  },
  "WobblyWitch": {
   "cap": 1900,
+  "fbx": "art/exports/actors_v2/WobblyWitch.fbx",
   "float": false,
   "id": "WobblyWitch",
   "key": "witch",
@@ -20464,7 +20652,7 @@
      5.215,
      -0.296
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      2.68,
      0.339,
@@ -20474,6 +20662,10 @@
      0.736,
      -0.931,
      3.5
+    ],
+    "shoulder": [
+     1.05,
+     3.8
     ],
     "size": [
      1.944,
@@ -20565,7 +20757,7 @@
        3.825,
        -0.675
       ],
-      "hex": "8B5D8B",
+      "hex": "745D8B",
       "size": [
        0.45,
        0.45,
@@ -20604,7 +20796,7 @@
        4.275,
        -0.675
       ],
-      "hex": "8BA2B9",
+      "hex": "74B9D1",
       "size": [
        0.45,
        0.45,
@@ -20721,7 +20913,7 @@
        6.075,
        -0.675
       ],
-      "hex": "5DB9D1",
+      "hex": "74B9D1",
       "size": [
        0.45,
        0.45,
@@ -20812,7 +21004,7 @@
        3.825,
        -0.225
       ],
-      "hex": "A27474",
+      "hex": "A2748B",
       "size": [
        0.45,
        0.45,
@@ -20838,7 +21030,7 @@
        4.275,
        -0.225
       ],
-      "hex": "74B9B9",
+      "hex": "74A2B9",
       "size": [
        0.45,
        0.45,
@@ -20903,7 +21095,7 @@
        5.625,
        -0.225
       ],
-      "hex": "74B9D1",
+      "hex": "74B9E8",
       "size": [
        0.45,
        0.45,
@@ -21061,7 +21253,7 @@
      4.625,
      0.0
     ],
-    "free_pivot": null,
+    "free": false,
     "hi": [
      -0.715,
      0.741,
@@ -21071,6 +21263,10 @@
      -2.385,
      -0.741,
      -0.3
+    ],
+    "shoulder": [
+     -1.05,
+     3.8
     ],
     "size": [
      1.669,
@@ -21370,7 +21566,7 @@
        3.452,
        -0.266
       ],
-      "hex": "74468B",
+      "hex": "745D74",
       "size": [
        0.531,
        0.531,
@@ -21695,7 +21891,7 @@
        2.92,
        -0.266
       ],
-      "hex": "8B7474",
+      "hex": "8B5D74",
       "size": [
        0.531,
        0.531,
@@ -21708,7 +21904,7 @@
        2.92,
        0.266
       ],
-      "hex": "8B5D74",
+      "hex": "745D74",
       "size": [
        0.531,
        0.531,
@@ -22001,7 +22197,7 @@
        1.848,
        -0.37
       ],
-      "hex": "5D8B5D",
+      "hex": "5D8B46",
       "size": [
        0.739,
        0.739,
@@ -22027,7 +22223,7 @@
        2.588,
        -1.109
       ],
-      "hex": "5D2E8B",
+      "hex": "7446A2",
       "size": [
        0.739,
        0.739,
@@ -22142,26 +22338,13 @@
       "cf": [
        0.37,
        1.109,
-       -0.37
+       0.0
       ],
       "hex": "5D745D",
       "size": [
        0.739,
        0.739,
-       0.739
-      ]
-     },
-     {
-      "cf": [
-       0.37,
-       1.109,
-       0.37
-      ],
-      "hex": "5D8B5D",
-      "size": [
-       0.739,
-       0.739,
-       0.739
+       1.479
       ]
      },
      {
@@ -22222,7 +22405,7 @@
        2.588,
        -0.37
       ],
-      "hex": "747446",
+      "hex": "74745D",
       "size": [
        0.739,
        0.739,
@@ -22350,13 +22533,26 @@
       "cf": [
        -0.37,
        1.109,
-       0.0
+       -0.37
       ],
       "hex": "5D8B5D",
       "size": [
        0.739,
        0.739,
-       1.479
+       0.739
+      ]
+     },
+     {
+      "cf": [
+       -0.37,
+       1.109,
+       0.37
+      ],
+      "hex": "5D745D",
+      "size": [
+       0.739,
+       0.739,
+       0.739
       ]
      },
      {
@@ -22378,7 +22574,7 @@
        1.848,
        0.37
       ],
-      "hex": "5D8B46",
+      "hex": "5D7446",
       "size": [
        0.739,
        0.739,
@@ -22586,7 +22782,7 @@
        1.848,
        0.37
       ],
-      "hex": "748B5D",
+      "hex": "5D8B5D",
       "size": [
        0.739,
        0.739,
@@ -22636,26 +22832,13 @@
       "cf": [
        -1.109,
        2.588,
-       0.37
-      ],
-      "hex": "462E74",
-      "size": [
-       0.739,
-       0.739,
        0.739
-      ]
-     },
-     {
-      "cf": [
-       -1.109,
-       2.588,
-       1.109
       ],
       "hex": "5D2E74",
       "size": [
        0.739,
        0.739,
-       0.739
+       1.479
       ]
      },
      {
