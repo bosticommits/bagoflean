@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 
 local AchievementsUi = require(script.Parent.AchievementsUi)
+local Founder = require(ReplicatedStorage.Shared.Founder)
 local Announcements = require(script.Parent.Announcements)
 local ActorLife = require(script.Parent.ActorLife)
 local AreaMood = require(script.Parent.AreaMood)
@@ -34,6 +35,7 @@ local Stands = require(script.Parent.Stands)
 local PremiereCarpet = require(script.Parent.PremiereCarpet)
 local StudioUi = require(script.Parent.StudioUi)
 local TakeUi = require(script.Parent.TakeUi)
+local UiKit = require(script.Parent.UiKit)
 local Tutorial = require(script.Parent.Tutorial)
 local UpgradesUi = require(script.Parent.UpgradesUi)
 local VisitUi = require(script.Parent.VisitUi)
@@ -97,14 +99,43 @@ else
 	warn("[MovieMogul] Remotes folder never arrived")
 end
 
--- VIP chat tag. The server sets PassVIP on players who own the pass; this only decorates text.
+-- Founding Tester: the server sets FounderNew only on the join that grants it (one toast, ever). It
+-- waits until the player has claimed their lot (the star is on it) and the intro no longer covers
+-- the screen, whichever comes later.
+local founderToastShown = false
+local function founderToast()
+	local me = Players.LocalPlayer
+	local ready = Founder.toastReady({
+		granted = me:GetAttribute("FounderNew") == true,
+		claimed = me:GetAttribute("LotIndex") ~= nil,
+		introOpen = gui:GetAttribute("IntroOpen") == true,
+		shown = founderToastShown,
+	})
+	if ready then
+		founderToastShown = true
+		UiKit.toast(gui, "Thanks for testing! Your Founding Tester star is on your lot.")
+	end
+end
+Players.LocalPlayer:GetAttributeChangedSignal("FounderNew"):Connect(founderToast)
+Players.LocalPlayer:GetAttributeChangedSignal("LotIndex"):Connect(founderToast)
+gui:GetAttributeChangedSignal("IntroOpen"):Connect(founderToast)
+founderToast()
+
+-- VIP and Founder chat tags. The server sets PassVIP on players who own the pass; this only decorates text.
 TextChatService.OnIncomingMessage = function(message: TextChatMessage)
 	local properties = Instance.new("TextChatMessageProperties")
 	local source = message.TextSource
 	if source then
 		local speaker = Players:GetPlayerByUserId(source.UserId)
+		local tag = ""
+		if speaker ~= nil and speaker:GetAttribute("FoundingTester") then
+			tag ..= `<font color="#FFCD46">[Founder]</font> `
+		end
 		if speaker ~= nil and speaker:GetAttribute("PassVIP") then
-			properties.PrefixText = `<font color="#FFCD46">[VIP]</font> {message.PrefixText}`
+			tag ..= `<font color="#FFCD46">[VIP]</font> `
+		end
+		if tag ~= "" then
+			properties.PrefixText = tag .. message.PrefixText
 		end
 	end
 	return properties

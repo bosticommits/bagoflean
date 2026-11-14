@@ -12,11 +12,12 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserService = game:GetService("UserService")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local TopStudios = require(ReplicatedStorage.Shared.TopStudios)
 local TopStudiosModels = require(ReplicatedStorage.Shared.Models.TopStudiosModels)
 local DataService = require(script.Parent.DataService)
 
-local STORE_NAME = "TopStudiosFame_v1"
+local STORE_NAME = if Config.LaunchWipe then "TopStudiosFame_v2" else "TopStudiosFame_v1" -- keep both names: v1 is the rollback
 local SAVE_SECONDS = 120 -- per player, and only when their Fame changed
 local FETCH_SECONDS = 60
 local DRAW_SECONDS = 5
