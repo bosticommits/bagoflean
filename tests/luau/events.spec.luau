@@ -174,6 +174,12 @@ test("live numeric config accepts only allowlisted finite values inside bounds",
 	equal(LiveConfigNumbers.clean("GiftCashMultiplier", math.huge), nil, "reject infinity")
 	equal(LiveConfigNumbers.clean("GiftCashMultiplier", 0 / 0), nil, "reject NaN")
 	equal(LiveConfigNumbers.clean("UnknownControl", 1), nil, "reject unknown key")
+	equal(LiveConfigNumbers.clean("UpdateAt", 4e9 + 1), nil, "reject UpdateAt above max")
+	equal(LiveConfigNumbers.updateWarning(0, 1000), nil, "UpdateAt 0 = no warning")
+	equal(LiveConfigNumbers.updateWarning(1601, 1000), nil, "more than 10 minutes away")
+	equal(LiveConfigNumbers.updateWarning(1600, 1000), 600, "exactly 10 minutes away")
+	equal(LiveConfigNumbers.updateWarning(1000, 1000), nil, "already restarted")
+	equal(LiveConfigNumbers.updateWarning(900, 1000), nil, "past")
 end)
 
 test("the Pumpkin Patch is dealt only in Fright Night, never twice in a row", function()

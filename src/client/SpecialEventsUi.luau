@@ -16,6 +16,7 @@ local TweenService = game:GetService("TweenService")
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Clock = require(ReplicatedStorage.Shared.Clock)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
+local NumberConfig = require(ReplicatedStorage.Shared.LiveConfigNumbers)
 local ClientState = require(script.Parent.ClientState)
 local EventWorld = require(script.Parent.EventWorld)
 local Fx = require(script.Parent.Fx)
@@ -175,6 +176,17 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 		end
 	end
 
+	-- Update warning: "Update in m:ss", same outlined-letter style, under the event banner.
+	local updateAt = ReplicatedStorage:GetAttribute("LiveConfig_UpdateAt")
+	ReplicatedStorage:GetAttributeChangedSignal("LiveConfig_UpdateAt"):Connect(function()
+		updateAt = ReplicatedStorage:GetAttribute("LiveConfig_UpdateAt")
+	end)
+	local warning = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.fromOffset(WIDTH, INFO_HEIGHT + 4), UDim2.new(), 3)
+	warning.Name = "UpdateWarning"
+	warning.AnchorPoint = Vector2.new(0.5, 0)
+	warning.Visible = false
+	warning.ZIndex = 7
+	UiKit.textConstraint(warning, 26)
 	-- Layout --------------------------------------------------------------------------------------
 	-- How big the banner can be: clear of the side menu on the left (and as far from the right
 	-- edge, since it is centred), never bigger than its design size.
@@ -251,6 +263,26 @@ function SpecialEventsUi.start(gui: ScreenGui, remotes: Instance)
 	local grow: Tween? = nil -- the slam's growth, stopped if it docks early
 	local passing = false -- the slam is the festival's: it leaves after the intro instead of docking
 	local festivalShown = false -- once per visit
+
+	-- Placed with the event banner's own rules: clear of the HUD and the side menu (dockTop,
+	-- fitScale), under the banner when it is docked, hidden during its slam.
+	task.spawn(function()
+		while warning.Parent ~= nil do
+			local left = if type(updateAt) == "number" then NumberConfig.updateWarning(updateAt, workspace:GetServerTimeNow()) else nil
+			warning.Visible = left ~= nil and mode ~= "intro"
+			if warning.Visible and left ~= nil then
+				warning.Text = `Update in {Clock.format(left)} - the server restarts`
+				local width = WIDTH * fitScale()
+				warning.Size = UDim2.fromOffset(width, INFO_HEIGHT + 4)
+				local top = dockTop()
+				if banner.Visible and mode ~= "hidden" then
+					top = math.max(top, banner.AbsolutePosition.Y - gui.AbsolutePosition.Y + banner.AbsoluteSize.Y + 4)
+				end
+				warning.Position = UDim2.new(0.5, 0, 0, top)
+			end
+			task.wait(1)
+		end
+	end)
 
 	local function dock(animated: boolean)
 		mode = "docked"
