@@ -474,6 +474,9 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	local clearButton = makeButton(footer, "Clear cast", UiKit.BURGUNDY, UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76))
 	local goButton = makeButton(footer, "Start filming", UiKit.GREEN, UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76))
 	goButton.Name = "StartFilming"
+	-- One line on every device: "Best cast" / "Clear cast" must not wrap in the 64 px phone button.
+	clearButton.TextWrapped = false
+	goButton.TextWrapped = false
 
 	-- PC: the slots over the summary, the preview, then Clear and Start filming (118 px). Phone
 	-- (compact): one 48 px row, so the list gets the height: slots, summary over preview, Clear, Start.
@@ -488,16 +491,18 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		end
 		if compact then
 			local left = Config.MaxCast * pitch + 4
-			local clearW, goW = 64, 132
+			local clearW, goW = 84, 132
 			local textW = UDim2.new(1, -(left + clearW + goW + 12), 0, 22)
 			summaryLabel.Size, summaryLabel.Position = textW, UDim2.fromOffset(left, 2)
 			previewLabel.Size, previewLabel.Position = textW, UDim2.fromOffset(left, 25)
 			clearButton.Size, clearButton.Position = UDim2.fromOffset(clearW, 40), UDim2.new(1, -(goW + clearW + 6), 0, 4)
+			UiKit.textConstraint(clearButton, 16) -- a fixed small size on phone so the label fits on one line
 			goButton.Size, goButton.Position = UDim2.fromOffset(goW, 44), UDim2.new(1, -goW, 0, 2)
 		else
 			summaryLabel.Size, summaryLabel.Position = UDim2.new(1, -slotsWidth, 0, 40), UDim2.fromOffset(slotsWidth, 2)
 			previewLabel.Size, previewLabel.Position = UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48)
 			clearButton.Size, clearButton.Position = UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76)
+			UiKit.textConstraint(clearButton, 26)
 			goButton.Size, goButton.Position = UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76)
 		end
 	end
