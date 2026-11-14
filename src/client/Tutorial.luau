@@ -367,7 +367,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	local pillTextCap = Instance.new("UITextSizeConstraint")
 	pillTextCap.MinTextSize = 9
 	pillTextCap.MaxTextSize = 13
-	pillTextCap.Enabled = false
 	pillTextCap.Parent = speech
 
 	-- "Let's roll!" ends the intro; it only shows once the last intro line has been typed.
@@ -509,7 +508,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		speech.AutomaticSize = Enum.AutomaticSize.Y
 		speech.Size = UDim2.fromScale(1, 0)
 		speech.TextYAlignment = Enum.TextYAlignment.Top
-		pillTextCap.Enabled = false
 		bust.AnchorPoint = Vector2.new(1, 0)
 		skip.AnchorPoint = Vector2.new(1, 0)
 	end
@@ -567,7 +565,6 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			speech.TextWrapped = true
 			speech.TextScaled = true
 			pillTextCap.MaxTextSize = p.textMax
-			pillTextCap.Enabled = true
 			skip.Size = UDim2.fromOffset(p.skipW, p.skipH)
 			skip.AnchorPoint = Vector2.new(0, 0.5)
 			skip.Position = UDim2.fromOffset(at.X + p.skipX, at.Y + size.Y / 2)
