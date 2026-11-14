@@ -173,3 +173,32 @@ test("the Rare Wall fits on a lot without touching anything else", function()
 		expect(hi - lo <= gap + 0.01, `{figure.Name} is wider than its plinth ({hi - lo})`)
 	end
 end)
+
+test("figure fit: shrinks by width or height, never grows, leaves normal actors alone", function()
+	local Fit = H.require("Models/ActorFit")
+	equal(Fit.shrink(2, 4, 3, 4), 1, "fits already")
+	equal(Fit.shrink(6, 2, 3, 4), 0.5, "width limits")
+	equal(Fit.shrink(2, 8, 3, 4), 0.5, "height limits")
+	equal(Fit.shrink(6, 8, 3, 2), 0.25, "the tighter of the two")
+	equal(Fit.shrink(1, 1, nil, nil), 1, "no limits")
+end)
+
+test("tall actors are capped on the Rare Wall and lot pedestal; normal actors keep their size", function()
+	local Fit = H.require("Models/ActorFit")
+	local frame = CFrame.new(0, 0, 0)
+	local function heightAt(id: string, scale: number): number
+		local folder = roblox.Instance.new("Folder")
+		local model = H.require("Models/ActorModels").build(folder, frame, id, "Normal", scale)
+		return Fit.heightOf(model, frame)
+	end
+	for _, id in { "WobblyWitch", "TimeTourist", "CardboardAstronaut", "RodeoRookie" } do
+		expect(heightAt(id, 1) > 8, `{id} should be taller than the 8-stud cap`)
+	end
+	for _, actor in Actors.List do
+		local tall = heightAt(actor.id, 1) > 8
+		if not tall then
+			equal(Fit.shrink(0, heightAt(actor.id, 0.5), nil, 4), 1, `{actor.id} on the wall`)
+			equal(Fit.shrink(0, heightAt(actor.id, 1.3), nil, 10.4), 1, `{actor.id} on the pedestal`)
+		end
+	end
+end)

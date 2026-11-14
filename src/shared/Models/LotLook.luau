@@ -3,6 +3,7 @@
 -- the owner's progress. LotService rebuilds each changing section only when its inputs change;
 -- the preview tool (art/preview) calls build() to draw a whole lot at once.
 local Actors = require(script.Parent.Parent.Actors)
+local ActorFit = require(script.Parent.ActorFit)
 local ActorModels = require(script.Parent.ActorModels)
 local Build = require(script.Parent.Build)
 local LotModels = require(script.Parent.LotModels)
@@ -11,6 +12,9 @@ local L = LotModels.Layout
 local P = Build.Palette
 
 local LotLook = {}
+
+-- Tallest an actor may stand on the lot pedestal (scale 1.3 x 8 studs: every normal actor is unchanged).
+local PEDESTAL_MAX_HEIGHT = 1.3 * 8
 
 LotLook.MaxTrophiesShown = 5
 LotLook.MaxLaurelsShown = 3
@@ -195,7 +199,13 @@ function LotLook.star(parent: Instance, base: CFrame, actorId: string?, variantI
 	local ring = LotModels.pedestal(b, color, rare)
 	if actor ~= nil then
 		local figureBase = b:at(Vector3.new(0, 1.6, 0))
-		ActorModels.build(parent, figureBase, actor.id, variantId, 1.3)
+		-- Capped so the tallest actors (Wobbly Witch ~14 studs at 1.3) do not tower over the lot.
+		local figure = ActorModels.build(parent, figureBase, actor.id, variantId, 1.3)
+		local k = ActorFit.shrink(0, ActorFit.heightOf(figure, figureBase), nil, PEDESTAL_MAX_HEIGHT)
+		if k < 1 then
+			figure:Destroy()
+			ActorModels.build(parent, figureBase, actor.id, variantId, 1.3 * k)
+		end
 		if rare then
 			ActorModels.aura(Build.new(parent, figureBase), color)
 		end
