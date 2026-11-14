@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local GridRows = require(ReplicatedStorage.Shared.GridRows)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Shop = require(ReplicatedStorage.Shared.Shop)
 local ClientState = require(script.Parent.ClientState)
@@ -27,7 +28,7 @@ local notForSale: { [string]: boolean } = {} -- cacheKey -> Roblox says IsForSal
 -- Fetches a price once in the background and calls `onPrice` when it arrives.
 local function fetchPrice(kind: string, id: number, key: string, onPrice: () -> ())
 	local cacheKey = kind .. ":" .. key
-	-- shortcut: an off-sale item stays "Soon" until the player rejoins (no re-check), upgrade if sales toggle often.
+	-- shortcut: an off-sale item stays hidden until the player rejoins (no re-check), upgrade if sales toggle often.
 	if prices[cacheKey] ~= nil or notForSale[cacheKey] or fetching[cacheKey] or id == 0 then
 		return
 	end
@@ -116,6 +117,12 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		end
 		table.sort(priceKeys)
 		table.insert(parts, table.concat(priceKeys, ","))
+		local offSale = {}
+		for key in notForSale do
+			table.insert(offSale, key)
+		end
+		table.sort(offSale)
+		table.insert(parts, table.concat(offSale, ","))
 		return table.concat(parts, "|")
 	end
 
@@ -162,13 +169,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 	end
 
 	local function priceText(kind: string, id: number, key: string): string
-		if id == 0 then
-			return "Soon"
-		end
 		fetchPrice(kind, id, key, rebuildIfOpen)
-		if notForSale[kind .. ":" .. key] then
-			return "Soon"
-		end
 		local price = prices[kind .. ":" .. key]
 		return if price ~= nil then "R$ " .. Hud.comma(price) else "Buy"
 	end
@@ -194,9 +195,10 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			g.Size = UDim2.new(1, -8, 0, 0)
 			g.AutomaticSize = Enum.AutomaticSize.Y
 			g.Parent = list
-			local layout = Instance.new("UIGridLayout")
-			layout.CellSize = UDim2.new(0.5, -8, 0, if UiKit.isCompact() then 172 else 196)
-			layout.CellPadding = UDim2.fromOffset(10, 10)
+			-- Rows, not UIGridLayout: a grid left-aligns a short last row even with HorizontalAlignment Center.
+			-- finishGrid() (below) moves the cards into one centred row frame per row.
+			local layout = Instance.new("UIListLayout")
+			layout.Padding = UDim.new(0, 10)
 			layout.SortOrder = Enum.SortOrder.LayoutOrder
 			layout.Parent = g
 			local pad = Instance.new("UIPadding")
@@ -204,6 +206,40 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			pad.PaddingTop = UDim.new(0, 3)
 			pad.Parent = g
 			return g
+		end
+		-- Call once a grid is filled: two cards a row, a lone last card centred.
+		local function finishGrid(g: Frame)
+			local cards: { Frame } = {}
+			for _, child in g:GetChildren() do
+				if child:IsA("Frame") then
+					table.insert(cards, child)
+				end
+			end
+			table.sort(cards, function(a, b)
+				return a.LayoutOrder < b.LayoutOrder
+			end)
+			local cellHeight = if UiKit.isCompact() then 172 else 196
+			local index = 0
+			for rowNumber, count in GridRows.split(#cards, 2) do
+				local row = Instance.new("Frame")
+				row.Name = "Row" .. rowNumber
+				row.LayoutOrder = rowNumber
+				row.BackgroundTransparency = 1
+				row.Size = UDim2.new(1, 0, 0, cellHeight)
+				row.Parent = g
+				local rowLayout = Instance.new("UIListLayout")
+				rowLayout.FillDirection = Enum.FillDirection.Horizontal
+				rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				rowLayout.Padding = UDim.new(0, 10)
+				rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+				rowLayout.Parent = row
+				for _ = 1, count do
+					index += 1
+					local c = cards[index]
+					c.Size = UDim2.new(0.5, -8, 1, 0)
+					c.Parent = row
+				end
+			end
 		end
 		-- A picture card: colored tile, outlined 3D icon, name, one line of text, and a slot at the
 		-- bottom for the price button (returned) or an OWNED / not available label.
@@ -291,10 +327,8 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 				ownedLabel(c, "Not available", UiKit.MUTED)
 			else
 				local text = priceText("pass", pass.id, pass.key)
-				priceButton(c, text, text ~= "Soon").Activated:Connect(function()
-					if text == "Soon" then
-						UiKit.toast(gui, "Coming soon!")
-					elseif promptAllowed() then
+				priceButton(c, text, true).Activated:Connect(function()
+					if promptAllowed() then
 						MarketplaceService:PromptGamePassPurchase(player, pass.id)
 					end
 				end)
@@ -307,7 +341,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		-- the grid below.
 		local featured = Shop.getPass(FEATURED)
 		local featuredShown = false
-		-- An off-sale or unset pass is not the one main action: it stays a normal "Soon" card in the grid.
+		-- An off-sale or unset pass is not the one main action: it is hidden (the grid skips it).
 		if
 			featured ~= nil
 			and featured.id ~= 0
@@ -360,18 +394,23 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		local passGrid = grid()
 		local slot = 0
 		for _, pass in Shop.Passes do
-			if featuredShown and pass.key == FEATURED then
+			local owned = player:GetAttribute("Pass" .. pass.key) == true
+			if (featuredShown and pass.key == FEATURED) or not Shop.shouldShow(pass.id, notForSale["pass:" .. pass.key] == true, owned) then
 				continue
 			end
 			slot += 1
 			passCard(passGrid, pass, slot)
 		end
+		finishGrid(passGrid)
 
 		cashSection = section("Boosts and Cash")
 		local productGrid = grid()
 		local rate = player:GetAttribute("Rate") or 0
 		local skips = if ClientState.studio ~= nil then ClientState.studio.skips or 0 else 0
 		for index, product in Shop.Products do
+			if not Shop.shouldShow(product.id, notForSale["product:" .. product.key] == true, false) then
+				continue
+			end
 			local description = product.description
 			if product.reward.cashMinutes ~= nil then
 				description = `${Hud.comma(Rewards.cashAmount(product.reward, rate))} now`
@@ -384,11 +423,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 				continue
 			end
 			local text = priceText("product", product.id, product.key)
-			priceButton(c, text, text ~= "Soon").Activated:Connect(function()
-				if text == "Soon" then
-					UiKit.toast(gui, "Coming soon!")
-					return
-				end
+			priceButton(c, text, true).Activated:Connect(function()
 				if not promptAllowed() then
 					return
 				end
@@ -398,6 +433,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			end)
 			oddsButton(c, product.key, product.name)
 		end
+		finishGrid(productGrid)
 
 		order += 1
 		local note = UiKit.addRow(list, order, 30)

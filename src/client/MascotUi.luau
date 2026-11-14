@@ -3,7 +3,7 @@
 -- mascot following you turns on a spotlight in its rarity color, with a button to hide or show it.
 -- Under it, a picture card for each of the six with its buff: owned ones say EQUIP (or EQUIPPED),
 -- the others two buy buttons: their Cash price (grey until you can afford it) and their Robux
--- price (Roblox's purchase prompt; "soon" until the product is set up in Shared/Mascots). The spotlight
+-- price (Roblox's purchase prompt; hidden until the product is set up in Shared/Mascots). The spotlight
 -- counts down the buff's warm-up after a swap (Mascots.WarmUp).
 -- A new mascot says so at the bottom of the screen and puts a red badge on the Mascots button
 -- until the screen is opened. The client only names the mascot it wants; the server checks it.
@@ -225,7 +225,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 				-- and Robux (Roblox's prompt; ShopService grants it from the receipt). Robux is left
 				-- off for Luck mascots where paid random items are restricted.
 				local canBuy = affordable[m.id] == true
-				local withRobux = not Shop.blocksPurchase(Mascots.randomItems(m), player:GetAttribute("PaidRandomRestricted"))
+				local withRobux = not Shop.blocksPurchase(Mascots.randomItems(m), player:GetAttribute("PaidRandomRestricted")) and (m.product or 0) ~= 0
 				local cashSize = if withRobux then UDim2.fromScale(0.42, 0.19) else actionSize
 				local shop = makeButton(card, if withRobux then `${Hud.comma(m.price)}` else `BUY ${Hud.comma(m.price)}`, if canBuy then UiKit.GREEN else UiKit.DISABLED, cashSize, actionPos)
 				shop.Name = "Buy"
@@ -249,8 +249,8 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 				if withRobux then
 					local id = m.product or 0
 					local price = robux[m.id]
-					local ready = id ~= 0 and price ~= nil and price >= 0
-					local label = if id == 0 then "R$ soon" elseif ready then `R$ {Hud.comma(price :: number)}` else "R$ ..."
+					local ready = price ~= nil and price >= 0
+					local label = if ready then `R$ {Hud.comma(price :: number)}` else "R$ ..."
 					local pay = makeButton(card, label, if ready then UiKit.GOLD else UiKit.DISABLED, UDim2.fromScale(0.42, 0.19), UDim2.fromScale(0.51, 0.78))
 					pay.Name = "BuyRobux"
 					pay.ZIndex = 3
