@@ -1094,7 +1094,9 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local spot: GuiObject? = nil -- one UI target at a time
 		for _, guide in uiGuides do
 			local target, arrow = guide.target, guide.arrow
-			if spot ~= nil or target.Parent == nil or not shown(target) or revealShowing() or splash ~= nil then
+			-- A control under a panel (a menu or HUD button) is covered: its arrow would draw over the panel.
+			local covered = not inPanel(target) and UiKit.panelCovering(gui)
+			if spot ~= nil or target.Parent == nil or not shown(target) or revealShowing() or splash ~= nil or covered then
 				arrow.Visible = false
 				continue
 			end
@@ -1109,7 +1111,15 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				arrow.Position = UDim2.fromOffset(at.X + size.X + half + bob, centre.Y)
 			elseif centre.Y > area.Y * 0.45 then
 				arrow.Rotation = 0 -- pointing down from above
-				arrow.Position = UDim2.fromOffset(centre.X, at.Y - half - bob)
+				-- The CAST bar's "star guaranteed" pill hangs above it: the arrow goes over the pill, not on its text.
+				local top = at.Y
+				for _, holder in { target, target.Parent } do
+					local pill = if holder ~= nil then holder:FindFirstChild("HotStart") else nil
+					if pill ~= nil and pill:IsA("GuiObject") and pill.Visible then
+						top = math.min(top, pill.AbsolutePosition.Y - origin.Y)
+					end
+				end
+				arrow.Position = UDim2.fromOffset(centre.X, top - half - bob)
 			else
 				arrow.Rotation = 180 -- pointing up from below
 				arrow.Position = UDim2.fromOffset(centre.X, at.Y + size.Y + half + bob)
