@@ -11,11 +11,11 @@ const TOP_BAR = 36; // Roblox top bar, px
 // Roblox draws the thumbstick and jump button over the game; fractions of the screen (roblox-ui-verify).
 const THUMBSTICK = [0.0, 0.62, 0.3, 1.0];
 const JUMP = [0.76, 0.68, 1.0, 1.0];
-const MODALS = new Set(["PickerPanel"]); // panels that hide the touch controls while open
+// On phones every open panel hides the touch controls (Declutter, UiKit.holdTouchControls), the picker too.
 const PICKER_COLUMNS = 3;
 const SLACK = 1.5; // px of rounding / stroke tolerance
 // Parts that overhang on purpose or are pure decoration: never reported as outside / off-screen / overlapping.
-const DECOR = /(^|\.)(PanelIcon|[A-Za-z]*Shadow|[A-Za-z]*Scrim|[A-Za-z]*Dim|Glow|Halo|Shine|Backdrop|Outline)(\.|$)/;
+const DECOR = /(^|\.)(PanelIcon|[A-Za-z]*Shadow|[A-Za-z]*Scrim|[A-Za-z]*Dim|Glow|Halo|Shine|Backdrop|Outline|Next)(\.|$)/;
 
 const area = (r) => Math.max(0, r[2]) * Math.max(0, r[3]);
 function intersect(a, b) {
@@ -37,7 +37,7 @@ function checkScene(dir) {
 	const findings = [];
 	const add = (rule, level, node, msg, size) => {
 		// With a panel open the story is about that panel: the HUD behind it is checked by the Hud story.
-		if (scoped && !info.get(node.id)?.panel) return;
+		if (scoped && !info.get(node.id)?.panel && !/(^|\.)Skip(Hit)?$/.test(node.path)) return; // the tutorial's Skip is never scoped away
 		findings.push({ rule, level, path: short(node.path), rect: node.rect.map((v) => Math.round(v * 10) / 10), msg, size });
 	};
 	let scoped = false;
@@ -58,8 +58,7 @@ function checkScene(dir) {
 	const isButton = (n) => n.class === "TextButton" || n.class === "ImageButton";
 	const text = (n) => (typeof n.props?.text === "string" ? n.props.text : "");
 	const drawn = (n) => (n.bg && n.bg.transparency < 1) || text(n) !== "" || n.image || isButton(n);
-	const modalOpen = nodes.some((n) => MODALS.has(n.name) && info.get(n.id).vis);
-
+	
 	// Real extent of a label: the text itself, not its (often much wider) box.
 	function extent(n) {
 		const lines = n.text?.lines;
@@ -146,7 +145,15 @@ function checkScene(dir) {
 			if (!isButton(n) || !i.vis || i.decor) continue;
 			// A card scrolled half out of view is still a full-size target: measure its real rect.
 			const r = i.scrolled ? n.rect : i.clip;
-			const small = Math.min(r[2], r[3]);
+			let small = Math.min(r[2], r[3]);
+			// A drawn button shorter than 44 px may sit under an invisible 44 px hit button (a child, e.g. SkipHit).
+			if (small < TOUCH_MIN - 0.5) {
+				for (const h of nodes) {
+					if (h.parent !== n.id || !isButton(h) || text(h) !== "" || (h.bg && h.bg.transparency < 1) || !info.get(h.id).vis) continue;
+					const hr = h.rect;
+					if (hr[0] <= r[0] + SLACK && hr[1] <= r[1] + SLACK && hr[0] + hr[2] >= r[0] + r[2] - SLACK && hr[1] + hr[3] >= r[1] + r[3] - SLACK) small = Math.max(small, Math.min(hr[2], hr[3]));
+				}
+			}
 			if (small < TOUCH_MIN - 0.5) add("touch-target", "error", n, `${Math.round(r[2])}x${Math.round(r[3])} px, under ${TOUCH_MIN}`, Math.round(small));
 		}
 	}
@@ -157,10 +164,10 @@ function checkScene(dir) {
 		for (const n of nodes) {
 			const i = info.get(n.id);
 			if (!isButton(n) || !i.vis || i.decor) continue;
-			if (i.panel && MODALS.has(i.panel.name)) continue;
 			const r = i.clip;
-			const level = i.panel ? "warn" : "error"; // a dialog over the thumbstick is a smaller sin than a HUD button
 			if (r[1] < TOP_BAR - SLACK) add("safe-zone", "error", n, `inside the top ${TOP_BAR} px bar`);
+			if (i.panel) continue; // a panel's buttons: the touch controls are hidden while it is open
+			const level = "error";
 			for (const [z, label] of [[THUMBSTICK, "thumbstick"], [JUMP, "jump button"]]) {
 				const x = intersect(r, zone(z));
 				if (x && x[2] > 4 && x[3] > 4) add("safe-zone", level, n, `in the ${label} zone (${Math.round(x[2])}x${Math.round(x[3])} px)`);

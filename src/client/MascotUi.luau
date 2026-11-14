@@ -62,6 +62,9 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 		local since = player:GetAttribute("MascotSince")
 		local left = math.ceil(Mascots.warmUpLeft({ mascotSince = since }, workspace:GetServerTimeNow()))
 		local status = if left > 0 then `starts in {left}s` else "active"
+		if UiKit.isCompact() then
+			return `{Mascots.describe(mascot.buff)} ({status})` -- phones: one short line, the blurb is on the cards' odds
+		end
 		return `{mascot.blurb}\nBuff: {Mascots.describe(mascot.buff)} ({status})`
 	end
 	local stopSpin: (() -> ())? = nil
@@ -105,7 +108,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 		local hero = Instance.new("Frame")
 		hero.Name = "Spotlight"
 		hero.LayoutOrder = 1
-		hero.Size = UDim2.new(1, -8, 0, if compact then 118 else 150)
+		hero.Size = UDim2.new(1, -8, 0, if compact then 50 else 150)
 		hero.BackgroundColor3 = UiKit.DARK
 		hero.Parent = list
 		UiKit.corner(hero, 14)
@@ -116,35 +119,54 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 		beam.Rotation = 90
 		beam.Color = ColorSequence.new(color:Lerp(UiKit.DARK, 0.35), UiKit.DARK)
 		beam.Parent = hero
+		-- Phones: a slim strip (small picture, name and one buff line, HIDE) so two card rows stay visible.
 		local art = Instance.new("Frame")
 		art.Name = "Art"
 		art.BackgroundTransparency = 1
 		art.AnchorPoint = Vector2.new(0, 0.5)
-		art.Position = UDim2.new(0, 8, 0.5, 0)
-		art.Size = UDim2.new(0.36, 0, 0.96, 0)
+		if compact then
+			art.Position = UDim2.new(0, 6, 0.5, 0)
+			art.Size = UDim2.fromOffset(46, 46)
+		else
+			art.Position = UDim2.new(0, 8, 0.5, 0)
+			art.Size = UDim2.new(0.36, 0, 0.96, 0)
+		end
 		art.Parent = hero
-		local aspect = Instance.new("UIAspectRatioConstraint")
-		aspect.Parent = art
+		if not compact then
+			local aspect = Instance.new("UIAspectRatioConstraint")
+			aspect.Parent = art
+		end
 		local name: TextLabel
 		local line: TextLabel
+		local nameSize = if compact then UDim2.new(1, -168, 0, 26) else UDim2.new(0.58, 0, 0.3, 0)
+		local namePos = if compact then UDim2.fromOffset(60, 4) else UDim2.fromScale(0.4, 0.08)
+		local lineSize = if compact then UDim2.new(1, -168, 0, 20) else UDim2.new(0.56, 0, 0.2, 0)
+		local linePos = if compact then UDim2.fromOffset(60, 30) else UDim2.fromScale(0.4, 0.38)
 		if mascot ~= nil then
 			local view = Icon3D.mascot(art, mascot.id)
 			Icon3D.glow(view, color, 1.6)
 			stopSpin = Icon3D.spin(view, 6)
-			name = makeTitle(hero, mascot.name, UiKit.WHITE, UDim2.new(0.58, 0, 0.3, 0), UDim2.fromScale(0.4, 0.08), 3)
-			line = makeLabel(hero, buffLine(mascot), UiKit.MUTED, UDim2.new(0.56, 0, 0.2, 0), UDim2.fromScale(0.4, 0.38))
+			name = makeTitle(hero, mascot.name, UiKit.WHITE, nameSize, namePos, 3)
+			line = makeLabel(hero, buffLine(mascot), UiKit.MUTED, lineSize, linePos)
 		else
-			name = makeTitle(hero, "No mascot", UiKit.WHITE, UDim2.new(0.58, 0, 0.3, 0), UDim2.fromScale(0.4, 0.08), 3)
-			line = makeLabel(hero, "Your mascot is hidden. Pick one below.", UiKit.MUTED, UDim2.new(0.56, 0, 0.2, 0), UDim2.fromScale(0.4, 0.38))
+			name = makeTitle(hero, "No mascot", UiKit.WHITE, nameSize, namePos, 3)
+			line = makeLabel(hero, "Your mascot is hidden. Pick one below.", UiKit.MUTED, lineSize, linePos)
 		end
 		heroLine = if mascot ~= nil then line else nil
 		heroMascot = mascot
 		name.TextXAlignment = Enum.TextXAlignment.Left
-		UiKit.textConstraint(name, 34)
+		UiKit.textConstraint(name, if compact then 24 else 34)
 		line.TextXAlignment = Enum.TextXAlignment.Left
 		UiKit.textConstraint(line, 16)
+		if compact then
+			local limit = line:FindFirstChildOfClass("UITextSizeConstraint")
+			if limit ~= nil then
+				limit.MinTextSize = 12 -- readable on a phone; the line is short enough to fit
+			end
+		end
 		if current ~= "" then
-			local hide = makeButton(hero, "HIDE", UiKit.DISABLED, UDim2.fromScale(0.3, 0.26), UDim2.fromScale(0.4, 0.66))
+			local hideSize = if compact then UDim2.fromOffset(92, 44) else UDim2.fromScale(0.3, 0.26)
+			local hide = makeButton(hero, "HIDE", UiKit.DISABLED, hideSize, if compact then UDim2.new(1, -100, 0.5, -22) else UDim2.fromScale(0.4, 0.66))
 			hide.Name = "Hide"
 			UiKit.textConstraint(hide, 22)
 			hide.Activated:Connect(function()
@@ -161,8 +183,8 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 		grid.AutomaticSize = Enum.AutomaticSize.Y
 		grid.Parent = list
 		local layout = Instance.new("UIGridLayout")
-		layout.CellSize = UDim2.new(0.5, -8, 0, if compact then 176 else 200)
-		layout.CellPadding = UDim2.fromOffset(10, 10)
+		layout.CellSize = UDim2.new(0.5, -8, 0, if compact then 90 else 200)
+		layout.CellPadding = UDim2.fromOffset(10, if compact then 6 else 10)
 		layout.SortOrder = Enum.SortOrder.LayoutOrder
 		layout.Parent = grid
 		local pad = Instance.new("UIPadding")
@@ -191,28 +213,68 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 			local pic = Instance.new("Frame")
 			pic.Name = "Art"
 			pic.BackgroundTransparency = 1
-			pic.AnchorPoint = Vector2.new(0.5, 0)
-			pic.Position = UDim2.fromScale(0.5, 0.03)
-			pic.Size = UDim2.fromScale(0.62, 0.46)
+			-- Phones: a short wide card (picture left, name / buff / buttons right) so two rows fit.
+			local host: GuiObject = card
+			local titleSize, titlePos = UDim2.fromScale(0.94, 0.14), UDim2.fromScale(0.03, 0.48)
+			local textSize, textPos = UDim2.fromScale(0.9, 0.13), UDim2.fromScale(0.05, 0.62)
+			local actionSize, actionPos = UDim2.fromScale(0.86, 0.19), UDim2.fromScale(0.07, 0.78)
+			local payPos, halfWidth = UDim2.fromScale(0.51, 0.78), 0.42
+			local halfHeight = 0.19
+			local luck = compact and Mascots.randomItems(m) and not earned -- phones: Odds shares the buttons row
+			if compact then
+				if luck then
+					-- Odds sits under a smaller picture, so the buttons row keeps the full width.
+					pic.Position = UDim2.fromOffset(18, 3)
+					pic.Size = UDim2.fromOffset(40, 40)
+				else
+					pic.AnchorPoint = Vector2.new(0, 0.5)
+					pic.Position = UDim2.new(0, 6, 0.5, 0)
+					pic.Size = UDim2.fromOffset(68, 68)
+				end
+				local info = Instance.new("Frame")
+				info.Name = "Info"
+				info.BackgroundTransparency = 1
+				info.Position = UDim2.fromOffset(82, 4)
+				info.Size = UDim2.new(1, -90, 1, -8)
+				info.ZIndex = 3
+				info.Parent = card
+				host = info
+				titleSize, titlePos = UDim2.fromScale(1, 0.24), UDim2.fromScale(0, 0)
+				textSize, textPos = UDim2.fromScale(1, 0.17), UDim2.fromScale(0, 0.25)
+				actionSize, actionPos = UDim2.fromScale(1, 0.54), UDim2.fromScale(0, 0.46)
+				payPos, halfWidth, halfHeight = UDim2.fromScale(0.52, 0.46), 0.48, 0.54
+
+			else
+				pic.AnchorPoint = Vector2.new(0.5, 0)
+				pic.Position = UDim2.fromScale(0.5, 0.03)
+				pic.Size = UDim2.fromScale(0.62, 0.46)
+			end
 			pic.Parent = card
 			local view = Icon3D.mascot(pic, m.id)
 			Icon3D.glow(view, if earned then Color3.new(1, 1, 1) else tint, if earned then 1 else 0.7)
-			local title = makeTitle(card, m.name, UiKit.WHITE, UDim2.fromScale(0.94, 0.14), UDim2.fromScale(0.03, 0.48), 2.5)
+			local title = makeTitle(host, m.name, UiKit.WHITE, titleSize, titlePos, 2.5)
 			title.Name = "Title"
 			title.ZIndex = 3
 			UiKit.textConstraint(title, 22)
 			local buff = Mascots.describe(m.buff)
-			local text = makeLabel(card, buff, if earned then UiKit.WHITE else UiKit.GOLD, UDim2.fromScale(0.9, 0.13), UDim2.fromScale(0.05, 0.62))
+			local text = makeLabel(host, buff, if earned then UiKit.WHITE else UiKit.GOLD, textSize, textPos)
 			text.Name = "Description"
 			text.ZIndex = 3
 			UiKit.outline(text, 1.5)
 			UiKit.textConstraint(text, 14)
-			local actionSize, actionPos = UDim2.fromScale(0.86, 0.19), UDim2.fromScale(0.07, 0.78)
+			if compact then
+				title.TextXAlignment = Enum.TextXAlignment.Left
+				text.TextXAlignment = Enum.TextXAlignment.Left
+				local limit = text:FindFirstChildOfClass("UITextSizeConstraint")
+				if limit ~= nil then
+					limit.MinTextSize = 12
+				end
+			end
 			if m.id == current then
-				local label = makeTitle(card, "EQUIPPED", UiKit.GOLD, actionSize, actionPos, 2.5)
+				local label = makeTitle(host, "EQUIPPED", UiKit.GOLD, actionSize, actionPos, 2.5)
 				label.ZIndex = 3
 			elseif earned then
-				local go = makeButton(card, "EQUIP", UiKit.GREEN, actionSize, actionPos)
+				local go = makeButton(host, "EQUIP", UiKit.GREEN, actionSize, actionPos)
 				go.Name = "Equip"
 				go.ZIndex = 3
 				UiKit.textConstraint(go, 22)
@@ -226,8 +288,8 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 				-- off for Luck mascots where paid random items are restricted.
 				local canBuy = affordable[m.id] == true
 				local withRobux = not Shop.blocksPurchase(Mascots.randomItems(m), player:GetAttribute("PaidRandomRestricted")) and (m.product or 0) ~= 0
-				local cashSize = if withRobux then UDim2.fromScale(0.42, 0.19) else actionSize
-				local shop = makeButton(card, if withRobux then `${Hud.comma(m.price)}` else `BUY ${Hud.comma(m.price)}`, if canBuy then UiKit.GREEN else UiKit.DISABLED, cashSize, actionPos)
+				local cashSize = if withRobux then UDim2.fromScale(halfWidth, halfHeight) else actionSize
+				local shop = makeButton(host, if withRobux then `${Hud.comma(m.price)}` else `BUY ${Hud.comma(m.price)}`, if canBuy then UiKit.GREEN else UiKit.DISABLED, cashSize, actionPos)
 				shop.Name = "Buy"
 				shop.ZIndex = 3
 				UiKit.textConstraint(shop, 20)
@@ -238,20 +300,25 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 				end)
 				if Mascots.randomItems(m) then
 					-- Before buying a Luck mascot: the odds now against with it out.
-					LuckDetails.cornerButton(card, function()
+					local odds = LuckDetails.cornerButton(card, function()
 						-- Only one mascot's buff counts: a Luck mascot already out is swapped, not stacked.
 						local out = Mascots.get(current)
 						local warm = Mascots.warmUpLeft({ mascotSince = player:GetAttribute("MascotSince") }, workspace:GetServerTimeNow()) <= 0
 						local have = if out ~= nil and out.buff.kind == "luck" and warm then 1 + out.buff.amount else 1
 						LuckDetails.open(gui, m.name, (1 + m.buff.amount) / have, `Works {Mascots.WarmUp} seconds after you equip it.`)
+						panel.Visible = false -- the odds table covers the screen: close Mascots so its text does not ghost through
 					end)
+					if compact then
+						odds.Size = UDim2.fromOffset(62, 44)
+						odds.Position = UDim2.fromOffset(10, 43)
+					end
 				end
 				if withRobux then
 					local id = m.product or 0
 					local price = robux[m.id]
-					local ready = price ~= nil and price >= 0
+					local ready = price ~= nil and price > 0 -- an unloaded price (nil, or 0 from a store that has not answered) shows "R$ ..."
 					local label = if ready then `R$ {Hud.comma(price :: number)}` else "R$ ..."
-					local pay = makeButton(card, label, if ready then UiKit.GOLD else UiKit.DISABLED, UDim2.fromScale(0.42, 0.19), UDim2.fromScale(0.51, 0.78))
+					local pay = makeButton(host, label, if ready then UiKit.GOLD else UiKit.DISABLED, UDim2.fromScale(halfWidth, halfHeight), payPos)
 					pay.Name = "BuyRobux"
 					pay.ZIndex = 3
 					UiKit.textConstraint(pay, 20)
@@ -294,7 +361,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 			for _, m in Mascots.List do
 				if now[m.id] and not known[m.id] then
 					fresh[m.id] = true
-					UiKit.toast(gui, `New mascot: {m.name}!`)
+					UiKit.toast(gui, `New mascot: {m.name}!`, true)
 					Sfx.play("goal")
 				end
 			end
