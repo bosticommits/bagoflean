@@ -5,6 +5,7 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -457,7 +458,8 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		slotButton.AutoButtonColor = false
 		slotButton.BackgroundColor3 = UiKit.DARK
 		slotButton.Size = UDim2.fromOffset(44, 44)
-		slotButton.Position = UDim2.fromOffset((slot - 1) * 50, 0)
+		slotButton.AnchorPoint = Vector2.new(0.5, 0.5) -- so the pop grows from the centre
+		slotButton.Position = UDim2.fromOffset((slot - 1) * 50 + 22, 22)
 		slotButton.Parent = footer
 		corner(slotButton, 8)
 		UiKit.border(slotButton, 2)
@@ -517,7 +519,18 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		return n
 	end
 
+	-- The sorted actor list from refreshPicker (best power first, with free copies), for Best cast.
+	local shownActors: { { key: string, power: number, free: number } } = {}
+	-- Best cast replaces Clear while a slot is empty and a free actor can fill it. Hidden until the
+	-- tutorial is done, so its casting step is unchanged.
+	local function canFill(): boolean
+		return state ~= nil and state.tutorialDone and pickScript ~= nil and #pickCast < Config.MaxCast and #shownActors > 0
+	end
+
 	local function updatePickerFooter()
+		local fill = canFill()
+		clearButton.Text = if fill then "Best cast" else "Clear cast"
+		UiKit.setEnabled(clearButton, true, if fill then UiKit.BLUE else UiKit.BURGUNDY)
 		local names = {}
 		for _, key in pickCast do
 			table.insert(names, actorLabel(key))
@@ -603,7 +616,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		end
 		-- Free copies left after the cast so far; actors with none left hide. Best power first.
 		local busy = busyCopies()
-		local shown: { { key: string, power: number } } = {}
+		local shown: { { key: string, power: number, free: number } } = {}
 		for key, entry in actorCards do
 			local free = (roster[key] or 0) - (busy[key] or 0) - pickedCount(key)
 			local power = Movies.actorPower(key, genre or "")
@@ -618,7 +631,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 				entry.bonus.BackgroundColor3 = GENRE_COLORS[genre] or UiKit.GOLD
 			end
 			if free > 0 then
-				table.insert(shown, { key = key, power = power })
+				table.insert(shown, { key = key, power = power, free = free })
 			end
 		end
 		table.sort(shown, function(a, b)
@@ -630,6 +643,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		for index, item in shown do
 			actorCards[item.key].card.LayoutOrder = index
 		end
+		shownActors = shown
 		if actorGrid ~= nil then
 			actorGrid.Visible = #shown > 0
 		end
@@ -773,8 +787,29 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	end
 
 	clearButton.Activated:Connect(function()
-		pickCast = {}
-		refreshPicker()
+		if canFill() then
+			local from = #pickCast
+			for _, key in Movies.fillCast(shownActors, Config.MaxCast - from) do
+				table.insert(pickCast, key)
+			end
+			refreshPicker()
+			-- Filled slots pop in (0.18 s Back Out, 0.06 s stagger).
+			for slot = from + 1, #pickCast do
+				local scale = Instance.new("UIScale")
+				scale.Scale = 0.8
+				scale.Parent = castSlots[slot]
+				task.delay((slot - from - 1) * 0.06, function()
+					local tween = TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+					tween.Completed:Once(function()
+						scale:Destroy()
+					end)
+					tween:Play()
+				end)
+			end
+		else
+			pickCast = {}
+			refreshPicker()
+		end
 	end)
 	for slot, slotButton in castSlots do
 		slotButton.Activated:Connect(function()
@@ -866,11 +901,16 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		UiKit.togglePanel(panel, render)
 		studioRequest:FireServer()
 	end)
-	Screens.register("Studio", function()
+	Screens.register("Studio", function(focus)
+		if focus ~= nil and table.find(tabNames, focus) ~= nil then
+			tab = focus
+		end
 		if not panel.Visible then
 			picker.Visible = false
 			UiKit.togglePanel(panel, render)
 			studioRequest:FireServer()
+		elseif focus ~= nil then
+			render()
 		end
 	end)
 

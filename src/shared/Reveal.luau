@@ -30,4 +30,20 @@ function Reveal.plan(rank: number, roll: number): Plan
 	return { seconds = seconds, steps = steps, fakeOut = fakeOut }
 end
 
+-- Full-screen card or small headshot toast? Star (rank 4) and up, Award-Winning variants, server
+-- guarantees (hot start, pity, first Superstar) and every cast before the tutorial is done get the
+-- card; the rest get the toast. `ctx.tutorialDone` is false while unknown, so early casts stay full.
+Reveal.CardRank = 4
+function Reveal.useCard(rank: number, result: { variantId: string?, guarantee: string? }, ctx: { tutorialDone: boolean }): boolean
+	return rank >= Reveal.CardRank or result.variantId == "Award" or result.guarantee ~= nil or not ctx.tutorialDone
+end
+
+-- After a Star+ card flips, the buttons ignore taps (and gamepad A) this long, so a button-mashing
+-- player cannot skip the moment by accident: 0.6 s Star, 0.9 Superstar, 1.2 s Legend and Icon.
+-- Cards below Star (tutorial, guaranteed pulls) are never held.
+Reveal.GuardSeconds = { [4] = 0.6, [5] = 0.9, [6] = 1.2, [7] = 1.2 }
+function Reveal.guardSeconds(rank: number): number
+	return Reveal.GuardSeconds[rank] or 0
+end
+
 return Reveal
