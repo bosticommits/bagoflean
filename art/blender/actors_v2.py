@@ -226,7 +226,7 @@ class Fig:
     def leaf(self, at, rot, length, width, thick, color, tip=0.3, widest=0.45, tip_color=None, tip_from=0.7):
         """A feather/blade: base at `at`, runs along +Z, widest part near `widest`, blunt tip."""
         bm = bmesh.new()
-        prof = [(0.0, 0.62, 0.8), (widest, 1.0, 1.0), (0.82, 0.8, 0.85), (1.0, tip, 0.45)]
+        prof = [(0.0, 0.62, 0.8), (widest, 1.0, 1.0), (1.0, tip, 0.45)]
         rings = []
         for t, wk, tk in prof:
             hw, ht = width * wk / 2, thick * tk / 2
@@ -443,18 +443,113 @@ SHOULDER_Z = 2.4
 EYE_DARK = "#161220"
 
 
-def head_box(f, skin, bevel=0.19, cuts=0, w=HEAD_W, d=HEAD_D, h=HEAD_H, z0=HEAD_Z0):
-    """Rounded cube head: bevel is ~7.6% of the head width (rule 11), 2 segments."""
+HEAD = {"w": HEAD_W, "d": HEAD_D, "h": HEAD_H, "z0": HEAD_Z0, "r": 0.95}
+
+
+def head_box(f, skin, r=0.95, cuts=0, w=HEAD_W, d=HEAD_D, h=HEAD_H, z0=HEAD_Z0, segs=3):
+    """Soft rounded-cube head (round 2: user wants no sharp box): a rounded box whose corner radius r is
+    ~29% of the head width, 3 segments, so it reads as a pill/pillow but keeps a flat-ish face centre. The
+    shape is analytic, so face features can sit exactly on its surface (see head_surf / head_at)."""
+    HEAD.update(w=w, d=d, h=h, z0=z0, r=r)
     with f.piece("Head"):
-        f.rbox((0, 0, z0 + h / 2), (w, d, h), skin, bevel=bevel, segs=2, cuts=cuts)
+        f.rbox((0, 0, z0 + h / 2), (w, d, h), skin, bevel=r, segs=segs, cuts=cuts, min_angle=30)
 
 
-def face_eyes(f, skin, spread=0.6, k=1.0, kx=None, color=EYE_DARK, glow=None, y=FACE_Y, z=EYE_Z, socket=True):
+def head_surf(x, z):
+    """Front surface of the rounded-box head at (x, z): returns (y, pitch_deg, yaw_deg) so a feature can sit
+    on it, turned to follow the curve (local -Y = outward normal)."""
+    hd = HEAD
+    r = hd["r"]
+    zc = hd["z0"] + hd["h"] / 2
+    ix, iz = hd["w"] / 2 - r, hd["h"] / 2 - r
+    dx = max(abs(x) - ix, 0.0) * (1 if x >= 0 else -1)
+    dz = max(abs(z - zc) - iz, 0.0) * (1 if z >= zc else -1)
+    t = max(r * r - dx * dx - dz * dz, 1e-4)
+    ny = -math.sqrt(t)
+    y = -(hd["d"] / 2 - r) + ny
+    n = Vector((dx, ny, dz)) / r
+    pitch = math.degrees(math.asin(max(-1, min(1, -n.z))))
+    yaw = math.degrees(math.asin(max(-1, min(1, n.x / max(math.cos(math.radians(pitch)), 1e-3)))))
+    return y, pitch, yaw
+
+
+def head_normal(x, z):
+    hd = HEAD
+    r = hd["r"]
+    zc = hd["z0"] + hd["h"] / 2
+    ix, iz = hd["w"] / 2 - r, hd["h"] / 2 - r
+    dx = max(abs(x) - ix, 0.0) * (1 if x >= 0 else -1)
+    dz = max(abs(z - zc) - iz, 0.0) * (1 if z >= zc else -1)
+    t = max(r * r - dx * dx - dz * dz, 1e-4)
+    return Vector((dx, -math.sqrt(t), dz)) / r
+
+
+def head_patch(f, cx, cz, rx, rz, out, color, seg=12, rings=2):
+    """A solid cap that follows the head surface (a face plate / muzzle): an oval of radii rx, rz centred on
+    (cx, cz), standing `out` studs proud of the head, with a wall that sinks into it."""
+    bm = bmesh.new()
+    prof = [k / rings for k in range(rings + 1)]
+    top = [[None] * seg for _ in prof]
+    bot = [None] * seg
+    for j in range(seg):
+        a = 2 * math.pi * j / seg
+        for i, k in enumerate(prof):
+            x, z = cx + rx * k * math.cos(a), cz + rz * k * math.sin(a)
+            y, _, _ = head_surf(x, z)
+            n = head_normal(x, z)
+            bulge = out * (1.0 - 0.35 * k * k)  # a soft dome: the edge sits a little lower than the middle
+            top[i][j] = bm.verts.new(Vector((x, y, z)) + n * bulge) if i or j == 0 else top[0][0]
+        x, z = cx + rx * math.cos(a), cz + rz * math.sin(a)
+        y, _, _ = head_surf(x, z)
+        bot[j] = bm.verts.new(Vector((x, y, z)) - head_normal(x, z) * 0.06)
+    for j in range(seg):
+        j2 = (j + 1) % seg
+        bm.faces.new((top[0][0], top[1][j2], top[1][j]))
+        for i in range(1, rings):
+            bm.faces.new((top[i][j], top[i][j2], top[i + 1][j2], top[i + 1][j]))
+        bm.faces.new((top[rings][j], top[rings][j2], bot[j2], bot[j]))
+    bm.faces.new(bot[::-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    f._place(bm, (0, 0, 0), (0, 0, 0), color)
+
+
+def head_ring(f, cx, cz, rx, rz, tube, out, color, major=14, minor=4, flat=1.0):
+    """A fur ring / trim lying on the head surface (torus whose centre line follows the curve)."""
+    bm = bmesh.new()
+    rows = []
+    for i in range(major):
+        a = 2 * math.pi * i / major
+        x, z = cx + rx * math.cos(a), cz + rz * math.sin(a)
+        y, _, _ = head_surf(x, z)
+        n = head_normal(x, z)
+        c = Vector((x, y, z)) + n * out
+        u = Vector((math.cos(a), 0, math.sin(a)))
+        u = (u - n * u.dot(n)).normalized()
+        row = []
+        for j in range(minor):
+            b = 2 * math.pi * j / minor + math.pi / minor
+            row.append(bm.verts.new(c + (n * math.cos(b) * tube * flat + u * math.sin(b) * tube)))
+        rows.append(row)
+    for i in range(major):
+        for j in range(minor):
+            bm.faces.new((rows[i][j], rows[(i + 1) % major][j], rows[(i + 1) % major][(j + 1) % minor], rows[i][(j + 1) % minor]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    f._place(bm, (0, 0, 0), (0, 0, 0), color)
+
+
+def head_at(f, x, z, out=0.0):
+    """Context: origin on the head surface at (x, z) (pushed `out` studs outward), axes turned to follow
+    the surface. Inside it local -Y is outward, +Z up, +X the actor's left."""
+    y, pitch, yaw = head_surf(x, z)
+    return f.at((x, y - out, z), (pitch, 0, yaw))
+
+
+def face_eyes(f, skin, spread=0.6, k=1.0, kx=None, color=EYE_DARK, glow=None, out=0.0, z=EYE_Z, socket=True):
     """Tall-oval eyes (20% of head width each) in a darker socket, one white specular dot each.
     Faces -Y, so every disc is turned 90 deg about X."""
     kx = kx or k
     for s in (-1, 1):
-        with f.piece("Head"), f.at((s * spread, y, z), (90, 0, 0)):
+        with f.piece("Head"), head_at(f, s * spread, z, out), f.at((0, 0, 0), (90, 0, 0)):
             if socket:
                 f.disc((0, 0.0, 0.0), 0.7 * kx, 0.86 * k, 0.05, shade(skin, 0.86), seg=8)
             f.disc((0, 0.0, 0.035), 0.5 * kx, 0.64 * k, 0.05, color, seg=10)
@@ -463,18 +558,18 @@ def face_eyes(f, skin, spread=0.6, k=1.0, kx=None, color=EYE_DARK, glow=None, y=
                 f.disc((0.0, 0.0, 0.05), 0.3 * kx, 0.4 * k, 0.03, glow, seg=10)
 
 
-def face_brows(f, color, length=0.95, thick=0.2, angle=14, x=0.62, z=EYE_Z + 0.68, worried=True, y=FACE_Y, lift=(0, 0)):
+def face_brows(f, color, length=0.95, thick=0.2, angle=14, x=0.62, z=EYE_Z + 0.68, worried=True, out=0.0, lift=(0, 0)):
     """Thick angled brows. Worried: inner ends up."""
     for s in (-1, 1):
         a = s * angle if worried else -s * angle
-        with f.piece("Head"):
-            f.rbox((s * x, y - 0.02, z + (lift[0] if s < 0 else lift[1])), (length, 0.11, thick), color, rot=(0, a, 0), bevel=0.0)
+        with f.piece("Head"), head_at(f, s * x, z + (lift[0] if s < 0 else lift[1]), out):
+            f.rbox((0, -0.02, 0), (length, 0.11, thick), color, rot=(0, a, 0), bevel=0.0)
 
 
-def face_blush(f, color="#F29A9A", x=0.88, z=EYE_Z - 0.38, w=0.4, h=0.26, y=FACE_Y):
+def face_blush(f, color="#F29A9A", x=0.88, z=EYE_Z - 0.38, w=0.4, h=0.26, out=0.0, seg=8):
     for s in (-1, 1):
-        with f.piece("Head"), f.at((s * x, y, z), (90, 0, 0)):
-            f.disc((0, 0, 0.0), w, h, 0.05, color, seg=8)
+        with f.piece("Head"), head_at(f, s * x, z, out), f.at((0, 0, 0), (90, 0, 0)):
+            f.disc((0, 0, 0.0), w, h, 0.05, color, seg=seg)
 
 
 def legs_kid(f, pants, shoes, sole, spread=0.5, hip=1.45, long=0.0, r=0.36):
@@ -619,72 +714,85 @@ def _star_inlay(f, x, y, z, r, color, base):
 
 def nervous_intern(f):
     """Newcomer, Kid template. Shy, sweaty intern: round glasses, tie + badge, a wobbling tower of coffee cups
-    (hero, rises past the head) and a clipboard."""
+    (hero, rises past the head) and a small clipboard held low. Round 2: pill head, soft messy hair (no
+    spikes), head raised so the shirt, tie and badge read."""
     skin, shirt, tie, pants = "#F2C49C", "#8FC3EE", "#D83A3A", "#C9A86A"
     shoes, sole, hair = "#7A5434", "#3A2A20", "#6B4226"
+    hair_dk, hair_lt = "#523219", "#8A5C34"
     frame = "#2A3350"
+    RAISE = 0.3  # head lifts off the shoulders so the shirt and tie show
     legs_kid(f, pants, shoes, sole)
-    torso(f, shirt)
+    torso(f, shirt, h=1.7, z=2.0, w=1.8)
     with f.piece("Body"):
-        f.rbox((0, 0, 1.4), (1.84, 1.42, 0.4), pants, bevel=0.1)  # trousers waist
-        f.rbox((0, 0, 1.62), (1.88, 1.46, 0.12), "#4A3022", bevel=0.0)  # belt
+        f.rbox((0, 0, 1.4), (1.9, 1.42, 0.4), pants, bevel=0.1)  # trousers waist
+        f.rbox((0, 0, 1.62), (1.94, 1.46, 0.12), "#4A3022", bevel=0.0)  # belt
         for s_ in (-1, 1):  # collar
-            f.rbox((s_ * 0.3, -0.62, 2.62), (0.5, 0.2, 0.3), "#F4F7FA", rot=(0, 0, s_ * -28), bevel=0.0)
-        f.rbox((0, -0.7, 2.6), (0.24, 0.12, 0.2), tie, bevel=0.0)
-        f.rbox((0, -0.72, 2.1), (0.3, 0.1, 0.8), tie, bevel=0.0, taper=1.7)
-        f.rbox((0.5, -0.71, 2.12), (0.42, 0.08, 0.52), "#FFFFFF", bevel=0.0)  # id badge
-        f.rbox((0.5, -0.76, 2.2), (0.42, 0.04, 0.16), "#3A8DFF", bevel=0.0)
+            f.rbox((s_ * 0.3, -0.62, 2.78), (0.5, 0.2, 0.3), "#F4F7FA", rot=(0, 0, s_ * -28), bevel=0.0)
+        f.rbox((0, -0.7, 2.74), (0.24, 0.12, 0.2), tie, bevel=0.0)
+        f.rbox((0, -0.72, 2.22), (0.3, 0.1, 0.95), tie, bevel=0.0, taper=1.7)
+        f.rbox((0.52, -0.71, 2.2), (0.42, 0.08, 0.52), "#FFFFFF", bevel=0.0)  # id badge
+        f.rbox((0.52, -0.76, 2.28), (0.42, 0.04, 0.16), "#3A8DFF", bevel=0.0)
 
     def cups(f):
         # five wobbly cups: lean and offset grow with height
         cup = [(k * 1.2, z * 1.2) for k, z in ((0.27, 0.0), (0.34, 0.2), (0.37, 0.4), (0.41, 0.54), (0.41, 0.62))]
         cols = ["#FFFFFF", "#B87333", "#FFFFFF", "#3A2A20"]
         with f.at((0.04, -0.05, 0.12), (-6, 6, 0)):
-            for i in range(5):
+            for i in range(4):
                 wob = math.sin(i * 1.9) * 0.14
                 with f.at((wob, 0, i * 0.6), (math.sin(i * 1.3) * 7, math.cos(i * 1.1) * 8, 0)):
                     f.lathe((0, 0, 0), cup, cols, seg=6)
 
-    def clipboard(f):
-        with f.at((0.0, -0.3, -0.2), (12, 0, 0)):
-            f.rbox((0, 0, 0), (0.95, 0.1, 1.2), "#96623C", bevel=0.0)
-            f.rbox((0, -0.07, -0.05), (0.76, 0.05, 0.9), "#FAF6EC", bevel=0.0)
-            f.rbox((0, -0.08, 0.56), (0.4, 0.09, 0.14), "#F5B82E", bevel=0.0)
+    def clipboard(f):  # small, hanging low by his thigh
+        with f.at((-0.05, -0.12, -0.5), (6, 0, -8)):
+            f.rbox((0, 0, 0), (0.7, 0.09, 0.9), "#96623C", bevel=0.0)
+            f.rbox((0, -0.06, -0.03), (0.56, 0.05, 0.68), "#FAF6EC", bevel=0.0)
+            f.rbox((0, -0.07, 0.42), (0.3, 0.08, 0.12), "#F5B82E", bevel=0.0)
 
-    arm(f, 1, shirt, skin, rot=(-50, 58, 0), held=cups, upright=True)
-    arm(f, -1, shirt, skin, rot=(-22, 8, 0), held=clipboard)
-    head_box(f, skin, bevel=0.28)
-    top = HEAD_Z0 + HEAD_H
-    with f.piece("Head"):  # messy hair: cap, back, cowlicks, three bangs over the forehead
-        f.rbox((0, -0.03, top - 0.07), (2.62, 2.4, 0.62), hair, bevel=0.26, segs=2)
-        f.rbox((0, 1.1, top - 0.8), (2.56, 0.34, 1.5), hair, bevel=0.1)
-        for x, rz, hh in ((-0.7, 24, 0.7), (0.05, -8, 0.85), (0.72, -30, 0.64)):
-            f.spike((x, -0.05, top + 0.15), 0.32, hh, hair, rot=(-18, rz, 0), seg=4)
-    face_eyes(f, skin, spread=0.6, k=1.0)
-    face_brows(f, "#4A2F1C", length=1.0, thick=0.2, angle=17, x=0.64, z=EYE_Z + 0.78, lift=(0.04, -0.03))
-    face_blush(f)
-    with f.piece("Head"):  # round glasses: ring + bridge
-        for s_ in (-1, 1):
-            f.torus((s_ * 0.6, FACE_Y - 0.1, EYE_Z), 0.47, 0.08, frame, major=8, minor=4)
-        f.rbox((0, FACE_Y - 0.1, EYE_Z + 0.08), (0.3, 0.12, 0.1), frame, bevel=0.0)
-    mouth_wobble(f)
-    with f.piece("Head"):  # sweat drop on the temple
-        f.ball((1.28, -0.7, EYE_Z + 0.75), (0.2, 0.17, 0.24), "#8FD6FF", seg=6, rings=4)
-        f.spike((1.28, -0.7, EYE_Z + 0.88), 0.17, 0.42, "#8FD6FF", seg=6)
+    arm(f, 1, shirt, skin, rot=(-50, 58, 0), held=cups, upright=True, shoulder_z=2.55)
+    arm(f, -1, shirt, skin, rot=(-6, 16, 0), held=clipboard, shoulder_z=2.55, x=1.14)
+    with f.at((0, 0, RAISE)):
+        head_box(f, skin, segs=2)
+        top = HEAD_Z0 + HEAD_H
+        with f.piece("Head"):  # soft messy hair: a dome cap, a back/side mass, two swept tufts, fringe, nape clumps
+            f.ball((0, 0.05, top - 0.12), (1.36, 1.26, 0.78), hair, seg=8, rings=5)
+            f.ball((0, 0.42, top - 1.2), (1.33, 1.0, 1.3), hair, seg=8, rings=5)
+            f.ball((-0.35, -0.3, top + 0.42), (0.78, 0.6, 0.42), hair_lt, rot=(0, 16, 26), seg=7, rings=4)  # swept tuft
+            f.ball((0.6, -0.1, top + 0.22), (0.6, 0.5, 0.34), hair, rot=(0, -22, -30), seg=6, rings=4)  # second, smaller
+            for x, rz in ((-0.5, 12), (0.5, -14)):  # fringe over the forehead
+                f.ball((x, -0.86, top - 0.08), (0.55, 0.36, 0.3), hair, rot=(0, rz, rz), seg=6, rings=3)
+            for x, z in ((-0.55, top - 1.95), (0.55, top - 2.0)):  # nape clumps so the back of the head is shaped
+                f.ball((x, 0.95, z), (0.6, 0.36, 0.42), hair, seg=6, rings=3)
+        with f.piece("Head"):  # ears (the side of the head was bare)
+            for s_ in (-1, 1):
+                f.ball((s_ * 1.2, 0.05, EYE_Z + 0.05), (0.2, 0.3, 0.38), shade(skin, 0.94), seg=6, rings=3)
+        face_eyes(f, skin, spread=0.6, k=1.0)
+        face_brows(f, "#4A2F1C", length=1.0, thick=0.2, angle=17, x=0.64, z=EYE_Z + 0.78, lift=(0.04, -0.03))
+        face_blush(f, x=0.9, seg=6)
+        with f.piece("Head"):  # round glasses: ring + bridge
+            for s_ in (-1, 1):
+                with head_at(f, s_ * 0.6, EYE_Z, 0.1):
+                    f.torus((0, 0, 0), 0.47, 0.08, frame, major=8, minor=3)
+            with head_at(f, 0, EYE_Z + 0.08, 0.1):
+                f.rbox((0, 0, 0), (0.3, 0.12, 0.1), frame, bevel=0.0)
+        mouth_wobble(f)
+        with f.piece("Head"), head_at(f, 1.12, EYE_Z + 0.4, 0.06):  # sweat drop on the temple
+            f.ball((0, 0, 0), (0.2, 0.15, 0.3), "#8FD6FF", rot=(0, 0, 14), seg=5, rings=3)
 
 
 def mouth_wobble(f, color="#7A2836", z=EYE_Z - 0.85, w=0.9):
     """Nervous grimace (a clenched-teeth mouth, wider than 25% of the head): dark rounded mouth with a
     row of three white teeth."""
-    with f.piece("Head"), f.at((0, FACE_Y - 0.03, z), (0, 4, 0)):
+    with f.piece("Head"), head_at(f, 0, z, 0.03), f.at((0, 0, 0), (0, 4, 0)):
         f.rbox((0, 0, 0), (w, 0.09, 0.36), color, bevel=0.07)
         for i in (-1, 0, 1):
             f.rbox((i * 0.28, -0.04, 0.05), (0.24, 0.06, 0.2), "#FFFFFF", bevel=0.0)
 
 
 def werewolf_pup(f):
-    """Newcomer (Horror), costume-blob template. A shy understudy in a too-big wolf onesie: hood with two
-    big pointed ears and a fur ruff, belly patch, floppy tail, red sneakers. Howls, then says sorry."""
+    """Newcomer (Horror), costume-blob template. A shy understudy in a too-big wolf onesie: round hood with two
+    tall pointed WOLF ears (leaning out, fur tufts inside), a soft fur ruff, belly patch and a big tail curling
+    out to the side, red sneakers. Howls, then says sorry."""
     fur, fur_lt, fur_dk = "#8A8F99", "#B9BEC8", "#5E6370"
     cream, pink, red, dark = "#F4E7CF", "#F08A8A", "#D83A3A", "#3A1F2B"
     legs_kid(f, fur, red, cream, spread=0.62, hip=1.4, r=0.46)
@@ -694,10 +802,11 @@ def werewolf_pup(f):
             f.disc((0, 0, 0), 1.5, 1.3, 0.07, cream, seg=12)  # belly patch
         f.rbox((0, 1.04, 2.0), (0.2, 0.07, 2.1), fur_dk, bevel=0.0)  # back zip
         f.rbox((0, 1.07, 1.15), (0.34, 0.09, 0.36), "#F5B82E", bevel=0.0)  # zip pull
-        # floppy tail: base blob + a long plume curling out, cream tip
-        f.ball((-0.5, 1.05, 1.45), (0.6, 0.55, 0.6), fur, seg=7, rings=4)
-        f.ball((-1.3, 1.3, 1.95), (0.48, 0.46, 1.05), fur, rot=(0, -45, 0), seg=8, rings=5)
-        f.ball((-1.9, 1.3, 2.6), (0.4, 0.38, 0.4), cream, seg=7, rings=4)
+        # big fluffy tail: base blob, a plume sweeping out to the actor's left (+X) under the waving arm, tip curls up
+        f.ball((0.5, 1.15, 1.25), (0.72, 0.62, 0.62), fur, seg=7, rings=4)
+        f.ball((1.45, 0.8, 1.05), (0.62, 0.55, 1.15), fur, rot=(0, 78, 0), seg=8, rings=4)
+        f.ball((1.45, 0.72, 1.12), (0.46, 0.4, 0.95), fur_lt, rot=(0, 78, 0), seg=6, rings=3)  # lighter fur layer
+        f.ball((2.1, 0.62, 1.72), (0.5, 0.44, 0.62), cream, rot=(0, 20, 0), seg=7, rings=4)  # cream tip curling up
 
     def pad(f):
         with f.at((0, -0.26, 0.0), (90, 0, 0)):
@@ -705,140 +814,188 @@ def werewolf_pup(f):
             for x in (-0.19, 0.0, 0.19):
                 f.disc((x, 0.22, 0), 0.12, 0.12, 0.05, pink, seg=5)
 
-    arm(f, 1, fur, fur, rot=(0, 150, 0), held=pad, x=1.5, length=0.8, sleeve_r=0.38)
+    arm(f, 1, fur, fur, rot=(0, 142, 0), held=pad, x=1.5, length=0.8, sleeve_r=0.38)
     arm(f, -1, fur, fur, rot=(-6, 8, 0), held=pad, x=1.5, length=0.8, sleeve_r=0.38)
-    head_box(f, fur, bevel=0.25)
-    y0 = FACE_Y - 0.1
+    head_box(f, fur, segs=2)
     top = HEAD_Z0 + HEAD_H
+    PLATE = 0.12
     with f.piece("Head"):
-        with f.at((0, FACE_Y - 0.03, 3.45), (90, 0, 0)):
-            f.disc((0, 0, 0), 1.9, 2.0, 0.12, "#FFF4E0", seg=14)  # face plate
-        f.torus((0, FACE_Y - 0.07, 3.45), 0.98, 0.13, fur_lt, major=14, minor=4, sz=1.02)  # fluffy hood rim
+        head_patch(f, 0, 3.4, 0.98, 1.05, PLATE, "#FFF4E0", seg=12, rings=2)  # face plate that hugs the round head
+        head_ring(f, 0, 3.4, 1.06, 1.12, 0.14, 0.04, fur_lt, major=14, minor=3, flat=1.1)  # fluffy hood rim
         for s_ in (-1, 1):
-            for z, ang in ((3.25, 105), (2.8, 118)):  # cheek tufts
-                f.spike((s_ * 1.18, FACE_Y + 0.35, z), 0.26, 0.42, fur_lt, rot=(0, s_ * ang, 0), seg=4, squash=0.5)
-            with f.at((s_ * 0.82, 0.05, top - 0.12), (-8, s_ * 16, 0)):  # ears
-                f.spike((0, 0, 0), 0.72, 1.25, fur, seg=4, squash=0.55)
-                f.spike((0, -0.2, 0.02), 0.44, 0.85, pink, seg=4, squash=0.5)
-        f.rbox((0, 0.4, top + 0.02), (0.9, 1.3, 0.14), fur_dk, bevel=0.0)  # hood crest
-    face_eyes(f, cream, spread=0.56, k=1.1, y=y0, z=3.5)
-    face_brows(f, "#4E5260", length=0.9, thick=0.2, angle=22, x=0.58, z=3.5 + 0.78, y=y0)
-    face_blush(f, pink, x=0.78, z=3.0, y=y0, w=0.36, h=0.24)
+            for z, ang, k in ((3.2, 35, 1.0), (2.7, 50, 0.85)):  # soft cheek fluff (no spikes), pokes out of the outline
+                with head_at(f, s_ * 1.2, z, 0.0):
+                    f.ball((s_ * 0.08, 0.1, 0), (0.46 * k, 0.26, 0.34 * k), fur_lt, rot=(0, 0, s_ * ang), seg=6, rings=3)
+            # tall pointed wolf ear leaning outward, pink inside with cream fur tufts
+            with f.at((s_ * 0.8, 0.2, top - 0.3), (-10, s_ * 28, 0)):
+                f.spike((0, 0, 0), 0.55, 1.85, fur, seg=4, squash=0.5)
+                f.spike((0, -0.2, 0.02), 0.36, 1.3, pink, seg=4, squash=0.5)
+                for dx in (-0.12, 0.12):
+                    f.spike((dx, -0.3, 0.06), 0.15, 0.6, cream, rot=(0, -s_ * 8 + dx * 40, 0), seg=4, squash=0.6)
+    face_eyes(f, cream, spread=0.56, k=1.1, out=PLATE + 0.01, z=3.5)
+    face_brows(f, "#4E5260", length=0.9, thick=0.2, angle=22, x=0.58, z=3.5 + 0.78, out=PLATE)
+    face_blush(f, pink, x=0.78, z=3.0, out=PLATE, w=0.36, h=0.24)
     with f.piece("Head"):
-        f.ball((0, y0 - 0.1, 3.12), (0.26, 0.17, 0.19), EYE_DARK, seg=7, rings=4)  # nose
-        with f.at((0, y0, 2.72), (90, 0, 0)):  # howl mouth: dark O, tongue, two fangs
+        with head_at(f, 0, 3.1, PLATE + 0.1):
+            f.ball((0, 0, 0), (0.26, 0.17, 0.19), EYE_DARK, seg=7, rings=4)  # nose
+        with head_at(f, 0, 2.72, PLATE), f.at((0, 0, 0), (90, 0, 0)):  # howl mouth: dark O, tongue
             f.disc((0, 0, 0.0), 0.74, 0.54, 0.06, dark, seg=12)
             f.disc((0, -0.12, 0.04), 0.46, 0.24, 0.05, pink, seg=8)
         for s_ in (-1, 1):
-            f.spike((s_ * 0.22, y0 - 0.04, 2.98), 0.09, 0.2, "#FFFFFF", rot=(180, 0, 0), seg=4)
+            with head_at(f, s_ * 0.22, 2.98, PLATE):
+                f.spike((0, -0.04, 0), 0.09, 0.2, "#FFFFFF", rot=(180, 0, 0), seg=4)
 
 
-def parrot(f, green, yellow, red, beak, cream):
-    """The huge parrot, world coordinates (studs) behind and over her shoulders: its body hugs her back, its
-    head pops over her left shoulder (+X) facing -Y, and two fanned wings spread out past her arms (the
-    figure's second silhouette extension). Everything goes in the Body piece."""
+def parrot(f, green, belly, blue, yellow, red, beak, cream):
+    """The huge parrot, world coordinates (studs): perched on the captain's left shoulder (+X), body behind it,
+    head turned outward with a big hooked beak (outside the body outline so it reads at 64 px), two fanned
+    wings (blue with yellow tips) spreading out and up, red tail feathers hanging. Everything goes in Body."""
     toe = "#E0A020"
-    f.rbox((1.45, -0.05, 2.95), (0.3, 0.7, 0.18), toe, bevel=0.0)  # claws gripping the epaulette
-    f.rbox((1.95, -0.05, 2.95), (0.3, 0.7, 0.18), toe, bevel=0.0)
-    f.ball((0.45, 1.3, 3.6), (0.95, 0.55, 1.25), green, seg=8, rings=5)  # body behind her
-    f.ball((1.7, 0.15, 3.75), (0.8, 0.7, 0.85), green, seg=8, rings=5)  # head, over her shoulder
-    with f.at((1.7, 0.15 - 0.62, 3.8), (90, 0, 0)):
-        f.disc((0, 0, 0), 1.1, 0.8, 0.07, cream, seg=8)  # pale face patch
-        for s_ in (-1, 1):
-            f.disc((s_ * 0.28, 0.0, 0.05), 0.34, 0.4, 0.05, EYE_DARK, seg=8)
-            f.disc((s_ * 0.28 - 0.07, 0.11, 0.09), 0.11, 0.12, 0.04, "#FFFFFF", seg=4)
-    for s_ in (-1, 1):  # bossy brows
-        f.rbox((1.7 + s_ * 0.3, -0.5, 4.18), (0.48, 0.09, 0.16), "#1E6B34", rot=(0, -s_ * 22, 0), bevel=0.0)
-    f.spike((1.7, -0.45, 3.62), 0.4, 0.95, beak, rot=(100, 0, 0), seg=5, squash=0.9)  # hooked beak
-    f.spike((1.7, -1.38, 3.42), 0.22, 0.38, toe, rot=(180, 0, 0), seg=4)
-    # wings: fans of long feathers, red with yellow tips, spreading out past her arms
-    for side, jx, lens in ((1, 1.2, (1.85, 2.0, 1.8)), (-1, -0.3, (2.3, 2.3, 1.9))):
-        f.ball((jx + side * 0.35, 1.4, 4.1), (0.6, 0.2, 0.62), green, seg=6, rings=3)  # coverts
-        for i, (a, ln) in enumerate(zip((6, 31, 56), lens)):
-            col = red if i % 2 == 0 else shade(red, 0.86)
-            f.leaf((jx, 1.45 + 0.07 * i, 4.1), (0, side * (90 - a), 0), ln, 0.9, 0.13, col, tip_color=yellow, tip_from=0.66)
-    for i, ry in enumerate((-10, 10)):  # tail
-        f.leaf((0.45, 1.6, 2.6), (190, ry, 0), 1.6, 0.46, 0.12, red if i == 0 else shade(green, 0.9), tip_color=yellow if i == 0 else None, tip_from=0.78)
+    for dx in (-0.22, 0.22):  # claws gripping the shoulder
+        f.rbox((1.35 + dx, -0.12, 2.95), (0.26, 0.8, 0.18), toe, bevel=0.0)
+    f.ball((1.6, 0.75, 3.55), (0.85, 0.75, 1.2), green, seg=8, rings=5)  # body behind the shoulder
+    f.ball((1.6, 0.3, 3.35), (0.6, 0.4, 0.82), belly, seg=7, rings=4)  # light belly
+    with f.at((2.3, 0.2, 3.95), (0, 0, 35)):  # head, turned outward
+        f.ball((0, 0, 0), (0.88, 0.82, 0.86), green, seg=8, rings=5)
+        with f.at((0, -0.7, 0.05), (90, 0, 0)):
+            f.disc((0, 0, 0), 1.2, 0.95, 0.08, cream, seg=9)  # pale face patch
+            for s_ in (-1, 1):
+                f.disc((s_ * 0.3, 0.04, 0.05), 0.36, 0.44, 0.05, EYE_DARK, seg=6)
+                f.disc((s_ * 0.3 - 0.07, 0.15, 0.09), 0.12, 0.13, 0.04, "#FFFFFF", seg=4)
+        for s_ in (-1, 1):  # bossy brows
+            f.rbox((s_ * 0.34, -0.74, 0.45), (0.5, 0.1, 0.17), shade(green, 0.55), rot=(0, -s_ * 22, 0), bevel=0.0)
+        f.spike((0, -0.62, -0.02), 0.5, 1.2, beak, rot=(100, 0, 0), seg=5, squash=0.9)  # big upper beak
+        f.spike((0, -1.7, -0.22), 0.3, 0.55, shade(beak, 0.82), rot=(180, 0, 0), seg=4)  # the hook
+        for i, ry in enumerate((-20, 20)):  # crest
+            f.leaf((0, 0.05, 0.7), (-18, ry, 0), 0.9, 0.34, 0.1, red, tip=0.4)
+    # wings: fans of long feathers spreading out past her arms
+    for side, jx, lens in ((1, 1.95, (1.65, 1.75, 1.5)), (-1, 0.7, (1.8, 1.7, 1.4))):
+        f.ball((jx + side * 0.3, 1.3, 3.95), (0.55, 0.2, 0.55), green, seg=6, rings=3)  # coverts
+        for i, (a, ln) in enumerate(zip((8, 33, 58), lens)):
+            col = blue if i % 2 == 0 else shade(blue, 0.8)
+            f.leaf((jx, 1.4 + 0.07 * i, 3.95), (0, side * (90 - a), 0), ln, 0.85, 0.13, col, tip_color=yellow, tip_from=0.64)
+    for i, ry in enumerate((-12, 12)):  # tail
+        f.leaf((1.35, 1.45, 2.7), (176, ry, 0), 1.7, 0.46, 0.12, red if i == 0 else shade(blue, 0.9), tip_color=yellow if i == 0 else None, tip_from=0.78)
+
+
+def tricorn(f, hat, trim, cy=-0.05, z=4.78, rh=1.65, ext=0.95, hm=1.2, hc=0.3, thick=0.2, xs=1.3):
+    """A real three-cornered pirate hat: one point forward (-Y) and two back, the three brim sides all fold up
+    in the middle of each side (corners pinched low, so the classic crescent dips at the front point), gold
+    trim round the folded edges. One closed mesh: top sheet, bottom sheet and gold rim walls. Built in the
+    Head piece, so call inside `with f.piece("Head")`."""
+    bm = bmesh.new()
+    angs = [-90, 30, 150]
+    V, U = [], []
+    for a in angs:
+        r = math.radians(a)
+        V.append(bm.verts.new((xs * rh * math.cos(r), cy + rh * math.sin(r), 0.0)))
+        U.append(bm.verts.new((xs * (rh + 0.1) * math.cos(r), cy + (rh + 0.1) * math.sin(r), hc)))
+    M = []
+    for k in range(3):
+        a = math.radians((angs[k] + (angs[k + 1] if k < 2 else angs[0] + 360)) / 2)
+        d = rh * 0.5 + ext
+        M.append(bm.verts.new((xs * d * math.cos(a), cy + d * math.sin(a), hm)))
+    tops, rims = [], []
+    for k in range(3):
+        k2 = (k + 1) % 3
+        for tri in ((V[k], V[k2], U[k2]), (V[k], U[k2], M[k]), (V[k], M[k], U[k])):
+            tops.append(tri)
+        rims += [(V[k], V[k2]), (U[k2], M[k]), (M[k], U[k])]
+    # the hat's own top surface plus a copy `thick` lower for the underside and rim walls
+    bot = {v: bm.verts.new((v.co.x, v.co.y, v.co.z - thick)) for v in V + U + M}
+    out = []
+    for tri in tops:
+        c = sum((v.co for v in tri), Vector()) / 3
+        n = (tri[1].co - tri[0].co).cross(tri[2].co - tri[0].co)
+        a, b, c3 = tri if n.z > 0 else (tri[0], tri[2], tri[1])
+        bm.faces.new((a, b, c3)).material_index = 0
+        bm.faces.new((bot[a], bot[c3], bot[b])).material_index = 1
+    for a, b in rims:
+        cen = (a.co + b.co) / 2
+        flat = Vector((cen.x / xs, cen.y - cy, 0))
+        w = bm.faces.new((a, b, bot[b], bot[a]))
+        w.material_index = 2
+        if w.normal.dot(flat) < 0:
+            w.normal_flip()
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+    def col(face):
+        return (hat, shade(hat, 0.6), trim)[face.material_index]
+
+    f._place(bm, (0, 0, z), (0, 0, 0), col)
 
 
 def captain_squawk(f):
-    """Superstar (Comedy), Hero template. A pirate captain whose huge parrot gives the orders: tricorn with a
-    gold star and red plume, gold-trimmed navy coat, red sash, peg leg, telescope; the parrot perches on her
-    left shoulder with wings spread (second silhouette extension, rule 17)."""
-    skin, navy, navy_lt, gold, red = "#C68A5A", "#233066", "#33458F", "#F5B82E", "#D83A3A"
+    """Superstar (Comedy), Hero template. A pirate captain whose huge parrot gives the orders: a real tricorn
+    (three folded sides, gold trim, red plume), burgundy coat with wide cream lapels and big cuffs, teal sash,
+    wide-cuffed boots and a peg leg, curly moustache; the parrot perches on her left shoulder with wings
+    spread (second silhouette extension, rule 17). Round 2: pirate, not police."""
+    skin, coat, coat_dk, gold, teal = "#C68A5A", "#A63446", "#7C2433", "#F5B82E", "#2BA5B8"
     hair, boots, wood, cream = "#3A2218", "#3A2A20", "#9A6434", "#F4E7CF"
-    green, yellow, pred, beak = "#54B860", "#FFD84A", "#E8453C", "#F5B82E"
-    with f.piece("Body"):  # legs: navy trousers, tall boot on the left, wooden peg on the right
+    hat, breeches, cuff_tan = "#232640", "#E8DCC0", "#B07A3C"
+    green, belly, blue, yellow, pred, beak = "#54B860", "#9BE08F", "#2D7FE0", "#FFD84A", "#E8453C", "#F08A2E"
+    with f.piece("Body"):  # legs: breeches, tall wide-cuffed boot on the left, wooden peg on the right
         for s_ in (-1, 1):
-            f.rcyl((s_ * 0.55, 0, 0.95), 0.38, 0.44, 1.0, navy, seg=8, bevel=0.0)
-        f.rbox((0.55, -0.15, 0.52), (0.98, 1.34, 1.04), boots, bevel=0.14)
-        f.rbox((0.55, -0.15, 1.0), (1.1, 1.46, 0.3), "#6A4630", bevel=0.0)  # boot cuff
+            f.rcyl((s_ * 0.55, 0, 0.95), 0.38, 0.44, 1.0, breeches, seg=8, bevel=0.0)
+        f.rbox((0.55, -0.15, 0.5), (0.98, 1.34, 1.0), boots, bevel=0.14)
+        f.rbox((0.55, -0.15, 0.98), (1.02, 1.38, 0.5), cuff_tan, bevel=0.0, taper=1.18)  # big folded boot cuff
         f.rbox((0.55, -0.15, 0.07), (1.02, 1.38, 0.14), "#241A14", bevel=0.0)
         f.rcyl((-0.55, 0, 0.55), 0.3, 0.42, 1.1, wood, seg=7, bevel=0.0)  # peg leg
         f.rcyl((-0.55, 0, 0.07), 0.34, 0.34, 0.14, "#5A3A1C", seg=7, bevel=0.0)
         f.rcyl((-0.55, 0, 1.0), 0.47, 0.47, 0.2, "#6A4630", seg=7, bevel=0.0)  # strap
-        f.rbox((0, 0, 1.55), (2.5, 1.65, 0.95), navy, bevel=0.14, taper=0.82)  # coat skirt flares over the legs
-        f.rbox((0, 0, 1.1), (2.56, 1.71, 0.14), gold, bevel=0.0, taper=0.99)  # hem trim
-    torso(f, navy, w=2.2, d=1.5, h=1.55, z=2.05, taper=0.9, bevel=0.15)
+        f.rbox((0, 0, 1.55), (2.6, 1.7, 0.95), coat, bevel=0.14, taper=0.82)  # long coat skirt flares over the legs
+        f.rbox((0, 0, 1.1), (2.66, 1.76, 0.14), gold, bevel=0.0, taper=0.99)  # hem trim
+        for s_ in (-1, 1):  # coat tails at the back
+            f.rbox((s_ * 0.7, 0.85, 1.4), (0.95, 0.5, 1.15), coat_dk, rot=(-4, 0, s_ * -6), bevel=0.0, taper=0.7)
+    torso(f, coat, w=2.2, d=1.5, h=1.55, z=2.05, taper=0.9, bevel=0.15)
     with f.piece("Body"):
-        f.rbox((0, -0.76, 2.35), (0.36, 0.08, 1.0), cream, bevel=0.0, taper=2.6)  # shirt V
+        f.rbox((0, -0.76, 2.35), (0.5, 0.08, 1.2), cream, bevel=0.0, taper=2.2)  # shirt V
+        for x in (-0.22, 0.22):  # frilly jabot under the chin
+            f.ball((x, -0.84, 2.5), (0.26, 0.17, 0.2), "#FFFFFF", seg=5, rings=3)
         for s_ in (-1, 1):
-            f.rbox((s_ * 0.46, -0.77, 2.2), (0.14, 0.07, 1.25), gold, bevel=0.0, rot=(0, s_ * -7, 0))  # lapel edge
-            for z in (1.95, 2.45):
-                with f.at((s_ * 0.8, -0.74, z), (90, 0, 0)):
+            f.rbox((s_ * 0.74, -0.78, 2.28), (0.52, 0.09, 1.3), cream, bevel=0.0, rot=(0, s_ * 20, 0))  # wide lapel
+            f.rbox((s_ * 0.54, -0.83, 2.28), (0.09, 0.07, 1.3), gold, bevel=0.0, rot=(0, s_ * 20, 0))  # lapel trim
+            for z in (1.95,):
+                with f.at((s_ * 0.92, -0.76, z), (90, 0, 0)):
                     f.disc((0, 0, 0), 0.22, 0.22, 0.07, gold, seg=5)  # buttons
-        f.rbox((0, 0, 1.62), (2.28, 1.58, 0.36), red, bevel=0.1)  # sash
-        f.rbox((0, -0.82, 1.62), (0.5, 0.09, 0.4), gold, bevel=0.0)  # buckle
-        f.rbox((-0.95, -0.7, 1.4), (0.34, 0.12, 0.85), red, rot=(0, 0, -8), bevel=0.0, taper=1.3)
-        f.rbox((-0.75, -0.7, 1.42), (0.3, 0.12, 0.7), shade(red, 0.82), rot=(0, 0, 14), bevel=0.0, taper=1.3)
-        for s_ in (-1, 1):  # gold epaulettes
-            f.rbox((s_ * 1.15, 0, 2.82), (0.85, 0.75, 0.2), gold, bevel=0.05)
+        f.rbox((0, 0, 1.6), (2.34, 1.62, 0.38), teal, bevel=0.1)  # sash
+        f.rbox((0, -0.84, 1.6), (0.5, 0.09, 0.4), gold, bevel=0.0)  # buckle
+        f.rbox((-0.95, -0.7, 1.35), (0.34, 0.12, 0.9), teal, rot=(0, 0, -8), bevel=0.0, taper=1.3)
+        f.rbox((-0.75, -0.7, 1.37), (0.3, 0.12, 0.75), shade(teal, 0.8), rot=(0, 0, 14), bevel=0.0, taper=1.3)
 
-    arm(f, -1, navy, skin, rot=(-8, 16, 0), x=1.28, length=0.95, sleeve_r=0.33, shoulder_z=2.55)
-    arm(f, 1, navy, skin, rot=(-4, 20, 0), x=1.28, length=0.95, sleeve_r=0.33, shoulder_z=2.55)
-    head_box(f, skin, bevel=0.26)
-    top = HEAD_Z0 + HEAD_H
-    with f.piece("Head"):
-        f.rbox((0, 1.0, 3.72), (2.5, 0.95, 2.0), hair, bevel=0.28, segs=1)  # hair mass behind
-        for s_ in (-1, 1):
-            f.ball((s_ * 1.28, 0.0, 3.6), (0.3, 0.4, 0.6), hair, seg=5, rings=3)  # side curl
-    face_eyes(f, skin, spread=0.6, k=1.0)
-    face_brows(f, "#2A1710", length=1.0, thick=0.22, angle=9, x=0.62, z=EYE_Z + 0.7, worried=False, lift=(0.0, 0.2))
-    face_blush(f)
-    with f.piece("Head"):  # big smug grin with a gold tooth
-        with f.at((0, FACE_Y - 0.03, EYE_Z - 0.85)):
-            f.rbox((0, 0, 0), (1.15, 0.09, 0.36), "#7A2836", bevel=0.07)  # big confident grin
-            f.rbox((0, -0.03, 0.11), (1.0, 0.07, 0.13), "#FFFFFF", bevel=0.0)  # teeth
-            f.rbox((0.32, -0.04, 0.09), (0.15, 0.07, 0.16), gold, bevel=0.0)  # gold tooth
-    # tricorn: triangular brim whose edges curl up, a rounded crown, gold edge, star, red plume
-    with f.piece("Head"), f.at((0, 0.05, 4.5)):
-        R = 1.75
-        bm = bmesh.new()
-        bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=3, radius1=R, radius2=R, depth=0.22)
-        ang = sorted({round(math.atan2(v.co.y, v.co.x), 3) for v in bm.verts})
-        ang = sorted({a for a in ang})[:3] if len(ang) <= 3 else ang
-        norms = []
-        for i in range(3):
-            a0, a1 = ang[i], ang[(i + 1) % 3] + (2 * math.pi if i == 2 else 0)
-            m_ = (a0 + a1) / 2
-            norms.append((math.cos(m_), math.sin(m_)))
-        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=3, use_grid_fill=True)
-        for v in bm.verts:
-            lift = 0.0
-            for nx, ny in norms:  # each edge folds up, most at its middle, so the three corners stay low
-                d = v.co.x * nx + v.co.y * ny
-                t = abs(-v.co.x * ny + v.co.y * nx) / (R * 0.866)
-                lift = max(lift, 5.0 * max(0.0, d - 0.6) ** 2 * max(0.0, 1.0 - t ** 1.6))
-            v.co.z += lift
-        for fc in bm.faces:
-            fc.smooth = True
-        f._place(bm, (0, 0, 0), (0, 0, -90), lambda face: navy_lt if face.normal.z > 0.55 else (gold if abs(face.normal.z) < 0.55 else "#10142A"))
-        f.rbox((0, 0.0, 0.55), (2.1, 1.9, 1.0), navy, bevel=0.3, segs=2)
-        f.rbox((0, 0.0, 0.22), (2.16, 1.96, 0.2), gold, bevel=0.0)
-        _star_inlay(f, 0.0, -0.96, 0.7, 0.4, gold, navy)
-        f.leaf((-0.85, 0.2, 0.85), (-25, -50, 0), 1.0, 0.46, 0.14, pred, tip=0.35, widest=0.4)
+    def cuff(f):  # wide folded cuff over the wrist
+        f.rcyl((0, 0, 0.3), 0.52, 0.44, 0.5, cream, seg=7, bevel=0.0)
+
+    arm(f, -1, coat, skin, rot=(-8, 18, 0), x=1.28, length=0.95, sleeve_r=0.33, shoulder_z=2.55, held=cuff)
+    arm(f, 1, coat, skin, rot=(-4, 22, 0), x=1.28, length=0.95, sleeve_r=0.33, shoulder_z=2.55, held=cuff)
+    with f.at((0, 0, 0.2)):  # head lifts a little so the jabot and lapels show
+        head_box(f, skin, segs=2)
+        top = HEAD_Z0 + HEAD_H
+        with f.piece("Head"):
+            f.ball((0, 0.85, 3.55), (1.3, 0.95, 1.2), hair, seg=8, rings=5)  # long hair mass behind
+            for s_ in (-1, 1):
+                f.ball((s_ * 1.22, 0.25, 3.3), (0.34, 0.55, 0.85), hair, seg=6, rings=3)  # side locks
+        face_eyes(f, skin, spread=0.6, k=1.0, z=EYE_Z + 0.12)
+        face_brows(f, "#2A1710", length=1.0, thick=0.22, angle=9, x=0.62, z=EYE_Z + 0.84, worried=False, lift=(0.0, 0.2))
+        face_blush(f, z=EYE_Z - 0.26)
+        with f.piece("Head"):
+            for s_ in (-1, 1):  # curly moustache
+                with head_at(f, s_ * 0.33, EYE_Z - 0.33, 0.04):
+                    f.ball((0, 0, 0), (0.36, 0.17, 0.15), hair, rot=(0, 0, s_ * 20), seg=6, rings=3)
+            # big smug grin with a gold tooth: patches that hug the round chin
+            head_patch(f, 0, EYE_Z - 0.6, 0.72, 0.27, 0.05, "#7A2836", seg=8, rings=1)
+            head_patch(f, 0, EYE_Z - 0.5, 0.58, 0.11, 0.075, "#FFFFFF", seg=8, rings=1)  # teeth
+            head_patch(f, 0.32, EYE_Z - 0.5, 0.11, 0.11, 0.1, gold, seg=4, rings=1)  # gold tooth
+            with head_at(f, 1.2, EYE_Z - 0.05, 0.0):  # gold hoop earring
+                f.torus((0, 0, 0), 0.24, 0.05, gold, rot=(0, 0, 0), major=8, minor=3)
+            tricorn(f, hat, gold)
+            with f.at((0, 0.0, 4.78)):  # crown + band + cockade + plume
+                f.rcyl((0, 0, 0.75), 1.28, 1.05, 1.5, hat, seg=8, bevel=0.32, segs=1)
+                f.rcyl((0, 0, 0.18), 1.34, 1.34, 0.2, gold, seg=8, bevel=0.0)
+                f.ball((0, -1.7, 0.4), (0.3, 0.14, 0.3), gold, seg=6, rings=3)  # button at the front point
+                f.leaf((-1.0, 0.5, 0.75), (-6, -52, 0), 1.15, 0.5, 0.13, pred, tip=0.35, widest=0.4)
     with f.piece("Body"):
-        parrot(f, green, yellow, pred, beak, cream)
+        parrot(f, green, belly, blue, yellow, pred, beak, cream)
 
 
 # --- scene, build, render ---------------------------------------------------------------------
@@ -1155,6 +1312,46 @@ def quick(key, res=480, views=((0, 14), (35, 16), (180, 14)), tag="quick"):
     print("tris by piece:", by)
     print("top kinds:", sorted(kinds.items(), key=lambda kv: -kv[1])[:8])
     return out
+
+
+def quick4(key, res=520, tag="q4"):
+    """Rebuild one actor and save a 2x2 sheet (front, 3/4, side, back) to /tmp for judging the shape."""
+    sc, built, report = main((key,))
+    f, objs = built[key]
+    ol = list(objs.values())
+    shots = [load_img(shoot(sc, ol, f"/tmp/a2_{tag}_{i}.png", az=az, el=el, res=res, margin=1.15, samples=24)) for i, (az, el) in enumerate(((0, 8), (40, 14), (90, 8), (180, 10)))]
+    out = f"/tmp/a2_{tag}_{key}.png"
+    save_img(vstack([hstack(shots[:2], pad=4), hstack(shots[2:], pad=4)], pad=4), out)
+    return out
+
+
+def compare_r1_r2(tag, key_label=""):
+    """Round-1 vs round-2 side by side (front + 3/4 of each), r2 tiles get a green top bar."""
+    r1 = [load_img(os.path.join(OUT_DIR, f"actors_v2_{tag}_{v}.png")) for v in ("front", "34")]
+    r2 = [load_img(os.path.join(OUT_DIR, f"actors_v2_r2_{tag}_{v}.png")) for v in ("front", "34")]
+    for a in r2:
+        a[:14, :, :3] = np.array(lin("#4CC764")[:3])
+    for a in r1:
+        a[:14, :, :3] = np.array(lin("#A7A9AC")[:3])
+    out = os.path.join(OUT_DIR, f"actors_v2_r2_{tag}_compare.png")
+    save_img(hstack([r1[0], r2[0], r1[1], r2[1]], pad=6), out)
+    return out
+
+
+def export_r2(key):
+    """FBX of one actor (moved to the origin for the export, then put back)."""
+    sc = bpy.data.scenes[SCENE_NAME]
+    name = ACTORS[key][0]
+    objs = objs_named(name)
+    old = {o: o.location.copy() for o in objs}
+    for o in objs:
+        o.location = (0, 0, 0)
+    bpy.context.view_layer.update()
+    path = os.path.join(OUT_DIR, f"actors_v2_r2_{key}.fbx")
+    export_fbx(objs, path)
+    for o, l in old.items():
+        o.location = l
+    return path
 
 
 def objs_named(name):
