@@ -261,6 +261,37 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 	return button
 end
 
+-- A small chunky button with a bigger invisible tap area (touch targets are 44 px): the returned TextButton
+-- is the hit box (`hit` px square, transparent); its "Face" child is the painted `face` px button, which sits
+-- centred in it unless the caller moves it. Face parts are not buttons, so every tap lands on the hit box.
+function UiKit.makeHitButton(parent: Instance, text: string, color: Color3, face: number, hit: number): TextButton
+	local button = Instance.new("TextButton")
+	button.AutoButtonColor = false
+	button.BackgroundTransparency = 1
+	button.Text = ""
+	button.Size = UDim2.fromOffset(hit, hit)
+	button.Parent = parent
+	local paint = Instance.new("Frame")
+	paint.Name = "Face"
+	paint.AnchorPoint = Vector2.new(0.5, 0.5)
+	paint.Position = UDim2.fromScale(0.5, 0.5)
+	paint.Size = UDim2.fromOffset(face, face)
+	paint.BackgroundColor3 = color
+	paint.Parent = button
+	UiKit.corner(paint, 12)
+	UiKit.border(paint, 4)
+	UiKit.bevel(paint)
+	local label = UiKit.makeTitle(paint, text, UiKit.WHITE, UDim2.fromScale(1, 1), nil, 2.5)
+	UiKit.textConstraint(label, 26)
+	Juice.press(button)
+	button.Activated:Connect(function()
+		if not button:GetAttribute("Silent") then
+			Sfx.play("click")
+		end
+	end)
+	return button
+end
+
 -- Grows a little under the pointer and dips when pressed, like the reference games' buttons.
 -- `onHover` runs with true/false as the pointer enters and leaves.
 function UiKit.bounce(button: GuiButton, onHover: ((boolean) -> ())?)
@@ -336,6 +367,32 @@ function UiKit.makeIconTile(parent: Instance, iconId: string, text: string, size
 	return tile
 end
 
+-- A chip under a shrunk parent (UIScale) would render under 12 px: the "ChipBoost" attribute on its button (the
+-- scale to counter, > 1) grows the chip about its top-right corner, which is then pinned inside the button's corner.
+function UiKit.boostChip(button: GuiObject)
+	local chip = button:FindFirstChild("Chip") :: TextLabel?
+	if chip == nil then
+		return
+	end
+	local boost = button:GetAttribute("ChipBoost")
+	local grow = chip:FindFirstChild("Boost") :: UIScale?
+	if typeof(boost) == "number" and boost > 1 then
+		if grow == nil then
+			grow = Instance.new("UIScale")
+			assert(grow ~= nil)
+			grow.Name = "Boost"
+			grow.Parent = chip
+		end
+		assert(grow ~= nil)
+		grow.Scale = boost
+		chip.AnchorPoint = Vector2.new(1, 0)
+		chip.Position = UDim2.new(1, -3, 0, 3)
+	elseif grow ~= nil then
+		grow:Destroy()
+		chip.AnchorPoint = Vector2.zero
+	end
+end
+
 -- Small green pill on a button's top corner ("6/63", "86%"), like the reference Rebirth chip.
 -- Pass nil to hide it.
 function UiKit.chip(button: GuiObject, text: string?)
@@ -369,6 +426,7 @@ function UiKit.chip(button: GuiObject, text: string?)
 	chip.Position = if button:GetAttribute("ChipInset") then UDim2.new(1, -(width + 4), 0, 4) else UDim2.new(1, -(width - 10), 0, -6)
 	chip.Text = text
 	chip.Visible = true
+	UiKit.boostChip(button)
 end
 
 -- Green square "+" button (next to a currency, opens the shop).
@@ -879,7 +937,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	local header = UiKit.makeTitle(panel, title, UiKit.WHITE, UDim2.new(1, -70, 0, 40), UDim2.fromOffset(16, 6), 3.5)
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.ZIndex = 2
-	local close = UiKit.makeButton(panel, "X", UiKit.CLOSE_RED, UDim2.fromOffset(40, 40), UDim2.new(1, -50, 0, 6))
+	local close = UiKit.makeHitButton(panel, "X", UiKit.CLOSE_RED, 40, 44)
 	close.Name = "Close"
 	close.ZIndex = 2
 	close.Activated:Connect(function()
@@ -982,14 +1040,20 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		header.Size = UDim2.new(1, -(54 + headerX), 0, if compact then 30 else 40)
 		header.Position = UDim2.fromOffset(headerX, if compact then 5 else 6)
 		local closeSize = if compact then 32 else 40
-		close.Size = UDim2.fromOffset(closeSize, closeSize)
-		close.Position = UDim2.new(1, -(closeSize + 10), 0, (barHeight - 4 - closeSize) // 2)
+		-- The red X keeps its size; its 44 px tap area stays inside the panel's top edge.
+		local closeFace = close:FindFirstChild("Face") :: Frame
+		closeFace.Size = UDim2.fromOffset(closeSize, closeSize)
+		local faceY = (barHeight - 4 - closeSize) // 2 + closeSize / 2
+		local hitY = math.max(faceY, 22)
+		close.AnchorPoint = Vector2.new(0.5, 0.5)
+		close.Position = UDim2.new(1, -(closeSize / 2 + 10), 0, hitY)
+		closeFace.Position = UDim2.new(0.5, 0, 0.5, faceY - hitY)
 		local listTop = top
 		local tabs = panel:FindFirstChild("Tabs") or panel:FindFirstChild("Agencies")
 		if tabs ~= nil and tabs:IsA("Frame") then
 			tabs.Position = UDim2.fromOffset(12, if compact then 46 else 62)
-			tabs.Size = UDim2.new(1, -24, 0, if compact then 30 else 40)
-			listTop = if compact then top - 26 else top
+			tabs.Size = UDim2.new(1, -24, 0, if compact then 44 else 40) -- 44 px tap targets on phones
+			listTop = if compact then top - 10 else top
 		elseif compact then
 			listTop = top - 12
 		end
