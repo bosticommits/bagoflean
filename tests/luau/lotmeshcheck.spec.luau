@@ -15,8 +15,8 @@ end)
 
 test("missing: real manifest against an empty place reports every template", function()
 	local missing, total = LotMeshCheck.missing(Manifest.meshes, {})
-	equal(total, 366)
-	equal(#missing, 366)
+	equal(total, 411)
+	equal(#missing, 411)
 end)
 
 test("summary: all present, and truncation to the first 20", function()
@@ -29,4 +29,30 @@ test("summary: all present, and truncation to the first 20", function()
 	expect(string.find(s, "5 of 30 present, 25 missing", 1, true) ~= nil, s)
 	expect(string.find(s, "M20", 1, true) ~= nil and string.find(s, "M21", 1, true) == nil, s)
 	expect(string.find(s, "(+5 more)", 1, true) ~= nil, s)
+end)
+
+test("every Actors v2 actor has its five rig-piece rows in the manifest (pending id 0 until uploaded)", function()
+	local ActorShapes = H.require("Models/ActorShapes")
+	local Actors = H.require("Actors")
+	local byName = {}
+	for _, entry in Manifest.meshes do
+		byName[entry.name] = entry
+	end
+	local V2 = { "WerewolfPup", "CardboardAstronaut", "RodeoRookie", "WobblyWitch", "LagoonMermaid", "TimeTourist", "CaptainKapow", "InspectorWhoops", "PirateCaptain" }
+	for _, id in V2 do
+		expect(Actors.getActor(id) ~= nil, `{id} is not an actor`)
+		for _, piece in ActorShapes.Pieces do
+			local entry = byName[`{id}_{piece}`]
+			expect(entry ~= nil, `missing manifest row {id}_{piece}`)
+			expect(entry.assetId >= 0, `{id}_{piece} has a bad asset id`)
+		end
+	end
+end)
+
+test("manifest names are unique", function()
+	local seen = {}
+	for _, entry in Manifest.meshes do
+		expect(not seen[entry.name], `duplicate manifest name {entry.name}`)
+		seen[entry.name] = true
+	end
 end)

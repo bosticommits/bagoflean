@@ -54,11 +54,11 @@ Achievements.List = {
 	{ id = "Masterpiece2", group = "masterpiece", stat = "masterpiece", target = 5, text = "Make 5 Masterpieces", reward = { luckMinutes = 10 } },
 	{ id = "Masterpiece3", group = "masterpiece", stat = "masterpiece", target = 25, text = "Make 25 Masterpieces", reward = { luckMinutes = 30, skips = 2 } },
 
-	{ id = "Index1", group = "index", stat = "index", target = 5, text = "Discover 5 actors in the Index", reward = { cash = 50, cashMinutes = 2 } },
-	{ id = "Index2", group = "index", stat = "index", target = 15, text = "Discover 15 actors in the Index", reward = { cash = 200, cashMinutes = 5 } },
-	{ id = "Index3", group = "index", stat = "index", target = 30, text = "Discover 30 actors in the Index", reward = { skips = 1, cash = 1500, cashMinutes = 15 } },
-	{ id = "Index4", group = "index", stat = "index", target = 45, text = "Discover 45 actors in the Index", reward = { luckMinutes = 15, skips = 1 } },
-	{ id = "Index5", group = "index", stat = "actors", target = 21, text = "Discover all 21 actors", reward = { luckMinutes = 60, skips = 5, cash = 10000, cashMinutes = 60 } },
+	{ id = "Index1", group = "index", stat = "index", target = 5, text = "Fill 5 Index slots", reward = { cash = 50, cashMinutes = 2 } },
+	{ id = "Index2", group = "index", stat = "index", target = 20, text = "Fill 20 Index slots", reward = { cash = 200, cashMinutes = 5 } },
+	{ id = "Index3", group = "index", stat = "index", target = 45, text = "Fill 45 Index slots", reward = { skips = 1, cash = 1500, cashMinutes = 15 } },
+	{ id = "Index4", group = "index", stat = "index", target = 65, text = "Fill 65 Index slots", reward = { luckMinutes = 15, skips = 1 } },
+	{ id = "Index5", group = "index", stat = "actors", target = #Actors.List, text = `Discover all {#Actors.List} actors`, reward = { luckMinutes = 60, skips = 5, cash = 10000, cashMinutes = 60 } },
 
 	{ id = "RareStar", group = "rare", stat = "tier:Star", target = 1, text = "Discover a Star actor", reward = { luckMinutes = 5 } },
 	{ id = "RareSuperstar", group = "rare", stat = "tier:Superstar", target = 1, text = "Discover a Superstar actor", reward = { luckMinutes = 10 } },

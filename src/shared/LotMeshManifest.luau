@@ -48,6 +48,8 @@ local function mesh(name: string, group: string, assetId: number, size: { number
 	return table.freeze(entry)
 end
 
+local PENDING = 0 -- assetId of a mesh that is not uploaded yet
+
 local meshes = {
 	mesh("CrateParachute", "", 116815856348761, { 14.999999, 5.199999, 14.999999 }, STANDARD),
 	mesh("MysteryCrate", "", 88005215370364, { 5.539999, 4.400000, 5.539999 }, STANDARD),
@@ -434,9 +436,67 @@ local meshes = {
 	-- founder_star.fbx (model asset 135931328207166): the Founding Tester's Walk of Fame tile, art/blender/founder_star.py.
 	-- Tip toward mesh +Z; name band and "Founding Tester" strip are drawn by LotLook.founderStar's SurfaceGui.
 	mesh("FounderStar", "", 95825724892724, { 3.6, 0.21, 3.6 }, STANDARD),
+
+	-- Actors v2: the nine new actors (art/blender/actors.py, actors.fbx), five rig pieces each.
+	-- PENDING (assetId 0, size 1x1x1) until the artist uploads the meshes; then fill in the real ids
+	-- and sizes. Until then each piece is missing: LotMeshCheck warns at server start and Build.mesh
+	-- falls back to parts (never an error); tools/studio/rebuild_lot_meshes.luau skips assetId 0.
+	mesh("WerewolfPup_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WerewolfPup_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WerewolfPup_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WerewolfPup_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WerewolfPup_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("CardboardAstronaut_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CardboardAstronaut_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CardboardAstronaut_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CardboardAstronaut_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CardboardAstronaut_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("RodeoRookie_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("RodeoRookie_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("RodeoRookie_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("RodeoRookie_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("RodeoRookie_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("WobblyWitch_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WobblyWitch_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WobblyWitch_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WobblyWitch_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WobblyWitch_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("LagoonMermaid_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("LagoonMermaid_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("LagoonMermaid_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("LagoonMermaid_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("LagoonMermaid_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("TimeTourist_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("TimeTourist_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("TimeTourist_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("TimeTourist_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("TimeTourist_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("CaptainKapow_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CaptainKapow_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CaptainKapow_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CaptainKapow_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CaptainKapow_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("InspectorWhoops_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("InspectorWhoops_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("InspectorWhoops_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("InspectorWhoops_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("InspectorWhoops_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+
+	mesh("PirateCaptain_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("PirateCaptain_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("PirateCaptain_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("PirateCaptain_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("PirateCaptain_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
 }
 
-assert(#meshes == 366, "LotMeshManifest must contain exactly 366 templates")
+assert(#meshes == 411, "LotMeshManifest must contain exactly 411 templates")
 
 return table.freeze({
 	version = 1,

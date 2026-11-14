@@ -46,8 +46,8 @@ The plan's rule: if casting plus a premiere is not exciting, fix that before add
 
 - [ ] Final lot art, built from ART_STYLE.md: cinema, sound stages, offices, billboard,
       red carpet, trophies, lot ground. *Done when:* no placeholder parts are left on a lot.
-- [ ] A look for all 21 actors (portrait or model), with Shiny and Award-Winning versions.
-      All original characters, no real people. *Done when:* every one of the 63 Index slots
+- [ ] A look for all 30 actors (portrait or model), with Shiny and Award-Winning versions.
+      All original characters, no real people. *Done when:* every one of the 90 Index slots
       shows real art.
 - [ ] Script posters for the 5 genres and 4 script sizes. *Done when:* the script shop
       and cinema show art, not plain text.

@@ -13,7 +13,7 @@ that look smoother; once you import them, the game uses them automatically.
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
 | `src/shared/Models/MapModels.luau` | The town around the lots: boulevard, spawn plaza and fountain, paths, the 8 store stands, hills with the gold star sign. Also where each lot sits |
 | `src/shared/Models/TownSets.luau` | The town's landmarks and film sets: the Grand Premiere Theatre, the Studio Gate, the four back street sets, poster columns, the far skyline |
-| `src/shared/Models/ActorModels.luau` | The 21 actors (Blender meshes once imported, parts until then) in rig pieces, plus Shiny and Award-Winning effects, and Director Lucien Vale. The four limited seasonal actors come from `art/blender/seasonal_actors.py` |
+| `src/shared/Models/ActorModels.luau` | The 30 actors (Blender meshes once imported, parts until then) in rig pieces, plus Shiny and Award-Winning effects, and Director Lucien Vale. The four limited seasonal actors come from `art/blender/seasonal_actors.py` |
 | `src/client/ActorLife.luau` | Makes the actors round town idle, bob, look round and wave (each player's own view) |
 | `src/shared/Models/MapKit.luau` | Places a Blender map kit model (mesh once imported, parts until then) |
 | `src/shared/Models/MapScenery.luau` | The woods, desert and mountains beyond the paths |

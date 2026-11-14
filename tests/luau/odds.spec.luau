@@ -70,7 +70,7 @@ test("castOdds: a floor merges the tiers below it; the limited actor comes out o
 
 	local limited = Actors.Limited[1] -- a Star
 	local with = Actors.castOdds(1, 1, nil, limited)
-	near(with.limited, plain.tiers.Star / 3, 1e-12, "as likely as one everyday Star actor")
+	near(with.limited, plain.tiers.Star / #Actors.actorsInTier("Star"), 1e-12, "as likely as one everyday Star actor")
 	near(with.tiers.Newcomer, plain.tiers.Newcomer - with.limited, 1e-12, "taken from the commonest tier")
 	near(with.tiers.Star, plain.tiers.Star + with.limited, 1e-12, "counted in its own tier")
 	near(with.actor.Star, plain.actor.Star, 1e-12, "everyday Star actors keep their chance")
@@ -106,7 +106,7 @@ test("castOdds matches what Actors.roll rolls", function()
 		end
 		near(limitedSeen / runs, odds.limited, 0.005, "the limited actor's share")
 		if luck == 60 then
-			expect(odds.limited > 0.02, "the high-Luck case really tests a visible limited share")
+			expect(odds.limited > 0.01, "the high-Luck case really tests a visible limited share")
 		end
 	end
 end)

@@ -50,8 +50,8 @@ and models its extra box-office Cash while inside. The visit time is a sensitivi
   late on day 3.
 - **Days 4 to 7.** The **third rebirth** comes on day 4 and every upgrade is maxed again on day 5.
   **Hollywood Casting** opens on day 6. About two thirds of players pull a **Legend** in week one.
-  **Icon** stays a rare brag (about 1 in 17 players in week one). About 38 of the 63 Index slots
-  are found in week one.
+  **Icon** stays a rare brag (about 1 in 17 players in week one). About 59 of the 90 Index slots
+  are found in week one (Actors v2, 30 actors; was 39 of 63).
 - **Weeks 2 to 4.** Rebirths keep coming, each further apart: the fourth on day 6 or 7, the fifth
   on day 10, the sixth on day 17, the seventh in week five. The Legend row of the Index is done
   around day 13, and about half of players have an Icon by day 28.
@@ -129,8 +129,8 @@ From the review in `ECONOMY_SUMMARY.md` (project files, 2026-10-12). Numbers are
 - **Flop never drops below 5%** (`Movies.MinFlop`). Premiere Luck took its extra good results out of
   Flop first, so from Luck 2 (day 3) Flops vanished. Luck now takes Flop down to 5%, then takes from
   Hit.
-- **"Discover all 21 actors"** replaces "Complete the whole Index" (achievement `Index5`, new stat
-  `actors`). All 63 slots included an Award-Winning Icon, tens of millions of casts even at
+- **"Discover all 30 actors"** (was 21; the text is built from the actor count) replaces "Complete the whole Index" (achievement `Index5`, new stat
+  `actors`). All 90 slots include an Award-Winning Icon, tens of millions of casts even at
   Hollywood Casting, so nobody could earn it.
 - **Casting speed.** `Config.CastCooldown` is 1.0 s (from the `economy-safety` branch), so
   scripted clients cannot cast faster than a person can (see "What to watch in playtests").
@@ -526,3 +526,9 @@ revisit these guardrails when those systems are designed, before adding their pa
 - Special events: if they feel rare, `SpecialEvents.SlotSeconds` can drop to 10 minutes; if Cash
   Rain coins are all grabbed in seconds, spread `CoinSpots` further. A crowded server shares one
   crate and one Spotlight studio, but every player gets their own pickup.
+
+## Actors v2 (30 actors, 90 Index slots)
+Nine new actors (docs/design/actors-v2.md), spread 5/5/5/5/4/3/3 per tier. Tier odds are unchanged;
+a tier's chance is split evenly between its actors, so per-actor odds at Open Casting, Luck 1 are
+now Newcomer 1 in 6, Rising 1 in 31, Pro 1 in 200, Star 1 in 3,500, Superstar 1 in 32,000 (Legend
+and Icon unchanged). Index achievements are 5 / 20 / 45 / 65 slots plus "Discover all 30 actors".

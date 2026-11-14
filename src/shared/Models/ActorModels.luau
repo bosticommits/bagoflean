@@ -1,5 +1,5 @@
 --!strict
--- The 21 castable actors and Director Lucien Vale. All original characters.
+-- The castable actors and Director Lucien Vale. All original characters.
 --
 -- The actors are low-poly Blender models (art/blender/actors.py): a big-headed toy body shared by
 -- the whole cast, props that say the role at a glance, and more flair the rarer they are. Each is
