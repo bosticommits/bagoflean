@@ -993,9 +993,11 @@ class Player:
             self.mark(f"First {variant} variant")
         if self.g.actor[actor_id].get("season"):
             self.mark("Limited actor")
-        for n in (21, 32, 42, 63):
+        # Marks sit at the Index achievement targets (Achievements.luau) and the full Index.
+        total_slots = sum(1 for a in self.g.actor.values() if not a.get("season")) * 3
+        for n in (20, 45, 65, total_slots):
             if len(self.everyday_index()) >= n:
-                self.mark(f"Index {n}/63")
+                self.mark(f"Index {n}/{total_slots}")
         if agency["minTier"] > 1:
             self.mark(f"First roll at {agency['name']}")
 

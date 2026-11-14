@@ -4,6 +4,7 @@
 -- display wall by the gate with the owner's rarest actors standing on rarity-colored plinths).
 -- The board's rows are drawn by LeaderboardService; the wall is built by LotService.
 local Actors = require(script.Parent.Parent.Actors)
+local ActorFit = require(script.Parent.ActorFit)
 local ActorModels = require(script.Parent.ActorModels)
 local Build = require(script.Parent.Build)
 
@@ -36,6 +37,9 @@ local function v(x: number, y: number, z: number): Vector3
 end
 
 local FIGURE_SCALE = 0.5
+-- Tallest a figure may stand on a plinth (studs above it): keeps the tall actors (Witch, Astronaut, Tourist) from
+-- covering the nameplate or poking over the wall. Every other actor (up to 8.27 tall at scale 1) is unchanged.
+local MAX_FIGURE_HEIGHT = ActorFit.MaxHeight * FIGURE_SCALE
 
 -- How wide a model is along the X axis of `frame`.
 local function widthOf(model: Model, frame: CFrame): number
@@ -132,10 +136,10 @@ function TopStudiosModels.rareWall(parent: Instance, base: CFrame, owned: { { ac
 			-- Built at one size, then shrunk if its hat, wings or sidekick would hang off the plinth.
 			local spot = b:at(v(x, 1.8, -0.2))
 			local figure = ActorModels.build(parent, spot, actor.id, entry.variantId, FIGURE_SCALE)
-			local wide = widthOf(figure, spot)
-			if wide > gap - 0.15 then
+			local k = ActorFit.shrink(widthOf(figure, spot), ActorFit.heightOf(figure, spot), gap - 0.15, MAX_FIGURE_HEIGHT)
+			if k < 1 then
 				figure:Destroy()
-				ActorModels.build(parent, spot, actor.id, entry.variantId, FIGURE_SCALE * (gap - 0.15) / wide)
+				ActorModels.build(parent, spot, actor.id, entry.variantId, FIGURE_SCALE * k)
 			end
 			-- Name and rarity on the wall behind the figure.
 			local plate = b:block("RareNameplate", v(gap - 0.4, 1.2, 0.1), v(x, 4.7, 0.85), color:Lerp(P.Navy, 0.55))

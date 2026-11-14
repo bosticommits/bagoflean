@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local ActorFit = require(ReplicatedStorage.Shared.Models.ActorFit)
 local ActorModels = require(ReplicatedStorage.Shared.Models.ActorModels)
 local Build = require(ReplicatedStorage.Shared.Models.Build)
 local MapKit = require(ReplicatedStorage.Shared.Models.MapKit)
@@ -793,13 +794,24 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 	-- The film's cast on the carpet, facing the camera.
 	local cast = if type(result.cast) == "table" then result.cast else {}
 	local count = math.min(#cast, 3)
+	-- Spaced 4 apart and each figure shrunk to <= 3.8 wide (hats, wings, sidekicks reach 4.6-5.7), so the side actors
+	-- stay inside the ropes (+-4.5) and never overlap; the middle actor steps 1.5 toward the camera.
+	local castSpacing = 4
+	local castMaxWidth = 3.8
 	for slot = 1, count do
 		local key = cast[slot]
 		if type(key) == "string" then
 			local parts3 = string.split(key, ":")
-			local pos = at(stage, 10, (slot - (count + 1) / 2) * 3.6, 0)
+			local middle = count == 3 and slot == 2
+			local pos = at(stage, if middle then 11.5 else 10, (slot - (count + 1) / 2) * castSpacing, 0)
 			local base = CFrame.lookAt(pos, pos + stage.f)
 			local model = ActorModels.build(folder, base, parts3[1] or "", parts3[2])
+			local wide = ActorFit.widthOf(model, base)
+			local k = ActorFit.shrink(wide, 0, castMaxWidth, nil)
+			if k < 1 then
+				model:Destroy()
+				model = ActorModels.build(folder, base, parts3[1] or "", parts3[2], k)
+			end
 			noCollide(model)
 			table.insert(run.cast, model)
 			table.insert(run.castBase, base)

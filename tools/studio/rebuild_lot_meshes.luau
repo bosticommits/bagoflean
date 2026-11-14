@@ -42,6 +42,7 @@ staging.Name = "LotMeshes__Staging_" .. HttpService:GenerateGUID(false)
 local groups: { [string]: Model? } = {}
 local names: { [string]: boolean } = {}
 local created = 0
+local skipped = 0
 
 local function parentFor(entry): Instance
 	if entry.group == "" then
@@ -63,8 +64,14 @@ local function buildStaging()
 		assert(type(entry.name) == "string" and entry.name ~= "", "Manifest entry has an invalid name")
 		assert(not names[entry.name], `Duplicate mesh name in manifest: {entry.name}`)
 		names[entry.name] = true
-		assert(type(entry.assetId) == "number" and entry.assetId > 0, `Invalid asset ID for {entry.name}`)
+		assert(type(entry.assetId) == "number" and (entry.assetId > 0 or entry.pending == true), `Invalid asset ID for {entry.name}`)
 		assert(type(entry.size) == "table" and #entry.size == 3, `Invalid size for {entry.name}`)
+		if entry.pending == true then
+			assert(entry.assetId == 0, `Pending entry {entry.name} must have assetId 0`)
+			-- Not uploaded yet (Actors v2 pending meshes): leave it out; the game falls back to parts.
+			skipped += 1
+			continue
+		end
 
 		local collisionFidelity = COLLISION_FIDELITIES[entry.collisionFidelity]
 		local renderFidelity = RENDER_FIDELITIES[entry.renderFidelity]
@@ -101,7 +108,10 @@ local function buildStaging()
 			task.wait()
 		end
 	end
-	assert(created == #manifest.meshes, `Built {created} of {#manifest.meshes} manifest entries`)
+	assert(created + skipped == #manifest.meshes, `Built {created} + skipped {skipped} of {#manifest.meshes} manifest entries`)
+	if skipped > 0 then
+		warn(`Skipped {skipped} manifest entries flagged pending (not uploaded yet)`)
+	end
 	return true
 end
 

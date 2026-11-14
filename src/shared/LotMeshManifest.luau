@@ -39,14 +39,18 @@ local TOWN_LIFE = {
 -- map_kit.fbx (asset 80189346190801) imports with the same defaults as the town life kit.
 local MAP_KIT = TOWN_LIFE
 
-local function mesh(name: string, group: string, assetId: number, size: { number }, style: { [string]: any })
+local function mesh(name: string, group: string, assetId: number, size: { number }, style: { [string]: any }, pending: boolean?)
 	local entry = table.clone(style)
+	if pending then
+		entry.pending = true
+	end
 	entry.name = name
 	entry.group = group
 	entry.assetId = assetId
 	entry.size = size
 	return table.freeze(entry)
 end
+
 
 local meshes = {
 	mesh("CrateParachute", "", 116815856348761, { 14.999999, 5.199999, 14.999999 }, STANDARD),
@@ -434,9 +438,191 @@ local meshes = {
 	-- founder_star.fbx (model asset 135931328207166): the Founding Tester's Walk of Fame tile, art/blender/founder_star.py.
 	-- Tip toward mesh +Z; name band and "Founding Tester" strip are drawn by LotLook.founderStar's SurfaceGui.
 	mesh("FounderStar", "", 95825724892724, { 3.6, 0.21, 3.6 }, STANDARD),
+
+	-- Actors v2: all 30 actors, five rig pieces each (art/blender/actors.py; ids in art/actors_v2_ids.json).
+	-- NervousIntern (model asset 83925569623383)
+	mesh("NervousIntern_Body", "actors_v2", 129238876243820, { 1.970000, 2.930000, 1.565000 }, STANDARD),
+	mesh("NervousIntern_Head", "actors_v2", 117050262852810, { 2.850000, 3.157495, 2.877513 }, STANDARD),
+	mesh("NervousIntern_ArmL", "actors_v2", 135387675843841, { 1.749729, 3.014624, 1.559741 }, STANDARD),
+	mesh("NervousIntern_ArmR", "actors_v2", 105757928614025, { 1.243056, 2.254132, 0.706094 }, STANDARD),
+	mesh("NervousIntern_Base", "actors_v2", 94060944548353, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- StuntDouble (model asset 78980123897341)
+	mesh("StuntDouble_Body", "actors_v2", 113942113239838, { 1.970000, 3.171465, 1.555000 }, STANDARD),
+	mesh("StuntDouble_Head", "actors_v2", 138676746039957, { 3.140000, 3.430001, 2.700114 }, STANDARD),
+	mesh("StuntDouble_ArmL", "actors_v2", 80691097847194, { 1.462997, 1.063316, 1.048414 }, STANDARD),
+	mesh("StuntDouble_ArmR", "actors_v2", 125653958226914, { 1.218919, 1.137137, 1.540547 }, STANDARD),
+	mesh("StuntDouble_Base", "actors_v2", 97371535146616, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- BackgroundExtra (model asset 137808762994588)
+	mesh("BackgroundExtra_Body", "actors_v2", 72342402709918, { 1.970000, 2.850000, 1.555000 }, STANDARD),
+	mesh("BackgroundExtra_Head", "actors_v2", 126947239075198, { 2.740000, 3.450000, 2.762161 }, STANDARD),
+	mesh("BackgroundExtra_ArmL", "actors_v2", 100135692558855, { 1.272562, 1.553090, 1.553549 }, STANDARD),
+	mesh("BackgroundExtra_ArmR", "actors_v2", 138576279044553, { 1.099085, 0.895795, 1.546526 }, STANDARD),
+	mesh("BackgroundExtra_Base", "actors_v2", 134719666954487, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- WerewolfPup (model asset 123311158661518)
+	mesh("WerewolfPup_Body", "actors_v2", 126531804972152, { 3.894071, 3.050000, 2.845000 }, STANDARD),
+	mesh("WerewolfPup_Head", "actors_v2", 99542167578317, { 3.171378, 3.569884, 2.553165 }, STANDARD),
+	mesh("WerewolfPup_ArmL", "actors_v2", 106189154110065, { 1.149355, 1.429305, 0.722368 }, STANDARD),
+	mesh("WerewolfPup_ArmR", "actors_v2", 130000141891189, { 0.842697, 1.453965, 0.792706 }, STANDARD),
+	mesh("WerewolfPup_Base", "actors_v2", 123444916751253, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- CardboardAstronaut (model asset 102328918320052)
+	mesh("CardboardAstronaut_Body", "actors_v2", 86477377283758, { 3.886910, 3.873476, 3.235000 }, STANDARD),
+	mesh("CardboardAstronaut_Head", "actors_v2", 84427885754582, { 3.440000, 5.857006, 2.980000 }, STANDARD),
+	mesh("CardboardAstronaut_ArmL", "actors_v2", 119949411121357, { 0.955059, 1.098196, 1.573755 }, STANDARD),
+	mesh("CardboardAstronaut_ArmR", "actors_v2", 128407148157679, { 1.112192, 3.578853, 2.171972 }, STANDARD),
+	mesh("CardboardAstronaut_Base", "actors_v2", 136559812956088, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- SoapRegular (model asset 90167958952204)
+	mesh("SoapRegular_Body", "actors_v2", 136040725090246, { 1.970000, 2.850000, 1.560000 }, STANDARD),
+	mesh("SoapRegular_Head", "actors_v2", 134525474483333, { 4.108911, 3.400000, 2.849352 }, STANDARD),
+	mesh("SoapRegular_ArmL", "actors_v2", 131337973878118, { 1.007606, 1.301102, 1.571467 }, STANDARD),
+	mesh("SoapRegular_ArmR", "actors_v2", 127414353816837, { 1.182896, 1.529304, 1.109085 }, STANDARD),
+	mesh("SoapRegular_Base", "actors_v2", 73901399082701, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- AdModel (model asset 118922553244862)
+	mesh("AdModel_Body", "actors_v2", 128444228861879, { 3.940000, 5.300000, 2.043775 }, STANDARD),
+	mesh("AdModel_Head", "actors_v2", 132918938333068, { 2.550000, 3.300000, 2.367568 }, STANDARD),
+	mesh("AdModel_ArmL", "actors_v2", 85140210521407, { 1.216064, 2.751376, 0.714941 }, STANDARD),
+	mesh("AdModel_ArmR", "actors_v2", 96184898975394, { 0.859323, 1.569211, 0.794243 }, STANDARD),
+	mesh("AdModel_Base", "actors_v2", 87174945094919, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- IndieSidekick (model asset 128603552809706)
+	mesh("IndieSidekick_Body", "actors_v2", 136182758335532, { 2.133567, 2.850000, 1.869075 }, STANDARD),
+	mesh("IndieSidekick_Head", "actors_v2", 111304026887627, { 3.400000, 3.680000, 2.270000 }, STANDARD),
+	mesh("IndieSidekick_ArmL", "actors_v2", 81491807517411, { 1.092691, 1.614208, 1.454465 }, STANDARD),
+	mesh("IndieSidekick_ArmR", "actors_v2", 139806434736484, { 1.633635, 1.662170, 0.684349 }, STANDARD),
+	mesh("IndieSidekick_Base", "actors_v2", 92452526001816, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- RodeoRookie (model asset 79302979688872)
+	mesh("RodeoRookie_Body", "actors_v2", 78683362875477, { 2.610000, 3.371752, 1.808923 }, STANDARD),
+	mesh("RodeoRookie_Head", "actors_v2", 86295547294232, { 3.966687, 3.300000, 3.600000 }, STANDARD),
+	mesh("RodeoRookie_ArmL", "actors_v2", 127883193725653, { 4.111842, 5.905736, 3.507001 }, STANDARD),
+	mesh("RodeoRookie_ArmR", "actors_v2", 119274511252314, { 1.039682, 1.540279, 0.755051 }, STANDARD),
+	mesh("RodeoRookie_Base", "actors_v2", 110485081492437, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- WobblyWitch (model asset 125463609061186)
+	mesh("WobblyWitch_Body", "actors_v2", 118056157500632, { 3.183538, 4.050000, 2.725159 }, STANDARD),
+	mesh("WobblyWitch_Head", "actors_v2", 98614357101098, { 3.834203, 6.460541, 3.518894 }, STANDARD),
+	mesh("WobblyWitch_ArmL", "actors_v2", 81855752131301, { 1.943813, 3.430401, 1.270274 }, STANDARD),
+	mesh("WobblyWitch_ArmR", "actors_v2", 108544469419248, { 1.669421, 9.850000, 1.481890 }, STANDARD),
+	mesh("WobblyWitch_Base", "actors_v2", 111421525029434, { 3.970000, 0.750000, 3.580652 }, STANDARD),
+	-- ActionVeteran (model asset 112997385062534)
+	mesh("ActionVeteran_Body", "actors_v2", 100164795283124, { 3.849277, 4.159204, 3.380409 }, STANDARD),
+	mesh("ActionVeteran_Head", "actors_v2", 80338802808193, { 2.740000, 3.140000, 2.810652 }, STANDARD),
+	mesh("ActionVeteran_ArmL", "actors_v2", 90130617997145, { 1.547485, 0.997093, 1.038612 }, STANDARD),
+	mesh("ActionVeteran_ArmR", "actors_v2", 111109386267650, { 0.951982, 1.569392, 0.947137 }, STANDARD),
+	mesh("ActionVeteran_Base", "actors_v2", 95703395420266, { 4.120000, 0.750000, 3.589312 }, STANDARD),
+	-- ComedyDuo (model asset 120800496372684)
+	mesh("ComedyDuo_Body", "actors_v2", 71214887528602, { 1.970000, 2.980000, 1.610000 }, STANDARD),
+	mesh("ComedyDuo_Head", "actors_v2", 111274192384182, { 3.350000, 3.930000, 2.772245 }, STANDARD),
+	mesh("ComedyDuo_ArmL", "actors_v2", 132917442007983, { 1.255807, 1.366438, 1.174548 }, STANDARD),
+	mesh("ComedyDuo_ArmR", "actors_v2", 121088785364558, { 2.076426, 3.665916, 1.731021 }, STANDARD),
+	mesh("ComedyDuo_Base", "actors_v2", 101676598163501, { 4.120000, 0.750000, 3.589312 }, STANDARD),
+	-- NightShiftVillain (model asset 130145137069037)
+	mesh("NightShiftVillain_Body", "actors_v2", 124141654955563, { 4.500000, 5.079569, 2.250668 }, STANDARD),
+	mesh("NightShiftVillain_Head", "actors_v2", 105360298250650, { 3.267066, 2.840000, 2.992682 }, STANDARD),
+	mesh("NightShiftVillain_ArmL", "actors_v2", 121402638431585, { 1.611753, 2.490716, 1.475893 }, STANDARD),
+	mesh("NightShiftVillain_ArmR", "actors_v2", 127553329222308, { 1.113825, 0.915016, 1.903668 }, STANDARD),
+	mesh("NightShiftVillain_Base", "actors_v2", 119673949165538, { 4.120000, 0.750000, 3.589312 }, STANDARD),
+	-- LagoonMermaid (model asset 71390758301173)
+	mesh("LagoonMermaid_Body", "actors_v2", 80413781711071, { 5.600771, 6.669806, 2.650486 }, STANDARD),
+	mesh("LagoonMermaid_Head", "actors_v2", 131985677555025, { 3.230000, 4.680000, 2.876110 }, STANDARD),
+	mesh("LagoonMermaid_ArmL", "actors_v2", 83741572664899, { 0.744564, 1.290934, 1.519903 }, STANDARD),
+	mesh("LagoonMermaid_ArmR", "actors_v2", 102438995578755, { 1.194908, 1.316592, 1.604113 }, STANDARD),
+	mesh("LagoonMermaid_Base", "actors_v2", 90179679063723, { 4.120000, 2.330000, 3.589312 }, STANDARD),
+	-- TimeTourist (model asset 101579851796271)
+	mesh("TimeTourist_Body", "actors_v2", 86468233402776, { 4.807328, 5.430000, 3.741136 }, STANDARD),
+	mesh("TimeTourist_Head", "actors_v2", 128245403131112, { 2.612807, 3.276976, 2.696338 }, STANDARD),
+	mesh("TimeTourist_ArmL", "actors_v2", 89776290267260, { 0.665940, 1.472420, 1.334063 }, STANDARD),
+	mesh("TimeTourist_ArmR", "actors_v2", 109344137287244, { 0.665940, 1.472420, 1.334063 }, STANDARD),
+	mesh("TimeTourist_Base", "actors_v2", 135873499628835, { 4.120000, 0.750000, 3.589312 }, STANDARD),
+	-- TeenHeartthrob (model asset 111789923257694)
+	mesh("TeenHeartthrob_Body", "actors_v2", 96545518077121, { 5.378000, 5.928000, 1.650000 }, STANDARD),
+	mesh("TeenHeartthrob_Head", "actors_v2", 77146914038374, { 2.773235, 3.907112, 2.775554 }, STANDARD),
+	mesh("TeenHeartthrob_ArmL", "actors_v2", 122299103580595, { 2.111001, 3.095282, 1.648869 }, STANDARD),
+	mesh("TeenHeartthrob_ArmR", "actors_v2", 105751230879295, { 1.279052, 1.484259, 1.174548 }, STANDARD),
+	mesh("TeenHeartthrob_Base", "actors_v2", 71890335951071, { 3.970000, 0.900000, 3.600652 }, STANDARD),
+	-- MethodActor (model asset 131849025393229)
+	mesh("MethodActor_Body", "actors_v2", 109806828429586, { 4.400000, 3.400000, 1.710000 }, STANDARD),
+	mesh("MethodActor_Head", "actors_v2", 105901938879827, { 2.940000, 4.620335, 2.803635 }, STANDARD),
+	mesh("MethodActor_ArmL", "actors_v2", 104328652699027, { 1.471992, 4.020000, 1.222353 }, STANDARD),
+	mesh("MethodActor_ArmR", "actors_v2", 73510200123668, { 2.325000, 2.725000, 1.934101 }, STANDARD),
+	mesh("MethodActor_Base", "actors_v2", 129443309578658, { 3.970000, 0.900000, 3.600652 }, STANDARD),
+	-- SpaceCaptain (model asset 136405444287856)
+	mesh("SpaceCaptain_Body", "actors_v2", 128768998106418, { 3.552004, 3.544726, 2.173869 }, STANDARD),
+	mesh("SpaceCaptain_Head", "actors_v2", 73908398957809, { 2.700000, 4.380000, 2.458633 }, STANDARD),
+	mesh("SpaceCaptain_ArmL", "actors_v2", 102727310091521, { 2.392062, 2.355775, 1.453860 }, STANDARD),
+	mesh("SpaceCaptain_ArmR", "actors_v2", 130095649571851, { 1.084311, 1.561085, 0.791186 }, STANDARD),
+	mesh("SpaceCaptain_Base", "actors_v2", 105804219298712, { 3.970000, 0.900000, 3.600652 }, STANDARD),
+	-- CaptainKapow (model asset 132495924731421)
+	mesh("CaptainKapow_Body", "actors_v2", 125735716749311, { 4.492380, 4.495989, 2.837324 }, STANDARD),
+	mesh("CaptainKapow_Head", "actors_v2", 110286151391853, { 2.850000, 2.977205, 2.810221 }, STANDARD),
+	mesh("CaptainKapow_ArmL", "actors_v2", 103772404965052, { 1.394871, 1.586848, 0.944158 }, STANDARD),
+	mesh("CaptainKapow_ArmR", "actors_v2", 99068593541226, { 2.186381, 2.903789, 1.221398 }, STANDARD),
+	mesh("CaptainKapow_Base", "actors_v2", 108298115986231, { 3.970000, 0.900000, 3.600652 }, STANDARD),
+	-- InspectorWhoops (model asset 73867745832770)
+	mesh("InspectorWhoops_Body", "actors_v2", 125847221003202, { 2.630518, 4.803550, 1.845000 }, STANDARD),
+	mesh("InspectorWhoops_Head", "actors_v2", 85244916754415, { 3.607588, 3.880001, 3.317969 }, STANDARD),
+	mesh("InspectorWhoops_ArmL", "actors_v2", 112373624036213, { 1.514132, 1.578310, 1.927738 }, STANDARD),
+	mesh("InspectorWhoops_ArmR", "actors_v2", 119282222631826, { 3.240416, 4.334874, 2.327763 }, STANDARD),
+	mesh("InspectorWhoops_Base", "actors_v2", 137396304668225, { 3.970000, 0.900000, 3.600652 }, STANDARD),
+	-- BoxOfficeKing (model asset 95901456298654)
+	mesh("BoxOfficeKing_Body", "actors_v2", 101397274825920, { 4.500000, 3.942155, 2.668484 }, STANDARD),
+	mesh("BoxOfficeKing_Head", "actors_v2", 80522621804906, { 2.740000, 4.100000, 2.965773 }, STANDARD),
+	mesh("BoxOfficeKing_ArmL", "actors_v2", 111422446097193, { 1.325241, 1.845685, 1.902371 }, STANDARD),
+	mesh("BoxOfficeKing_ArmR", "actors_v2", 77419819946143, { 1.285320, 1.529456, 0.845283 }, STANDARD),
+	mesh("BoxOfficeKing_Base", "actors_v2", 97721324418940, { 4.066296, 0.750000, 3.590748 }, STANDARD),
+	-- ScreamQueen (model asset 81396066589298)
+	mesh("ScreamQueen_Body", "actors_v2", 76179259986829, { 1.970000, 2.926275, 1.565000 }, STANDARD),
+	mesh("ScreamQueen_Head", "actors_v2", 79363259482972, { 4.574316, 4.862283, 2.769818 }, STANDARD),
+	mesh("ScreamQueen_ArmL", "actors_v2", 105734445378821, { 2.806371, 1.898612, 1.968059 }, STANDARD),
+	mesh("ScreamQueen_ArmR", "actors_v2", 84891163401840, { 1.282199, 1.351362, 1.165915 }, STANDARD),
+	mesh("ScreamQueen_Base", "actors_v2", 120111041676510, { 4.066296, 0.750000, 3.590748 }, STANDARD),
+	-- RomComSweetheart (model asset 110856901710040)
+	mesh("RomComSweetheart_Body", "actors_v2", 108797093918158, { 5.321000, 5.507500, 2.102360 }, STANDARD),
+	mesh("RomComSweetheart_Head", "actors_v2", 72195790112095, { 3.430000, 3.463137, 2.724247 }, STANDARD),
+	mesh("RomComSweetheart_ArmL", "actors_v2", 101157910389809, { 1.605184, 2.503703, 1.142679 }, STANDARD),
+	mesh("RomComSweetheart_ArmR", "actors_v2", 123835157644063, { 1.577876, 1.406925, 1.306769 }, STANDARD),
+	mesh("RomComSweetheart_Base", "actors_v2", 76977329090442, { 4.066296, 0.750000, 3.590748 }, STANDARD),
+	-- PirateCaptain (model asset 101977286768429)
+	mesh("PirateCaptain_Body", "actors_v2", 87286974019810, { 4.931687, 5.428068, 2.569200 }, STANDARD),
+	mesh("PirateCaptain_Head", "actors_v2", 122024311746783, { 3.996707, 3.954965, 3.574747 }, STANDARD),
+	mesh("PirateCaptain_ArmL", "actors_v2", 77764684812515, { 1.191658, 1.567381, 0.986096 }, STANDARD),
+	mesh("PirateCaptain_ArmR", "actors_v2", 116245295097262, { 1.128792, 1.579035, 0.978884 }, STANDARD),
+	mesh("PirateCaptain_Base", "actors_v2", 121355192806316, { 4.066296, 0.750000, 3.590748 }, STANDARD),
+	-- GoldenAgeDiva (model asset 112964439454917)
+	mesh("GoldenAgeDiva_Body", "actors_v2", 93130484135587, { 5.582000, 6.921000, 3.573859 }, STANDARD),
+	mesh("GoldenAgeDiva_Head", "actors_v2", 90293636908662, { 4.536424, 5.620602, 2.759542 }, STANDARD),
+	mesh("GoldenAgeDiva_ArmL", "actors_v2", 113262926355868, { 1.497775, 1.581347, 0.844148 }, STANDARD),
+	mesh("GoldenAgeDiva_ArmR", "actors_v2", 95913814741161, { 1.637355, 1.360000, 1.374262 }, STANDARD),
+	mesh("GoldenAgeDiva_Base", "actors_v2", 98783866010140, { 3.970000, 0.950000, 3.580652 }, STANDARD),
+	-- SilentEraClown (model asset 84586094590972)
+	mesh("SilentEraClown_Body", "actors_v2", 76885436323892, { 5.419295, 6.340000, 3.634699 }, STANDARD),
+	mesh("SilentEraClown_Head", "actors_v2", 82983194876349, { 4.590180, 3.359755, 2.723504 }, STANDARD),
+	mesh("SilentEraClown_ArmL", "actors_v2", 140092885179706, { 1.571778, 1.689101, 0.799292 }, STANDARD),
+	mesh("SilentEraClown_ArmR", "actors_v2", 125844642981544, { 1.654201, 2.224845, 0.967514 }, STANDARD),
+	mesh("SilentEraClown_Base", "actors_v2", 130037778906073, { 3.970000, 0.950000, 3.580652 }, STANDARD),
+	-- SciFiVisionary (model asset 120347968277007)
+	mesh("SciFiVisionary_Body", "actors_v2", 76034744838652, { 5.158000, 7.579000, 1.912305 }, STANDARD),
+	mesh("SciFiVisionary_Head", "actors_v2", 135081676503303, { 5.240417, 4.260208, 3.627410 }, STANDARD),
+	mesh("SciFiVisionary_ArmL", "actors_v2", 139625676552243, { 1.833795, 1.004096, 0.684349 }, STANDARD),
+	mesh("SciFiVisionary_ArmR", "actors_v2", 128824422684921, { 1.757103, 1.518163, 1.081119 }, STANDARD),
+	mesh("SciFiVisionary_Base", "actors_v2", 129910675096830, { 3.970000, 0.950000, 3.580652 }, STANDARD),
+	-- MogulsMuse (model asset 116451613696829)
+	mesh("MogulsMuse_Body", "actors_v2", 79588014222630, { 5.589509, 7.252000, 3.384000 }, STANDARD),
+	mesh("MogulsMuse_Head", "actors_v2", 108635173279007, { 2.740000, 4.226506, 2.721962 }, STANDARD),
+	mesh("MogulsMuse_ArmL", "actors_v2", 71298020825892, { 1.931012, 2.901982, 0.719619 }, STANDARD),
+	mesh("MogulsMuse_ArmR", "actors_v2", 132893904694765, { 1.159192, 1.419803, 1.067005 }, STANDARD),
+	mesh("MogulsMuse_Base", "actors_v2", 109776985088996, { 4.472245, 1.629805, 3.580652 }, STANDARD),
+	-- LastActionHero (model asset 101069352403845)
+	mesh("LastActionHero_Body", "actors_v2", 138526092193520, { 5.677749, 7.309999, 2.023261 }, STANDARD),
+	mesh("LastActionHero_Head", "actors_v2", 97990255240271, { 3.950491, 4.060000, 3.397401 }, STANDARD),
+	mesh("LastActionHero_ArmL", "actors_v2", 125285208375282, { 1.436469, 2.271263, 1.676899 }, STANDARD),
+	mesh("LastActionHero_ArmR", "actors_v2", 83813350183557, { 1.241629, 1.247723, 2.131849 }, STANDARD),
+	mesh("LastActionHero_Base", "actors_v2", 107236815011649, { 4.472245, 1.629805, 3.580652 }, STANDARD),
+	-- PhantomAuteur (model asset 109116021236959)
+	mesh("PhantomAuteur_Body", "actors_v2", 134701156846610, { 5.682000, 7.874289, 3.187038 }, STANDARD),
+	mesh("PhantomAuteur_Head", "actors_v2", 84023244968707, { 3.323568, 4.326580, 2.829972 }, STANDARD),
+	mesh("PhantomAuteur_ArmL", "actors_v2", 93158254944861, { 1.161597, 1.727148, 1.316185 }, STANDARD),
+	mesh("PhantomAuteur_ArmR", "actors_v2", 72918218962362, { 2.027473, 1.480905, 1.545893 }, STANDARD),
+	mesh("PhantomAuteur_Base", "actors_v2", 124998902741561, { 4.472245, 1.629805, 3.580652 }, STANDARD),
 }
 
-assert(#meshes == 366, "LotMeshManifest must contain exactly 366 templates")
+assert(#meshes == 516, "LotMeshManifest must contain exactly 516 templates")
 
 return table.freeze({
 	version = 1,

@@ -173,3 +173,45 @@ test("the Rare Wall fits on a lot without touching anything else", function()
 		expect(hi - lo <= gap + 0.01, `{figure.Name} is wider than its plinth ({hi - lo})`)
 	end
 end)
+
+test("figure fit: shrinks by width or height, never grows, leaves normal actors alone", function()
+	local Fit = H.require("Models/ActorFit")
+	equal(Fit.shrink(2, 4, 3, 4), 1, "fits already")
+	equal(Fit.shrink(6, 2, 3, 4), 0.5, "width limits")
+	equal(Fit.shrink(2, 8, 3, 4), 0.5, "height limits")
+	equal(Fit.shrink(6, 8, 3, 2), 0.25, "the tighter of the two")
+	equal(Fit.shrink(1, 1, nil, nil), 1, "no limits")
+end)
+
+test("mesh truth: only the Witch, Astronaut and Tourist exceed the height cap (from rig piece bounds)", function()
+	local Fit = H.require("Models/ActorFit")
+	local Shapes = H.require("Models/ActorShapes")
+	local tall = {}
+	for _, actor in Actors.List do
+		local rig = Shapes.Actors[actor.id]
+		local top = -math.huge
+		for name, piece in rig.pieces do
+			if name ~= "Base" then
+				top = math.max(top, piece.center.Y + piece.size.Y / 2)
+			end
+		end
+		if top > Fit.MaxHeight then
+			table.insert(tall, actor.id)
+		end
+	end
+	table.sort(tall)
+	equal(table.concat(tall, ","), "CardboardAstronaut,TimeTourist,WobblyWitch", "clamped actors")
+end)
+
+test("height counts a hover: a floating figure is measured from its feet, not its lowest part", function()
+	local Fit = H.require("Models/ActorFit")
+	local frame = CFrame.new(0, 0, 0)
+	local folder = roblox.Instance.new("Folder")
+	local model = roblox.Instance.new("Model")
+	local part = roblox.Instance.new("Part")
+	part.Size = Vector3.new(1, 2, 1)
+	part.CFrame = CFrame.new(0, 3, 0) -- hovers: spans y 2 to 4
+	part.Parent = model
+	model.Parent = folder
+	equal(Fit.heightOf(model, frame), 4, "top above the feet, hover included")
+end)

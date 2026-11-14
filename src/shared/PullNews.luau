@@ -42,7 +42,7 @@ function PullNews.oneIn(actor: Actors.Actor, variant: Actors.Variant): number
 	return (if tier ~= nil then tier.oneIn else 1) * share * (variant.oneIn or 1)
 end
 
--- "AVA pulled a SUPERSTAR: Box Office King! (1 in 16,000)". `name` nil means our own pull ("You").
+-- "AVA pulled a SUPERSTAR: Box Office King! (1 in 32,000)". `name` nil means our own pull ("You").
 function PullNews.text(name: string?, actor: Actors.Actor, variant: Actors.Variant, global: boolean?): string
 	local what = string.upper(actor.tier)
 	if variant.id ~= "Normal" then
