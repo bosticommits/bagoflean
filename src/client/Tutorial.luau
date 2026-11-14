@@ -403,6 +403,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	skip.Name = "Skip"
 	skip.ZIndex = 11
 	UiKit.textConstraint(skip, 18)
+	-- Pill mode: the visual Skip is shorter than the 44 px phone tap target (the title bar is 40 px), so an
+	-- invisible button over it takes the tap. Hidden outside pill mode, where Skip is already 44 px tall.
+	local skipHit = Instance.new("TextButton")
+	skipHit.Name = "SkipHit"
+	skipHit.Text = ""
+	skipHit.BackgroundTransparency = 1
+	skipHit.AutoButtonColor = false
+	skipHit.AnchorPoint = Vector2.new(0.5, 0.5)
+	skipHit.Position = UDim2.fromScale(0.5, 0.5)
+	skipHit.Size = UDim2.fromOffset(52, 44)
+	skipHit.ZIndex = 12
+	skipHit.Visible = false
+	skipHit.Parent = skip
 
 	-- State --------------------------------------------------------------------------------------
 	local active = false
@@ -525,6 +538,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 12), UDim.new(0, 12)
 		pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 10)
 		nameLabel.Visible = true
+		skipHit.Visible = false
 		speech.TextScaled = false
 		nameLabel.TextSize = textSize -- only while not scaled
 		speech.TextSize = textSize
@@ -589,6 +603,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			skip.Size = UDim2.fromOffset(p.skipW, p.skipH)
 			skip.AnchorPoint = Vector2.new(0, 0.5)
 			skip.Position = UDim2.fromOffset(at.X + p.skipX, at.Y + size.Y / 2)
+			skipHit.Size = UDim2.fromOffset(p.skipW, p.hitH)
+			skipHit.Visible = true
 		elseif splashOpen then
 			leavePill(textSize)
 			-- The intro: the bubble from the middle of the safe area, Skip bottom-right.
@@ -1739,13 +1755,15 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		update()
 	end
 
-	skip.Activated:Connect(function()
+	local function onSkip()
 		if finale then
 			teardown()
 		else
 			finish(true)
 		end
-	end)
+	end
+	skip.Activated:Connect(onSkip)
+	skipHit.Activated:Connect(onSkip)
 
 	-- Signals ----------------------------------------------------------------------------------------
 	-- A collect is the only thing that lowers pending royalties.

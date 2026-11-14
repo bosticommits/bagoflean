@@ -37,15 +37,7 @@ function Declutter.start(gui: ScreenGui)
 	end
 
 	local function panelOpen(): boolean
-		for _, child in gui:GetChildren() do
-			if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" then
-				return true
-			end
-		end
-		-- The premiere covers the screen (and hides the panels), so it counts as a panel too.
-		local backdrop = gui.Parent and gui.Parent:FindFirstChild("PremiereRevealBackdrop")
-		local reveal = backdrop and backdrop:FindFirstChild("PremiereReveal")
-		return reveal ~= nil and reveal:IsA("GuiObject") and reveal.Visible
+		return UiKit.panelCovering(gui)
 	end
 
 	task.spawn(function()

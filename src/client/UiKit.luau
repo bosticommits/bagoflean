@@ -642,7 +642,8 @@ local toastToken = 0
 local TOAST_MAX_WIDTH = 340
 local TOAST_SECONDS = 2
 local TOAST_QUEUE_MAX = 3
-local toastQueue: { { gui: ScreenGui, text: string } } = {}
+local TOAST_STALE_SECONDS = 60 -- a queued toast older than this is dropped ("Premiere next door" long after)
+local toastQueue: { { gui: ScreenGui, text: string, at: number } } = {}
 local toastDrain = false
 
 local function showToast(gui: ScreenGui, text: string)
@@ -682,23 +683,46 @@ local function showToast(gui: ScreenGui, text: string)
 	end)
 end
 
+-- True while a screen-covering panel is up: any visible child of `gui` named "...Panel", or the premiere
+-- reveal (it hides the panels, so it counts as one). Declutter and passive toasts share this.
+function UiKit.panelCovering(gui: ScreenGui): boolean
+	for _, child in gui:GetChildren() do
+		if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" then
+			return true
+		end
+	end
+	local backdrop = gui.Parent and gui.Parent:FindFirstChild("PremiereRevealBackdrop")
+	local reveal = backdrop and backdrop:FindFirstChild("PremiereReveal")
+	return reveal ~= nil and reveal:IsA("GuiObject") and reveal.Visible
+end
+
 function UiKit.toast(gui: ScreenGui, text: string, passive: boolean?)
-	if passive == true and UiKit.isCompact() and UiKit.anyPanelOpen() then
+	if passive == true and UiKit.isCompact() and UiKit.panelCovering(gui) then
 		if #toastQueue < TOAST_QUEUE_MAX then
-			table.insert(toastQueue, { gui = gui, text = text })
+			table.insert(toastQueue, { gui = gui, text = text, at = os.clock() })
 		end
 		if not toastDrain then
 			toastDrain = true
 			task.spawn(function()
-				while #toastQueue > 0 do
-					task.wait(0.3)
-					if not UiKit.anyPanelOpen() then
-						local nextToast = table.remove(toastQueue, 1)
-						if nextToast ~= nil and nextToast.gui.Parent ~= nil then
-							showToast(nextToast.gui, nextToast.text)
-							task.wait(TOAST_SECONDS + 0.2)
+				-- pcall, so one bad toast can never leave toastDrain stuck and silence passive toasts for good.
+				local ok, err = pcall(function()
+					while #toastQueue > 0 do
+						task.wait(0.3)
+						local nextToast = toastQueue[1]
+						if nextToast ~= nil and not UiKit.panelCovering(nextToast.gui) then
+							table.remove(toastQueue, 1)
+							if nextToast.gui.Parent ~= nil and os.clock() - nextToast.at <= TOAST_STALE_SECONDS then
+								showToast(nextToast.gui, nextToast.text)
+								task.wait(TOAST_SECONDS + 0.2)
+							end
+						elseif nextToast ~= nil and os.clock() - nextToast.at > TOAST_STALE_SECONDS then
+							table.remove(toastQueue, 1) -- stale, drop it even while a panel stays open
 						end
 					end
+				end)
+				if not ok then
+					warn("UiKit toast queue: " .. tostring(err))
+					table.clear(toastQueue)
 				end
 				toastDrain = false
 			end)

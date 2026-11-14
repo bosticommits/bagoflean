@@ -240,7 +240,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 				info.Parent = card
 				host = info
 				titleSize, titlePos = UDim2.fromScale(1, 0.24), UDim2.fromScale(0, 0)
-				textSize, textPos = UDim2.fromScale(1, 0.2), UDim2.fromScale(0, 0.25)
+				textSize, textPos = UDim2.fromScale(1, 0.17), UDim2.fromScale(0, 0.25)
 				actionSize, actionPos = UDim2.fromScale(1, 0.54), UDim2.fromScale(0, 0.46)
 				payPos, halfWidth, halfHeight = UDim2.fromScale(0.52, 0.46), 0.48, 0.54
 

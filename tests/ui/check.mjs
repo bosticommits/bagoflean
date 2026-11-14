@@ -37,7 +37,7 @@ function checkScene(dir) {
 	const findings = [];
 	const add = (rule, level, node, msg, size) => {
 		// With a panel open the story is about that panel: the HUD behind it is checked by the Hud story.
-		if (scoped && !info.get(node.id)?.panel) return;
+		if (scoped && !info.get(node.id)?.panel && !/(^|\.)Skip(Hit)?$/.test(node.path)) return; // the tutorial's Skip is never scoped away
 		findings.push({ rule, level, path: short(node.path), rect: node.rect.map((v) => Math.round(v * 10) / 10), msg, size });
 	};
 	let scoped = false;
@@ -145,7 +145,15 @@ function checkScene(dir) {
 			if (!isButton(n) || !i.vis || i.decor) continue;
 			// A card scrolled half out of view is still a full-size target: measure its real rect.
 			const r = i.scrolled ? n.rect : i.clip;
-			const small = Math.min(r[2], r[3]);
+			let small = Math.min(r[2], r[3]);
+			// A drawn button shorter than 44 px may sit under an invisible 44 px hit button (a child, e.g. SkipHit).
+			if (small < TOUCH_MIN - 0.5) {
+				for (const h of nodes) {
+					if (h.parent !== n.id || !isButton(h) || text(h) !== "" || (h.bg && h.bg.transparency < 1) || !info.get(h.id).vis) continue;
+					const hr = h.rect;
+					if (hr[0] <= r[0] + SLACK && hr[1] <= r[1] + SLACK && hr[0] + hr[2] >= r[0] + r[2] - SLACK && hr[1] + hr[3] >= r[1] + r[3] - SLACK) small = Math.max(small, Math.min(hr[2], hr[3]));
+				}
+			}
 			if (small < TOUCH_MIN - 0.5) add("touch-target", "error", n, `${Math.round(r[2])}x${Math.round(r[3])} px, under ${TOUCH_MIN}`, Math.round(small));
 		}
 	}
