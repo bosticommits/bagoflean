@@ -5,7 +5,7 @@ rur (v0.3.1) (offline Studio-parity GUI renderer), then checks the layout of eve
 `scene.json`. Run it before any UI playtest in Studio.
 
 ```
-tests/ui/run.sh                 # render Hud, Studio, Picker, Visit at 4 sizes, check, exit 1 on a NEW finding
+tests/ui/run.sh                 # render Hud, HudMore (More flyout open), Studio, Picker, Visit at 4 sizes, check, exit 1 on a NEW finding
 tests/ui/run.sh Picker          # one story
 tests/ui/run.sh --strict        # ignore baseline.json, list every finding
 tests/ui/run.sh --update-baseline   # accept today's findings as known (do this only on purpose)
