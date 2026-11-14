@@ -14,6 +14,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
 local LotModels = require(ReplicatedStorage.Shared.Models.LotModels)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
+local PortraitCamera = require(ReplicatedStorage.Shared.PortraitCamera)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local TopStudios = require(ReplicatedStorage.Shared.TopStudios)
@@ -180,27 +181,15 @@ local function setBillboard(lot: Lot, title: string, line1: string, line2: strin
 		viewport.Ambient = Color3.fromRGB(190, 190, 190)
 		viewport.LightColor = Color3.new(1, 1, 1)
 		viewport.LightDirection = Vector3.new(-1, -1, 1)
+		local figure = ActorModels.build(viewport, CFrame.identity, actorId, variantId)
+		-- The camera is built by each client (Cameras do not replicate): store the framing on the viewport.
+		local boxCf, boxSize = figure:GetBoundingBox()
+		local targetY, distance = PortraitCamera.fit(boxCf.Position.Y + boxSize.Y / 2, boxCf.Position.Y - boxSize.Y / 2, boxSize.X)
+		PortraitCamera.store(viewport, targetY, distance)
 		viewport.Parent = lot.billboard
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0.08, 0)
 		corner.Parent = viewport
-		local camera = Instance.new("Camera")
-		camera.FieldOfView = 30
-		camera.Parent = viewport
-		viewport.CurrentCamera = camera
-		local figure = ActorModels.build(viewport, CFrame.identity, actorId, variantId)
-		-- Fit the camera to the figure's bounding box (the tall actors, up to ~11 studs, would be cut off by
-		-- a fixed frame). Normal figures (up to 5.6 tall, 3.4 wide) keep the original framing.
-		local boxCf, boxSize = figure:GetBoundingBox()
-		local top, bottom = boxCf.Position.Y + boxSize.Y / 2, boxCf.Position.Y - boxSize.Y / 2
-		local targetY = if top <= 5.6 and bottom >= 0 then 2.8 else (top + bottom) / 2
-		local halfHeight = math.max(top - targetY, targetY - bottom, 2.8) * 1.08
-		local halfWidth = boxSize.X / 2 * 1.08
-		local tanHalf = math.tan(math.rad(camera.FieldOfView / 2))
-		local aspect = 0.63 -- the viewport is 0.34 x 0.88 of the billboard: 4.42 wide by 7.04 tall studs
-		local distance = math.max(13.3, halfHeight / tanHalf, halfWidth / (tanHalf * aspect))
-		local target = Vector3.new(0, targetY, 0)
-		camera.CFrame = CFrame.lookAt(target + Vector3.new(-3, 0.8, -13).Unit * distance, target)
 	end
 end
 
