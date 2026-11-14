@@ -1206,6 +1206,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			return
 		end
 		splash = nil
+		gui:SetAttribute("IntroOpen", nil)
 		introTyped = false
 		stepStartedAt = os.clock()
 		begin.Visible = false
@@ -1381,6 +1382,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		marker.BackgroundTransparency = 1
 		marker.Parent = gui
 		splash = marker
+		gui:SetAttribute("IntroOpen", true) -- the founder toast waits for this to clear
 		local overlay = Instance.new("Frame")
 		overlay.Name = "Intro"
 		overlay.Size = UDim2.fromScale(1, 1)
