@@ -15,10 +15,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local Logic = require(script.Parent.LoadingLogic)
-local View = require(script.Parent.LoadingView)
+local Logic = require(script.Parent:WaitForChild("LoadingLogic"))
+local View = require(script.Parent:WaitForChild("LoadingView"))
 
 local player = Players.LocalPlayer
+if player:GetAttribute("LoadingScreen") ~= nil then
+	return -- Rojo can run this script twice; the first run owns the screen
+end
 player:SetAttribute("LoadingScreen", "loading") -- before any yield, so the tutorial never races past it
 
 local playerGui = player:WaitForChild("PlayerGui")
@@ -61,15 +64,37 @@ pcall(function()
 	ReplicatedFirst:RemoveDefaultLoadingScreen()
 end)
 
--- Touch controls hide while it shows (they draw above PlayerGui), and come back after.
+-- Touch controls hide while it shows (they draw above PlayerGui), and come back after. The original
+-- value is also kept in the "LoadingTouchSaved" attribute: UiKit.holdTouchControls may run while we are
+-- up (the Daily panel opens on the first sync) and must save THAT, not our temporary false. UiKit sets
+-- "TouchHeld" while any panel holds the controls hidden; then it, not we, puts them back.
 local savedTouch: boolean? = nil
 pcall(function()
 	savedTouch = GuiService.TouchControlsEnabled
+	player:SetAttribute("LoadingTouchSaved", savedTouch)
 	GuiService.TouchControlsEnabled = false
 end)
 
+local function teardown()
+	coverGui:Destroy()
+	safeGui:Destroy()
+	local saved = savedTouch
+	if saved ~= nil and player:GetAttribute("TouchHeld") ~= true then
+		pcall(function()
+			GuiService.TouchControlsEnabled = saved
+		end)
+	end
+	player:SetAttribute("LoadingTouchSaved", nil)
+	player:SetAttribute("LoadingScreen", nil)
+end
+
 local reduced = reducedMotion()
-local view = View.build(cover, safe, reduced)
+local built, view = pcall(View.build, cover, safe, reduced)
+if not built then
+	warn("LoadingScreen: build failed, skipping it")
+	teardown()
+	return
+end
 
 -- Loading state ----------------------------------------------------------------------------------
 local inputs: Logic.Inputs = { loaded = game:IsLoaded(), ready = false, character = false, preload = 0 }
@@ -172,15 +197,19 @@ connection = RunService.RenderStepped:Connect(function(dt)
 		end
 	end
 	shown = Logic.step(shown, Logic.target(inputs), dt)
-	view.update(elapsed, shown, Logic.tipIndex(elapsed, startTip, #Logic.TIPS))
-	reason = Logic.decide(elapsed, inputs, skipped)
-	if reason ~= nil then
-		connection:Disconnect()
-	end
+	pcall(view.update, elapsed, shown, Logic.tipIndex(elapsed, startTip, #Logic.TIPS))
 end)
+-- The cap and the skip are decided here, not in RenderStepped, so they never depend on rendering.
 while reason == nil do
+	reason = Logic.decide(os.clock() - started, inputs, skipped)
 	task.wait()
 end
+-- Skipped or capped before the first sync: keep the cover until it says new / returning (max 1.5 s).
+local syncWait = os.clock()
+while player:GetAttribute("LoadingNew") == nil and os.clock() - syncWait < 1.5 do
+	task.wait()
+end
+connection:Disconnect()
 
 -- Hand-off ---------------------------------------------------------------------------------------
 -- "handoff" lets the tutorial build the curtain intro under us; a new player's fade (0.4 s) then
@@ -194,19 +223,11 @@ if isNew then
 		task.wait()
 	end
 end
-view.update(os.clock() - started, 1, 1)
+pcall(view.update, os.clock() - started, 1, 1)
 local fade = TweenInfo.new(Logic.fadeSeconds(isNew), Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local fadeCover = TweenService:Create(cover, fade, { GroupTransparency = 1 })
 TweenService:Create(safe, fade, { GroupTransparency = 1 }):Play()
 fadeCover:Play()
 fadeCover.Completed:Wait()
 
-coverGui:Destroy()
-safeGui:Destroy()
-local saved = savedTouch
-if saved ~= nil then
-	pcall(function()
-		GuiService.TouchControlsEnabled = saved
-	end)
-end
-player:SetAttribute("LoadingScreen", nil)
+teardown()
