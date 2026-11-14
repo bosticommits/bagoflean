@@ -452,7 +452,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local out: { Rect } = {}
 		local panels: { Rect } = {}
 		local function add(object: Instance, depth: number)
-			if not object:IsA("GuiObject") or not object.Visible then
+			if not object:IsA("GuiObject") or not object.Visible or object == container then
 				return
 			end
 			local at, size = object.AbsolutePosition - origin, object.AbsoluteSize
@@ -468,7 +468,28 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					end
 				end
 			elseif object.BackgroundTransparency < 1 or #object:GetChildren() > 0 then
-				table.insert(out, { x = at.X, y = at.Y, w = size.X, h = size.Y })
+				-- Parts that hang outside the object (the CAST bar's "star guaranteed" pill; not the HUD's Tuck X, which floats alone)
+				-- count too, or the bubble would be placed over them.
+				local x0, y0, x1, y1 = at.X, at.Y, at.X + size.X, at.Y + size.Y
+				local function reach(node: Instance, levels: number)
+					for _, child in node:GetChildren() do
+						if child:IsA("GuiObject") and child.Visible and child.AbsoluteSize.X > 0 and child.AbsoluteSize.Y > 0 then
+							local childAt = child.AbsolutePosition - origin
+							if child.Name == "Tuck" then
+								-- floats alone, far from its card: an obstacle of its own, not part of the card's rect
+								table.insert(out, { x = childAt.X, y = childAt.Y, w = child.AbsoluteSize.X, h = child.AbsoluteSize.Y })
+								continue
+							end
+							x0, y0 = math.min(x0, childAt.X), math.min(y0, childAt.Y)
+							x1, y1 = math.max(x1, childAt.X + child.AbsoluteSize.X), math.max(y1, childAt.Y + child.AbsoluteSize.Y)
+							if levels > 1 then
+								reach(child, levels - 1)
+							end
+						end
+					end
+				end
+				reach(object, 2)
+				table.insert(out, { x = x0, y = y0, w = x1 - x0, h = y1 - y0 })
 			end
 		end
 		for _, child in gui:GetChildren() do
@@ -532,7 +553,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local splashOpen = splash ~= nil
 		local textSize = if small then 16 else 20
 		begin.Visible = splashOpen and introTyped
-		skip.Size = if small then UDim2.fromOffset(64, 28) else UDim2.fromOffset(80, 34)
+		skip.Size = if small then UDim2.fromOffset(64, 44) else UDim2.fromOffset(80, 34) -- 44 px tap target on phones
 
 		local bustSize = if small then BUST_PHONE else BUST_PC
 		-- On a phone Skip overlaps the bust's lower edge instead of hanging under it (keeps PanelTop low).

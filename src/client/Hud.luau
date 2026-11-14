@@ -528,11 +528,13 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			end
 		end)
 	end
-	-- Phones: the side menu's More flyout has its own X, so this one steps aside while it is open.
+	-- Phones: the side menu's More flyout has its own X, so this one steps aside while it is open. It also
+	-- steps aside while Lucien's tutorial shows: the corner bubble has no clear spot beside it on a short screen.
 	local function syncTuckForMore()
-		tuck.Visible = gui:GetAttribute("MoreOpen") ~= true
+		tuck.Visible = gui:GetAttribute("MoreOpen") ~= true and not (UiKit.isCompact() and gui:GetAttribute("TutorialActive") == true)
 	end
 	gui:GetAttributeChangedSignal("MoreOpen"):Connect(syncTuckForMore)
+	gui:GetAttributeChangedSignal("TutorialActive"):Connect(syncTuckForMore)
 	syncTuckForMore()
 	tuck.Activated:Connect(function()
 		setTucked(true, true)
