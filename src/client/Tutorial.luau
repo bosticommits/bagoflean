@@ -30,6 +30,7 @@ local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local Guides = require(script.Parent.Guides)
 local UiKit = require(script.Parent.UiKit)
+local RectOverlap = require(ReplicatedStorage.Shared.RectOverlap)
 local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
 local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
 local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
@@ -1092,10 +1093,21 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local area = gui.AbsoluteSize
 		local bob = math.sin(clock * 6) * 6
 		local spot: GuiObject? = nil -- one UI target at a time
+		-- Open panels' rects, once per frame: an arrow for a control they cover would draw over them.
+		local panelRects: { RectOverlap.Rect } = {}
+		for _, child in gui:GetChildren() do
+			if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" then
+				table.insert(panelRects, { x = child.AbsolutePosition.X, y = child.AbsolutePosition.Y, w = child.AbsoluteSize.X, h = child.AbsoluteSize.Y })
+			end
+		end
 		for _, guide in uiGuides do
 			local target, arrow = guide.target, guide.arrow
-			-- A control under a panel (a menu or HUD button) is covered: its arrow would draw over the panel.
-			local covered = not inPanel(target) and UiKit.panelCovering(gui)
+			local covered = false
+			if #panelRects > 0 and not inPanel(target) then
+				-- the target plus the room the arrow takes around it
+				local rect = { x = target.AbsolutePosition.X, y = target.AbsolutePosition.Y, w = target.AbsoluteSize.X, h = target.AbsoluteSize.Y }
+				covered = RectOverlap.overlapsAny(RectOverlap.inflate(rect, arrow.AbsoluteSize.X + 10), panelRects)
+			end
 			if spot ~= nil or target.Parent == nil or not shown(target) or revealShowing() or splash ~= nil or covered then
 				arrow.Visible = false
 				continue
@@ -1113,11 +1125,13 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				arrow.Rotation = 0 -- pointing down from above
 				-- The CAST bar's "star guaranteed" pill hangs above it: the arrow goes over the pill, not on its text.
 				local top = at.Y
-				for _, holder: Instance? in { target :: Instance?, target.Parent } do
-					local pill = if holder ~= nil then holder:FindFirstChild("HotStart") else nil
-					if pill ~= nil and pill:IsA("GuiObject") and pill.Visible then
-						top = math.min(top, pill.AbsolutePosition.Y - origin.Y)
-					end
+				local holder: Instance? = target.Parent
+				local pill = target:FindFirstChild("HotStart")
+				if pill == nil and holder ~= nil then
+					pill = holder:FindFirstChild("HotStart")
+				end
+				if pill ~= nil and pill:IsA("GuiObject") and pill.Visible then
+					top = math.min(top, pill.AbsolutePosition.Y - origin.Y)
 				end
 				arrow.Position = UDim2.fromOffset(centre.X, top - half - bob)
 			else
