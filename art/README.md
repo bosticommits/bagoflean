@@ -125,6 +125,7 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `mystery_crate_lid.fbx` | `MysteryCrateLid` |
 | `crate_parachute.fbx` | `CrateParachute` |
 | `festival_laurel.fbx` | `FestivalLaurel` |
+| `founder_star.fbx` (mesh id 95825724892724, from `founder_star.py`) | `FounderStar` |
 | `pumpkin_phantom.fbx` | `PumpkinPhantom` |
 | `jingle_jester.fbx` | `JingleJester` |
 | `cupid_crooner.fbx` | `CupidCrooner` |
