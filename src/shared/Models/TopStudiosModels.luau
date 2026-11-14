@@ -37,9 +37,13 @@ local function v(x: number, y: number, z: number): Vector3
 end
 
 local FIGURE_SCALE = 0.5
--- Tallest a figure may stand on a plinth (studs above it): keeps the tall actors (Witch, Astronaut, Tourist) from
--- covering the nameplate or poking over the wall. Every other actor (up to 8.27 tall at scale 1) is unchanged.
-local MAX_FIGURE_HEIGHT = ActorFit.MaxHeight * FIGURE_SCALE
+local FIGURE_BASE_Y = 1.8 -- feet height on the wall's frame (top of the plinth)
+local NAMEPLATE_Y, NAMEPLATE_H = 5.7, 1.0 -- sits in the wall's top band, above every figure
+local NAMEPLATE_BOTTOM = NAMEPLATE_Y - NAMEPLATE_H / 2
+TopStudiosModels.NameplateBottom = NAMEPLATE_BOTTOM -- in the wall's frame, which sits 1 stud above the lot's frame
+-- Tallest a figure may stand on a plinth (studs above its feet): its top stays under the nameplate's bottom edge, so
+-- the tall actors (Witch hat/broom, Astronaut antenna, Time Tourist rider) never cover the name and tier line.
+local MAX_FIGURE_HEIGHT = ActorFit.wallCap(FIGURE_BASE_Y, NAMEPLATE_BOTTOM)
 
 -- How wide a model is along the X axis of `frame`.
 local function widthOf(model: Model, frame: CFrame): number
@@ -119,7 +123,7 @@ function TopStudiosModels.rareWall(parent: Instance, base: CFrame, owned: { { ac
 	b:block("RareWallBase", v(w + 0.6, 0.8, 3), v(0, 0.4, 0), P.Burgundy)
 	b:block("RareWall", v(w, 6, 0.6), v(0, 3.8, 1.2), P.Navy)
 	b:block("RareWallTrim", v(w + 0.4, 0.4, 0.8), v(0, 6.9, 1.2), P.Gold, METAL)
-	local sign = b:block("RareWallSign", v(w * 0.6, 1.4, 0.3), v(0, 6.2, 0.75), P.Burgundy)
+	local sign = b:block("RareWallSign", v(w * 0.6, 1.4, 0.3), v(0, 7.8, 1.2), P.Burgundy) -- on top of the wall, clear of the nameplates
 	outline(Build.sign(sign, Enum.NormalId.Front, "RARE WALL", P.Gold), 3)
 
 	local gap = w / slots
@@ -134,7 +138,7 @@ function TopStudiosModels.rareWall(parent: Instance, base: CFrame, owned: { { ac
 		b:block("RarePlinthGlow", v(gap - 0.2, 0.25, 1.9), v(x, 1.65, -0.2), color, if tier ~= nil then NEON else nil)
 		if actor ~= nil and tier ~= nil then
 			-- Built at one size, then shrunk if its hat, wings or sidekick would hang off the plinth.
-			local spot = b:at(v(x, 1.8, -0.2))
+			local spot = b:at(v(x, FIGURE_BASE_Y, -0.2))
 			local figure = ActorModels.build(parent, spot, actor.id, entry.variantId, FIGURE_SCALE)
 			local k = ActorFit.shrink(widthOf(figure, spot), ActorFit.heightOf(figure, spot), gap - 0.15, MAX_FIGURE_HEIGHT)
 			if k < 1 then
@@ -142,7 +146,7 @@ function TopStudiosModels.rareWall(parent: Instance, base: CFrame, owned: { { ac
 				ActorModels.build(parent, spot, actor.id, entry.variantId, FIGURE_SCALE * k)
 			end
 			-- Name and rarity on the wall behind the figure.
-			local plate = b:block("RareNameplate", v(gap - 0.4, 1.2, 0.1), v(x, 4.7, 0.85), color:Lerp(P.Navy, 0.55))
+			local plate = b:block("RareNameplate", v(gap - 0.4, NAMEPLATE_H, 0.1), v(x, NAMEPLATE_Y, 0.85), color:Lerp(P.Navy, 0.55))
 			local variantText = if variant ~= nil and variant.id ~= "Normal" then variant.name .. " " else ""
 			local label = Build.sign(plate, Enum.NormalId.Front, `{actor.name}\n{variantText}{tier.name}`, P.OffWhite)
 			label.TextYAlignment = Enum.TextYAlignment.Center
