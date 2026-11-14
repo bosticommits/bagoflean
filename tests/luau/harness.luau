@@ -86,6 +86,9 @@ function loadShared(name: string): any
 		return cached
 	end
 	local path = `{SHARED_DIR}/{name}.luau`
+	if not fs.isFile(path) then
+		path = `src/first/{name}.luau` -- ReplicatedFirst modules (the loading screen's pure rules)
+	end
 	local source = fs.readFile(path)
 	local environment: { [string]: any } = {}
 	for key, value in roblox :: any do

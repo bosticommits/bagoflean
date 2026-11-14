@@ -3,12 +3,14 @@
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
 local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local PickerLayout = require(ReplicatedStorage.Shared.PickerLayout)
+local TouchHold = require(ReplicatedStorage.Shared.TouchHold)
 local TutorialPill = require(ReplicatedStorage.Shared.TutorialPill)
 local Icon3D = require(script.Parent.Icon3D)
 local Juice = require(script.Parent.Juice)
@@ -852,7 +854,14 @@ function UiKit.holdTouchControls(owner: string, hidden: boolean)
 			return GuiService.TouchControlsEnabled
 		end)
 		if ok then
-			savedTouchControls = current
+			-- The loading screen hides the controls itself: the original is what it stored, not that false.
+			local lp = Players.LocalPlayer
+			local loadingSaved = if lp ~= nil then lp:GetAttribute("LoadingTouchSaved") else nil
+			savedTouchControls = TouchHold.original(
+				current,
+				lp ~= nil and lp:GetAttribute("LoadingScreen") ~= nil,
+				if type(loadingSaved) == "boolean" then loadingSaved else nil
+			)
 			pcall(function()
 				GuiService.TouchControlsEnabled = false
 			end)
@@ -860,9 +869,18 @@ function UiKit.holdTouchControls(owner: string, hidden: boolean)
 	elseif not held and savedTouchControls ~= nil then
 		local saved = savedTouchControls
 		savedTouchControls = nil
-		pcall(function()
-			GuiService.TouchControlsEnabled = saved
-		end)
+		local lpHold = Players.LocalPlayer
+		-- While the loading screen is up it restores the controls itself.
+		if lpHold == nil or lpHold:GetAttribute("LoadingScreen") == nil then
+			pcall(function()
+				GuiService.TouchControlsEnabled = saved
+			end)
+		end
+	end
+	-- Tells the loading screen not to restore the controls under an open panel.
+	local lp = Players.LocalPlayer
+	if lp ~= nil then
+		lp:SetAttribute("TouchHeld", if held then true else nil)
 	end
 end
 
