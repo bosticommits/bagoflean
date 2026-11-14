@@ -182,7 +182,7 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 		end
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
-	assert(product ~= nil)
+	assert(product ~= nil, "ShopService: product was not found")
 
 	local granted: string? = nil
 	local saved = DataService.grantPurchaseOnce(player, tostring(receipt.PurchaseId), function(data)

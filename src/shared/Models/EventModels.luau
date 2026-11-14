@@ -58,6 +58,7 @@ end
 local function rod(b: Builder, name: string, from: Vector3, to: Vector3, thickness: number, color: Color3)
 	local length = (to - from).Magnitude
 	local back = (from - to).Unit
+	-- selene: allow(incorrect_standard_library_use) -- std gap: Vector3.yAxis is a Vector3, so :Cross is valid Roblox API
 	local side = Vector3.yAxis:Cross(back)
 	local right = if side.Magnitude > 1e-3 then side.Unit else Vector3.xAxis
 	b:block(name, v(thickness, thickness, length), CFrame.fromMatrix((from + to) / 2, right, back:Cross(right), back), color)

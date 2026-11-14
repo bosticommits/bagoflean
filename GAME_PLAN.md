@@ -441,6 +441,7 @@ exciting by M3, fix the core before adding anything else.
 - **Art**: ForgeGUI present icons (closed, ready, opened; `art/ui/gift_*.png`), uploaded as decals
   117097257889551 / 112488073936113 / 131932256497483 (images 121409647430879 / 99908336297706 /
   101236104871779). Setting `ART.closed = 0` in `PlaytimeGiftsUi` draws the presents in code instead.
+- **Invite icon**: two-person picture (`art/ui/invite_friends.png`), decal 79935846887699, image 104981242732141. Used by `INVITE_ICON` in `VisitUi` (left of "Invite friends"); `0` hides it.
 - **Studio testing**: in Studio only, `Remotes.TestGifts:FireServer("skip", minutes)` adds play time and
   `("reset")` starts a fresh ladder.
 
