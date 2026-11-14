@@ -359,7 +359,7 @@ function UiKit.chip(button: GuiObject, text: string?)
 		pad.Parent = created
 		chip = created
 	end
-	assert(chip ~= nil)
+	assert(chip ~= nil, "UiKit: chip was not created")
 	-- As wide as its text, poking just past the button's right edge (or inside the corner when
 	-- the button sits in a tight grid: the "ChipInset" attribute).
 	local width = math.max(30, 12 + 9 * #text)
@@ -568,7 +568,7 @@ function UiKit.badge(button: GuiObject, text: string?)
 		pad.Parent = created
 		badge = created
 	end
-	assert(badge ~= nil)
+	assert(badge ~= nil, "UiKit: badge was not created")
 	badge.Text = text
 	badge.Visible = true
 end
@@ -602,7 +602,7 @@ function UiKit.toast(gui: ScreenGui, text: string)
 		toastLabel = created
 		label = created
 	end
-	assert(label ~= nil)
+	assert(label ~= nil, "UiKit: label was not created")
 	toastToken += 1
 	local mine = toastToken
 	label.Text = text

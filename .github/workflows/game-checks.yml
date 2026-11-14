@@ -1,13 +1,13 @@
 name: Game checks
 
-# Type-checks the Roblox game and runs its rules tests on every push and pull request that
+# Lints (selene), type-checks (luau-lsp) and runs the rules tests on every push and pull request that
 # touches the game. Tool versions match aftman.toml.
 on:
   push:
     branches: [main]
-    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "tools/**", "**/*.md"]
+    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "tools/**", "selene.toml", "**/*.md"]
   pull_request:
-    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "tools/**", "**/*.md"]
+    paths: ["src/**", "tests/luau/**", "default.project.json", "aftman.toml", ".github/workflows/game-checks.yml", "tools/**", "selene.toml", "**/*.md"]
 
 permissions:
   contents: read
@@ -16,6 +16,7 @@ env:
   ROJO_VERSION: 7.7.1
   LUNE_VERSION: 0.10.2
   LUAU_LSP_VERSION: 1.70.1
+  SELENE_VERSION: 0.31.0
 
 jobs:
   check:
@@ -28,11 +29,15 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP/bin"
           curl -fsSLo rojo.zip "https://github.com/rojo-rbx/rojo/releases/download/v${ROJO_VERSION}/rojo-${ROJO_VERSION}-linux-x86_64.zip"
           curl -fsSLo lune.zip "https://github.com/lune-org/lune/releases/download/v${LUNE_VERSION}/lune-${LUNE_VERSION}-linux-x86_64.zip"
+          curl -fsSLo selene.zip "https://github.com/Kampfkarren/selene/releases/download/${SELENE_VERSION}/selene-${SELENE_VERSION}-linux.zip"
           curl -fsSLo luau-lsp.zip "https://github.com/JohnnyMorganz/luau-lsp/releases/download/${LUAU_LSP_VERSION}/luau-lsp-linux-x86_64.zip"
           curl -fsSLo globalTypes.d.luau "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/${LUAU_LSP_VERSION}/scripts/globalTypes.None.d.luau"
           for z in *.zip; do unzip -oq "$z"; done
-          chmod +x rojo lune luau-lsp
+          chmod +x rojo lune luau-lsp selene
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Lint (selene, errors fail, warnings allowed)
+        run: selene --config selene.toml --allow-warnings src
 
       - name: Type check (luau-lsp)
         run: |

@@ -290,9 +290,7 @@ local function animate(f: Follower, dt: number, now: number, moved: number)
 	-- The Clapper Croc claps when it jumps, when it lands and every few seconds while it waits.
 	if f.jumpAt ~= nil and now - f.clapAt > 0.4 then
 		f.clapAt = f.jumpAt - 0.1
-	elseif justLanded and now - f.clapAt > 0.4 then
-		f.clapAt = now
-	elseif now - f.clapAt > CLAP_EVERY + math.random() * 3 then
+	elseif (justLanded and now - f.clapAt > 0.4) or now - f.clapAt > CLAP_EVERY + math.random() * 3 then
 		f.clapAt = now
 	end
 	pose.clap = clapAmount(now - f.clapAt)
