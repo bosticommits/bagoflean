@@ -6,13 +6,16 @@ local test, expect = H.test, H.expect
 for _, viewH in { 331, 653 } do
 	test(`{viewH} px: buttons stay 44 px and the stats keep 20 px clear of the halo`, function()
 		local cardH = math.min(CardLayout.cardScale(viewH) * viewH, 600)
-		local l = CardLayout.compute(cardH)
+		local l = CardLayout.compute(cardH, math.min(0.85 * viewH * 2.2, 440))
 		local buttonTop = (l.buttonBottom - l.buttonH) * cardH
 		local statsBottom = (l.statsY + l.statsH) * cardH
 		expect(l.buttonH * cardH >= 44, "tap height")
 		expect(buttonTop - CardLayout.HALO - statsBottom >= 20 - 1e-6, "clear of the halo")
 		expect(l.artY < l.nameY and l.nameY + l.nameH <= l.ribbonY + 1e-6, "art, name, ribbon in order")
 		expect((l.ribbonY - l.nameY - l.nameH) * cardH >= 8, "the name clears the tilted ribbon by 8 px or more")
+		-- Long name (reaches 45% of the width either side): the ribbon's rise there is covered, less the text descent.
+		local rise = 0.45 * math.min(0.85 * viewH * 2.2, 440) * math.sin(math.rad(3))
+		expect((l.ribbonY - l.nameY - l.nameH) * cardH + 0.15 * l.nameH * cardH >= rise + 4 - 1e-6, "a long name clears the tilted ribbon")
 		expect(l.ribbonY + l.ribbonH <= l.statsY, "ribbon above the stats")
 		expect(l.artH * cardH >= 50, "the actor keeps room")
 	end)
