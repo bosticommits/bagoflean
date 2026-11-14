@@ -184,3 +184,11 @@ test("Luck never takes Flop below MinFlop", function()
 	end
 	near(Movies.premiereChances(2).Flop, Movies.MinFlop, 1e-12, "Luck 2 reaches the floor")
 end)
+
+test("fillCast takes best first, uses free copies, stops at the slots left", function()
+	local shown = { { key = "a", free = 2 }, { key = "b", free = 1 }, { key = "c", free = 3 } }
+	equal(table.concat(Movies.fillCast(shown, 5), ","), "a,a,b,c,c")
+	equal(table.concat(Movies.fillCast(shown, 1), ","), "a")
+	equal(#Movies.fillCast(shown, 0), 0)
+	equal(#Movies.fillCast({}, 3), 0)
+end)

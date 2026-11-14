@@ -98,25 +98,18 @@ local function tierIndex(tierId: string): number
 end
 
 -- Casting reveal: the rarer the tier and variant, the bigger the moment.
-function Fx.castReveal(tierId: string, variantId: string)
+-- `lines`: the voice slots RevealVoice.pick chose (announcer, Lucien); none are hard-coded here.
+function Fx.castReveal(tierId: string, variantId: string, lines: { string })
 	local rank = tierIndex(tierId) -- 1 Newcomer .. 7 Icon
 	local tier = Actors.getTier(tierId)
 	local color = if tier ~= nil then tier.color else Color3.new(1, 1, 1)
-	-- The announcer calls Star and up.
-	if rank == 4 then
-		Sfx.play("voiceStar")
-	elseif rank == 5 then
-		Sfx.play("voiceSuperstar")
-	elseif rank == 6 then
-		Sfx.play("voiceLegend")
-	elseif rank == 7 then
-		Sfx.play("voiceIcon")
+	for _, line in lines do
+		Sfx.play(line)
 	end
 	if rank <= 2 then
 		Sfx.play("revealCommon")
 	elseif rank <= 4 then
 		Sfx.play("revealRare")
-		Sfx.play("lucienRarePull")
 		Fx.confetti(20 + rank * 5, { color, Color3.new(1, 1, 1) })
 	else
 		-- Superstar and up: a deeper sting; Legend and Icon also get the big fanfare over dipped music.
@@ -124,9 +117,6 @@ function Fx.castReveal(tierId: string, variantId: string)
 		if rank >= 6 then
 			Music.duck(4)
 			Sfx.play("revealLegend")
-			if rank == 7 then
-				Sfx.play("lucienLegendPull") -- Icon only: the announcer already shouts "LEGEND!" on rank 6
-			end
 		end
 		Fx.flash(color, 0.5)
 		Fx.confetti(70 + rank * 10)
