@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local GridRows = require(ReplicatedStorage.Shared.GridRows)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Shop = require(ReplicatedStorage.Shared.Shop)
 local ClientState = require(script.Parent.ClientState)
@@ -194,10 +195,10 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			g.Size = UDim2.new(1, -8, 0, 0)
 			g.AutomaticSize = Enum.AutomaticSize.Y
 			g.Parent = list
-			local layout = Instance.new("UIGridLayout")
-			layout.CellSize = UDim2.new(0.5, -8, 0, if UiKit.isCompact() then 172 else 196)
-			layout.CellPadding = UDim2.fromOffset(10, 10)
-			layout.HorizontalAlignment = Enum.HorizontalAlignment.Center -- an odd last card sits centred
+			-- Rows, not UIGridLayout: a grid left-aligns a short last row even with HorizontalAlignment Center.
+			-- finishGrid() (below) moves the cards into one centred row frame per row.
+			local layout = Instance.new("UIListLayout")
+			layout.Padding = UDim.new(0, 10)
 			layout.SortOrder = Enum.SortOrder.LayoutOrder
 			layout.Parent = g
 			local pad = Instance.new("UIPadding")
@@ -205,6 +206,40 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			pad.PaddingTop = UDim.new(0, 3)
 			pad.Parent = g
 			return g
+		end
+		-- Call once a grid is filled: two cards a row, a lone last card centred.
+		local function finishGrid(g: Frame)
+			local cards: { Frame } = {}
+			for _, child in g:GetChildren() do
+				if child:IsA("Frame") then
+					table.insert(cards, child)
+				end
+			end
+			table.sort(cards, function(a, b)
+				return a.LayoutOrder < b.LayoutOrder
+			end)
+			local cellHeight = if UiKit.isCompact() then 172 else 196
+			local index = 0
+			for rowNumber, count in GridRows.split(#cards, 2) do
+				local row = Instance.new("Frame")
+				row.Name = "Row" .. rowNumber
+				row.LayoutOrder = rowNumber
+				row.BackgroundTransparency = 1
+				row.Size = UDim2.new(1, 0, 0, cellHeight)
+				row.Parent = g
+				local rowLayout = Instance.new("UIListLayout")
+				rowLayout.FillDirection = Enum.FillDirection.Horizontal
+				rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				rowLayout.Padding = UDim.new(0, 10)
+				rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+				rowLayout.Parent = row
+				for _ = 1, count do
+					index += 1
+					local c = cards[index]
+					c.Size = UDim2.new(0.5, -8, 1, 0)
+					c.Parent = row
+				end
+			end
 		end
 		-- A picture card: colored tile, outlined 3D icon, name, one line of text, and a slot at the
 		-- bottom for the price button (returned) or an OWNED / not available label.
@@ -366,6 +401,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			slot += 1
 			passCard(passGrid, pass, slot)
 		end
+		finishGrid(passGrid)
 
 		cashSection = section("Boosts and Cash")
 		local productGrid = grid()
@@ -397,6 +433,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			end)
 			oddsButton(c, product.key, product.name)
 		end
+		finishGrid(productGrid)
 
 		order += 1
 		local note = UiKit.addRow(list, order, 30)
