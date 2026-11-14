@@ -313,15 +313,24 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 			order += 1
 			local row = UiKit.addRow(list, order, 56)
 			UiKit.plainRow(row)
-			-- With the icon, the button is wider and the label gets left padding, so the picture never covers the text.
+			-- With the icon, the button is wider. The label is a child TextLabel from just right of the icon
+			-- to the right edge, so the picture and text never overlap and the button's Shine stays centred.
 			local inviteWidth = if INVITE_ICON ~= 0 then 0.6 else 0.5
-			local invite = makeButton(row, "Invite friends", UiKit.BLUE, UDim2.new(inviteWidth, 0, 0, 44), UDim2.new(0.5 - inviteWidth / 2, 0, 0, 6))
+			local invite = makeButton(row, if INVITE_ICON ~= 0 then "" else "Invite friends", UiKit.BLUE, UDim2.new(inviteWidth, 0, 0, 44), UDim2.new(0.5 - inviteWidth / 2, 0, 0, 6))
 			invite.Name = "InviteFriends"
 			if INVITE_ICON ~= 0 then
-				local pad = Instance.new("UIPadding")
-				pad.PaddingLeft = UDim.new(0, 46)
-				pad.PaddingRight = UDim.new(0, 8)
-				pad.Parent = invite
+				local label = Instance.new("TextLabel")
+				label.Name = "InviteLabel"
+				label.BackgroundTransparency = 1
+				label.Position = UDim2.fromOffset(52, 0)
+				label.Size = UDim2.new(1, -60, 1, 0)
+				label.Text = "Invite friends"
+				label.TextColor3 = UiKit.WHITE
+				label.TextScaled = true
+				label.Font = UiKit.DISPLAY_FONT
+				label.ZIndex = invite.ZIndex + 1
+				label.Parent = invite
+				UiKit.textConstraint(label, 26)
 				local icon = Instance.new("ImageLabel")
 				icon.Name = "InviteIcon"
 				icon.BackgroundTransparency = 1
