@@ -306,6 +306,7 @@ function MascotUi.start(gui: ScreenGui, button: TextButton, remotes: Instance)
 						local warm = Mascots.warmUpLeft({ mascotSince = player:GetAttribute("MascotSince") }, workspace:GetServerTimeNow()) <= 0
 						local have = if out ~= nil and out.buff.kind == "luck" and warm then 1 + out.buff.amount else 1
 						LuckDetails.open(gui, m.name, (1 + m.buff.amount) / have, `Works {Mascots.WarmUp} seconds after you equip it.`)
+						panel.Visible = false -- the odds table covers the screen: close Mascots so its text does not ghost through
 					end)
 					if compact then
 						odds.Size = UDim2.fromOffset(62, 44)
