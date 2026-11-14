@@ -82,7 +82,7 @@ local player = Players.LocalPlayer
 local random = Random.new()
 local runs: { Run } = {}
 local current: Run? = nil
-local sendClaim: (kind: string, index: number) -> () = function() end
+local sendClaim: (kind: string, index: number) -> () = function(_kind: string, _index: number) end -- replaced by start()
 local normalClock: number? = nil -- the place's own time of day, restored after Golden Hour
 
 -- Helpers -------------------------------------------------------------------------------------
