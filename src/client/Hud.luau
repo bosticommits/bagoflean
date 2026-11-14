@@ -30,6 +30,8 @@ local HUD_WIDTH = 420 -- width of the event lines at full scale
 local HUD_SIDE_MARGIN = 12 -- gap kept to each screen edge
 local HUD_MIN_SCALE = 0.5 -- smallest the event lines shrink to on a narrow screen
 local BADGE_WIDTH = 196
+local BADGE_HEIGHT = 50 -- 44 px tall on phones at the 0.9 scale (touch target)
+local BOX_MIN_WIDTH = 180 -- narrowest the box office pill gets squeezed to beside the wallet
 local BOX_WIDTH = 310
 local TAB_WIDTH = 76 -- room for the "<" pull hint left of the trophy
 local TAB_HEIGHT = 64
@@ -96,7 +98,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	-- stay clear of the player's character.
 	local frame = Instance.new("Frame")
 	frame.Name = "Hud"
-	frame.Size = UDim2.fromOffset(HUD_WIDTH, 108)
+	frame.Size = UDim2.fromOffset(HUD_WIDTH, 114)
 	frame.BackgroundTransparency = 1
 	frame.ZIndex = 0 -- under every panel (the Quests board covers it on phones)
 	frame.Parent = gui
@@ -104,6 +106,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	frameScale.Parent = frame
 	local labels: { TextLabel } = {}
 	local alignTop = function(_right: boolean) end -- set once the badges and bar exist
+	local fitBox = function() end -- set once the wallet card exists
 	local tucked = false
 	-- Where the stack sits when shown; tucked, it waits just past the right edge at the same height.
 	local function home(): (Vector2, UDim2)
@@ -127,7 +130,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		frame.Position = if tucked then away(position) else position
 		-- Narrow screens (portrait phones) shrink the 420 px event lines to fit between the edges.
 		local widthFit = math.clamp((UiKit.viewport().X - HUD_SIDE_MARGIN * 2) / HUD_WIDTH, HUD_MIN_SCALE, 1)
-		frameScale.Scale = math.min(if right and UiKit.isCompact() then 0.72 else 1, widthFit)
+		frameScale.Scale = math.min(if right and UiKit.isCompact() then 0.9 else 1, widthFit)
 		for _, label in labels do
 			label.TextXAlignment = if right then Enum.TextXAlignment.Right else Enum.TextXAlignment.Center
 		end
@@ -149,7 +152,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local badgeRow = Instance.new("Frame")
 	badgeRow.Name = "Badges"
 	badgeRow.BackgroundTransparency = 1
-	badgeRow.Size = UDim2.new(1, 0, 0, 48)
+	badgeRow.Size = UDim2.new(1, 0, 0, 54)
 	badgeRow.Parent = frame
 	local badgeLayout = Instance.new("UIListLayout")
 	badgeLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -176,7 +179,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		badge.Name = "Badge" .. iconId
 		badge.LayoutOrder = order
 		badge.BackgroundColor3 = color
-		badge.Size = UDim2.fromOffset(BADGE_WIDTH, 44)
+		badge.Size = UDim2.fromOffset(BADGE_WIDTH, BADGE_HEIGHT)
 		badge.Parent = badgeRow
 		UiKit.corner(badge, 14)
 		UiKit.border(badge, 4)
@@ -189,11 +192,11 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 		art.ZIndex = 3
 		art.Parent = badge
 		Icon3D.outlined(art, iconId)
-		local title = UiKit.makeTitle(badge, "", UiKit.WHITE, UDim2.new(1, -50, 0, 15), UDim2.fromOffset(42, 3), 2)
+		local title = UiKit.makeTitle(badge, "", UiKit.WHITE, UDim2.new(1, -50, 0, 15), UDim2.fromOffset(42, 5), 2)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.ZIndex = 3
 		UiKit.textConstraint(title, 15)
-		local timer = UiKit.makeTitle(badge, "", UiKit.WHITE, UDim2.new(1, -50, 0, 24), UDim2.fromOffset(42, 17), 2.5)
+		local timer = UiKit.makeTitle(badge, "", UiKit.WHITE, UDim2.new(1, -50, 0, 24), UDim2.fromOffset(42, 21), 2.5)
 		timer.TextXAlignment = Enum.TextXAlignment.Left
 		timer.ZIndex = 3
 		UiKit.textConstraint(timer, 24)
@@ -212,7 +215,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	surpriseBadge.Visible = false
 	-- Three badges are wider than the event lines: the frame grows so the tutorial's obstacle is true.
 	badgeLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		frame.Size = UDim2.fromOffset(math.max(HUD_WIDTH, badgeLayout.AbsoluteContentSize.X / frameScale.Scale), 108)
+		frame.Size = UDim2.fromOffset(math.max(HUD_WIDTH, badgeLayout.AbsoluteContentSize.X / frameScale.Scale), 114)
 	end)
 
 	-- Box office bar: the cinema's pile, filling towards the offline cap (the most it holds, see
@@ -223,7 +226,7 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	box.Name = "BoxOffice"
 	box.BackgroundColor3 = UiKit.NAVY
 	box.AnchorPoint = Vector2.new(0.5, 0)
-	box.Position = UDim2.new(0.5, 0, 0, 54)
+	box.Position = UDim2.new(0.5, 0, 0, 60)
 	box.Size = UDim2.fromOffset(BOX_WIDTH, 50)
 	box.Parent = frame
 	UiKit.corner(box, 14)
@@ -279,13 +282,14 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	alignTop = function(right: boolean)
 		badgeLayout.HorizontalAlignment = if right then Enum.HorizontalAlignment.Right else Enum.HorizontalAlignment.Center
 		box.AnchorPoint = Vector2.new(if right then 1 else 0.5, 0)
-		box.Position = if right then UDim2.new(1, -4, 0, 54) else UDim2.new(0.5, 0, 0, 54) -- 8 px gaps to the badges and Next Up
+		box.Position = if right then UDim2.new(1, -4, 0, 60) else UDim2.new(0.5, 0, 0, 60) -- 8 px gaps to the badges and Next Up
 		tuck.AnchorPoint = if right then Vector2.new(1, 0) else Vector2.new(0, 0.5)
 		tuck.Position = if right then UDim2.new(0, -22, 1, 10) else UDim2.new(1, 8, 0.5, 0)
 		-- Touch screens: the X stays a 44 px tap target however small the stack is scaled.
 		local tuckSize = if right then math.ceil(44 / frameScale.Scale) else 34
 		tuck.Size = UDim2.fromOffset(tuckSize, tuckSize)
 		UiKit.textConstraint(tuck, math.floor(tuckSize * 0.65))
+		fitBox()
 	end
 
 	local function refreshBox()
@@ -346,13 +350,38 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	cashLabel.Text = "..."
 	local fameLabel, fameArt = walletRow(54, 34, "star", UiKit.WHITE)
 	Icon3D.outlined(fameArt, "star", 0.95)
-	local plus = UiKit.makePlusButton(wallet, 36, UDim2.fromOffset(0, 5))
+	-- A 36 px green "+" inside a bigger tap area (44 px on screen even at the phone wallet scale 0.8).
+	local plus = UiKit.makeHitButton(wallet, "+", UiKit.GREEN, 36, 44)
+	plus.Name = "Plus"
+	local plusFace = plus:FindFirstChild("Face") :: Frame
+	plusFace.AnchorPoint = Vector2.new(0, 0.5)
+	plusFace.Position = UDim2.fromScale(0, 0.5)
+	local plusCorner = plusFace:FindFirstChildOfClass("UICorner")
+	if plusCorner ~= nil then
+		plusCorner.CornerRadius = UDim.new(0, 8)
+	end
+	-- Top-right stack (phones): the box office pill gives way to the wallet card instead of covering it.
+	fitBox = function()
+		if gui:GetAttribute("HudRight") ~= true or card.AbsoluteSize.X < 1 or frameScale.Scale <= 0 then
+			box.Size = UDim2.fromOffset(BOX_WIDTH, 50)
+			return
+		end
+		local boxRight = box.AbsolutePosition.X + box.AbsoluteSize.X
+		local cardRight = card.AbsolutePosition.X + card.AbsoluteSize.X
+		local room = (boxRight - cardRight - 10) / frameScale.Scale
+		box.Size = UDim2.fromOffset(math.clamp(math.floor(room), BOX_MIN_WIDTH, BOX_WIDTH), 50)
+	end
+	card:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitBox)
+	card:GetPropertyChangedSignal("AbsolutePosition"):Connect(fitBox)
 	-- Just after the number. TextBounds is in screen pixels, so undo the wallet's scale first.
 	local function placePlus()
 		local scale = if wallet.Size.X.Offset > 0 then wallet.AbsoluteSize.X / wallet.Size.X.Offset else 1
 		local width = cashLabel.TextBounds.X / math.max(scale, 0.01)
 		local plusX = cashLabel.Position.X.Offset + math.ceil(width) + 10
-		plus.Position = UDim2.fromOffset(plusX, 5)
+		-- The tap area stays 44 px however small the wallet is scaled (phones: 0.8); the face stays 36.
+		local plusHit = math.max(36, math.ceil(44 / math.max(scale, 0.01)))
+		plus.Size = UDim2.fromOffset(plusHit, plusHit)
+		plus.Position = UDim2.fromOffset(plusX, 23 - plusHit // 2)
 		local fameWidth = fameLabel.TextBounds.X / math.max(scale, 0.01)
 		local right = math.max(plusX + 36, fameLabel.Position.X.Offset + math.ceil(fameWidth))
 		card.Size = UDim2.fromOffset(math.max(WALLET_CARD_MIN, right + 18), 100)
@@ -502,6 +531,12 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			end
 		end)
 	end
+	-- Phones: the side menu's More flyout has its own X, so this one steps aside while it is open.
+	local function syncTuckForMore()
+		tuck.Visible = gui:GetAttribute("MoreOpen") ~= true
+	end
+	gui:GetAttributeChangedSignal("MoreOpen"):Connect(syncTuckForMore)
+	syncTuckForMore()
 	tuck.Activated:Connect(function()
 		setTucked(true, true)
 		save()
@@ -589,9 +624,9 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 			luckyBadge.Visible = showLucky
 			-- Going live pops the badge once.
 			if surpriseLive and wasSurpriseLive == false then
-				TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH * 1.15, 44 * 1.15) }):Play()
+				TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH * 1.15, BADGE_HEIGHT * 1.15) }):Play()
 				task.delay(0.25, function()
-					TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH, 44) }):Play()
+					TweenService:Create(surpriseBadge, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(BADGE_WIDTH, BADGE_HEIGHT) }):Play()
 				end)
 			end
 			wasSurpriseLive = surpriseLive

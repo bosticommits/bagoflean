@@ -1101,7 +1101,13 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Steps ---------------------------------------------------------------------------------------
 	local function sideButton(name: string): GuiObject?
-		return findGui(gui:FindFirstChild("SideMenu"), name)
+		local menu = gui:FindFirstChild("SideMenu")
+		local found = findGui(menu, name)
+		-- On phones the less-used tiles live in the More flyout: while it is shut, point at More instead.
+		if found ~= nil and found:FindFirstAncestor("MoreFlyout") ~= nil and gui:GetAttribute("MoreOpen") ~= true then
+			return findGui(menu, "MoreButton")
+		end
+		return found
 	end
 	-- The way into the Studio screen: the menu button and the MOVIES stand.
 	-- `key` says something else instead of the "Tap Studio" line (a later step with Studio closed).

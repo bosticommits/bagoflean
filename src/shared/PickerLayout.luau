@@ -30,6 +30,7 @@ export type Grid = { cols: number, cellW: number, cellH: number, gap: number }
 PickerLayout.STROKE = 5 -- the panel outline, drawn outside the panel
 PickerLayout.MAX_W = 760
 PickerLayout.MAX_H = 600
+PickerLayout.MAX_COLS = 3 -- wide panes make the cards bigger, never add a column
 
 local function pick<T>(compact: boolean, phone: T, pc: T): T
 	return if compact then phone else pc
@@ -76,14 +77,14 @@ end
 -- The footer ("call sheet") for a panel `w` wide. `slots` is Config.MaxCast.
 function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 	local pad = PickerLayout.padding(compact)
-	local s = pick(compact, 40, 56)
-	local slotGap = pick(compact, 6, 8)
+	local s = pick(compact, 44, 56) -- 44 px phone tap targets
+	local slotGap = pick(compact, 4, 8)
 	-- Start's halo reaches about 10 px out (5 gap + 5 stroke): keep 8 px clear of Clear cast beyond it.
 	local btnGap = 18
-	local textGap = pick(compact, 10, 16)
-	local textRightGap = pick(compact, 10, 14)
-	local clearW, clearH = pick(compact, 84, 130), pick(compact, 40, 52)
-	local goW, goH = pick(compact, 128, 210), pick(compact, 40, 56)
+	local textGap = pick(compact, 8, 16)
+	local textRightGap = pick(compact, 6, 14)
+	local clearW, clearH = pick(compact, 84, 130), pick(compact, 44, 52)
+	local goW, goH = pick(compact, 128, 210), pick(compact, 44, 56)
 	-- Start's halo (5 px gap + up to 5 px stroke at full pulse) needs about 12 px to the panel edge.
 	local goRight = pick(compact, pad + 6, pad)
 	local minText = pick(compact, 110, 150)
@@ -93,7 +94,7 @@ function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 	local clearX = goX - btnGap - clearW
 	local textW = clearX - textRightGap - textX
 	local twoRow = textW < minText
-	local f = pick(compact, 70, 84)
+	local f = pick(compact, 72, 84)
 	local centres: { { x: number, y: number } } = {}
 	local textRect: Rect
 	local clear: Rect
@@ -108,7 +109,7 @@ function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 		go = { x = goX, y = (f - goH) / 2, w = goW, h = goH }
 	else
 		local rowGap = pick(compact, 10, 12)
-		local rowH = pick(compact, 34, 44)
+		local rowH = 44
 		f = pad + s + rowGap + rowH + 12 -- 12 under the buttons for the halo
 		for i = 1, slots do
 			table.insert(centres, { x = pad + s / 2 + (i - 1) * (s + slotGap), y = pad + s / 2 })
@@ -162,7 +163,7 @@ function PickerLayout.grid(windowW: number, compact: boolean): Grid
 	local contentW = windowW - 2 * PickerLayout.GRID_PADDING - 2 -- 2 px slack so rounding can never wrap the last column
 	local gap = pick(compact, 8, 10)
 	local minW = pick(compact, 100, 140)
-	local cols = math.max(2, math.floor((contentW + gap) / (minW + gap)))
+	local cols = math.clamp(math.floor((contentW + gap) / (minW + gap)), 2, PickerLayout.MAX_COLS)
 	local cellW = math.max(1, math.floor((contentW - (cols - 1) * gap) / cols))
 	local cellH = math.floor(cellW * 0.62 + 0.5) + pick(compact, 40, 52)
 	return { cols = cols, cellW = cellW, cellH = cellH, gap = gap }
