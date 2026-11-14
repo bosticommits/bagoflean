@@ -64,12 +64,7 @@ end)
 
 test("a limited actor is as likely as one actor of its tier, and nobody else's odds move", function()
 	local limited = Actors.Limited[1]
-	local poolSize = 0
-	for _, actor in Actors.List do
-		if actor.tier == limited.tier then
-			poolSize += 1
-		end
-	end
+	local poolSize = 5 -- Actors v2: five everyday Star actors (the limited one is not among them)
 	equal(#Actors.actorsInTier(limited.tier), poolSize, "the everyday pool is not changed")
 	for _, agency in Actors.Agencies do
 		for _, luck in { 1, 2, 10, 50 } do

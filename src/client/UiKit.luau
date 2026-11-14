@@ -396,7 +396,7 @@ function UiKit.boostChip(button: GuiObject)
 	end
 end
 
--- Small green pill on a button's top corner ("6/63", "86%"), like the reference Rebirth chip.
+-- Small green pill on a button's top corner ("6/90", "86%"), like the reference Rebirth chip.
 -- Pass nil to hide it.
 function UiKit.chip(button: GuiObject, text: string?)
 	local chip = button:FindFirstChild("Chip") :: TextLabel?

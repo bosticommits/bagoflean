@@ -21,6 +21,15 @@ test("every tier has its planned actors and the Index has 90 slots", function()
 	equal(Actors.IndexSlots, 90, "Index slots")
 end)
 
+-- MERGE GATE: fails until the art PR (A2/A3) regenerates ActorShapes with a rig for every actor;
+-- until then ActorModels.build falls back to the Nervous Intern for the nine new ids.
+test("every Actors.List id has an ActorShapes.Actors rig", function()
+	local ActorShapes = H.require("Models/ActorShapes")
+	for _, actor in Actors.List do
+		expect(ActorShapes.Actors[actor.id] ~= nil, `{actor.id} has no ActorShapes rig`)
+	end
+end)
+
 test("the nine Actors v2 actors are there with their planned tier, genre and name", function()
 	local planned = {
 		{ "WerewolfPup", "Werewolf Pup", "Newcomer", "Horror" },

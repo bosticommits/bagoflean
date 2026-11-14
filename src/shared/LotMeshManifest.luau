@@ -39,8 +39,11 @@ local TOWN_LIFE = {
 -- map_kit.fbx (asset 80189346190801) imports with the same defaults as the town life kit.
 local MAP_KIT = TOWN_LIFE
 
-local function mesh(name: string, group: string, assetId: number, size: { number }, style: { [string]: any })
+local function mesh(name: string, group: string, assetId: number, size: { number }, style: { [string]: any }, pending: boolean?)
 	local entry = table.clone(style)
+	if pending then
+		entry.pending = true
+	end
 	entry.name = name
 	entry.group = group
 	entry.assetId = assetId
@@ -440,60 +443,61 @@ local meshes = {
 	-- Actors v2: the nine new actors (art/blender/actors.py, actors.fbx), five rig pieces each.
 	-- PENDING (assetId 0, size 1x1x1) until the artist uploads the meshes; then fill in the real ids
 	-- and sizes. Until then each piece is missing: LotMeshCheck warns at server start and Build.mesh
-	-- falls back to parts (never an error); tools/studio/rebuild_lot_meshes.luau skips assetId 0.
-	mesh("WerewolfPup_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WerewolfPup_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WerewolfPup_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WerewolfPup_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WerewolfPup_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	-- falls back to parts (never an error); tools/studio/rebuild_lot_meshes.luau skips rows flagged pending = true; Main.server
+	-- reports them as "pending upload", not missing.
+	mesh("WerewolfPup_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WerewolfPup_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WerewolfPup_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WerewolfPup_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WerewolfPup_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("CardboardAstronaut_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CardboardAstronaut_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CardboardAstronaut_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CardboardAstronaut_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CardboardAstronaut_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CardboardAstronaut_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CardboardAstronaut_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CardboardAstronaut_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CardboardAstronaut_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CardboardAstronaut_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("RodeoRookie_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("RodeoRookie_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("RodeoRookie_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("RodeoRookie_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("RodeoRookie_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("RodeoRookie_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("RodeoRookie_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("RodeoRookie_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("RodeoRookie_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("RodeoRookie_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("WobblyWitch_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WobblyWitch_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WobblyWitch_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WobblyWitch_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("WobblyWitch_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("WobblyWitch_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WobblyWitch_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WobblyWitch_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WobblyWitch_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("WobblyWitch_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("LagoonMermaid_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("LagoonMermaid_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("LagoonMermaid_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("LagoonMermaid_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("LagoonMermaid_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("LagoonMermaid_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("LagoonMermaid_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("LagoonMermaid_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("LagoonMermaid_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("LagoonMermaid_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("TimeTourist_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("TimeTourist_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("TimeTourist_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("TimeTourist_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("TimeTourist_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("TimeTourist_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("TimeTourist_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("TimeTourist_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("TimeTourist_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("TimeTourist_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("CaptainKapow_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CaptainKapow_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CaptainKapow_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CaptainKapow_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("CaptainKapow_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("CaptainKapow_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CaptainKapow_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CaptainKapow_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CaptainKapow_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("CaptainKapow_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("InspectorWhoops_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("InspectorWhoops_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("InspectorWhoops_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("InspectorWhoops_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("InspectorWhoops_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("InspectorWhoops_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("InspectorWhoops_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("InspectorWhoops_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("InspectorWhoops_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("InspectorWhoops_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 
-	mesh("PirateCaptain_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("PirateCaptain_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("PirateCaptain_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("PirateCaptain_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
-	mesh("PirateCaptain_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD),
+	mesh("PirateCaptain_Body", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("PirateCaptain_Head", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("PirateCaptain_ArmL", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("PirateCaptain_ArmR", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
+	mesh("PirateCaptain_Base", "actors_v2", PENDING, { 1, 1, 1 }, STANDARD, true),
 }
 
 assert(#meshes == 411, "LotMeshManifest must contain exactly 411 templates")

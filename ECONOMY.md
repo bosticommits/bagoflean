@@ -268,7 +268,7 @@ before the Superstar row moves (the row comes about 6 minutes of play sooner). F
 
 **Limited seasonal actors (2026-10-22).** Each seasonal festival has a limited actor
 (`Actors.Limited`, all Star tier). While its season runs it can be cast exactly as often as any one
-Star actor (1 in 2,100 at Open Casting), its slice taken from the agency's commonest tier, so no
+Star actor (1 in 3,500 at Open Casting since Actors v2; 1 in 2,100 with three Stars), its slice taken from the agency's commonest tier, so no
 other actor's odds move and the Star row is no slower to finish; winning the festival gives a
 Normal copy. Limited actors stay out of the Index rows, genre sets and the Index count, so their
 only economic effect is one more Star for the cast. The sim's `--season FrightNight` makes every

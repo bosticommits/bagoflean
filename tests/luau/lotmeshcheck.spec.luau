@@ -49,6 +49,21 @@ test("every Actors v2 actor has its five rig-piece rows in the manifest (pending
 	end
 end)
 
+test("pending rows are exactly the placeholders: real rows have an id and a real size", function()
+	local pending = 0
+	for _, entry in Manifest.meshes do
+		if entry.assetId > 0 then
+			expect(entry.pending ~= true, `{entry.name} has an id but is flagged pending`)
+			local s = entry.size
+			expect(not (s[1] == 1 and s[2] == 1 and s[3] == 1), `{entry.name} has an id but the placeholder size 1x1x1`)
+		else
+			expect(entry.pending == true, `{entry.name} has assetId 0 but is not flagged pending`)
+			pending += 1
+		end
+	end
+	equal(pending, 45, "the nine new actors' pieces")
+end)
+
 test("manifest names are unique", function()
 	local seen = {}
 	for _, entry in Manifest.meshes do

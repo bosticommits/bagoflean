@@ -85,7 +85,8 @@ test("the top Index goal is every actor, not every variant", function()
 	expect(top ~= nil, "Index5 exists")
 	local goal = top :: Achievements.Achievement
 	equal(goal.stat, "actors", "Index5 counts actors")
-	equal(goal.target, #Actors.List, "Index5 asks for every actor")
+	equal(goal.target, 30, "Index5 is frozen at 30; a bigger roster adds an Index6 goal")
+	equal(#Actors.List, 30, "Index5 still asks for every actor today")
 	local every = {}
 	for _, actor in Actors.List do
 		every[Actors.key(actor.id, "Normal")] = true

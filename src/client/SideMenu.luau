@@ -358,7 +358,7 @@ function SideMenu.start(gui: ScreenGui): Buttons
 		end
 		scale.Scale = size
 		menu.Size = UDim2.fromOffset(menuWidth, menuHeight)
-		-- Chips ("2/63") stay 12 px tall text however small the tiles are scaled.
+		-- Chips ("2/90") stay 12 px tall text however small the tiles are scaled.
 		for _, entry in tiles do
 			entry.tile:SetAttribute("ChipInset", phoneGrid)
 			entry.tile:SetAttribute("ChipBoost", if phoneGrid then math.max(1, CHIP_TEXT / (22 * size) * 1.1) else nil)
