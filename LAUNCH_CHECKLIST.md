@@ -167,12 +167,31 @@ reach everything.
    Settings, or Creator Dashboard, Versions). That is the last good version.
 2. To revert, open Creator Dashboard, the experience, Version History, pick the last good
    version and choose Restore, then publish. Servers pick up the older code as they restart.
-3. Player data is safe across a rollback. Saves use ProfileStore with a session lock, and new
-   fields are filled with defaults on load, so an older build should still load newer saves (confirm this in a test before launch). Do not
-   change what existing fields mean without adding a versioned migration in `DataService.migrate`
-   first.
+3. Player data is safe across a rollback, as far as save versions go. Saves use ProfileStore with a
+   session lock, new fields are filled with defaults on load, and the save version only ever goes
+   up (`Shared/SaveVersion`, tested in `tests/luau/saveversion.spec.luau`): an older build that
+   loads a newer save leaves its version alone, so the newer build's upgrade steps do not run twice
+   when you publish it again. Do not change what existing fields mean without adding a versioned
+   step to `UPGRADE_STEPS` in `DataService` first.
 4. Purchases are logged by purchase id, so a redelivered receipt is not granted twice.
 5. Tell players in the group and Discord what happened, and that their progress is safe.
+
+### Rollback plan
+
+- **Older version is safe for save versions.** Publishing an older build never lowers a save's
+  version, so re-publishing the newer one later does not re-run upgrade steps.
+- **After the launch wipe, flipping `Config.LaunchWipe` back to false hides new saves.** Saves
+  live in `PlayerData_v2` once it is true; with it false the game reads `PlayerData_v1` (the
+  soft-launch store, never deleted). Anything players earned or bought after the wipe, including
+  developer products (Cash packs, Lucky Casting, Skip Filming), sits in `PlayerData_v2` and is
+  invisible until `LaunchWipe` is flipped true again. Nothing is deleted; it comes back when the
+  flag does. Leaderboards follow the same flag (`TopStudiosFame_v1` / `_v2`).
+- **If a purchase must be restored,** re-grant it from the Creator Hub sales list (Analytics,
+  Monetization, Transactions): find the player and product, then grant it by hand once the right
+  store is live. Purchase ids are logged in `purchaseIds`, so do not grant twice.
+- Prefer a code-only rollback with `LaunchWipe` left true. Flip it back only for a save-store
+  problem, and re-flip it as soon as that is fixed.
+
 - [ ] Switch the game to Public. *Done when:* it can be found and joined by anyone.
 
 ## 9. After launch (M7 and later)
