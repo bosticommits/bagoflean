@@ -1,0 +1,7 @@
+[
+  {"t": 0.5, "type": "click", "node": "StartMovie"},
+  {"t": 0.8, "type": "click", "node": "PickScript_Action:Short"},
+  {"t": 1.0, "type": "click", "node": "PickerPanel.CastList.Actors.SpaceCaptain:Award"},
+  {"t": 1.1, "type": "click", "node": "PickerPanel.CastList.Actors.BoxOfficeKing:Normal"},
+  {"t": 1.2, "type": "click", "node": "PickerPanel.CastList.Actors.ScreamQueen:Normal"}
+]
