@@ -10,10 +10,17 @@ local PortraitCamera = require(ReplicatedStorage.Shared.PortraitCamera)
 
 local LotPortraits = {}
 
+local watched: { [Instance]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
 local function watch(viewport: Instance)
 	if not viewport:IsA("ViewportFrame") then
 		return
 	end
+	if watched[viewport] then
+		PortraitCamera.apply(viewport) -- streamed back in: the Camera child was lost with it
+		return
+	end
+	watched[viewport] = true
 	PortraitCamera.apply(viewport)
 	-- Attributes can land after the tag, and change when the top actor does.
 	viewport:GetAttributeChangedSignal("PortraitTargetY"):Connect(function()

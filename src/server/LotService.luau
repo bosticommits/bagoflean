@@ -182,6 +182,7 @@ local function setBillboard(lot: Lot, title: string, line1: string, line2: strin
 		viewport.LightColor = Color3.new(1, 1, 1)
 		viewport.LightDirection = Vector3.new(-1, -1, 1)
 		local figure = ActorModels.build(viewport, CFrame.identity, actorId, variantId)
+		figure:RemoveTag("ActorRig") -- a portrait is static: ActorLife must not animate it
 		-- The camera is built by each client (Cameras do not replicate): store the framing on the viewport.
 		local boxCf, boxSize = figure:GetBoundingBox()
 		local targetY, distance = PortraitCamera.fit(boxCf.Position.Y + boxSize.Y / 2, boxCf.Position.Y - boxSize.Y / 2, boxSize.X)

@@ -173,7 +173,7 @@ test("the Rare Wall fits on a lot without touching anything else", function()
 			end
 		end
 		expect(hi - lo <= gap + 0.01, `{figure.Name} is wider than its plinth ({hi - lo})`)
-		expect(top - 1 <= TopStudiosModels.NameplateBottom + 0.01, `{figure.Name} covers its nameplate (top {top - 1})`)
+		expect(top - 1 <= TopStudiosModels.NameplateBottom - 0.2 + 0.01, `{figure.Name} covers its nameplate (top {top - 1})`)
 	end
 end)
 
@@ -193,7 +193,7 @@ test("wall cap: the figure top stays at or under the nameplate's bottom edge", f
 	expect(math.abs(Fit.shrink(1, 6.8, nil, Fit.wallCap(1.8, 5.2)) - 0.5) < 1e-9, "a 6.8-tall figure halves")
 end)
 
-test("mesh truth: only the Witch, Astronaut and Tourist exceed the height cap (from rig piece bounds)", function()
+test("mesh truth: only the Witch, Astronaut and Tourist exceed the Rare Wall height cap (from rig piece bounds)", function()
 	local Fit = H.require("Models/ActorFit")
 	local Shapes = H.require("Models/ActorShapes")
 	local tall = {}
@@ -205,7 +205,7 @@ test("mesh truth: only the Witch, Astronaut and Tourist exceed the height cap (f
 				top = math.max(top, piece.center.Y + piece.size.Y / 2)
 			end
 		end
-		if top > Fit.MaxHeight then
+		if top * TopStudiosModels.FigureScale > TopStudiosModels.MaxFigureHeight then
 			table.insert(tall, actor.id)
 		end
 	end
