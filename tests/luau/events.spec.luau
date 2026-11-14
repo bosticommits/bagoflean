@@ -394,3 +394,30 @@ test("phone badge: live award, live surprise, lucky boost, then the sooner count
 		equal(Events.phoneBadge(case[1], case[2], case[3], case[4], case[5]), case[6], `case {index}`)
 	end
 end)
+
+test("phone badge: a live Luck Weekend comes right after a live Award Night", function()
+	local huge = math.huge
+	equal(Events.phoneBadge(true, true, 30, 5, 5, true), "award", "award night first")
+	equal(Events.phoneBadge(false, true, 30, 100, 5, true), "weekend", "weekend beats surprise and lucky")
+	equal(Events.phoneBadge(false, false, 0, 100, huge, true), "weekend", "weekend beats countdowns")
+	equal(Events.phoneBadge(false, true, 30, 100, 5, false), "surprise", "off: unchanged")
+	equal(Events.phoneBadge(false, true, 30, 100, 5), "surprise", "omitted: unchanged")
+end)
+
+test("luck weekend: live above 1, label shows the real value, countdown only while ahead", function()
+	expect(not Events.luckWeekendLive(1), "x1 is normal")
+	expect(not Events.luckWeekendLive(0.5), "below 1 is not a weekend")
+	expect(Events.luckWeekendLive(1.1), "1.1 is live")
+	equal(Events.luckWeekendLabel(1.5), "LUCK WEEKEND x1.5", "1.5")
+	equal(Events.luckWeekendLabel(2), "LUCK WEEKEND x2", "2")
+	equal(Events.luckWeekendLabel(1.25), "LUCK WEEKEND x1.25", "1.25")
+	equal(Events.luckWeekendLabel(1.1), "LUCK WEEKEND x1.1", "1.1")
+	equal(Events.luckWeekendLeft(1000, 400), 600, "time left")
+	equal(Events.luckWeekendLeft(0, 400), nil, "no end set")
+	equal(Events.luckWeekendLeft(300, 400), nil, "end passed")
+	local def = LiveConfigNumbers.Definitions.LuckWeekendUntil
+	expect(def ~= nil and def.default == 0 and def.min == 0, "LuckWeekendUntil defaults to none")
+	equal(LiveConfigNumbers.clean("LuckWeekendUntil", 0 / 0), nil, "NaN rejected")
+	equal(LiveConfigNumbers.clean("LuckWeekendUntil", -5), nil, "negative rejected")
+	equal(LiveConfigNumbers.clean("LuckWeekendUntil", 1.8e9), 1.8e9, "a real unix time")
+end)

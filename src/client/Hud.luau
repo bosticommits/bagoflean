@@ -204,6 +204,9 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 	local luckyBadge, luckyTitle, luckyTimer = makeBadge(3, UiKit.FRESH_GREEN, "clover")
 	luckyTitle.Text = "Lucky Casting"
 	luckyBadge.Visible = false
+	-- Luck Weekend: gold, while the live CastingLuckMultiplier is above 1 (LiveConfig copies it to ReplicatedStorage).
+	local weekendBadge, weekendTitle, weekendTimer = makeBadge(4, UiKit.AWARD_GOLD, "clover")
+	weekendBadge.Visible = false
 	local surpriseBadge, surpriseTitle, surpriseTimer = makeBadge(2, UiKit.BLUE, "gift")
 	local surpriseStroke = surpriseBadge:FindFirstChild("Outline") :: UIStroke
 	surpriseBadge.Visible = false
@@ -563,11 +566,24 @@ function Hud.start(gui: ScreenGui, wallet: Frame): TextButton
 				surpriseTimer.Text = clock(surpriseLeft)
 				surpriseBadge.BackgroundColor3 = UiKit.BLUE
 			end
-			local showAward, showSurprise, showLucky = true, surpriseLive or surpriseLeft < math.huge, boostLeft > 0
-			if gui:GetAttribute("HudRight") == true then
-				local pick = Events.phoneBadge(active, surpriseLive, boostLeft, left, surpriseLeft)
-				showAward, showSurprise, showLucky = pick == "award", pick == "surprise", pick == "lucky"
+			local liveLuck = ReplicatedStorage:GetAttribute("LiveConfig_CastingLuckMultiplier")
+			local weekendMultiplier = if typeof(liveLuck) == "number" then liveLuck else 1
+			local weekendLive = Events.luckWeekendLive(weekendMultiplier)
+			if weekendLive then
+				local untilAt = ReplicatedStorage:GetAttribute("LiveConfig_LuckWeekendUntil")
+				local weekendLeft = Events.luckWeekendLeft(if typeof(untilAt) == "number" then untilAt else 0, os.time())
+				local mult = Events.luckWeekendMultiplier(weekendMultiplier)
+				weekendTitle.Text = Events.LuckWeekendName
+				weekendTimer.Text = if weekendLeft ~= nil then `{mult}  {clock(weekendLeft)}` else `{mult} LUCK`
 			end
+			local showAward, showSurprise, showLucky = true, surpriseLive or surpriseLeft < math.huge, boostLeft > 0
+			local showWeekend = weekendLive
+			if gui:GetAttribute("HudRight") == true then
+				local pick = Events.phoneBadge(active, surpriseLive, boostLeft, left, surpriseLeft, weekendLive)
+				showAward, showSurprise, showLucky = pick == "award", pick == "surprise", pick == "lucky"
+				showWeekend = pick == "weekend"
+			end
+			weekendBadge.Visible = showWeekend
 			awardBadge.Visible = showAward
 			surpriseBadge.Visible = showSurprise
 			luckyBadge.Visible = showLucky

@@ -16,12 +16,42 @@ function Events.awardNight(now: number): (boolean, number)
 	return false, Events.AwardNightPeriod - into
 end
 
--- Phones have room for one event badge: Award Night live, then a live surprise event, then an
--- active Lucky Casting boost, else whichever countdown ends sooner. Lefts are seconds (math.huge
--- when there is none); luckyLeft > 0 means the boost is active.
-function Events.phoneBadge(awardLive: boolean, surpriseLive: boolean, luckyLeft: number, awardLeft: number, surpriseLeft: number): string
+-- Luck Weekend: the live-config CastingLuckMultiplier (LiveConfigNumbers) above 1 for everyone,
+-- optionally until LiveConfig LuckWeekendUntil (unix time, 0 = no end given).
+function Events.luckWeekendLive(multiplier: number): boolean
+	return multiplier > 1.0001
+end
+
+-- "x1.5": the real value, at most two decimals, no trailing zeros (2 -> "x2", 1.25 -> "x1.25").
+function Events.luckWeekendMultiplier(multiplier: number): string
+	local text = string.format("%.2f", multiplier)
+	text = string.gsub(text, "0+$", "")
+	text = string.gsub(text, "%.$", "")
+	return `x{text}`
+end
+
+-- The badge reads "LUCK WEEKEND x1.5" (name on the small line, value on the big one).
+Events.LuckWeekendName = "LUCK WEEKEND"
+function Events.luckWeekendLabel(multiplier: number): string
+	return `{Events.LuckWeekendName} {Events.luckWeekendMultiplier(multiplier)}`
+end
+
+-- Seconds left when an end time is set and still ahead, else nil (the badge then shows no countdown).
+function Events.luckWeekendLeft(untilAt: number, now: number): number?
+	if untilAt > now then
+		return untilAt - now
+	end
+	return nil
+end
+
+-- Phones have room for one event badge: Award Night live, then a live Luck Weekend, then a live
+-- surprise event, then an active Lucky Casting boost, else whichever countdown ends sooner. Lefts
+-- are seconds (math.huge when there is none); luckyLeft > 0 means the boost is active.
+function Events.phoneBadge(awardLive: boolean, surpriseLive: boolean, luckyLeft: number, awardLeft: number, surpriseLeft: number, weekendLive: boolean?): string
 	if awardLive then
 		return "award"
+	elseif weekendLive == true then
+		return "weekend"
 	elseif surpriseLive then
 		return "surprise"
 	elseif luckyLeft > 0 then
