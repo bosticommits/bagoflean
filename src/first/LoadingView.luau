@@ -5,7 +5,7 @@
 -- Four things move: the sweeping hand, the countdown number, the strip fill and the tip.
 local TweenService = game:GetService("TweenService")
 
-local Logic = require(script.Parent.LoadingLogic)
+local Logic = require(script.Parent:WaitForChild("LoadingLogic"))
 
 local View = {}
 
@@ -180,6 +180,8 @@ function View.build(cover: GuiObject, safe: GuiObject, reduced: boolean): Handle
 	stroke(skip, 2, CREAM, 0.3)
 
 	-- Updates -----------------------------------------------------------------------------------
+	pivot.Visible = not reduced -- fixed for the whole screen
+	local fillWidths: { number } = {}
 	local shownNumber = -1
 	local shownTip = 1
 	local function update(elapsed: number, progress: number, tipIndex: number)
@@ -192,13 +194,16 @@ function View.build(cover: GuiObject, safe: GuiObject, reduced: boolean): Handle
 				TweenService:Create(number, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.5, 0.5) }):Play()
 			end
 		end
-		pivot.Visible = not reduced
 		if not reduced then
 			pivot.Rotation = Logic.handAngle(elapsed)
 		end
 		local whole, part = Logic.filled(progress, frames)
 		for i, fill in fills do
-			fill.Size = UDim2.fromScale(if i <= whole then 1 elseif i == whole + 1 then (if reduced then 0 else part) else 0, 1)
+			local width = if i <= whole then 1 elseif i == whole + 1 then (if reduced then 0 else part) else 0
+			if fillWidths[i] ~= width then -- most cells are settled: write only what changed
+				fillWidths[i] = width
+				fill.Size = UDim2.fromScale(width, 1)
+			end
 		end
 		if tipIndex ~= shownTip and not welcomed then
 			shownTip = tipIndex
