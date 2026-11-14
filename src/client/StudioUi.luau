@@ -2,7 +2,6 @@
 -- Studio screen: stages (start a movie, clapperboard, premiere), script shop, and cinema.
 -- Styled after the design kit (see UiKit). The client shows server state and sends requests; it never decides
 -- Cash, timers, or results. Remaining time is the server's end stamp minus the server's clock.
-local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -1012,34 +1011,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	-- filming) and the Studio panel (bigger than the picker on a phone, so it peeked out above it)
 	-- are hidden, and put back exactly as they were when it closes. The Studio panel stays "Visible"
 	-- (the tutorial and the close-with-Studio rule rely on that); a tiny UIScale hides it.
-	local savedTouchControls: boolean? = nil
 	local studioHide = Instance.new("UIScale")
 	studioHide.Name = "PickerHide"
 	studioHide.Parent = panel
 	local function setPickerModal(open: boolean)
-		if open then
-			if savedTouchControls == nil then
-				local ok, current = pcall(function()
-					return GuiService.TouchControlsEnabled
-				end)
-				if ok then
-					savedTouchControls = current
-					pcall(function()
-						GuiService.TouchControlsEnabled = false
-					end)
-				end
-			end
-			studioHide.Scale = 0.001
-		else
-			local saved = savedTouchControls
-			if saved ~= nil then
-				savedTouchControls = nil
-				pcall(function()
-					GuiService.TouchControlsEnabled = saved
-				end)
-			end
-			studioHide.Scale = 1
-		end
+		UiKit.holdTouchControls("picker", open)
+		studioHide.Scale = if open then 0.001 else 1
 	end
 	picker:GetPropertyChangedSignal("Visible"):Connect(function()
 		setPickerModal(picker.Visible)

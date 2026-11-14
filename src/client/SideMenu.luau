@@ -172,6 +172,21 @@ function SideMenu.start(gui: ScreenGui): Buttons
 	closeButton.Activated:Connect(function()
 		setOpen(false)
 	end)
+	-- Any screen opening (a "...Panel" child of the gui turning visible) closes the flyout, whichever way it opened,
+	-- so it never ghosts over a panel header (seen at 844x390).
+	local function watchPanel(child: Instance)
+		if child:IsA("GuiObject") and string.sub(child.Name, -5) == "Panel" then
+			child:GetPropertyChangedSignal("Visible"):Connect(function()
+				if child.Visible and isOpen() then
+					setOpen(false)
+				end
+			end)
+		end
+	end
+	for _, child in gui:GetChildren() do
+		watchPanel(child)
+	end
+	gui.ChildAdded:Connect(watchPanel)
 	-- B on a gamepad, or a tap on the world (a tap on a button or on the flyout card itself is "game processed" and is
 	-- handled by that button, so the More tile and the X never fight this).
 	UserInputService.InputBegan:Connect(function(input, processed)

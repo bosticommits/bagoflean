@@ -955,7 +955,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 		for id in readyIds() do
 			local achievement = Achievements.get(id)
 			if before ~= nil and not before[id] and achievement ~= nil then
-				UiKit.toast(gui, `Goal reached: {achievement.text}!`)
+				UiKit.toast(gui, `Goal reached: {achievement.text}!`, true)
 				Sfx.play("goal")
 			end
 		end
@@ -983,7 +983,7 @@ function AchievementsUi.start(gui: ScreenGui, goalsButton: TextButton)
 			if questsSynced and not before[id] and string.sub(id, 1, 8) ~= "carried:" then
 				local quest = Rewards.getRequest(string.match(id, ":(.+)$") or "")
 				if quest ~= nil then
-					UiKit.toast(gui, `Quest done: {quest.text}!`)
+					UiKit.toast(gui, `Quest done: {quest.text}!`, true)
 					Sfx.play("goal")
 				end
 			end

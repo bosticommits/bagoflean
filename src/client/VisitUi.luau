@@ -792,7 +792,7 @@ function VisitUi.start(gui: ScreenGui, visitButton: TextButton)
 			end
 		end
 		if player:GetAttribute("TouringLot") ~= index then
-			UiKit.toast(gui, `Premiere next door: {premiereText}`)
+			UiKit.toast(gui, `Premiere next door: {premiereText}`, true)
 		end
 		refreshCard()
 		task.delay(PREMIERE_SHOW_SECONDS + 0.1, refreshCard)

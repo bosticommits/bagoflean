@@ -16,6 +16,7 @@ local REMOTE_NAMES = {
 	"RosterSync", "StudioSync", "RosterRequest", "StudioRequest", "RewardsSync", "RewardsRequest",
 	"Cast", "CastResult", "ClaimReward", "BuyScript", "StartFilm", "Clap", "Premiere", "PremiereResult",
 	"PremiereAll", "PremiereBatch", "QuickPremieres", "StudioError", "UseSkip",
+	"EquipMascot", "BuyMascot", "SoundSettings", "ClaimAchievement", "ClaimRequest", "AchievementsSync", "AchievementsRequest", "TutorialDone",
 	"VisitStudio", "VisitFilmSet", "Applaud", "Applause", "VisitNotice", "VisitArrived", "LotPremiere",
 }
 

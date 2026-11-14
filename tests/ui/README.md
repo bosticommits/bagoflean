@@ -5,7 +5,7 @@ rur (v0.3.1) (offline Studio-parity GUI renderer), then checks the layout of eve
 `scene.json`. Run it before any UI playtest in Studio.
 
 ```
-tests/ui/run.sh                 # render Hud, HudMore (More flyout open), Studio, Picker, Visit at 4 sizes, check, exit 1 on a NEW finding
+tests/ui/run.sh                 # render Hud, HudMore (More flyout open), Studio, Picker, Visit, Mascots, Goals, TutorialCast, TutorialOdds at 4 sizes, check, exit 1 on a NEW finding
 tests/ui/run.sh Picker          # one story
 tests/ui/run.sh --strict        # ignore baseline.json, list every finding
 tests/ui/run.sh --update-baseline   # accept today's findings as known (do this only on purpose)
@@ -37,6 +37,13 @@ button over the thumbstick/jump zone) are listed but never fail the run; only `F
 A story can list nodes it must render in `stories/<Story>.expect.json` (Visit: `InviteFriends`); a missing one fails.
 These checks are a **subset** of what makes a good layout (no glyph shapes, icons, contrast, motion, taste): always look at the PNGs.
 `run.sh` only wipes `RUR_UI_OUT` when its folder name starts with `rur-ui` (or is a `mktemp -d` dir).
+
+Phone polish 2 stories: **Mascots** (panel open, a passive goal toast waits instead of covering it), **Goals** (full-screen
+panel; the sound button steps aside via Declutter), **TutorialCast** (Lucien's corner bubble and Skip must leave the CAST bar and
+its "star guaranteed" pill clear), **TutorialOdds** (Casting odds open during the tutorial). The two tutorial stories swap
+`ClientState.changed` for a BindableEvent and move the dialogue frame into the story screen (rur draws only that screen).
+On phones every open panel hides Roblox's touch controls (`UiKit.holdTouchControls`, via Declutter; the picker holds its own
+request), so `check.mjs` skips the thumbstick/jump zones for panel buttons; the top bar check still applies.
 
 ## Limits
 - Offline: 3D icons (ViewportFrames) and cloud fonts are missing, so icons are blank and text uses fallback metrics

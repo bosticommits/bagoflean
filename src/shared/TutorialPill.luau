@@ -23,6 +23,7 @@ export type Pill = {
 	bust: number,
 	skipW: number,
 	skipH: number,
+	hitH: number, -- Skip's tap target: 44 px on phones, taller than the bar's visual Skip
 	bustX: number, -- slot-local
 	pillX: number,
 	pillH: number, -- a little shorter than the slot, so the pill never touches the bar edges
@@ -46,6 +47,7 @@ function TutorialPill.pill(slotW: number, slotH: number, compact: boolean): Pill
 		bust = bust,
 		skipW = skipW,
 		skipH = skipH,
+		hitH = if compact then math.max(44, skipH) else skipH,
 		bustX = 0,
 		pillX = pillX,
 		pillH = math.max(0, slotH - 4),
