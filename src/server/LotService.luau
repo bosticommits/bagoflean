@@ -195,9 +195,9 @@ local function setBillboard(lot: Lot, title: string, line1: string, line2: strin
 		local top, bottom = boxCf.Position.Y + boxSize.Y / 2, boxCf.Position.Y - boxSize.Y / 2
 		local targetY = if top <= 5.6 and bottom >= 0 then 2.8 else (top + bottom) / 2
 		local halfHeight = math.max(top - targetY, targetY - bottom, 2.8) * 1.08
-		local halfWidth = math.max(boxSize.X, boxSize.Z) / 2 * 1.08
+		local halfWidth = boxSize.X / 2 * 1.08
 		local tanHalf = math.tan(math.rad(camera.FieldOfView / 2))
-		local aspect = 0.5 -- the portrait frame is taller than wide
+		local aspect = 0.63 -- the viewport is 0.34 x 0.88 of the billboard: 4.42 wide by 7.04 tall studs
 		local distance = math.max(13.3, halfHeight / tanHalf, halfWidth / (tanHalf * aspect))
 		local target = Vector3.new(0, targetY, 0)
 		camera.CFrame = CFrame.lookAt(target + Vector3.new(-3, 0.8, -13).Unit * distance, target)

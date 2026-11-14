@@ -183,22 +183,35 @@ test("figure fit: shrinks by width or height, never grows, leaves normal actors 
 	equal(Fit.shrink(1, 1, nil, nil), 1, "no limits")
 end)
 
-test("tall actors are capped on the Rare Wall and lot pedestal; normal actors keep their size", function()
+test("mesh truth: only the Witch, Astronaut and Tourist exceed the height cap (from rig piece bounds)", function()
 	local Fit = H.require("Models/ActorFit")
-	local frame = CFrame.new(0, 0, 0)
-	local function heightAt(id: string, scale: number): number
-		local folder = roblox.Instance.new("Folder")
-		local model = H.require("Models/ActorModels").build(folder, frame, id, "Normal", scale)
-		return Fit.heightOf(model, frame)
-	end
-	for _, id in { "WobblyWitch", "TimeTourist", "CardboardAstronaut", "RodeoRookie" } do
-		expect(heightAt(id, 1) > 8, `{id} should be taller than the 8-stud cap`)
-	end
+	local Shapes = H.require("Models/ActorShapes")
+	local tall = {}
 	for _, actor in Actors.List do
-		local tall = heightAt(actor.id, 1) > 8
-		if not tall then
-			equal(Fit.shrink(0, heightAt(actor.id, 0.5), nil, 4), 1, `{actor.id} on the wall`)
-			equal(Fit.shrink(0, heightAt(actor.id, 1.3), nil, 10.4), 1, `{actor.id} on the pedestal`)
+		local rig = Shapes.Actors[actor.id]
+		local top = -math.huge
+		for name, piece in rig.pieces do
+			if name ~= "Base" then
+				top = math.max(top, piece.center.Y + piece.size.Y / 2)
+			end
+		end
+		if top > Fit.MaxHeight then
+			table.insert(tall, actor.id)
 		end
 	end
+	table.sort(tall)
+	equal(table.concat(tall, ","), "CardboardAstronaut,TimeTourist,WobblyWitch", "clamped actors")
+end)
+
+test("height counts a hover: a floating figure is measured from its feet, not its lowest part", function()
+	local Fit = H.require("Models/ActorFit")
+	local frame = CFrame.new(0, 0, 0)
+	local folder = roblox.Instance.new("Folder")
+	local model = roblox.Instance.new("Model")
+	local part = roblox.Instance.new("Part")
+	part.Size = Vector3.new(1, 2, 1)
+	part.CFrame = CFrame.new(0, 3, 0) -- hovers: spans y 2 to 4
+	part.Parent = model
+	model.Parent = folder
+	equal(Fit.heightOf(model, frame), 4, "top above the feet, hover included")
 end)

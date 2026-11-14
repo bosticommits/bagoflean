@@ -13,8 +13,8 @@ local P = Build.Palette
 
 local LotLook = {}
 
--- Tallest an actor may stand on the lot pedestal (scale 1.3 x 8 studs: every normal actor is unchanged).
-local PEDESTAL_MAX_HEIGHT = 1.3 * 8
+-- Tallest an actor may stand on the lot pedestal (scale 1.3 x ActorFit.MaxHeight: only Witch, Astronaut and Tourist shrink).
+local PEDESTAL_MAX_HEIGHT = 1.3 * ActorFit.MaxHeight
 
 LotLook.MaxTrophiesShown = 5
 LotLook.MaxLaurelsShown = 3
@@ -199,7 +199,7 @@ function LotLook.star(parent: Instance, base: CFrame, actorId: string?, variantI
 	local ring = LotModels.pedestal(b, color, rare)
 	if actor ~= nil then
 		local figureBase = b:at(Vector3.new(0, 1.6, 0))
-		-- Capped so the tallest actors (Wobbly Witch ~14 studs at 1.3) do not tower over the lot.
+		-- Capped so the tallest actors (Wobbly Witch ~12.8 studs at 1.3) do not tower over the lot.
 		local figure = ActorModels.build(parent, figureBase, actor.id, variantId, 1.3)
 		local k = ActorFit.shrink(0, ActorFit.heightOf(figure, figureBase), nil, PEDESTAL_MAX_HEIGHT)
 		if k < 1 then

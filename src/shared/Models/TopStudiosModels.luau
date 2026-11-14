@@ -37,9 +37,9 @@ local function v(x: number, y: number, z: number): Vector3
 end
 
 local FIGURE_SCALE = 0.5
--- Tallest a figure may stand on a plinth (studs above it): keeps the tall actors (Witch, Astronaut, Tourist, Rodeo)
--- from covering the nameplate or poking over the wall. Every normal actor (up to 7.97 tall at scale 0.5 x 8) is unchanged.
-local MAX_FIGURE_HEIGHT = 8 * FIGURE_SCALE
+-- Tallest a figure may stand on a plinth (studs above it): keeps the tall actors (Witch, Astronaut, Tourist) from
+-- covering the nameplate or poking over the wall. Every other actor (up to 8.27 tall at scale 1) is unchanged.
+local MAX_FIGURE_HEIGHT = ActorFit.MaxHeight * FIGURE_SCALE
 
 -- How wide a model is along the X axis of `frame`.
 local function widthOf(model: Model, frame: CFrame): number
