@@ -499,6 +499,7 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			summaryLabel.Size, summaryLabel.Position = UDim2.new(1, -slotsWidth, 0, 40), UDim2.fromOffset(slotsWidth, 2)
 			previewLabel.Size, previewLabel.Position = UDim2.new(1, 0, 0, 24), UDim2.fromOffset(0, 48)
 			clearButton.Size, clearButton.Position = UDim2.new(0.3, 0, 0, 42), UDim2.fromOffset(0, 76)
+			UiKit.textConstraint(clearButton, 26) -- resets the phone cap (16) set in the compact branch
 			goButton.Size, goButton.Position = UDim2.new(0.66, 0, 0, 42), UDim2.new(0.34, 0, 0, 76)
 		end
 	end
