@@ -474,6 +474,7 @@ def mech_hero(f):
 
 
 def phantom(f):
+    f.float = True  # hovers like the original (ActorLife bobs it); the 0.6 lift below is its rest height
     with f.at((0, 0, 0.6)):  # hovers: the whole ghost floats above the plinth
         _phantom(f)
 

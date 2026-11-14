@@ -69,7 +69,7 @@ ActorShapes.Actors.NervousIntern = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.75, 3.015, 1.56),
 			center = Vector3.new(-1.641, 3.412, -0.449),
 			shapes = {
@@ -87,7 +87,7 @@ ActorShapes.Actors.NervousIntern = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.14, 2.55, 0),
 			size = Vector3.new(1.243, 2.254, 0.706),
 			center = Vector3.new(1.446, 1.694, -0.058),
 			shapes = {
@@ -111,6 +111,7 @@ ActorShapes.Actors.NervousIntern = {
 }
 
 ActorShapes.Actors.StuntDouble = {
+	wave = "ArmR",
 	pieces = {
 		Body = {
 			pivot = Vector3.new(0, 1.45, 0),
@@ -152,7 +153,7 @@ ActorShapes.Actors.StuntDouble = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.463, 1.063, 1.048),
 			center = Vector3.new(-1.522, 2.353, -0.19),
 			shapes = {
@@ -163,7 +164,7 @@ ActorShapes.Actors.StuntDouble = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.219, 1.137, 1.541),
 			center = Vector3.new(0.909, 2.392, -0.385),
 			shapes = {
@@ -227,7 +228,7 @@ ActorShapes.Actors.BackgroundExtra = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.273, 1.553, 1.554),
 			center = Vector3.new(-1.407, 2.766, -0.471),
 			shapes = {
@@ -239,7 +240,7 @@ ActorShapes.Actors.BackgroundExtra = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.099, 0.896, 1.547),
 			center = Vector3.new(1.154, 2.403, -0.478),
 			shapes = {
@@ -319,7 +320,7 @@ ActorShapes.Actors.WerewolfPup = {
 			},
 		},
 		Head = {
-			pivot = Vector3.new(0, 5.05, 0),
+			pivot = Vector3.new(0, 2.6, 0),
 			size = Vector3.new(3.171, 3.57, 2.553),
 			center = Vector3.new(0, 4.135, -0.177),
 			shapes = {
@@ -377,7 +378,7 @@ ActorShapes.Actors.WerewolfPup = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.907, 3.286, 0),
+			pivot = Vector3.new(-1.5, 2.4, 0),
 			size = Vector3.new(1.149, 1.429, 0.722),
 			center = Vector3.new(-1.68, 2.771, 0.019),
 			shapes = {
@@ -399,7 +400,7 @@ ActorShapes.Actors.WerewolfPup = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.472, 2.452, 0),
+			pivot = Vector3.new(1.5, 2.4, 0),
 			size = Vector3.new(0.843, 1.454, 0.793),
 			center = Vector3.new(1.555, 1.925, -0.028),
 			shapes = {
@@ -513,21 +514,22 @@ ActorShapes.Actors.CardboardAstronaut = {
 				S("box", CFrame.new(1.544, 5.662, 1.544), Vector3.new(1.029, 1.029, 1.029), "A27446"),
 				S("box", CFrame.new(0.515, 2.574, -1.544), Vector3.new(1.029, 1.029, 1.029), "A28B46"),
 				S("box", CFrame.new(0.515, 3.603, -1.544), Vector3.new(1.029, 1.029, 1.029), "B9A2A2"),
-				S("box", CFrame.new(0.515, 3.603, -0.515), Vector3.new(1.029, 1.029, 1.029), "A27474"),
+				S("box", CFrame.new(0.515, 3.603, -0.515), Vector3.new(1.029, 1.029, 1.029), "8B745D"),
 				S("box", CFrame.new(0.515, 3.603, 0.515), Vector3.new(1.029, 1.029, 1.029), "A28B74"),
 				S("box", CFrame.new(0.515, 3.603, 1.544), Vector3.new(1.029, 1.029, 1.029), "8B7446"),
 				S("box", CFrame.new(0.515, 4.633, -1.544), Vector3.new(1.029, 1.029, 1.029), "8B7474"),
 				S("box", CFrame.new(0.515, 4.633, -0.515), Vector3.new(1.029, 1.029, 1.029), "8B745D"),
 				S("box", CFrame.new(0.515, 4.633, 0.515), Vector3.new(1.029, 1.029, 1.029), "A28B5D"),
 				S("box", CFrame.new(0.515, 4.633, 1.544), Vector3.new(1.029, 1.029, 1.029), "8B7446"),
-				S("box", CFrame.new(0.515, 5.662, -1.029), Vector3.new(1.029, 1.029, 2.059), "A28B5D"),
+				S("box", CFrame.new(0.515, 5.662, -1.544), Vector3.new(1.029, 1.029, 1.029), "A2745D"),
+				S("box", CFrame.new(0.515, 5.662, -0.515), Vector3.new(1.029, 1.029, 1.029), "A28B5D"),
 				S("box", CFrame.new(0.515, 5.662, 0.515), Vector3.new(1.029, 1.029, 1.029), "B98B74"),
 				S("box", CFrame.new(0.515, 5.662, 1.544), Vector3.new(1.029, 1.029, 1.029), "A27446"),
 				S("box", CFrame.new(0.515, 6.692, -0.515), Vector3.new(1.029, 1.029, 3.088), "FFE8D1"),
 				S("box", CFrame.new(0.515, 6.692, 1.544), Vector3.new(1.029, 1.029, 1.029), "E8E8D1"),
 				S("box", CFrame.new(-0.515, 2.574, -1.544), Vector3.new(1.029, 1.029, 1.029), "A28B5D"),
 				S("box", CFrame.new(-0.515, 3.603, -1.544), Vector3.new(1.029, 1.029, 1.029), "A2A28B"),
-				S("box", CFrame.new(-0.515, 3.603, -0.515), Vector3.new(1.029, 1.029, 1.029), "A27474"),
+				S("box", CFrame.new(-0.515, 3.603, -0.515), Vector3.new(1.029, 1.029, 1.029), "8B745D"),
 				S("box", CFrame.new(-0.515, 3.603, 0.515), Vector3.new(1.029, 1.029, 1.029), "B98B74"),
 				S("box", CFrame.new(-0.515, 3.603, 1.544), Vector3.new(1.029, 1.029, 1.029), "8B742E"),
 				S("box", CFrame.new(-0.515, 4.633, -1.544), Vector3.new(1.029, 1.029, 1.029), "8B8B74"),
@@ -558,7 +560,7 @@ ActorShapes.Actors.CardboardAstronaut = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.8, 3, 0),
 			size = Vector3.new(0.955, 1.098, 1.574),
 			center = Vector3.new(-1.936, 2.811, -0.457),
 			shapes = {
@@ -568,23 +570,23 @@ ActorShapes.Actors.CardboardAstronaut = {
 				S("box", CFrame.new(-1.575, 2.925, 0), Vector3.new(0.45, 0.45, 0.9), "74748B"),
 				S("box", CFrame.new(-1.575, 3.375, 0), Vector3.new(0.45, 0.45, 0.9), "5D5D74"),
 				S("box", CFrame.new(-2.025, 2.475, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1B9A2"),
-				S("box", CFrame.new(-2.025, 2.475, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2A28B"),
+				S("box", CFrame.new(-2.025, 2.475, -0.675), Vector3.new(0.45, 0.45, 0.45), "A28B8B"),
 				S("box", CFrame.new(-2.025, 2.475, -0.225), Vector3.new(0.45, 0.45, 0.45), "8B8BA2"),
-				S("box", CFrame.new(-2.025, 2.925, -1.125), Vector3.new(0.45, 0.45, 0.45), "B9A2A2"),
+				S("box", CFrame.new(-2.025, 2.925, -1.125), Vector3.new(0.45, 0.45, 0.45), "B9B9A2"),
 				S("box", CFrame.new(-2.025, 2.925, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2A2A2"),
 				S("box", CFrame.new(-2.025, 2.925, 0), Vector3.new(0.45, 0.45, 0.9), "8B8BA2"),
 				S("box", CFrame.new(-2.025, 3.375, -1.125), Vector3.new(0.45, 0.45, 0.45), "E8E8B9"),
 				S("box", CFrame.new(-2.025, 3.375, -0.675), Vector3.new(0.45, 0.45, 0.45), "E8D1B9"),
 				S("box", CFrame.new(-2.025, 3.375, -0.225), Vector3.new(0.45, 0.45, 0.45), "74748B"),
 				S("box", CFrame.new(-2.025, 3.375, 0.225), Vector3.new(0.45, 0.45, 0.45), "748BA2"),
-				S("box", CFrame.new(-2.475, 2.475, -1.125), Vector3.new(0.45, 0.45, 0.45), "E8E8D1"),
-				S("box", CFrame.new(-2.475, 2.475, -0.675), Vector3.new(0.45, 0.45, 0.45), "B9B9A2"),
+				S("box", CFrame.new(-2.475, 2.475, -1.125), Vector3.new(0.45, 0.45, 0.45), "E8D1B9"),
+				S("box", CFrame.new(-2.475, 2.475, -0.675), Vector3.new(0.45, 0.45, 0.45), "B9B9B9"),
 				S("box", CFrame.new(-2.475, 2.925, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1B9A2"),
 				S("box", CFrame.new(-2.475, 2.925, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2A2A2"),
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.8, 3, 0),
 			size = Vector3.new(1.112, 3.579, 2.172),
 			center = Vector3.new(1.831, 4.446, -0.812),
 			shapes = {
@@ -624,8 +626,7 @@ ActorShapes.Actors.CardboardAstronaut = {
 				S("box", CFrame.new(1.575, 2.475, 0.225), Vector3.new(0.45, 0.45, 0.45), "5D748B"),
 				S("box", CFrame.new(1.575, 2.925, -1.125), Vector3.new(0.45, 0.45, 0.45), "A2A2A2"),
 				S("box", CFrame.new(1.575, 2.925, -0.675), Vector3.new(0.45, 0.45, 0.45), "748BA2"),
-				S("box", CFrame.new(1.575, 2.925, -0.225), Vector3.new(0.45, 0.45, 0.45), "748B8B"),
-				S("box", CFrame.new(1.575, 2.925, 0.225), Vector3.new(0.45, 0.45, 0.45), "74748B"),
+				S("box", CFrame.new(1.575, 2.925, 0), Vector3.new(0.45, 0.45, 0.9), "74748B"),
 				S("box", CFrame.new(1.575, 3.375, -1.575), Vector3.new(0.45, 0.45, 0.45), "D1B9A2"),
 				S("box", CFrame.new(1.575, 3.375, -1.125), Vector3.new(0.45, 0.45, 0.45), "8B8B8B"),
 				S("box", CFrame.new(1.575, 3.375, -0.225), Vector3.new(0.45, 0.45, 1.35), "5D5D74"),
@@ -654,7 +655,6 @@ ActorShapes.Actors.CardboardAstronaut = {
 }
 
 ActorShapes.Actors.SoapRegular = {
-	wave = "ArmR",
 	pieces = {
 		Body = {
 			pivot = Vector3.new(0, 1.45, 0),
@@ -671,7 +671,7 @@ ActorShapes.Actors.SoapRegular = {
 			},
 		},
 		Head = {
-			pivot = Vector3.new(0, 2.8, 0),
+			pivot = Vector3.new(0, 2.9, 0),
 			size = Vector3.new(4.109, 3.4, 2.849),
 			center = Vector3.new(0, 4.25, 0.224),
 			shapes = {
@@ -702,7 +702,7 @@ ActorShapes.Actors.SoapRegular = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.008, 1.301, 1.571),
 			center = Vector3.new(-1.2, 2.316, -0.402),
 			shapes = {
@@ -714,7 +714,7 @@ ActorShapes.Actors.SoapRegular = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.561, 3.5, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.183, 1.529, 1.109),
 			center = Vector3.new(1.303, 2.936, -0.172),
 			shapes = {
@@ -771,7 +771,7 @@ ActorShapes.Actors.AdModel = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.87, 3.45, 0),
 			size = Vector3.new(1.216, 2.751, 0.715),
 			center = Vector3.new(-2.158, 3.535, -0.056),
 			shapes = {
@@ -784,7 +784,7 @@ ActorShapes.Actors.AdModel = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.823, 3.519, 0),
+			pivot = Vector3.new(1.87, 3.45, 0),
 			size = Vector3.new(0.859, 1.569, 0.794),
 			center = Vector3.new(1.988, 2.934, -0.086),
 			shapes = {
@@ -826,7 +826,7 @@ ActorShapes.Actors.IndieSidekick = {
 			},
 		},
 		Head = {
-			pivot = Vector3.new(0, 4.93, 0),
+			pivot = Vector3.new(0, 2.9, 0),
 			size = Vector3.new(3.4, 3.68, 2.27),
 			center = Vector3.new(0, 4.49, -0.085),
 			shapes = {
@@ -843,7 +843,7 @@ ActorShapes.Actors.IndieSidekick = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.3, 2.5, 0),
 			size = Vector3.new(1.093, 1.614, 1.454),
 			center = Vector3.new(-1.471, 2.063, -0.343),
 			shapes = {
@@ -855,7 +855,7 @@ ActorShapes.Actors.IndieSidekick = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.3, 2.5, 0),
 			size = Vector3.new(1.634, 1.662, 0.684),
 			center = Vector3.new(1.746, 2.963, 0.018),
 			shapes = {
@@ -890,8 +890,8 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(1.109, 0.37, -0.37), Vector3.new(0.739, 0.739, 0.739), "464646"),
 				S("box", CFrame.new(1.109, 0.37, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D5D5D"),
 				S("box", CFrame.new(1.109, 0.37, 1.109), Vector3.new(0.739, 0.739, 0.739), "B9B9D1"),
-				S("box", CFrame.new(1.109, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "748B8B"),
-				S("box", CFrame.new(1.109, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "8B8BA2"),
+				S("box", CFrame.new(1.109, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "74748B"),
+				S("box", CFrame.new(1.109, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "748BA2"),
 				S("box", CFrame.new(1.109, 1.848, -1.109), Vector3.new(0.739, 0.739, 0.739), "D1A22E"),
 				S("box", CFrame.new(1.109, 1.848, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D4646"),
 				S("box", CFrame.new(1.109, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "74745D"),
@@ -901,8 +901,8 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(0.37, 0.37, -1.109), Vector3.new(0.739, 0.739, 0.739), "5D462E"),
 				S("box", CFrame.new(0.37, 0.37, 0), Vector3.new(0.739, 0.739, 1.479), "46465D"),
 				S("box", CFrame.new(0.37, 1.109, -1.109), Vector3.new(0.739, 0.739, 0.739), "745D2E"),
-				S("box", CFrame.new(0.37, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "748B8B"),
-				S("box", CFrame.new(0.37, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "748BA2"),
+				S("box", CFrame.new(0.37, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "74748B"),
+				S("box", CFrame.new(0.37, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "748B8B"),
 				S("box", CFrame.new(0.37, 1.848, -1.109), Vector3.new(0.739, 0.739, 0.739), "D1A22E"),
 				S("box", CFrame.new(0.37, 1.848, -0.37), Vector3.new(0.739, 0.739, 0.739), "745D5D"),
 				S("box", CFrame.new(0.37, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "747474"),
@@ -930,7 +930,7 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(-1.109, 0.37, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D5D74"),
 				S("box", CFrame.new(-1.109, 0.37, 1.109), Vector3.new(0.739, 0.739, 0.739), "B9B9B9"),
 				S("box", CFrame.new(-1.109, 1.109, -1.109), Vector3.new(0.739, 0.739, 0.739), "745D2E"),
-				S("box", CFrame.new(-1.109, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "748BA2"),
+				S("box", CFrame.new(-1.109, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "74748B"),
 				S("box", CFrame.new(-1.109, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "8B8BA2"),
 				S("box", CFrame.new(-1.109, 1.848, -0.37), Vector3.new(0.739, 0.739, 0.739), "745D5D"),
 				S("box", CFrame.new(-1.109, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "8B8B74"),
@@ -952,14 +952,13 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(1.309, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "A25D46"),
 				S("box", CFrame.new(1.309, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D46"),
 				S("box", CFrame.new(1.309, 3.926, 1.309), Vector3.new(0.872, 0.872, 0.872), "A24617"),
-				S("box", CFrame.new(1.309, 4.798, -1.309), Vector3.new(0.872, 0.872, 0.872), "A2742E"),
-				S("box", CFrame.new(1.309, 4.798, -0.436), Vector3.new(0.872, 0.872, 0.872), "A25D2E"),
+				S("box", CFrame.new(1.309, 4.798, -0.872), Vector3.new(0.872, 0.872, 1.745), "A25D2E"),
 				S("box", CFrame.new(1.309, 4.798, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D2E"),
 				S("box", CFrame.new(1.309, 4.798, 1.309), Vector3.new(0.872, 0.872, 0.872), "A2742E"),
 				S("box", CFrame.new(1.309, 5.671, 0), Vector3.new(0.872, 0.872, 1.745), "B97446"),
 				S("box", CFrame.new(0.436, 3.054, -1.309), Vector3.new(0.872, 0.872, 0.872), "A25D5D"),
-				S("box", CFrame.new(0.436, 3.054, -0.436), Vector3.new(0.872, 0.872, 0.872), "B98B5D"),
-				S("box", CFrame.new(0.436, 3.054, 0.436), Vector3.new(0.872, 0.872, 0.872), "B9745D"),
+				S("box", CFrame.new(0.436, 3.054, -0.436), Vector3.new(0.872, 0.872, 0.872), "A2745D"),
+				S("box", CFrame.new(0.436, 3.054, 0.436), Vector3.new(0.872, 0.872, 0.872), "B98B5D"),
 				S("box", CFrame.new(0.436, 3.054, 1.309), Vector3.new(0.872, 0.872, 0.872), "A24617"),
 				S("box", CFrame.new(0.436, 3.926, -1.309), Vector3.new(0.872, 0.872, 0.872), "8B7474"),
 				S("box", CFrame.new(0.436, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "742E17"),
@@ -975,7 +974,7 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(-0.436, 3.054, 1.309), Vector3.new(0.872, 0.872, 0.872), "B97446"),
 				S("box", CFrame.new(-0.436, 3.926, -1.309), Vector3.new(0.872, 0.872, 0.872), "8B745D"),
 				S("box", CFrame.new(-0.436, 3.926, 0), Vector3.new(0.872, 0.872, 1.745), "742E17"),
-				S("box", CFrame.new(-0.436, 3.926, 1.309), Vector3.new(0.872, 0.872, 0.872), "A25D46"),
+				S("box", CFrame.new(-0.436, 3.926, 1.309), Vector3.new(0.872, 0.872, 0.872), "A25D2E"),
 				S("box", CFrame.new(-0.436, 4.798, 0), Vector3.new(0.872, 0.872, 3.49), "8B5D2E"),
 				S("box", CFrame.new(-0.436, 4.798, 2.181), Vector3.new(0.872, 0.872, 0.872), "B97446"),
 				S("box", CFrame.new(-0.436, 5.671, -0.436), Vector3.new(0.872, 0.872, 2.617), "B97446"),
@@ -997,7 +996,7 @@ ActorShapes.Actors.RodeoRookie = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(4.112, 5.906, 3.507),
 			center = Vector3.new(-0.553, 5.173, -0.226),
 			shapes = {
@@ -1015,7 +1014,7 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(-0.266, 6.107, 1.328), Vector3.new(0.531, 0.531, 0.531), "D1B98B"),
 				S("box", CFrame.new(-0.266, 7.7, -1.858), Vector3.new(0.531, 0.531, 0.531), "E8D1A2"),
 				S("box", CFrame.new(-0.266, 8.231, -1.858), Vector3.new(0.531, 0.531, 0.531), "E8D1A2"),
-				S("box", CFrame.new(-0.796, 2.39, -0.266), Vector3.new(0.531, 0.531, 0.531), "B9A28B"),
+				S("box", CFrame.new(-0.796, 2.39, -0.266), Vector3.new(0.531, 0.531, 0.531), "A28B8B"),
 				S("box", CFrame.new(-0.796, 2.39, 0.266), Vector3.new(0.531, 0.531, 0.531), "A2A28B"),
 				S("box", CFrame.new(-0.796, 2.92, -0.266), Vector3.new(0.531, 0.531, 0.531), "A2A28B"),
 				S("box", CFrame.new(-0.796, 6.107, 1.328), Vector3.new(0.531, 0.531, 0.531), "E8D18B"),
@@ -1035,6 +1034,7 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(-1.858, 3.452, -0.266), Vector3.new(0.531, 0.531, 0.531), "D1A28B"),
 				S("box", CFrame.new(-1.858, 3.452, 0.266), Vector3.new(0.531, 0.531, 0.531), "D1B9A2"),
 				S("box", CFrame.new(-1.858, 3.982, -0.266), Vector3.new(0.531, 0.531, 0.531), "B98B5D"),
+				S("box", CFrame.new(-1.858, 3.982, 0.266), Vector3.new(0.531, 0.531, 0.531), "D1A274"),
 				S("box", CFrame.new(-1.858, 4.514, -0.266), Vector3.new(0.531, 0.531, 0.531), "B9A274"),
 				S("box", CFrame.new(-1.858, 5.044, -0.266), Vector3.new(0.531, 0.531, 0.531), "D1B98B"),
 				S("box", CFrame.new(-1.858, 6.107, 0.796), Vector3.new(0.531, 0.531, 0.531), "E8D18B"),
@@ -1045,7 +1045,7 @@ ActorShapes.Actors.RodeoRookie = {
 				S("box", CFrame.new(-2.39, 5.044, -0.266), Vector3.new(0.531, 0.531, 0.531), "E8D1A2"),
 				S("box", CFrame.new(-2.39, 5.576, -0.266), Vector3.new(0.531, 0.531, 0.531), "D1D18B"),
 				S("box", CFrame.new(-2.39, 6.107, -0.266), Vector3.new(0.531, 0.531, 0.531), "B9B98B"),
-				S("box", CFrame.new(-2.39, 6.107, 0.266), Vector3.new(0.531, 0.531, 0.531), "D1D18B"),
+				S("box", CFrame.new(-2.39, 6.107, 0.266), Vector3.new(0.531, 0.531, 0.531), "E8D18B"),
 				S("box", CFrame.new(-2.39, 6.638, -0.266), Vector3.new(0.531, 0.531, 0.531), "B9A274"),
 				S("box", CFrame.new(-2.39, 6.638, 0.531), Vector3.new(0.531, 0.531, 1.062), "E8D1A2"),
 				S("box", CFrame.new(-2.39, 7.168, -1.062), Vector3.new(0.531, 0.531, 1.062), "E8D1A2"),
@@ -1053,19 +1053,18 @@ ActorShapes.Actors.RodeoRookie = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.02, 2.649, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.04, 1.54, 0.755),
 			center = Vector3.new(1.29, 2.079, -0.071),
 			shapes = {
-				S("box", CFrame.new(2.025, 1.575, -0.225), Vector3.new(0.45, 0.45, 0.45), "E8A274"),
 				S("box", CFrame.new(1.575, 1.125, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1A274"),
 				S("box", CFrame.new(1.575, 1.575, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1A28B"),
-				S("box", CFrame.new(1.575, 1.575, 0.225), Vector3.new(0.45, 0.45, 0.45), "B98B74"),
+				S("box", CFrame.new(1.575, 1.575, 0.225), Vector3.new(0.45, 0.45, 0.45), "D1A274"),
 				S("box", CFrame.new(1.575, 2.025, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1B9A2"),
 				S("box", CFrame.new(1.575, 2.025, 0.225), Vector3.new(0.45, 0.45, 0.45), "E8E8D1"),
 				S("box", CFrame.new(1.575, 2.475, -0.225), Vector3.new(0.45, 0.45, 0.45), "FFE8D1"),
 				S("box", CFrame.new(1.125, 1.575, -0.225), Vector3.new(0.45, 0.45, 0.45), "A28B74"),
-				S("box", CFrame.new(1.125, 1.575, 0.225), Vector3.new(0.45, 0.45, 0.45), "D1D1B9"),
+				S("box", CFrame.new(1.125, 1.575, 0.225), Vector3.new(0.45, 0.45, 0.45), "B9A28B"),
 				S("box", CFrame.new(1.125, 2.025, 0), Vector3.new(0.45, 0.45, 0.9), "B9B9A2"),
 				S("box", CFrame.new(1.125, 2.475, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1B9B9"),
 				S("box", CFrame.new(1.125, 2.475, 0.225), Vector3.new(0.45, 0.45, 0.45), "B9B9A2"),
@@ -1100,9 +1099,9 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(1.109, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D745D"),
 				S("box", CFrame.new(1.109, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D8B46"),
 				S("box", CFrame.new(1.109, 1.848, -1.109), Vector3.new(0.739, 0.739, 0.739), "745DB9"),
-				S("box", CFrame.new(1.109, 1.848, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D8B5D"),
+				S("box", CFrame.new(1.109, 1.848, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D8B46"),
 				S("box", CFrame.new(1.109, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D2E8B"),
-				S("box", CFrame.new(1.109, 2.588, -1.109), Vector3.new(0.739, 0.739, 0.739), "5D2E8B"),
+				S("box", CFrame.new(1.109, 2.588, -1.109), Vector3.new(0.739, 0.739, 0.739), "7446A2"),
 				S("box", CFrame.new(1.109, 2.588, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D4674"),
 				S("box", CFrame.new(1.109, 2.588, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D5D74"),
 				S("box", CFrame.new(1.109, 2.588, 1.109), Vector3.new(0.739, 0.739, 0.739), "5D468B"),
@@ -1111,13 +1110,12 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(0.37, 0.37, -1.109), Vector3.new(0.739, 0.739, 0.739), "2E175D"),
 				S("box", CFrame.new(0.37, 0.37, -0.37), Vector3.new(0.739, 0.739, 0.739), "465D46"),
 				S("box", CFrame.new(0.37, 0.37, 0.37), Vector3.new(0.739, 0.739, 0.739), "46465D"),
-				S("box", CFrame.new(0.37, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D745D"),
-				S("box", CFrame.new(0.37, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D8B5D"),
+				S("box", CFrame.new(0.37, 1.109, 0), Vector3.new(0.739, 0.739, 1.479), "5D745D"),
 				S("box", CFrame.new(0.37, 1.848, -1.109), Vector3.new(0.739, 0.739, 0.739), "462E74"),
 				S("box", CFrame.new(0.37, 1.848, 0), Vector3.new(0.739, 0.739, 1.479), "5D745D"),
 				S("box", CFrame.new(0.37, 1.848, 1.109), Vector3.new(0.739, 0.739, 0.739), "462E74"),
 				S("box", CFrame.new(0.37, 2.588, -1.109), Vector3.new(0.739, 0.739, 0.739), "5D2E8B"),
-				S("box", CFrame.new(0.37, 2.588, -0.37), Vector3.new(0.739, 0.739, 0.739), "747446"),
+				S("box", CFrame.new(0.37, 2.588, -0.37), Vector3.new(0.739, 0.739, 0.739), "74745D"),
 				S("box", CFrame.new(0.37, 2.588, 0.37), Vector3.new(0.739, 0.739, 0.739), "465D5D"),
 				S("box", CFrame.new(0.37, 2.588, 1.109), Vector3.new(0.739, 0.739, 0.739), "5D2E8B"),
 				S("box", CFrame.new(0.37, 3.327, -1.109), Vector3.new(0.739, 0.739, 0.739), "5D2E8B"),
@@ -1127,9 +1125,10 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(-0.37, 0.37, -1.109), Vector3.new(0.739, 0.739, 0.739), "46175D"),
 				S("box", CFrame.new(-0.37, 0.37, -0.37), Vector3.new(0.739, 0.739, 0.739), "464646"),
 				S("box", CFrame.new(-0.37, 0.37, 0.37), Vector3.new(0.739, 0.739, 0.739), "46465D"),
-				S("box", CFrame.new(-0.37, 1.109, 0), Vector3.new(0.739, 0.739, 1.479), "5D8B5D"),
+				S("box", CFrame.new(-0.37, 1.109, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D8B5D"),
+				S("box", CFrame.new(-0.37, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D745D"),
 				S("box", CFrame.new(-0.37, 1.848, -0.37), Vector3.new(0.739, 0.739, 0.739), "465D5D"),
-				S("box", CFrame.new(-0.37, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D8B46"),
+				S("box", CFrame.new(-0.37, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D7446"),
 				S("box", CFrame.new(-0.37, 2.588, -1.109), Vector3.new(0.739, 0.739, 0.739), "5D2E74"),
 				S("box", CFrame.new(-0.37, 2.588, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D5D5D"),
 				S("box", CFrame.new(-0.37, 2.588, 0.37), Vector3.new(0.739, 0.739, 0.739), "465D5D"),
@@ -1145,12 +1144,11 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(-1.109, 1.109, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D745D"),
 				S("box", CFrame.new(-1.109, 1.848, -1.109), Vector3.new(0.739, 0.739, 0.739), "8B5DB9"),
 				S("box", CFrame.new(-1.109, 1.848, -0.37), Vector3.new(0.739, 0.739, 0.739), "7446A2"),
-				S("box", CFrame.new(-1.109, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "748B5D"),
+				S("box", CFrame.new(-1.109, 1.848, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D8B5D"),
 				S("box", CFrame.new(-1.109, 1.848, 1.109), Vector3.new(0.739, 0.739, 0.739), "8B5DB9"),
 				S("box", CFrame.new(-1.109, 2.588, -1.109), Vector3.new(0.739, 0.739, 0.739), "7446A2"),
 				S("box", CFrame.new(-1.109, 2.588, -0.37), Vector3.new(0.739, 0.739, 0.739), "5D4674"),
-				S("box", CFrame.new(-1.109, 2.588, 0.37), Vector3.new(0.739, 0.739, 0.739), "462E74"),
-				S("box", CFrame.new(-1.109, 2.588, 1.109), Vector3.new(0.739, 0.739, 0.739), "5D2E74"),
+				S("box", CFrame.new(-1.109, 2.588, 0.739), Vector3.new(0.739, 0.739, 1.479), "5D2E74"),
 				S("box", CFrame.new(-1.109, 3.327, -0.37), Vector3.new(0.739, 0.739, 0.739), "748B74"),
 				S("box", CFrame.new(-1.109, 3.327, 0.37), Vector3.new(0.739, 0.739, 0.739), "5D7474"),
 			},
@@ -1211,7 +1209,7 @@ ActorShapes.Actors.WobblyWitch = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.05, 3.8, 0),
 			size = Vector3.new(1.944, 3.43, 1.27),
 			center = Vector3.new(-1.708, 5.215, -0.296),
 			shapes = {
@@ -1221,10 +1219,10 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(-1.125, 3.825, -0.225), Vector3.new(0.45, 0.45, 0.45), "5D2E74"),
 				S("box", CFrame.new(-1.125, 3.825, 0.225), Vector3.new(0.45, 0.45, 0.45), "5D2E8B"),
 				S("box", CFrame.new(-1.125, 4.275, -0.225), Vector3.new(0.45, 0.45, 0.45), "462E74"),
-				S("box", CFrame.new(-1.575, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "8B5D8B"),
+				S("box", CFrame.new(-1.575, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "745D8B"),
 				S("box", CFrame.new(-1.575, 3.825, -0.225), Vector3.new(0.45, 0.45, 0.45), "74468B"),
 				S("box", CFrame.new(-1.575, 3.825, 0.225), Vector3.new(0.45, 0.45, 0.45), "5D2E8B"),
-				S("box", CFrame.new(-1.575, 4.275, -0.675), Vector3.new(0.45, 0.45, 0.45), "8BA2B9"),
+				S("box", CFrame.new(-1.575, 4.275, -0.675), Vector3.new(0.45, 0.45, 0.45), "74B9D1"),
 				S("box", CFrame.new(-1.575, 4.275, -0.225), Vector3.new(0.45, 0.45, 0.45), "5D5D74"),
 				S("box", CFrame.new(-1.575, 4.725, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1E8E8"),
 				S("box", CFrame.new(-1.575, 4.725, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2D1D1"),
@@ -1233,21 +1231,21 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(-1.575, 5.175, -0.225), Vector3.new(0.45, 0.45, 0.45), "5DA2B9"),
 				S("box", CFrame.new(-1.575, 5.625, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2B9D1"),
 				S("box", CFrame.new(-1.575, 5.625, -0.225), Vector3.new(0.45, 0.45, 0.45), "5DA2B9"),
-				S("box", CFrame.new(-1.575, 6.075, -0.675), Vector3.new(0.45, 0.45, 0.45), "5DB9D1"),
+				S("box", CFrame.new(-1.575, 6.075, -0.675), Vector3.new(0.45, 0.45, 0.45), "74B9D1"),
 				S("box", CFrame.new(-1.575, 6.075, -0.225), Vector3.new(0.45, 0.45, 0.45), "5DA2B9"),
 				S("box", CFrame.new(-1.575, 6.075, 0.225), Vector3.new(0.45, 0.45, 0.45), "5DB9D1"),
 				S("box", CFrame.new(-1.575, 6.525, -0.675), Vector3.new(0.45, 0.45, 0.45), "8BD1E8"),
 				S("box", CFrame.new(-1.575, 6.525, 0), Vector3.new(0.45, 0.45, 0.9), "74B9D1"),
 				S("box", CFrame.new(-1.575, 6.975, -0.225), Vector3.new(0.45, 0.45, 0.45), "8BE8FF"),
 				S("box", CFrame.new(-2.025, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "B98B8B"),
-				S("box", CFrame.new(-2.025, 3.825, -0.225), Vector3.new(0.45, 0.45, 0.45), "A27474"),
+				S("box", CFrame.new(-2.025, 3.825, -0.225), Vector3.new(0.45, 0.45, 0.45), "A2748B"),
 				S("box", CFrame.new(-2.025, 4.275, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2A2A2"),
-				S("box", CFrame.new(-2.025, 4.275, -0.225), Vector3.new(0.45, 0.45, 0.45), "74B9B9"),
+				S("box", CFrame.new(-2.025, 4.275, -0.225), Vector3.new(0.45, 0.45, 0.45), "74A2B9"),
 				S("box", CFrame.new(-2.025, 4.725, -0.675), Vector3.new(0.45, 0.45, 0.45), "8BD1D1"),
 				S("box", CFrame.new(-2.025, 4.725, -0.225), Vector3.new(0.45, 0.45, 0.45), "74D1E8"),
 				S("box", CFrame.new(-2.025, 5.175, -0.45), Vector3.new(0.45, 0.45, 0.9), "74D1E8"),
 				S("box", CFrame.new(-2.025, 5.625, -0.675), Vector3.new(0.45, 0.45, 0.45), "74D1E8"),
-				S("box", CFrame.new(-2.025, 5.625, -0.225), Vector3.new(0.45, 0.45, 0.45), "74B9D1"),
+				S("box", CFrame.new(-2.025, 5.625, -0.225), Vector3.new(0.45, 0.45, 0.45), "74B9E8"),
 				S("box", CFrame.new(-2.025, 6.075, -0.675), Vector3.new(0.45, 0.45, 0.45), "74D1FF"),
 				S("box", CFrame.new(-2.025, 6.075, 0.225), Vector3.new(0.45, 0.45, 0.45), "74D1E8"),
 				S("box", CFrame.new(-2.025, 6.525, -0.675), Vector3.new(0.45, 0.45, 0.45), "B9D1E8"),
@@ -1262,7 +1260,7 @@ ActorShapes.Actors.WobblyWitch = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.05, 3.8, 0),
 			size = Vector3.new(1.669, 9.85, 1.482),
 			center = Vector3.new(1.55, 4.625, 0),
 			shapes = {
@@ -1288,7 +1286,7 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(1.858, 2.39, 0), Vector3.new(0.531, 0.531, 1.062), "745D2E"),
 				S("box", CFrame.new(1.858, 2.92, -0.266), Vector3.new(0.531, 0.531, 0.531), "B98B74"),
 				S("box", CFrame.new(1.858, 2.92, 0.266), Vector3.new(0.531, 0.531, 0.531), "D1A274"),
-				S("box", CFrame.new(1.858, 3.452, -0.266), Vector3.new(0.531, 0.531, 0.531), "74468B"),
+				S("box", CFrame.new(1.858, 3.452, -0.266), Vector3.new(0.531, 0.531, 0.531), "745D74"),
 				S("box", CFrame.new(1.858, 3.452, 0.266), Vector3.new(0.531, 0.531, 0.531), "A27474"),
 				S("box", CFrame.new(1.858, 3.982, 0), Vector3.new(0.531, 0.531, 1.062), "745D2E"),
 				S("box", CFrame.new(1.858, 4.514, 0), Vector3.new(0.531, 0.531, 1.062), "745D2E"),
@@ -1313,8 +1311,8 @@ ActorShapes.Actors.WobblyWitch = {
 				S("box", CFrame.new(1.328, 1.328, -0.266), Vector3.new(0.531, 0.531, 0.531), "B9B95D"),
 				S("box", CFrame.new(1.328, 1.328, 0.266), Vector3.new(0.531, 0.531, 0.531), "A2B95D"),
 				S("box", CFrame.new(1.328, 1.858, 0), Vector3.new(0.531, 0.531, 1.062), "D1A246"),
-				S("box", CFrame.new(1.328, 2.92, -0.266), Vector3.new(0.531, 0.531, 0.531), "8B7474"),
-				S("box", CFrame.new(1.328, 2.92, 0.266), Vector3.new(0.531, 0.531, 0.531), "8B5D74"),
+				S("box", CFrame.new(1.328, 2.92, -0.266), Vector3.new(0.531, 0.531, 0.531), "8B5D74"),
+				S("box", CFrame.new(1.328, 2.92, 0.266), Vector3.new(0.531, 0.531, 0.531), "745D74"),
 				S("box", CFrame.new(1.328, 3.452, -0.266), Vector3.new(0.531, 0.531, 0.531), "5D2E8B"),
 				S("box", CFrame.new(1.328, 3.452, 0.266), Vector3.new(0.531, 0.531, 0.531), "5D4674"),
 				S("box", CFrame.new(1.328, 3.982, 0), Vector3.new(0.531, 0.531, 1.062), "5D4674"),
@@ -1390,7 +1388,7 @@ ActorShapes.Actors.ActionVeteran = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.2, 2.55, 0),
 			size = Vector3.new(1.547, 0.997, 1.039),
 			center = Vector3.new(-1.645, 2.672, -0.137),
 			shapes = {
@@ -1400,7 +1398,7 @@ ActorShapes.Actors.ActionVeteran = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.147, 2.653, 0),
+			pivot = Vector3.new(1.2, 2.55, 0),
 			size = Vector3.new(0.952, 1.569, 0.947),
 			center = Vector3.new(1.307, 2.069, -0.1),
 			shapes = {
@@ -1422,6 +1420,7 @@ ActorShapes.Actors.ActionVeteran = {
 }
 
 ActorShapes.Actors.ComedyDuo = {
+	wave = "ArmL",
 	pieces = {
 		Body = {
 			pivot = Vector3.new(0, 1.45, 0),
@@ -1475,7 +1474,7 @@ ActorShapes.Actors.ComedyDuo = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.256, 1.366, 1.175),
 			center = Vector3.new(-1.361, 2.222, -0.216),
 			shapes = {
@@ -1485,7 +1484,7 @@ ActorShapes.Actors.ComedyDuo = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(2.076, 3.666, 1.731),
 			center = Vector3.new(1.811, 3.362, -0.498),
 			shapes = {
@@ -1547,7 +1546,7 @@ ActorShapes.Actors.NightShiftVillain = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.612, 2.491, 1.476),
 			center = Vector3.new(-1.568, 1.673, -0.367),
 			shapes = {
@@ -1561,7 +1560,7 @@ ActorShapes.Actors.NightShiftVillain = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.114, 0.915, 1.904),
 			center = Vector3.new(1.078, 2.424, -0.665),
 			shapes = {
@@ -1604,7 +1603,7 @@ ActorShapes.Actors.LagoonMermaid = {
 				S("box", CFrame.new(0.436, 3.054, -0.436), Vector3.new(0.872, 0.872, 0.872), "A274A2"),
 				S("box", CFrame.new(0.436, 3.054, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D74"),
 				S("box", CFrame.new(0.436, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D74"),
-				S("box", CFrame.new(0.436, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D2E"),
+				S("box", CFrame.new(0.436, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "74462E"),
 				S("box", CFrame.new(-0.436, 0.436, -2.181), Vector3.new(0.872, 0.872, 0.872), "FF7474"),
 				S("box", CFrame.new(-0.436, 0.436, -1.309), Vector3.new(0.872, 0.872, 0.872), "D1745D"),
 				S("box", CFrame.new(-0.436, 0.436, -0.436), Vector3.new(0.872, 0.872, 0.872), "B95D46"),
@@ -1615,7 +1614,7 @@ ActorShapes.Actors.LagoonMermaid = {
 				S("box", CFrame.new(-0.436, 2.181, 0), Vector3.new(0.872, 0.872, 1.745), "A25D46"),
 				S("box", CFrame.new(-0.436, 3.054, -0.436), Vector3.new(0.872, 0.872, 0.872), "A28BA2"),
 				S("box", CFrame.new(-0.436, 3.054, 0.436), Vector3.new(0.872, 0.872, 0.872), "745D5D"),
-				S("box", CFrame.new(-0.436, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B748B"),
+				S("box", CFrame.new(-0.436, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D8B"),
 				S("box", CFrame.new(-0.436, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "74462E"),
 				S("box", CFrame.new(-1.309, 0.436, -1.309), Vector3.new(0.872, 0.872, 0.872), "E87474"),
 				S("box", CFrame.new(-1.309, 0.436, -0.436), Vector3.new(0.872, 0.872, 0.872), "B97474"),
@@ -1628,7 +1627,7 @@ ActorShapes.Actors.LagoonMermaid = {
 				S("box", CFrame.new(-1.309, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "7474A2"),
 				S("box", CFrame.new(-1.309, 4.798, 0.436), Vector3.new(0.872, 0.872, 0.872), "745D8B"),
 				S("box", CFrame.new(-1.309, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "B9A2E8"),
-				S("box", CFrame.new(-1.309, 6.543, -0.436), Vector3.new(0.872, 0.872, 0.872), "B9B9FF"),
+				S("box", CFrame.new(-1.309, 6.543, -0.436), Vector3.new(0.872, 0.872, 0.872), "B9A2FF"),
 				S("box", CFrame.new(-2.181, 0.436, -0.872), Vector3.new(0.872, 0.872, 1.745), "E88BA2"),
 				S("box", CFrame.new(-2.181, 1.309, -1.309), Vector3.new(0.872, 0.872, 0.872), "E88BA2"),
 				S("box", CFrame.new(-2.181, 1.309, 0), Vector3.new(0.872, 0.872, 1.745), "D18BB9"),
@@ -1644,7 +1643,7 @@ ActorShapes.Actors.LagoonMermaid = {
 			},
 		},
 		Head = {
-			pivot = Vector3.new(0, 2.4, 0),
+			pivot = Vector3.new(0, 3.55, 0),
 			size = Vector3.new(3.23, 4.68, 2.876),
 			center = Vector3.new(0, 3.84, 0.462),
 			shapes = {
@@ -1694,7 +1693,7 @@ ActorShapes.Actors.LagoonMermaid = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.05, 3.4, 0),
 			size = Vector3.new(0.745, 1.291, 1.52),
 			center = Vector3.new(-0.947, 3.065, -0.153),
 			shapes = {
@@ -1702,11 +1701,11 @@ ActorShapes.Actors.LagoonMermaid = {
 				S("box", CFrame.new(-0.675, 2.475, -0.225), Vector3.new(0.45, 0.45, 0.45), "8B5D46"),
 				S("box", CFrame.new(-0.675, 2.925, -1.125), Vector3.new(0.45, 0.45, 0.45), "FFFFE8"),
 				S("box", CFrame.new(-0.675, 2.925, -0.675), Vector3.new(0.45, 0.45, 0.45), "B9A28B"),
-				S("box", CFrame.new(-0.675, 2.925, -0.225), Vector3.new(0.45, 0.45, 0.45), "8B7474"),
+				S("box", CFrame.new(-0.675, 2.925, -0.225), Vector3.new(0.45, 0.45, 0.45), "8B745D"),
 				S("box", CFrame.new(-0.675, 2.925, 0.225), Vector3.new(0.45, 0.45, 0.45), "74462E"),
 				S("box", CFrame.new(-0.675, 3.375, -0.675), Vector3.new(0.45, 0.45, 0.45), "D1D1D1"),
 				S("box", CFrame.new(-0.675, 3.375, -0.225), Vector3.new(0.45, 0.45, 0.45), "8B5D2E"),
-				S("box", CFrame.new(-0.675, 3.375, 0.225), Vector3.new(0.45, 0.45, 0.45), "74462E"),
+				S("box", CFrame.new(-0.675, 3.375, 0.225), Vector3.new(0.45, 0.45, 0.45), "745D2E"),
 				S("box", CFrame.new(-1.125, 2.475, -0.675), Vector3.new(0.45, 0.45, 0.45), "A27446"),
 				S("box", CFrame.new(-1.125, 2.475, -0.225), Vector3.new(0.45, 0.45, 0.45), "745D2E"),
 				S("box", CFrame.new(-1.125, 2.925, -0.675), Vector3.new(0.45, 0.45, 0.45), "B9B9A2"),
@@ -1719,7 +1718,7 @@ ActorShapes.Actors.LagoonMermaid = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.05, 3.4, 0),
 			size = Vector3.new(1.195, 1.317, 1.604),
 			center = Vector3.new(0.814, 3.41, -0.232),
 			shapes = {
@@ -1727,10 +1726,9 @@ ActorShapes.Actors.LagoonMermaid = {
 				S("box", CFrame.new(1.575, 3.375, -0.675), Vector3.new(0.45, 0.45, 0.45), "B97446"),
 				S("box", CFrame.new(1.125, 2.925, -1.125), Vector3.new(0.45, 0.45, 0.45), "B97446"),
 				S("box", CFrame.new(1.125, 2.925, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2745D"),
-				S("box", CFrame.new(1.125, 2.925, 0), Vector3.new(0.45, 0.45, 0.9), "8B5D46"),
+				S("box", CFrame.new(1.125, 2.925, 0), Vector3.new(0.45, 0.45, 0.9), "74462E"),
 				S("box", CFrame.new(1.125, 3.375, -0.675), Vector3.new(0.45, 0.45, 0.45), "A2745D"),
-				S("box", CFrame.new(1.125, 3.375, -0.225), Vector3.new(0.45, 0.45, 0.45), "8B5D46"),
-				S("box", CFrame.new(1.125, 3.375, 0.45), Vector3.new(0.45, 0.45, 0.9), "74462E"),
+				S("box", CFrame.new(1.125, 3.375, 0.225), Vector3.new(0.45, 0.45, 1.35), "74462E"),
 				S("box", CFrame.new(1.125, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "FFB9B9"),
 				S("box", CFrame.new(1.125, 3.825, 0.225), Vector3.new(0.45, 0.45, 0.45), "74462E"),
 				S("box", CFrame.new(0.675, 2.925, -0.675), Vector3.new(0.45, 0.45, 0.45), "A25D46"),
@@ -1764,7 +1762,7 @@ ActorShapes.Actors.TimeTourist = {
 			shapes = {
 				S("box", CFrame.new(1.822, 0.607, -0.607), Vector3.new(1.215, 1.215, 3.644), "468B46"),
 				S("box", CFrame.new(1.822, 1.822, -0.607), Vector3.new(1.215, 1.215, 1.215), "8B7446"),
-				S("box", CFrame.new(1.822, 1.822, 0.607), Vector3.new(1.215, 1.215, 1.215), "D1A246"),
+				S("box", CFrame.new(1.822, 1.822, 0.607), Vector3.new(1.215, 1.215, 1.215), "B9A246"),
 				S("box", CFrame.new(1.822, 3.037, 0), Vector3.new(1.215, 1.215, 2.43), "B98B5D"),
 				S("box", CFrame.new(0.607, -0.607, 0), Vector3.new(1.215, 1.215, 2.43), "2E5D2E"),
 				S("box", CFrame.new(0.607, 0.607, -1.822), Vector3.new(1.215, 1.215, 1.215), "2E8B46"),
@@ -1779,7 +1777,7 @@ ActorShapes.Actors.TimeTourist = {
 				S("box", CFrame.new(0.607, 3.037, 0.607), Vector3.new(1.215, 1.215, 1.215), "A2A246"),
 				S("box", CFrame.new(0.607, 4.252, -1.822), Vector3.new(1.215, 1.215, 1.215), "5D8BA2"),
 				S("box", CFrame.new(0.607, 4.252, -0.607), Vector3.new(1.215, 1.215, 1.215), "A28B8B"),
-				S("box", CFrame.new(0.607, 4.252, 0.607), Vector3.new(1.215, 1.215, 1.215), "B95D74"),
+				S("box", CFrame.new(0.607, 4.252, 0.607), Vector3.new(1.215, 1.215, 1.215), "A25D5D"),
 				S("box", CFrame.new(0.607, 5.467, -0.607), Vector3.new(1.215, 1.215, 1.215), "D1A28B"),
 				S("box", CFrame.new(0.607, 5.467, 0.607), Vector3.new(1.215, 1.215, 1.215), "B94674"),
 				S("box", CFrame.new(-0.607, -0.607, 0.607), Vector3.new(1.215, 1.215, 1.215), "2E5D2E"),
@@ -1797,7 +1795,7 @@ ActorShapes.Actors.TimeTourist = {
 				S("box", CFrame.new(-0.607, 3.037, 1.822), Vector3.new(1.215, 1.215, 1.215), "D1B946"),
 				S("box", CFrame.new(-0.607, 4.252, -1.822), Vector3.new(1.215, 1.215, 1.215), "5D8BA2"),
 				S("box", CFrame.new(-0.607, 4.252, -0.607), Vector3.new(1.215, 1.215, 1.215), "A25D74"),
-				S("box", CFrame.new(-0.607, 4.252, 0.607), Vector3.new(1.215, 1.215, 1.215), "B95D74"),
+				S("box", CFrame.new(-0.607, 4.252, 0.607), Vector3.new(1.215, 1.215, 1.215), "A25D5D"),
 				S("box", CFrame.new(-0.607, 5.467, -0.607), Vector3.new(1.215, 1.215, 1.215), "D1A2A2"),
 				S("box", CFrame.new(-0.607, 5.467, 0.607), Vector3.new(1.215, 1.215, 1.215), "B94674"),
 				S("box", CFrame.new(-1.822, 0.607, -0.607), Vector3.new(1.215, 1.215, 1.215), "468B46"),
@@ -1840,7 +1838,7 @@ ActorShapes.Actors.TimeTourist = {
 				S("box", CFrame.new(-0.436, 4.798, -0.436), Vector3.new(0.872, 0.872, 0.872), "742E46"),
 				S("box", CFrame.new(-0.436, 4.798, 0.436), Vector3.new(0.872, 0.872, 0.872), "A27446"),
 				S("box", CFrame.new(-0.436, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B7474"),
-				S("box", CFrame.new(-0.436, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D2E"),
+				S("box", CFrame.new(-0.436, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B462E"),
 				S("box", CFrame.new(-0.436, 5.671, 1.309), Vector3.new(0.872, 0.872, 0.872), "B97446"),
 				S("box", CFrame.new(-0.436, 6.543, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B8B74"),
 				S("box", CFrame.new(-0.436, 6.543, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B2E17"),
@@ -1860,7 +1858,7 @@ ActorShapes.Actors.TimeTourist = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.05, 5.05, 0),
 			size = Vector3.new(0.666, 1.472, 1.334),
 			center = Vector3.new(-0.995, 4.643, -0.348),
 			shapes = {
@@ -1881,7 +1879,7 @@ ActorShapes.Actors.TimeTourist = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.05, 5.05, 0),
 			size = Vector3.new(0.666, 1.472, 1.334),
 			center = Vector3.new(0.995, 4.643, -0.348),
 			shapes = {
@@ -1891,11 +1889,11 @@ ActorShapes.Actors.TimeTourist = {
 				S("box", CFrame.new(1.125, 4.275, -0.225), Vector3.new(0.45, 0.45, 0.45), "B95D74"),
 				S("box", CFrame.new(1.125, 4.725, -0.675), Vector3.new(0.45, 0.45, 0.45), "E85D8B"),
 				S("box", CFrame.new(1.125, 4.725, -0.225), Vector3.new(0.45, 0.45, 0.45), "FF74A2"),
-				S("box", CFrame.new(1.125, 4.725, 0.225), Vector3.new(0.45, 0.45, 0.45), "E874A2"),
+				S("box", CFrame.new(1.125, 4.725, 0.225), Vector3.new(0.45, 0.45, 0.45), "E85DA2"),
 				S("box", CFrame.new(1.125, 5.175, -0.225), Vector3.new(0.45, 0.45, 0.45), "FF74A2"),
 				S("box", CFrame.new(1.125, 5.175, 0.225), Vector3.new(0.45, 0.45, 0.45), "E85DA2"),
 				S("box", CFrame.new(0.675, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "A27446"),
-				S("box", CFrame.new(0.675, 4.275, -1.125), Vector3.new(0.45, 0.45, 0.45), "A2745D"),
+				S("box", CFrame.new(0.675, 4.275, -1.125), Vector3.new(0.45, 0.45, 0.45), "8B7446"),
 				S("box", CFrame.new(0.675, 4.275, -0.675), Vector3.new(0.45, 0.45, 0.45), "8B5D46"),
 				S("box", CFrame.new(0.675, 4.275, -0.225), Vector3.new(0.45, 0.45, 0.45), "B94674"),
 				S("box", CFrame.new(0.675, 4.725, -0.675), Vector3.new(0.45, 0.45, 0.45), "B94674"),
@@ -1916,6 +1914,7 @@ ActorShapes.Actors.TimeTourist = {
 }
 
 ActorShapes.Actors.TeenHeartthrob = {
+	wave = "ArmR",
 	pieces = {
 		Body = {
 			pivot = Vector3.new(0, 1.45, 0),
@@ -1961,7 +1960,7 @@ ActorShapes.Actors.TeenHeartthrob = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.2, 2.55, 0),
 			size = Vector3.new(2.111, 3.095, 1.649),
 			center = Vector3.new(-1.9, 3.049, -0.458),
 			shapes = {
@@ -1975,7 +1974,7 @@ ActorShapes.Actors.TeenHeartthrob = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.2, 2.55, 0),
 			size = Vector3.new(1.279, 1.484, 1.175),
 			center = Vector3.new(1.202, 2.15, -0.216),
 			shapes = {
@@ -2015,7 +2014,7 @@ ActorShapes.Actors.MethodActor = {
 			},
 		},
 		Head = {
-			pivot = Vector3.new(0, 5.475, 0),
+			pivot = Vector3.new(0, 2.9, 0),
 			size = Vector3.new(2.94, 4.62, 2.804),
 			center = Vector3.new(0, 4.96, 0.017),
 			shapes = {
@@ -2032,7 +2031,7 @@ ActorShapes.Actors.MethodActor = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.5, 2.55, 0),
 			size = Vector3.new(1.472, 4.02, 1.222),
 			center = Vector3.new(-1.824, 3.343, -0.192),
 			shapes = {
@@ -2045,7 +2044,7 @@ ActorShapes.Actors.MethodActor = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.5, 2.55, 0),
 			size = Vector3.new(2.325, 2.725, 1.934),
 			center = Vector3.new(2.013, 1.958, -0.577),
 			shapes = {
@@ -2108,7 +2107,7 @@ ActorShapes.Actors.SpaceCaptain = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.2, 2.65, 0),
 			size = Vector3.new(2.392, 2.356, 1.454),
 			center = Vector3.new(-2.049, 3.122, -0.348),
 			shapes = {
@@ -2121,7 +2120,7 @@ ActorShapes.Actors.SpaceCaptain = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.119, 2.768, 0),
+			pivot = Vector3.new(1.2, 2.65, 0),
 			size = Vector3.new(1.084, 1.561, 0.791),
 			center = Vector3.new(1.371, 2.187, -0.049),
 			shapes = {
@@ -2181,7 +2180,7 @@ ActorShapes.Actors.CaptainKapow = {
 				S("box", CFrame.new(-0.515, 3.603, 0.515), Vector3.new(1.029, 1.029, 1.029), "742E74"),
 				S("box", CFrame.new(-0.515, 3.603, 1.544), Vector3.new(1.029, 1.029, 1.029), "17468B"),
 				S("box", CFrame.new(-0.515, 4.633, -0.515), Vector3.new(1.029, 1.029, 1.029), "8B4617"),
-				S("box", CFrame.new(-0.515, 4.633, 0.515), Vector3.new(1.029, 1.029, 1.029), "8B2E46"),
+				S("box", CFrame.new(-0.515, 4.633, 0.515), Vector3.new(1.029, 1.029, 1.029), "8B2E5D"),
 				S("box", CFrame.new(-0.515, 4.633, 1.544), Vector3.new(1.029, 1.029, 1.029), "2E46A2"),
 				S("box", CFrame.new(-1.544, 1.544, -1.544), Vector3.new(1.029, 1.029, 1.029), "FFFFE8"),
 				S("box", CFrame.new(-1.544, 1.544, -0.515), Vector3.new(1.029, 1.029, 1.029), "E8D1D1"),
@@ -2205,18 +2204,18 @@ ActorShapes.Actors.CaptainKapow = {
 			},
 		},
 		Head = {
-			pivot = Vector3.new(0, 3.854, 0),
+			pivot = Vector3.new(0, 3.891, 0),
 			size = Vector3.new(2.85, 2.977, 2.81),
 			center = Vector3.new(0, 5.093, 0.456),
 			shapes = {
 				S("box", CFrame.new(1.309, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "B98B5D"),
-				S("box", CFrame.new(1.309, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "5D462E"),
+				S("box", CFrame.new(1.309, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "74462E"),
 				S("box", CFrame.new(1.309, 3.926, 1.309), Vector3.new(0.872, 0.872, 0.872), "8B7446"),
 				S("box", CFrame.new(1.309, 4.798, -0.436), Vector3.new(0.872, 0.872, 0.872), "D18B8B"),
 				S("box", CFrame.new(1.309, 4.798, 0.436), Vector3.new(0.872, 0.872, 0.872), "462E2E"),
 				S("box", CFrame.new(1.309, 4.798, 1.309), Vector3.new(0.872, 0.872, 0.872), "46462E"),
 				S("box", CFrame.new(1.309, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "B9A2A2"),
-				S("box", CFrame.new(1.309, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "5D462E"),
+				S("box", CFrame.new(1.309, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "46462E"),
 				S("box", CFrame.new(1.309, 5.671, 1.309), Vector3.new(0.872, 0.872, 0.872), "171717"),
 				S("box", CFrame.new(1.309, 6.543, 0.436), Vector3.new(0.872, 0.872, 0.872), "2E172E"),
 				S("box", CFrame.new(0.436, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B7474"),
@@ -2226,23 +2225,24 @@ ActorShapes.Actors.CaptainKapow = {
 				S("box", CFrame.new(0.436, 4.798, -0.436), Vector3.new(0.872, 0.872, 0.872), "A2A28B"),
 				S("box", CFrame.new(0.436, 4.798, 0.436), Vector3.new(0.872, 0.872, 0.872), "170017"),
 				S("box", CFrame.new(0.436, 4.798, 1.309), Vector3.new(0.872, 0.872, 0.872), "744646"),
-				S("box", CFrame.new(0.436, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "74745D"),
-				S("box", CFrame.new(0.436, 5.671, 0.872), Vector3.new(0.872, 0.872, 1.745), "462E2E"),
+				S("box", CFrame.new(0.436, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B745D"),
+				S("box", CFrame.new(0.436, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "462E2E"),
+				S("box", CFrame.new(0.436, 5.671, 1.309), Vector3.new(0.872, 0.872, 0.872), "46462E"),
 				S("box", CFrame.new(0.436, 6.543, -0.436), Vector3.new(0.872, 0.872, 0.872), "2E172E"),
-				S("box", CFrame.new(0.436, 6.543, 0.436), Vector3.new(0.872, 0.872, 0.872), "462E2E"),
+				S("box", CFrame.new(0.436, 6.543, 0.436), Vector3.new(0.872, 0.872, 0.872), "2E2E2E"),
 				S("box", CFrame.new(0.436, 6.543, 1.309), Vector3.new(0.872, 0.872, 0.872), "171717"),
 				S("box", CFrame.new(-0.436, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "A28B74"),
-				S("box", CFrame.new(-0.436, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "5D462E"),
+				S("box", CFrame.new(-0.436, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "74462E"),
 				S("box", CFrame.new(-0.436, 3.926, 1.309), Vector3.new(0.872, 0.872, 0.872), "462E2E"),
 				S("box", CFrame.new(-0.436, 4.798, -0.872), Vector3.new(0.872, 0.872, 1.745), "A28B8B"),
 				S("box", CFrame.new(-0.436, 4.798, 0.436), Vector3.new(0.872, 0.872, 0.872), "170017"),
 				S("box", CFrame.new(-0.436, 4.798, 1.309), Vector3.new(0.872, 0.872, 0.872), "8B5D46"),
-				S("box", CFrame.new(-0.436, 4.798, 2.181), Vector3.new(0.872, 0.872, 0.872), "171717"),
 				S("box", CFrame.new(-0.436, 5.671, -1.309), Vector3.new(0.872, 0.872, 0.872), "D1D1B9"),
 				S("box", CFrame.new(-0.436, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "745D46"),
-				S("box", CFrame.new(-0.436, 5.671, 0.872), Vector3.new(0.872, 0.872, 1.745), "462E2E"),
+				S("box", CFrame.new(-0.436, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "462E2E"),
+				S("box", CFrame.new(-0.436, 5.671, 1.309), Vector3.new(0.872, 0.872, 0.872), "2E2E17"),
 				S("box", CFrame.new(-0.436, 6.543, -0.436), Vector3.new(0.872, 0.872, 0.872), "171717"),
-				S("box", CFrame.new(-0.436, 6.543, 0.436), Vector3.new(0.872, 0.872, 0.872), "46462E"),
+				S("box", CFrame.new(-0.436, 6.543, 0.436), Vector3.new(0.872, 0.872, 0.872), "5D462E"),
 				S("box", CFrame.new(-0.436, 6.543, 1.309), Vector3.new(0.872, 0.872, 0.872), "171717"),
 				S("box", CFrame.new(-1.309, 3.926, -0.436), Vector3.new(0.872, 0.872, 0.872), "B97474"),
 				S("box", CFrame.new(-1.309, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B5D46"),
@@ -2256,7 +2256,7 @@ ActorShapes.Actors.CaptainKapow = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.35, 4.186, 0),
 			size = Vector3.new(1.395, 1.587, 0.944),
 			center = Vector3.new(-1.611, 3.795, 0.153),
 			shapes = {
@@ -2272,19 +2272,20 @@ ActorShapes.Actors.CaptainKapow = {
 				S("box", CFrame.new(-1.575, 3.825, 0.675), Vector3.new(0.45, 0.45, 0.45), "A22E2E"),
 				S("box", CFrame.new(-1.575, 4.275, 0), Vector3.new(0.45, 0.45, 0.9), "D12E2E"),
 				S("box", CFrame.new(-1.575, 4.275, 0.675), Vector3.new(0.45, 0.45, 0.45), "B92E2E"),
-				S("box", CFrame.new(-2.025, 2.925, 0), Vector3.new(0.45, 0.45, 0.9), "E8E8E8"),
-				S("box", CFrame.new(-2.025, 3.375, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1D1B9"),
+				S("box", CFrame.new(-2.025, 2.925, -0.225), Vector3.new(0.45, 0.45, 0.45), "E8E8E8"),
+				S("box", CFrame.new(-2.025, 2.925, 0.225), Vector3.new(0.45, 0.45, 0.45), "E8E8D1"),
+				S("box", CFrame.new(-2.025, 3.375, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1B9B9"),
 				S("box", CFrame.new(-2.025, 3.375, 0.225), Vector3.new(0.45, 0.45, 0.45), "D1A2A2"),
 				S("box", CFrame.new(-2.025, 3.375, 0.675), Vector3.new(0.45, 0.45, 0.45), "B92E2E"),
 				S("box", CFrame.new(-2.025, 3.825, -0.225), Vector3.new(0.45, 0.45, 0.45), "D14646"),
 				S("box", CFrame.new(-2.025, 3.825, 0.225), Vector3.new(0.45, 0.45, 0.45), "D12E2E"),
 				S("box", CFrame.new(-2.025, 4.275, 0.225), Vector3.new(0.45, 0.45, 0.45), "D12E2E"),
 				S("box", CFrame.new(-2.475, 3.375, -0.225), Vector3.new(0.45, 0.45, 0.45), "FFFFE8"),
-				S("box", CFrame.new(-2.475, 3.375, 0.225), Vector3.new(0.45, 0.45, 0.45), "FFE8E8"),
+				S("box", CFrame.new(-2.475, 3.375, 0.225), Vector3.new(0.45, 0.45, 0.45), "E8E8E8"),
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.35, 4.186, 0),
 			size = Vector3.new(2.186, 2.904, 1.221),
 			center = Vector3.new(1.561, 5.361, 0.408),
 			shapes = {
@@ -2311,7 +2312,7 @@ ActorShapes.Actors.CaptainKapow = {
 				S("box", CFrame.new(1.575, 4.725, 0.675), Vector3.new(0.45, 0.45, 0.45), "B97417"),
 				S("box", CFrame.new(1.575, 5.175, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1D1D1"),
 				S("box", CFrame.new(1.575, 5.175, 0.225), Vector3.new(0.45, 0.45, 0.45), "A28B8B"),
-				S("box", CFrame.new(1.575, 5.175, 0.675), Vector3.new(0.45, 0.45, 0.45), "A28B46"),
+				S("box", CFrame.new(1.575, 5.175, 0.675), Vector3.new(0.45, 0.45, 0.45), "A28B5D"),
 				S("box", CFrame.new(1.575, 5.625, -0.225), Vector3.new(0.45, 0.45, 0.45), "FFE8E8"),
 				S("box", CFrame.new(1.575, 5.625, 0.225), Vector3.new(0.45, 0.45, 0.45), "E8D1D1"),
 				S("box", CFrame.new(1.575, 5.625, 0.675), Vector3.new(0.45, 0.45, 0.45), "B9A25D"),
@@ -2428,7 +2429,7 @@ ActorShapes.Actors.InspectorWhoops = {
 				S("box", CFrame.new(1.309, 4.798, -0.436), Vector3.new(0.872, 0.872, 0.872), "A27474"),
 				S("box", CFrame.new(1.309, 4.798, 0.436), Vector3.new(0.872, 0.872, 0.872), "D1B98B"),
 				S("box", CFrame.new(1.309, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B745D"),
-				S("box", CFrame.new(1.309, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "B9A274"),
+				S("box", CFrame.new(1.309, 5.671, 0.436), Vector3.new(0.872, 0.872, 0.872), "A28B74"),
 				S("box", CFrame.new(1.309, 5.671, 1.309), Vector3.new(0.872, 0.872, 0.872), "745D2E"),
 				S("box", CFrame.new(1.309, 6.543, -0.436), Vector3.new(0.872, 0.872, 0.872), "745D46"),
 				S("box", CFrame.new(1.309, 6.543, 0.436), Vector3.new(0.872, 0.872, 0.872), "8B745D"),
@@ -2456,7 +2457,7 @@ ActorShapes.Actors.InspectorWhoops = {
 				S("box", CFrame.new(-0.436, 3.926, 0.436), Vector3.new(0.872, 0.872, 0.872), "D1A28B"),
 				S("box", CFrame.new(-0.436, 4.798, -1.309), Vector3.new(0.872, 0.872, 0.872), "8B7474"),
 				S("box", CFrame.new(-0.436, 4.798, 1.309), Vector3.new(0.872, 0.872, 0.872), "FFD1A2"),
-				S("box", CFrame.new(-0.436, 5.671, -1.309), Vector3.new(0.872, 0.872, 0.872), "74745D"),
+				S("box", CFrame.new(-0.436, 5.671, -1.309), Vector3.new(0.872, 0.872, 0.872), "745D5D"),
 				S("box", CFrame.new(-0.436, 5.671, -0.436), Vector3.new(0.872, 0.872, 0.872), "8B745D"),
 				S("box", CFrame.new(-0.436, 5.671, 0.872), Vector3.new(0.872, 0.872, 1.745), "A28B74"),
 				S("box", CFrame.new(-0.436, 6.543, -1.309), Vector3.new(0.872, 0.872, 0.872), "A28B74"),
@@ -2482,7 +2483,7 @@ ActorShapes.Actors.InspectorWhoops = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.2, 3.9, 0),
 			size = Vector3.new(1.514, 1.578, 1.928),
 			center = Vector3.new(-1.598, 4.015, -0.616),
 			shapes = {
@@ -2496,9 +2497,8 @@ ActorShapes.Actors.InspectorWhoops = {
 				S("box", CFrame.new(-1.575, 3.375, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1B98B"),
 				S("box", CFrame.new(-1.575, 3.375, -0.675), Vector3.new(0.45, 0.45, 0.45), "B98B5D"),
 				S("box", CFrame.new(-1.575, 3.375, -0.225), Vector3.new(0.45, 0.45, 0.45), "B9A25D"),
-				S("box", CFrame.new(-1.575, 3.825, -1.575), Vector3.new(0.45, 0.45, 0.45), "FFD146"),
 				S("box", CFrame.new(-1.575, 3.825, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1A246"),
-				S("box", CFrame.new(-1.575, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "B98B5D"),
+				S("box", CFrame.new(-1.575, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "B98B46"),
 				S("box", CFrame.new(-1.575, 3.825, -0.225), Vector3.new(0.45, 0.45, 0.45), "B9A25D"),
 				S("box", CFrame.new(-1.575, 3.825, 0.225), Vector3.new(0.45, 0.45, 0.45), "D1A274"),
 				S("box", CFrame.new(-1.575, 4.275, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1B946"),
@@ -2506,22 +2506,23 @@ ActorShapes.Actors.InspectorWhoops = {
 				S("box", CFrame.new(-1.575, 4.275, -0.225), Vector3.new(0.45, 0.45, 0.45), "A28B5D"),
 				S("box", CFrame.new(-1.575, 4.275, 0.225), Vector3.new(0.45, 0.45, 0.45), "D1A25D"),
 				S("box", CFrame.new(-1.575, 4.725, -1.575), Vector3.new(0.45, 0.45, 0.45), "171717"),
-				S("box", CFrame.new(-1.575, 4.725, -1.125), Vector3.new(0.45, 0.45, 0.45), "E8B946"),
+				S("box", CFrame.new(-1.575, 4.725, -1.125), Vector3.new(0.45, 0.45, 0.45), "E8D146"),
 				S("box", CFrame.new(-2.025, 3.375, -1.125), Vector3.new(0.45, 0.45, 0.45), "E8D1A2"),
 				S("box", CFrame.new(-2.025, 3.375, -0.675), Vector3.new(0.45, 0.45, 0.45), "D1B98B"),
 				S("box", CFrame.new(-2.025, 3.825, -1.575), Vector3.new(0.45, 0.45, 0.45), "FFD146"),
-				S("box", CFrame.new(-2.025, 3.825, -0.9), Vector3.new(0.45, 0.45, 0.9), "D1B95D"),
-				S("box", CFrame.new(-2.025, 3.825, -0.225), Vector3.new(0.45, 0.45, 0.45), "D1A274"),
+				S("box", CFrame.new(-2.025, 3.825, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1B95D"),
+				S("box", CFrame.new(-2.025, 3.825, -0.45), Vector3.new(0.45, 0.45, 0.9), "D1A274"),
 				S("box", CFrame.new(-2.025, 4.275, -1.575), Vector3.new(0.45, 0.45, 0.45), "D18B2E"),
-				S("box", CFrame.new(-2.025, 4.275, -1.125), Vector3.new(0.45, 0.45, 0.45), "D1A22E"),
-				S("box", CFrame.new(-2.025, 4.275, -0.675), Vector3.new(0.45, 0.45, 0.45), "E8B946"),
-				S("box", CFrame.new(-2.025, 4.725, -1.575), Vector3.new(0.45, 0.45, 0.45), "745D2E"),
-				S("box", CFrame.new(-2.025, 4.725, -1.125), Vector3.new(0.45, 0.45, 0.45), "FFD146"),
-				S("box", CFrame.new(-2.475, 3.825, -1.125), Vector3.new(0.45, 0.45, 0.45), "FFD146"),
+				S("box", CFrame.new(-2.025, 4.275, -1.125), Vector3.new(0.45, 0.45, 0.45), "B9A22E"),
+				S("box", CFrame.new(-2.025, 4.275, -0.675), Vector3.new(0.45, 0.45, 0.45), "E8D146"),
+				S("box", CFrame.new(-2.025, 4.725, -1.575), Vector3.new(0.45, 0.45, 0.45), "5D5D2E"),
+				S("box", CFrame.new(-2.025, 4.725, -0.9), Vector3.new(0.45, 0.45, 0.9), "FFD146"),
+				S("box", CFrame.new(-2.475, 3.825, -0.675), Vector3.new(0.45, 0.45, 0.45), "FFD146"),
+				S("box", CFrame.new(-2.475, 4.275, -1.125), Vector3.new(0.45, 0.45, 0.45), "FFD146"),
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.2, 3.9, 0),
 			size = Vector3.new(3.24, 4.335, 2.328),
 			center = Vector3.new(1.3, 5.353, -0.872),
 			shapes = {
@@ -2545,8 +2546,8 @@ ActorShapes.Actors.InspectorWhoops = {
 				S("box", CFrame.new(1.858, 6.107, -1.858), Vector3.new(0.531, 0.531, 0.531), "B9B9B9"),
 				S("box", CFrame.new(1.858, 6.638, -1.858), Vector3.new(0.531, 0.531, 0.531), "D1D1D1"),
 				S("box", CFrame.new(1.858, 7.168, -1.858), Vector3.new(0.531, 0.531, 0.531), "B9A28B"),
-				S("box", CFrame.new(1.328, 3.452, -1.858), Vector3.new(0.531, 0.531, 0.531), "D1A274"),
-				S("box", CFrame.new(1.328, 3.452, -1.328), Vector3.new(0.531, 0.531, 0.531), "B9A274"),
+				S("box", CFrame.new(1.328, 3.452, -1.858), Vector3.new(0.531, 0.531, 0.531), "B9A274"),
+				S("box", CFrame.new(1.328, 3.452, -1.328), Vector3.new(0.531, 0.531, 0.531), "B98B74"),
 				S("box", CFrame.new(1.328, 3.452, -0.796), Vector3.new(0.531, 0.531, 0.531), "B9A25D"),
 				S("box", CFrame.new(1.328, 3.452, -0.266), Vector3.new(0.531, 0.531, 0.531), "B98B5D"),
 				S("box", CFrame.new(1.328, 3.452, 0.266), Vector3.new(0.531, 0.531, 0.531), "B9A25D"),
@@ -2567,7 +2568,7 @@ ActorShapes.Actors.InspectorWhoops = {
 				S("box", CFrame.new(0.796, 4.514, -1.858), Vector3.new(0.531, 0.531, 0.531), "D1A274"),
 				S("box", CFrame.new(0.796, 5.044, -1.858), Vector3.new(0.531, 0.531, 0.531), "D1D1E8"),
 				S("box", CFrame.new(0.796, 5.576, -1.858), Vector3.new(0.531, 0.531, 0.531), "B9B9B9"),
-				S("box", CFrame.new(0.796, 6.107, -1.858), Vector3.new(0.531, 0.531, 0.531), "8B8B8B"),
+				S("box", CFrame.new(0.796, 6.107, -1.858), Vector3.new(0.531, 0.531, 0.531), "8B8B74"),
 				S("box", CFrame.new(0.796, 6.638, -1.858), Vector3.new(0.531, 0.531, 0.531), "B9B9B9"),
 				S("box", CFrame.new(0.796, 7.168, -1.858), Vector3.new(0.531, 0.531, 0.531), "A28B74"),
 				S("box", CFrame.new(0.796, 7.7, -1.858), Vector3.new(0.531, 0.531, 0.531), "FFB92E"),
@@ -2596,6 +2597,7 @@ ActorShapes.Actors.InspectorWhoops = {
 }
 
 ActorShapes.Actors.BoxOfficeKing = {
+	wave = "ArmR",
 	pieces = {
 		Body = {
 			pivot = Vector3.new(0, 1.45, 0),
@@ -2650,7 +2652,7 @@ ActorShapes.Actors.BoxOfficeKing = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.4, 2.6, 0),
 			size = Vector3.new(1.325, 1.846, 1.902),
 			center = Vector3.new(-1.6, 2.797, -0.61),
 			shapes = {
@@ -2665,7 +2667,7 @@ ActorShapes.Actors.BoxOfficeKing = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.4, 2.6, 0),
 			size = Vector3.new(1.285, 1.529, 0.845),
 			center = Vector3.new(1.643, 2.199, -0.049),
 			shapes = {
@@ -2725,7 +2727,7 @@ ActorShapes.Actors.ScreamQueen = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(2.806, 1.899, 1.968),
 			center = Vector3.new(-2.226, 2.19, -0.455),
 			shapes = {
@@ -2738,7 +2740,7 @@ ActorShapes.Actors.ScreamQueen = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.282, 1.351, 1.166),
 			center = Vector3.new(0.822, 2.861, -0.239),
 			shapes = {
@@ -2816,7 +2818,7 @@ ActorShapes.Actors.RomComSweetheart = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.605, 2.504, 1.143),
 			center = Vector3.new(-1.565, 2.152, -0.232),
 			shapes = {
@@ -2830,7 +2832,7 @@ ActorShapes.Actors.RomComSweetheart = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.578, 1.407, 1.307),
 			center = Vector3.new(1.558, 2.789, -0.313),
 			shapes = {
@@ -2931,7 +2933,7 @@ ActorShapes.Actors.PirateCaptain = {
 				S("box", CFrame.new(1.544, 6.692, 0.515), Vector3.new(1.029, 1.029, 1.029), "E84646"),
 				S("box", CFrame.new(0.515, 2.574, -1.544), Vector3.new(1.029, 1.029, 1.029), "FFFFFF"),
 				S("box", CFrame.new(0.515, 2.574, -0.515), Vector3.new(1.029, 1.029, 1.029), "745D46"),
-				S("box", CFrame.new(0.515, 2.574, 0.515), Vector3.new(1.029, 1.029, 1.029), "8B5D2E"),
+				S("box", CFrame.new(0.515, 2.574, 0.515), Vector3.new(1.029, 1.029, 1.029), "8B5D46"),
 				S("box", CFrame.new(0.515, 2.574, 1.544), Vector3.new(1.029, 1.029, 1.029), "2E1717"),
 				S("box", CFrame.new(0.515, 3.603, -1.544), Vector3.new(1.029, 1.029, 1.029), "8B7474"),
 				S("box", CFrame.new(0.515, 3.603, -0.515), Vector3.new(1.029, 1.029, 1.029), "A27474"),
@@ -2975,7 +2977,7 @@ ActorShapes.Actors.PirateCaptain = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.205, 2.65, 0),
+			pivot = Vector3.new(-1.28, 2.55, 0),
 			size = Vector3.new(1.192, 1.567, 0.986),
 			center = Vector3.new(-1.525, 2.067, -0.044),
 			shapes = {
@@ -3001,14 +3003,14 @@ ActorShapes.Actors.PirateCaptain = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.219, 2.639, 0),
+			pivot = Vector3.new(1.28, 2.55, 0),
 			size = Vector3.new(1.129, 1.579, 0.979),
 			center = Vector3.new(1.499, 2.049, -0.114),
 			shapes = {
 				S("box", CFrame.new(2.025, 1.575, -0.225), Vector3.new(0.45, 0.45, 0.45), "B9A274"),
 				S("box", CFrame.new(2.025, 1.575, 0.225), Vector3.new(0.45, 0.45, 0.45), "E8E8D1"),
 				S("box", CFrame.new(2.025, 2.025, -0.225), Vector3.new(0.45, 0.45, 0.45), "FFE8D1"),
-				S("box", CFrame.new(1.575, 1.125, -0.225), Vector3.new(0.45, 0.45, 0.45), "B97446"),
+				S("box", CFrame.new(1.575, 1.125, -0.225), Vector3.new(0.45, 0.45, 0.45), "A27446"),
 				S("box", CFrame.new(1.575, 1.575, -0.675), Vector3.new(0.45, 0.45, 0.45), "E8D1B9"),
 				S("box", CFrame.new(1.575, 1.575, -0.225), Vector3.new(0.45, 0.45, 0.45), "A25D46"),
 				S("box", CFrame.new(1.575, 1.575, 0.225), Vector3.new(0.45, 0.45, 0.45), "A28B74"),
@@ -3024,8 +3026,7 @@ ActorShapes.Actors.PirateCaptain = {
 				S("box", CFrame.new(1.125, 1.575, 0.225), Vector3.new(0.45, 0.45, 0.45), "74172E"),
 				S("box", CFrame.new(1.125, 2.025, -0.225), Vector3.new(0.45, 0.45, 0.45), "8B745D"),
 				S("box", CFrame.new(1.125, 2.025, 0.225), Vector3.new(0.45, 0.45, 0.45), "A28B8B"),
-				S("box", CFrame.new(1.125, 2.475, -0.225), Vector3.new(0.45, 0.45, 0.45), "742E2E"),
-				S("box", CFrame.new(1.125, 2.475, 0.225), Vector3.new(0.45, 0.45, 0.45), "74172E"),
+				S("box", CFrame.new(1.125, 2.475, 0), Vector3.new(0.45, 0.45, 0.9), "742E2E"),
 				S("box", CFrame.new(1.125, 2.925, 0), Vector3.new(0.45, 0.45, 0.9), "8B2E2E"),
 			},
 		},
@@ -3108,7 +3109,7 @@ ActorShapes.Actors.GoldenAgeDiva = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.2, 2.55, 0),
 			size = Vector3.new(1.498, 1.581, 0.844),
 			center = Vector3.new(-1.582, 2.981, -0.079),
 			shapes = {
@@ -3123,7 +3124,7 @@ ActorShapes.Actors.GoldenAgeDiva = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.2, 2.55, 0),
 			size = Vector3.new(1.637, 1.36, 1.374),
 			center = Vector3.new(1.666, 2.546, -0.316),
 			shapes = {
@@ -3204,7 +3205,7 @@ ActorShapes.Actors.SilentEraClown = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.2, 2.55, 0),
 			size = Vector3.new(1.572, 1.689, 0.799),
 			center = Vector3.new(-1.606, 3.029, -0.052),
 			shapes = {
@@ -3221,7 +3222,7 @@ ActorShapes.Actors.SilentEraClown = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.2, 2.55, 0),
 			size = Vector3.new(1.654, 2.225, 0.968),
 			center = Vector3.new(1.642, 2.358, -0.112),
 			shapes = {
@@ -3291,19 +3292,17 @@ ActorShapes.Actors.SciFiVisionary = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.4, 2.5, 0),
 			size = Vector3.new(1.834, 1.004, 0.684),
 			center = Vector3.new(-2.045, 2.36, 0.018),
 			shapes = {
-
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.4, 2.5, 0),
 			size = Vector3.new(1.757, 1.518, 1.081),
 			center = Vector3.new(1.912, 2.353, -0.161),
 			shapes = {
-
 			},
 		},
 		Base = {
@@ -3372,7 +3371,7 @@ ActorShapes.Actors.MogulsMuse = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 2.55, 0),
 			size = Vector3.new(1.931, 2.902, 0.72),
 			center = Vector3.new(-1.739, 3.663, -0.042),
 			shapes = {
@@ -3384,7 +3383,7 @@ ActorShapes.Actors.MogulsMuse = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.022, 2.672, 0),
+			pivot = Vector3.new(1.1, 2.55, 0),
 			size = Vector3.new(1.159, 1.42, 1.067),
 			center = Vector3.new(1.341, 2.162, -0.198),
 			shapes = {
@@ -3451,19 +3450,17 @@ ActorShapes.Actors.LastActionHero = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.8, 3.05, 0),
 			size = Vector3.new(1.436, 2.271, 1.677),
 			center = Vector3.new(-2.047, 2.3, -0.354),
 			shapes = {
-
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.8, 3.05, 0),
 			size = Vector3.new(1.242, 1.248, 2.132),
 			center = Vector3.new(1.783, 3.196, -0.832),
 			shapes = {
-
 			},
 		},
 		Base = {
@@ -3479,9 +3476,11 @@ ActorShapes.Actors.LastActionHero = {
 }
 
 ActorShapes.Actors.PhantomAuteur = {
+	wave = "ArmR",
+	float = true,
 	pieces = {
 		Body = {
-			pivot = Vector3.new(0, 1.45, 0),
+			pivot = Vector3.new(0, 4.004, 0),
 			size = Vector3.new(5.682, 7.874, 3.187),
 			center = Vector3.new(0, 4.004, 0.063),
 			shapes = {
@@ -3548,7 +3547,7 @@ ActorShapes.Actors.PhantomAuteur = {
 			},
 		},
 		ArmL = {
-			pivot = Vector3.new(-1.1, 2.4, 0),
+			pivot = Vector3.new(-1.1, 3.3, 0),
 			size = Vector3.new(1.162, 1.727, 1.316),
 			center = Vector3.new(-1.351, 3.817, -0.313),
 			shapes = {
@@ -3560,7 +3559,7 @@ ActorShapes.Actors.PhantomAuteur = {
 			},
 		},
 		ArmR = {
-			pivot = Vector3.new(1.1, 2.4, 0),
+			pivot = Vector3.new(1.2, 3.3, 0),
 			size = Vector3.new(2.027, 1.481, 1.546),
 			center = Vector3.new(1.862, 3.18, -0.402),
 			shapes = {

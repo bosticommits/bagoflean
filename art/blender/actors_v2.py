@@ -86,6 +86,8 @@ class Fig:
         self.float = False  # hovers (no feet on the ground)
         self.wave = None
         self.objs = {}
+        self.shoulders = {}  # {"ArmL"/"ArmR": (x, z)}: where each arm() really hangs from (actor space, studs)
+        self.neck_z = None  # where the head sits on the body (first head_box base + 0.25)
 
     class _Push:
         def __init__(self, stack, item):
@@ -451,6 +453,8 @@ def head_box(f, skin, r=0.95, cuts=0, w=HEAD_W, d=HEAD_D, h=HEAD_H, z0=HEAD_Z0, 
     ~29% of the head width, 3 segments, so it reads as a pill/pillow but keeps a flat-ish face centre. The
     shape is analytic, so face features can sit exactly on its surface (see head_surf / head_at)."""
     HEAD.update(w=w, d=d, h=h, z0=z0, r=r)
+    if f.neck_z is None:
+        f.neck_z = float((f.stack[-1] @ Vector((0, 0, z0))).z) + 0.25
     with f.piece("Head"):
         f.rbox((0, 0, z0 + h / 2), (w, d, h), skin, bevel=r, segs=segs, cuts=cuts, min_angle=30)
 
@@ -591,6 +595,9 @@ def arm(f, side, sleeve, skin, rot=(0, 0, 0), held=None, x=1.1, length=0.95, mit
     """An arm from the shoulder. rot swings it (X forward/back, Y out, Z twist). `held` draws a prop in the
     hand's frame (z=0 at the hand centre). mitt = hand colour override."""
     name = "ArmL" if side > 0 else "ArmR"
+    if name not in f.shoulders:  # the real shoulder (current frame included, e.g. a hovering actor)
+        sh = f.stack[-1] @ Vector((side * x, 0, shoulder_z))
+        f.shoulders[name] = (float(sh.x), float(sh.z))
     with f.piece(name), f.at((side * x, 0, shoulder_z), (rot[0], -side * rot[1], rot[2])):
         f.rcyl((0, 0, -length / 2 + 0.1), sleeve_r, sleeve_r * 0.92, length + 0.2, sleeve, seg=7, bevel=0.0)
         f.ball((0, 0, -length - 0.1), (0.32, 0.3, 0.32), mitt or skin, seg=7, rings=4)
