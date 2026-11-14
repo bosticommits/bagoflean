@@ -27,7 +27,7 @@ local notForSale: { [string]: boolean } = {} -- cacheKey -> Roblox says IsForSal
 -- Fetches a price once in the background and calls `onPrice` when it arrives.
 local function fetchPrice(kind: string, id: number, key: string, onPrice: () -> ())
 	local cacheKey = kind .. ":" .. key
-	-- shortcut: an off-sale item stays "Soon" until the player rejoins (no re-check), upgrade if sales toggle often.
+	-- shortcut: an off-sale item stays hidden until the player rejoins (no re-check), upgrade if sales toggle often.
 	if prices[cacheKey] ~= nil or notForSale[cacheKey] or fetching[cacheKey] or id == 0 then
 		return
 	end
@@ -116,6 +116,12 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		end
 		table.sort(priceKeys)
 		table.insert(parts, table.concat(priceKeys, ","))
+		local offSale = {}
+		for key in notForSale do
+			table.insert(offSale, key)
+		end
+		table.sort(offSale)
+		table.insert(parts, table.concat(offSale, ","))
 		return table.concat(parts, "|")
 	end
 
@@ -162,13 +168,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 	end
 
 	local function priceText(kind: string, id: number, key: string): string
-		if id == 0 then
-			return "Soon"
-		end
 		fetchPrice(kind, id, key, rebuildIfOpen)
-		if notForSale[kind .. ":" .. key] then
-			return "Soon"
-		end
 		local price = prices[kind .. ":" .. key]
 		return if price ~= nil then "R$ " .. Hud.comma(price) else "Buy"
 	end
@@ -197,6 +197,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 			local layout = Instance.new("UIGridLayout")
 			layout.CellSize = UDim2.new(0.5, -8, 0, if UiKit.isCompact() then 172 else 196)
 			layout.CellPadding = UDim2.fromOffset(10, 10)
+			layout.HorizontalAlignment = Enum.HorizontalAlignment.Center -- an odd last card sits centred
 			layout.SortOrder = Enum.SortOrder.LayoutOrder
 			layout.Parent = g
 			local pad = Instance.new("UIPadding")
@@ -291,10 +292,8 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 				ownedLabel(c, "Not available", UiKit.MUTED)
 			else
 				local text = priceText("pass", pass.id, pass.key)
-				priceButton(c, text, text ~= "Soon").Activated:Connect(function()
-					if text == "Soon" then
-						UiKit.toast(gui, "Coming soon!")
-					elseif promptAllowed() then
+				priceButton(c, text, true).Activated:Connect(function()
+					if promptAllowed() then
 						MarketplaceService:PromptGamePassPurchase(player, pass.id)
 					end
 				end)
@@ -307,7 +306,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 		-- the grid below.
 		local featured = Shop.getPass(FEATURED)
 		local featuredShown = false
-		-- An off-sale or unset pass is not the one main action: it stays a normal "Soon" card in the grid.
+		-- An off-sale or unset pass is not the one main action: it is hidden (the grid skips it).
 		if
 			featured ~= nil
 			and featured.id ~= 0
@@ -388,11 +387,7 @@ function ShopUi.start(gui: ScreenGui, shopButton: TextButton, cashButton: TextBu
 				continue
 			end
 			local text = priceText("product", product.id, product.key)
-			priceButton(c, text, text ~= "Soon").Activated:Connect(function()
-				if text == "Soon" then
-					UiKit.toast(gui, "Coming soon!")
-					return
-				end
+			priceButton(c, text, true).Activated:Connect(function()
 				if not promptAllowed() then
 					return
 				end
