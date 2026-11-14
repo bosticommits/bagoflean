@@ -84,7 +84,7 @@ function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 	local clearW, clearH = pick(compact, 84, 130), pick(compact, 40, 52)
 	local goW, goH = pick(compact, 128, 210), pick(compact, 40, 56)
 	-- Start's halo (5 px gap + up to 5 px stroke at full pulse) needs about 12 px to the panel edge.
-	local goRight = pick(compact, pad + 4, pad)
+	local goRight = pick(compact, pad + 6, pad)
 	local minText = pick(compact, 110, 150)
 	local lineH, lineGap = pick(compact, 18, 24), pick(compact, 2, 4)
 	local textX = pad + slots * s + (slots - 1) * slotGap + textGap
@@ -92,7 +92,7 @@ function PickerLayout.footer(w: number, compact: boolean, slots: number): Footer
 	local clearX = goX - btnGap - clearW
 	local textW = clearX - textRightGap - textX
 	local twoRow = textW < minText
-	local f = pick(compact, 64, 84)
+	local f = pick(compact, 70, 84)
 	local centres: { { x: number, y: number } } = {}
 	local textRect: Rect
 	local clear: Rect
@@ -153,7 +153,8 @@ function PickerLayout.body(w: number, h: number, compact: boolean, footerH: numb
 	}
 end
 
-PickerLayout.GRID_PADDING = 3 -- UIPadding on every side of the cast pane
+PickerLayout.GRID_PADDING = 3 -- UIPadding left/right of the cast pane
+PickerLayout.GRID_PAD_Y = 5 -- top/bottom: matches the scripts pane (card outlines draw 3 px outside)
 
 -- Actor card grid for a cast pane whose scroll window is `windowW` wide (padding not included).
 function PickerLayout.grid(windowW: number, compact: boolean): Grid

@@ -62,24 +62,24 @@ for _, d in devices do
 	end)
 end
 
-test("footer numbers: PC slot centres 40/104/168, iPhone 7 text x150 and Start x378 (40 tall, 12 from the edge)", function()
+test("footer numbers: PC slot centres 40/104/168, iPhone 7 text x150 and Start x376 (40 tall, 14 from the edge)", function()
 	local pc = PL.footer(760, false, 3)
 	equal(pc.height, 84)
 	equal(pc.slotCentres[1].x, 40) equal(pc.slotCentres[2].x, 104) equal(pc.slotCentres[3].x, 168)
 	equal(pc.slotCentres[1].y, 42)
 	equal(pc.text.x, 212) equal(pc.text.w, 172) equal(pc.clear.x, 398) equal(pc.go.x, 538)
 	local ph = PL.footer(518, true, 3)
-	equal(ph.height, 64)
-	equal(ph.text.x, 150) equal(ph.clear.x, 286) equal(ph.go.x, 378) equal(ph.go.w, 128) equal(ph.go.h, 40)
+	equal(ph.height, 70)
+	equal(ph.text.x, 150) equal(ph.clear.x, 284) equal(ph.go.x, 376) equal(ph.go.w, 128) equal(ph.go.h, 40)
 	local ph14 = PL.footer(596, true, 3)
-	equal(ph14.go.x, 456) equal(ph14.clear.x, 364) equal(ph14.text.w, 204)
+	equal(ph14.go.x, 454) equal(ph14.clear.x, 362) equal(ph14.text.w, 202)
 end)
 
 test("a narrow panel falls back to a taller two-row footer", function()
 	local f = PL.footer(420, true, 3)
 	expect(f.twoRow, "two rows")
 	equal(f.height, 104)
-	equal(f.go.x + f.go.w, 420 - 12) -- same right margin as one row
+	equal(f.go.x + f.go.w, 420 - 14) -- same right margin as one row
 	local pc = PL.footer(520, false, 3)
 	expect(pc.twoRow, "PC two rows")
 	equal(pc.height, 136)
