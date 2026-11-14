@@ -7,7 +7,7 @@ that look smoother; once you import them, the game uses them automatically.
 | File | What it builds |
 |---|---|
 | `src/shared/Models/Build.luau` | Part builder, palette, and the Blender mesh lookup |
-| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 365 mesh templates currently in the Studio place |
+| `src/shared/LotMeshManifest.luau` | Roblox asset IDs and template properties for the 366 mesh templates currently in the Studio place |
 | `tools/studio/rebuild_lot_meshes.luau` | Studio Command Bar script that rebuilds and verifies `ReplicatedStorage.LotMeshes` from the manifest |
 | `src/shared/Models/LotModels.luau` | Sound stage, cinema (7 looks), office (6 levels), billboard, gate, hedges, palm, lamp, searchlight, film camera, kiosk, trophies, pedestal. Also the lot layout |
 | `src/shared/Models/LotLook.luau` | Puts the pieces together for a lot at a given progress |
@@ -125,6 +125,7 @@ Do this once. Until you do, the game shows the part-built versions, so nothing b
 | `mystery_crate_lid.fbx` | `MysteryCrateLid` |
 | `crate_parachute.fbx` | `CrateParachute` |
 | `festival_laurel.fbx` | `FestivalLaurel` |
+| `founder_star.fbx` (mesh id 95825724892724, from `founder_star.py`) | `FounderStar` |
 | `pumpkin_phantom.fbx` | `PumpkinPhantom` |
 | `jingle_jester.fbx` | `JingleJester` |
 | `cupid_crooner.fbx` | `CupidCrooner` |
@@ -183,8 +184,8 @@ FilmCamera 77852003238264, TrophyGold 116029839516908, FestivalLaurel 9076928755
 
 ## Rebuild the saved mesh library
 
-`src/shared/LotMeshManifest.luau` is the committed source for the 365 mesh templates currently in
-the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces, the eight-piece premiere kit (`PremiereKit`, asset 95738350014256), the two sound stage meshes (`lot_stage_kit`), the 14 cinema meshes (`lot_cinema_kit`), the 12-mesh lot office kit (`lot_office_kit`, asset 77336967160126), the nine lot dressing meshes (`lot_dressing_kit`), six single props (`PalmTree`, `Searchlight`, `FilmCamera`, `FilmReelLogo`, `TrophyGold`, `FestivalLaurel`, each a model of that name) and the 271-mesh map kit
+`src/shared/LotMeshManifest.luau` is the committed source for the 366 mesh templates currently in
+the place: the three Mystery Crate pieces, seven Halloween props, 33 Town Life pieces, the eight-piece premiere kit (`PremiereKit`, asset 95738350014256), the two sound stage meshes (`lot_stage_kit`), the 14 cinema meshes (`lot_cinema_kit`), the 12-mesh lot office kit (`lot_office_kit`, asset 77336967160126), the nine lot dressing meshes (`lot_dressing_kit`), seven single props (`PalmTree`, `Searchlight`, `FilmCamera`, `FilmReelLogo`, `TrophyGold`, `FestivalLaurel`, `FounderStar`, each a model of that name) and the 271-mesh map kit
 (`map_kit`, asset 80189346190801). It records
 each Roblox mesh asset ID, template size, appearance and physics properties, plus its group name.
 Other Blender models listed above are not in this snapshot until they have been imported into the
