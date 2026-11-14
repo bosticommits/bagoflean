@@ -9,6 +9,9 @@
 -- { "ALL" } switches every special event off; an empty list {} turns them all back on.
 -- "FilmFestival" in DisabledEvents switches the weekly Film Festival off (its goals and laurels).
 -- "GlobalPulls" switches the cross-server Legend/Icon news off (sending and showing).
+-- Luck Weekend: Numbers { CastingLuckMultiplier = 1.5 } turns extra Luck on for everyone and shows the
+-- HUD badge. Optional LuckWeekendUntil = os.time() of the end only drives the badge countdown; it does NOT
+-- switch the Luck off, so reset CastingLuckMultiplier (remove it from Numbers) when the weekend ends.
 -- Numeric overrides are an explicit allowlist (Shared.LiveConfigNumbers); invalid/out-of-range
 -- values are ignored, and a failed read keeps the last known values.
 local DataStoreService = game:GetService("DataStoreService")
