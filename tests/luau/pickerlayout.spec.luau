@@ -67,12 +67,12 @@ test("footer numbers: PC slot centres 40/104/168, iPhone 7 text x150 and Start x
 	equal(pc.height, 84)
 	equal(pc.slotCentres[1].x, 40) equal(pc.slotCentres[2].x, 104) equal(pc.slotCentres[3].x, 168)
 	equal(pc.slotCentres[1].y, 42)
-	equal(pc.text.x, 212) equal(pc.text.w, 172) equal(pc.clear.x, 398) equal(pc.go.x, 538)
+	equal(pc.text.x, 212) equal(pc.text.w, 164) equal(pc.clear.x, 390) equal(pc.go.x, 538)
 	local ph = PL.footer(518, true, 3)
 	equal(ph.height, 70)
-	equal(ph.text.x, 150) equal(ph.clear.x, 284) equal(ph.go.x, 376) equal(ph.go.w, 128) equal(ph.go.h, 40)
+	equal(ph.text.x, 150) equal(ph.clear.x, 274) equal(ph.go.x, 376) equal(ph.go.w, 128) equal(ph.go.h, 40)
 	local ph14 = PL.footer(596, true, 3)
-	equal(ph14.go.x, 454) equal(ph14.clear.x, 362) equal(ph14.text.w, 202)
+	equal(ph14.go.x, 454) equal(ph14.clear.x, 352) equal(ph14.text.w, 192)
 end)
 
 test("a narrow panel falls back to a taller two-row footer", function()
@@ -128,4 +128,16 @@ end)
 test("grid cell height follows the width", function()
 	local g = PL.grid(498, false)
 	equal(g.cellH, math.floor(g.cellW * 0.62 + 0.5) + 52)
+end)
+
+test("Start's halo (10 px out) stays 8 px clear of Clear cast, and a phone grid fills its 3 columns within the room", function()
+	for _, d in { { 518, true }, { 596, true }, { 760, false } } do
+		local f = PL.footer(d[1], d[2], 3)
+		expect(f.go.x - (f.clear.x + f.clear.w) >= 18, "halo gap")
+	end
+	for _, windowW in { 334, 340, 394 } do
+		local g = PL.grid(windowW, true)
+		expect(g.cols * g.cellW + (g.cols - 1) * g.gap <= windowW - 2 * PL.GRID_PADDING - 2, "cells fit the room")
+		equal(g.cols, 3)
+	end
 end)

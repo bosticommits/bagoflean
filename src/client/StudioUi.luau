@@ -705,8 +705,11 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			entry.bonus.Size = if pickerCompact then UDim2.fromOffset(72, 18) else UDim2.fromOffset(86, 22)
 		end
 	end
-	castList:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(function()
-		local width = castList.AbsoluteWindowSize.X
+	-- The grid's room is the frame's width minus the always-on scrollbar. AbsoluteWindowSize is not
+	-- used: it still counted the scrollbar, so cards were sized about 4 px too wide for 3 columns
+	-- and the third one wrapped (2 columns and an empty third on phones).
+	castList:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		local width = castList.AbsoluteSize.X - castList.ScrollBarThickness
 		if width > 0 and width ~= castWindowW then
 			castWindowW = width
 			relayoutGrid()
