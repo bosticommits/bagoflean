@@ -793,11 +793,13 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 	-- The film's cast on the carpet, facing the camera.
 	local cast = if type(result.cast) == "table" then result.cast else {}
 	local count = math.min(#cast, 3)
+	-- Spaced for the widest figures (4.6-5.7 studs with hats, wings and sidekicks), so neighbours never overlap.
+	local castSpacing = 6
 	for slot = 1, count do
 		local key = cast[slot]
 		if type(key) == "string" then
 			local parts3 = string.split(key, ":")
-			local pos = at(stage, 10, (slot - (count + 1) / 2) * 3.6, 0)
+			local pos = at(stage, 10, (slot - (count + 1) / 2) * castSpacing, 0)
 			local base = CFrame.lookAt(pos, pos + stage.f)
 			local model = ActorModels.build(folder, base, parts3[1] or "", parts3[2])
 			noCollide(model)
