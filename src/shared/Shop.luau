@@ -121,6 +121,12 @@ function Shop.blocksReceipt(alreadyGranted: boolean, randomItems: boolean?, rest
 	return not alreadyGranted and Shop.blocksPurchase(randomItems, restricted)
 end
 
+-- Whether a shop card is worth drawing: hide only an unset id (0) or one Roblox confirmed is off sale.
+-- An owned pass always shows; a failed price lookup (`notForSale` stays false) keeps the Buy card.
+function Shop.shouldShow(id: number, notForSale: boolean, owned: boolean): boolean
+	return owned or (id ~= 0 and not notForSale)
+end
+
 function Shop.getPass(key: string): Pass?
 	return passByKey[key]
 end
