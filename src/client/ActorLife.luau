@@ -40,6 +40,9 @@ local function register(model: Instance)
 	if not model:IsA("Model") or rigs[model] ~= nil or not model:IsDescendantOf(Workspace) then
 		return
 	end
+	if model:FindFirstAncestorWhichIsA("ViewportFrame") ~= nil then
+		return -- portraits (lot billboard) stand still
+	end
 	local root = model.WorldPivot
 	local rig: Rig = {
 		model = model,
