@@ -1,6 +1,6 @@
 # Actors v2: 21 → 30 everyday actors + polish pass
 
-Status: design, 2026-11-14. Ships before the Nov 18 soft launch (user decision 2026-11-14).
+Status: shipped (PRs #154, #156, #157). Designed 2026-11-14. Ships before the Nov 18 soft launch (user decision 2026-11-14).
 No code in this PR. Builds on `src/shared/Actors.luau`, `art/blender/actors.py`,
 `ECONOMY.md` and the vault's `Movie Mogul/UI Taste Rules.md` + `Actor References.md`.
 
@@ -14,6 +14,17 @@ on the Command Center.
 
 User decisions (2026-11-14): 9 new everyday actors (21 → 30), only the 5 existing genres, the same
 chunky figurine style but polished, all of it before Nov 18.
+
+## As shipped (2026-11-15)
+
+Where the plan below differs, the shipped version wins. Superseded lines are struck through and
+kept, not deleted.
+
+- **Index5** is a fixed target of **30** ("Discover all 30 actors"). A future expansion adds an Index6. Not `#Actors.List`.
+- **Collection grid** stays **3 per row**; a tier of 5 shows as 3 + 2.
+- **Height cap** on the Rare Wall and pedestal is `ActorFit.MaxHeight` **8.3** studs. Only Witch, Astronaut and Time Tourist shrink to fit. Not ≤ 6.7.
+- **Rare Wall** is 0.75 taller, with nameplates raised.
+- **Per-actor odds** at Open Casting, Luck 1: **1 in 6 / 31 / 200 / 3,500 / 32,000** for Newcomer / Rising / Pro / Star / Superstar. Legend and Icon unchanged.
 
 ---
 
@@ -149,17 +160,17 @@ long tail (Legend row, all-but-Icons, first Icon) is unchanged within noise.
 | Index2 | 15 | 20 | lands in the first ~15 min, like 15 today |
 | Index3 | 30 | 45 | sim: day 3 (116 min), same day as today's 30 (day 3, 107 min) |
 | Index4 | 45 | 65 | stretch into week 2 like today's 45 (35% by day 14); sim median is 67 slots at day 14, 60 at day 8 |
-| Index5 | all 21 actors | `#Actors.List` (30) | text built from the count so it can't drift again |
+| ~~Index5~~ | ~~all 21 actors~~ | ~~`#Actors.List` (30)~~ | ~~text built from the count~~ *Superseded: fixed target 30, see As shipped* |
 
   Texts: Index1–4 say "Fill N Index slots" (today "Discover 30 actors in the Index" would sit next
-  to "Discover all 30 actors" and read as the same goal). Index5: `` `Discover all {#Actors.List} actors` ``.
+  to "Discover all 30 actors" and read as the same goal). ~~Index5: `` `Discover all {#Actors.List} actors` ``.~~ *Superseded: `Discover all 30 actors`.*
 
 ### Every place that says 21 / 63 / 3-per-tier
 
 | File:line | Now | Change |
 |---|---|---|
 | `src/shared/Achievements.luau:58-60` | Index2-4 targets 15/30/45, "Discover N actors in the Index" | 20/45/65, "Fill N Index slots" |
-| `src/shared/Achievements.luau:61` | `target = 21`, "Discover all 21 actors" | `target = #Actors.List`, text from the count |
+| ~~`src/shared/Achievements.luau:61`~~ | ~~`target = 21`, "Discover all 21 actors"~~ | ~~`target = #Actors.List`, text from the count~~ *Superseded: `target = 30`, "Discover all 30 actors"* |
 | `src/shared/Models/ActorModels.luau:2` | "The 21 castable actors" | "The castable actors" (no number) |
 | `tests/luau/actors.spec.luau:13-17` | every tier has 3, IndexSlots 63 | per-tier table {5,5,5,5,4,3,3}, IndexSlots 90 |
 | `tests/luau/limited.spec.luau:67` | `equal(#actorsInTier(limited.tier), 3)` | compare with the count before the season, not 3 |
@@ -274,7 +285,7 @@ decisions: **no outline**, **escalate the silhouette from Superstar up**, **rewo
 - Rig pieces stay **Body, Head, ArmL, ArmR, Base**; mesh names `<ActorId>_<Piece>`; feet on y = 0,
   facing -Z; pivots at hip, neck and shoulders (per actor in the generated file, so per-template
   shoulder widths are fine).
-- Stay inside today's envelope so cards, pedestals and the Rare Wall need no change: height ≤ 6.7,
+- Stay inside today's envelope so cards, pedestals and the Rare Wall need no change: ~~height ≤ 6.7~~ *(superseded: height cap is `ActorFit.MaxHeight` 8.3)*,
   width ≤ 4.6, depth ≤ 3.6 studs (today's max: Showgirl Diva 6.65 tall, Muse 4.50 wide, Commando
   3.52 deep).
 - The Award medal is placed by code at chest height y 1.95–2.3, z ≈ -0.8
@@ -329,7 +340,7 @@ can land, then again after A3. Don't stack B on the art branch.
 
 Before: user clicks Connect in Rojo after `rojo-switch.sh`; check no playtest is running; snapshot
 the save.
-1. Collection: 5-card tier rows, names fit, black silhouettes tell apart, counter `x/90`.
+1. Collection: ~~5-card tier rows~~ *(superseded: 3 per row, tiers of 5 show 3 + 2)*, names fit, black silhouettes tell apart, counter `x/90`.
 2. Odds panel: "Each actor in this tier" shows 1 in 3,500 for Star at Luck 1 (Open).
 3. Cast ~50 at Open: reveal card odds text, a new actor's reveal, pull news "(1 in 32,000)" for a Superstar.
 4. Lot: top star pedestal and Rare Wall with a new Superstar (Squawk); figure fits the pedestal.
@@ -373,8 +384,8 @@ upgrades the 21.
    (rebuildable) · b) you import the FBX by hand in Studio · c) parts only for launch.
 8. **Index achievement wording?** a) "Fill 45 Index slots" + "Discover all 30 actors" · b) keep
    "Discover N actors in the Index".
-9. **Collection rows with 5 cards?** a) keep 3 columns, centre the short row (1 line, check in rur) ·
-   b) 5 columns on PC, 3 on phone · c) leave left-aligned.
+9. ~~**Collection rows with 5 cards?** a) keep 3 columns, centre the short row (1 line, check in rur) ·
+   b) 5 columns on PC, 3 on phone · c) leave left-aligned.~~ *Answered: a), as shipped (3 per row, tiers of 5 show 3 + 2).*
 10. **Names OK?** a) as listed · b) I want to rename some (say which).
 11. **Store text?** a) builder updates `STORE_LISTING.md`; you paste the line into Creator Hub on
     publish day · b) leave the store at "21" until after launch.
