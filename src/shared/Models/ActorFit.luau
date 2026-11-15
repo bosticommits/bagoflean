@@ -6,6 +6,12 @@ local ActorFit = {}
 -- Wobbly Witch (9.85), Cardboard Astronaut (8.86) and Time Tourist (8.38) are taller and get clamped.
 ActorFit.MaxHeight = 8.3
 
+-- Tallest a Rare Wall figure may be (studs above its feet at `feetY`) so its top stays at or under `nameplateBottomY`.
+-- Both are heights in the wall's frame. The figure's own scale is already folded into the measured height.
+function ActorFit.wallCap(feetY: number, nameplateBottomY: number): number
+	return math.max(nameplateBottomY - feetY, 0)
+end
+
 -- The scale factor (<= 1, never grows a figure) that makes a figure of `width` x `height` studs fit inside
 -- `maxWidth` x `maxHeight`. A limit of nil (or 0 for a measured size) is ignored.
 function ActorFit.shrink(width: number, height: number, maxWidth: number?, maxHeight: number?): number

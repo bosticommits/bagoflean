@@ -8,6 +8,7 @@ CardLayout.MIN_BUTTON = 44 -- tap height
 CardLayout.CLEAR = 20 -- stats bottom to the halo's outer edge
 CardLayout.HALO = 8 -- how far the Cast again halo reaches past the button (5 gap + half the stroke)
 CardLayout.MIN_STATS = 30
+CardLayout.NAME_GAP = 0.035 -- card heights between the name and the ribbon
 
 export type Layout = {
 	artY: number, -- every field below is a fraction of the card's height
@@ -27,7 +28,7 @@ function CardLayout.cardScale(overlayHeight: number): number
 	return if overlayHeight < 500 then 0.9 else 0.72
 end
 
-function CardLayout.compute(cardHeight: number): Layout
+function CardLayout.compute(cardHeight: number, cardWidth: number?): Layout
 	local h = math.max(cardHeight, 1)
 	local buttonH = math.max(CardLayout.MIN_BUTTON, 0.12 * h)
 	local pad = 0.015 * h
@@ -36,7 +37,12 @@ function CardLayout.compute(cardHeight: number): Layout
 	local statsTop = buttonTop - CardLayout.HALO - CardLayout.CLEAR - statsH
 	local band = 0.09 * h -- the name and the ribbon
 	local ribbonY = statsTop - 0.02 * h - band
-	local nameY = ribbonY - band
+	-- The ribbon is tilted 3 degrees and its outline reaches past it, so the name keeps a gap above it: otherwise the
+	-- rarity banner (SUPERSTAR) cuts the bottom of the name on a phone.
+	-- A long name reaches 0.45 of the card's width either side of the middle, where the tilted ribbon has risen
+	-- 0.45 * w * sin(3 deg): give it that plus 4 px (outline), less the text's own descent (15% of the band).
+	local tilt = if cardWidth ~= nil then 0.45 * cardWidth * math.sin(math.rad(3)) + 4 - 0.15 * band else 0
+	local nameY = ribbonY - band - math.max(CardLayout.NAME_GAP * h, tilt)
 	local artY = 0.08 * h
 	return {
 		artY = artY / h,
