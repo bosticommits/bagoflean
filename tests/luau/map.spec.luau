@@ -112,9 +112,11 @@ end)
 test("every stand opens a screen the client knows", function()
 	local registered = {}
 	for _, file in fs.readDir("src/client") do
-		local source = fs.readFile(`src/client/{file}`)
-		for name in string.gmatch(source, 'Screens%.register%("([%w]+)"') do
-			registered[name] = true
+		if fs.isFile(`src/client/{file}`) then -- skip folders such as Vendor/
+			local source = fs.readFile(`src/client/{file}`)
+			for name in string.gmatch(source, 'Screens%.register%("([%w]+)"') do
+				registered[name] = true
+			end
 		end
 	end
 	local seen = {}
