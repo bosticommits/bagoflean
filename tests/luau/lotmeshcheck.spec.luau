@@ -15,8 +15,8 @@ end)
 
 test("missing: real manifest against an empty place reports every template", function()
 	local missing, total = LotMeshCheck.missing(Manifest.meshes, {})
-	equal(total, 366)
-	equal(#missing, 366)
+	equal(total, 516)
+	equal(#missing, 516)
 end)
 
 test("summary: all present, and truncation to the first 20", function()
@@ -29,4 +29,50 @@ test("summary: all present, and truncation to the first 20", function()
 	expect(string.find(s, "5 of 30 present, 25 missing", 1, true) ~= nil, s)
 	expect(string.find(s, "M20", 1, true) ~= nil and string.find(s, "M21", 1, true) == nil, s)
 	expect(string.find(s, "(+5 more)", 1, true) ~= nil, s)
+end)
+
+test("every actor (all 30) has its five rig-piece rows in the manifest (real ids)", function()
+	local ActorShapes = H.require("Models/ActorShapes")
+	local Actors = H.require("Actors")
+	local byName = {}
+	for _, entry in Manifest.meshes do
+		byName[entry.name] = entry
+	end
+	for _, actorEntry in Actors.List do
+		local id = actorEntry.id
+		expect(ActorShapes.Actors[id] ~= nil, `{id} has no ActorShapes rig`)
+		expect(Actors.getActor(id) ~= nil, `{id} is not an actor`)
+		for _, piece in ActorShapes.Pieces do
+			local entry = byName[`{id}_{piece}`]
+			expect(entry ~= nil, `missing manifest row {id}_{piece}`)
+			expect(entry.assetId >= 0, `{id}_{piece} has a bad asset id`)
+		end
+	end
+end)
+
+test("pending rows are exactly the placeholders: real rows have an id and a real size", function()
+	local pending = 0
+	for _, entry in Manifest.meshes do
+		if entry.assetId > 0 then
+			expect(entry.pending ~= true, `{entry.name} has an id but is flagged pending`)
+			local s = entry.size
+			expect(not (s[1] == 1 and s[2] == 1 and s[3] == 1), `{entry.name} has an id but the placeholder size 1x1x1`)
+		else
+			expect(entry.pending == true, `{entry.name} has assetId 0 but is not flagged pending`)
+			pending += 1
+		end
+	end
+	equal(pending, 0, "no pending rows: all 30 actors are uploaded")
+end)
+
+test("manifest names are unique", function()
+	local seen = {}
+	for _, entry in Manifest.meshes do
+		expect(not seen[entry.name], `duplicate manifest name {entry.name}`)
+		seen[entry.name] = true
+	end
+end)
+
+test("Captain Kapow hovers", function()
+	expect(H.require("Models/ActorShapes").Actors.CaptainKapow.float == true, "Kapow hovers")
 end)

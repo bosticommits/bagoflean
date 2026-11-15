@@ -10,11 +10,88 @@ local function sum(t: { [string]: number }): number
 	return total
 end
 
-test("every tier has 3 actors and the Index has 63 slots", function()
+-- Actors v2 (docs/design/actors-v2.md): 30 actors, 5/5/5/5/4/3/3 per tier, 90 Index slots.
+local TIER_SIZES: { [string]: number } = { Newcomer = 5, Rising = 5, Pro = 5, Star = 5, Superstar = 4, Legend = 3, Icon = 3 }
+
+test("every tier has its planned actors and the Index has 90 slots", function()
 	for _, tier in Actors.Tiers do
-		equal(#Actors.actorsInTier(tier.id), 3, `actors in {tier.id}`)
+		equal(#Actors.actorsInTier(tier.id), TIER_SIZES[tier.id], `actors in {tier.id}`)
 	end
-	equal(Actors.IndexSlots, 63, "Index slots")
+	equal(#Actors.List, 30, "actors")
+	equal(Actors.IndexSlots, 90, "Index slots")
+end)
+
+-- MERGE GATE: fails until the art PR (A2/A3) regenerates ActorShapes with a rig for every actor;
+-- until then ActorModels.build falls back to the Nervous Intern for the nine new ids.
+test("every Actors.List id has an ActorShapes.Actors rig", function()
+	local ActorShapes = H.require("Models/ActorShapes")
+	for _, actor in Actors.List do
+		expect(ActorShapes.Actors[actor.id] ~= nil, `{actor.id} has no ActorShapes rig`)
+	end
+end)
+
+test("the nine Actors v2 actors are there with their planned tier, genre and name", function()
+	local planned = {
+		{ "WerewolfPup", "Werewolf Pup", "Newcomer", "Horror" },
+		{ "CardboardAstronaut", "Cardboard Astronaut", "Newcomer", "Sci-Fi" },
+		{ "RodeoRookie", "Rodeo Rookie", "Rising", "Action" },
+		{ "WobblyWitch", "Wobbly Witch", "Rising", "Horror" },
+		{ "LagoonMermaid", "Lagoon Mermaid", "Pro", "Romance" },
+		{ "TimeTourist", "Time Tourist", "Pro", "Sci-Fi" },
+		{ "CaptainKapow", "Captain Kapow", "Star", "Action" },
+		{ "InspectorWhoops", "Inspector Whoops", "Star", "Comedy" },
+		{ "PirateCaptain", "Captain Squawk", "Superstar", "Comedy" },
+	}
+	for _, row in planned do
+		local actor = Actors.getActor(row[1])
+		expect(actor ~= nil, `{row[1]} missing`)
+		local a = actor :: Actors.Actor
+		equal(a.name, row[2], `{row[1]} name`)
+		equal(a.tier, row[3], `{row[1]} tier`)
+		equal(a.genre, row[4], `{row[1]} genre`)
+	end
+end)
+
+test("the 21 original actor ids are untouched (saved data keys them)", function()
+	local original = {
+		"NervousIntern", "StuntDouble", "BackgroundExtra", "SoapRegular", "AdModel", "IndieSidekick",
+		"ActionVeteran", "ComedyDuo", "NightShiftVillain", "TeenHeartthrob", "MethodActor", "SpaceCaptain",
+		"BoxOfficeKing", "ScreamQueen", "RomComSweetheart", "GoldenAgeDiva", "SilentEraClown", "SciFiVisionary",
+		"MogulsMuse", "LastActionHero", "PhantomAuteur",
+	}
+	for _, id in original do
+		expect(Actors.getActor(id) ~= nil, `{id} was removed or renamed`)
+	end
+	-- Inside a tier the old actors keep their relative order (TopStudios breaks ties by position).
+	local index = {}
+	for i, actor in Actors.List do
+		index[actor.id] = i
+	end
+	for i = 2, #original do
+		local prev, cur = Actors.getActor(original[i - 1]) :: Actors.Actor, Actors.getActor(original[i]) :: Actors.Actor
+		if prev.tier == cur.tier then
+			expect(index[prev.id] < index[cur.id], `{cur.id} moved before {prev.id}`)
+		end
+	end
+end)
+
+test("per-actor odds: each tier's chance splits evenly, so tier totals are unchanged and sum to 1", function()
+	for _, luck in { 1, 2, 10 } do
+		for _, agency in Actors.Agencies do
+			local chances = Actors.tierChances(luck, agency.minTier)
+			local total = 0
+			for _, tier in Actors.Tiers do
+				local actors = Actors.actorsInTier(tier.id)
+				local each = chances[tier.id] / #actors
+				total += each * #actors
+			end
+			near(total, 1, 1e-9, `luck {luck} {agency.id}`)
+		end
+	end
+	-- Plan: one actor at Open Casting, Luck 1.
+	local open = Actors.tierChances(1, 1)
+	near(1 / (open.Star / 5), 3500, 1, "a Star actor is 1 in 3,500")
+	near(1 / (open.Superstar / 4), 32000, 1, "a Superstar actor is 1 in 32,000")
 end)
 
 test("actor ids are unique and every actor has a real tier and genre", function()

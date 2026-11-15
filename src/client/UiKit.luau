@@ -2,12 +2,15 @@
 -- Small helpers shared by the screens: colors, labels, buttons, panels, toasts, layout.
 -- The look follows the design kit (ART_STYLE.md section 10): navy panels with colored title bars,
 -- thick dark outlines, chunky bright buttons and outlined white display text.
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local Actors = require(ReplicatedStorage.Shared.Actors)
 local PickerLayout = require(ReplicatedStorage.Shared.PickerLayout)
+local TouchHold = require(ReplicatedStorage.Shared.TouchHold)
 local TutorialPill = require(ReplicatedStorage.Shared.TutorialPill)
 local Icon3D = require(script.Parent.Icon3D)
 local Juice = require(script.Parent.Juice)
@@ -261,6 +264,37 @@ function UiKit.makeButton(parent: Instance, text: string, color: Color3, size: U
 	return button
 end
 
+-- A small chunky button with a bigger invisible tap area (touch targets are 44 px): the returned TextButton
+-- is the hit box (`hit` px square, transparent); its "Face" child is the painted `face` px button, which sits
+-- centred in it unless the caller moves it. Face parts are not buttons, so every tap lands on the hit box.
+function UiKit.makeHitButton(parent: Instance, text: string, color: Color3, face: number, hit: number): TextButton
+	local button = Instance.new("TextButton")
+	button.AutoButtonColor = false
+	button.BackgroundTransparency = 1
+	button.Text = ""
+	button.Size = UDim2.fromOffset(hit, hit)
+	button.Parent = parent
+	local paint = Instance.new("Frame")
+	paint.Name = "Face"
+	paint.AnchorPoint = Vector2.new(0.5, 0.5)
+	paint.Position = UDim2.fromScale(0.5, 0.5)
+	paint.Size = UDim2.fromOffset(face, face)
+	paint.BackgroundColor3 = color
+	paint.Parent = button
+	UiKit.corner(paint, 12)
+	UiKit.border(paint, 4)
+	UiKit.bevel(paint)
+	local label = UiKit.makeTitle(paint, text, UiKit.WHITE, UDim2.fromScale(1, 1), nil, 2.5)
+	UiKit.textConstraint(label, 26)
+	Juice.press(button)
+	button.Activated:Connect(function()
+		if not button:GetAttribute("Silent") then
+			Sfx.play("click")
+		end
+	end)
+	return button
+end
+
 -- Grows a little under the pointer and dips when pressed, like the reference games' buttons.
 -- `onHover` runs with true/false as the pointer enters and leaves.
 function UiKit.bounce(button: GuiButton, onHover: ((boolean) -> ())?)
@@ -336,7 +370,33 @@ function UiKit.makeIconTile(parent: Instance, iconId: string, text: string, size
 	return tile
 end
 
--- Small green pill on a button's top corner ("6/63", "86%"), like the reference Rebirth chip.
+-- A chip under a shrunk parent (UIScale) would render under 12 px: the "ChipBoost" attribute on its button (the
+-- scale to counter, > 1) grows the chip about its top-right corner, which is then pinned inside the button's corner.
+function UiKit.boostChip(button: GuiObject)
+	local chip = button:FindFirstChild("Chip") :: TextLabel?
+	if chip == nil then
+		return
+	end
+	local boost = button:GetAttribute("ChipBoost")
+	local grow = chip:FindFirstChild("Boost") :: UIScale?
+	if typeof(boost) == "number" and boost > 1 then
+		if grow == nil then
+			local created = Instance.new("UIScale")
+			created.Name = "Boost"
+			created.Parent = chip
+			grow = created
+		end
+		assert(grow ~= nil, "UiKit: chip boost was not created")
+		grow.Scale = boost
+		chip.AnchorPoint = Vector2.new(1, 0)
+		chip.Position = UDim2.new(1, -3, 0, 3)
+	elseif grow ~= nil then
+		grow:Destroy()
+		chip.AnchorPoint = Vector2.zero
+	end
+end
+
+-- Small green pill on a button's top corner ("6/90", "86%"), like the reference Rebirth chip.
 -- Pass nil to hide it.
 function UiKit.chip(button: GuiObject, text: string?)
 	local chip = button:FindFirstChild("Chip") :: TextLabel?
@@ -369,6 +429,7 @@ function UiKit.chip(button: GuiObject, text: string?)
 	chip.Position = if button:GetAttribute("ChipInset") then UDim2.new(1, -(width + 4), 0, 4) else UDim2.new(1, -(width - 10), 0, -6)
 	chip.Text = text
 	chip.Visible = true
+	UiKit.boostChip(button)
 end
 
 -- Green square "+" button (next to a currency, opens the shop).
@@ -575,11 +636,19 @@ function UiKit.badge(button: GuiObject, text: string?)
 	badge.Visible = true
 end
 
--- Bottom-of-screen message that fades after two seconds.
+-- Bottom-of-screen message that fades after two seconds. On a phone, a `passive` message (a goal
+-- reached, a new mascot: news, not an answer to a tap) waits while a full-screen panel is open, so it
+-- never sits over the panel's content; it shows, in order, once the panels close.
 local toastLabel: TextLabel? = nil
 local toastToken = 0
 local TOAST_MAX_WIDTH = 340
-function UiKit.toast(gui: ScreenGui, text: string)
+local TOAST_SECONDS = 2
+local TOAST_QUEUE_MAX = 3
+local TOAST_STALE_SECONDS = 60 -- a queued toast older than this is dropped ("Premiere next door" long after)
+local toastQueue: { { gui: ScreenGui, text: string, at: number } } = {}
+local toastDrain = false
+
+local function showToast(gui: ScreenGui, text: string)
 	local label = toastLabel
 	if label == nil then
 		local created = UiKit.makeTitle(gui, "", UiKit.WHITE, UDim2.new(0.9, 0, 0, 44), UDim2.new(0.5, 0, 1, -144))
@@ -609,11 +678,60 @@ function UiKit.toast(gui: ScreenGui, text: string)
 	local mine = toastToken
 	label.Text = text
 	label.Visible = true
-	task.delay(2, function()
+	task.delay(TOAST_SECONDS, function()
 		if toastToken == mine then
 			label.Visible = false
 		end
 	end)
+end
+
+-- True while a screen-covering panel is up: any visible child of `gui` named "...Panel", or the premiere
+-- reveal (it hides the panels, so it counts as one). Declutter and passive toasts share this.
+function UiKit.panelCovering(gui: ScreenGui): boolean
+	for _, child in gui:GetChildren() do
+		if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" then
+			return true
+		end
+	end
+	local backdrop = gui.Parent and gui.Parent:FindFirstChild("PremiereRevealBackdrop")
+	local reveal = backdrop and backdrop:FindFirstChild("PremiereReveal")
+	return reveal ~= nil and reveal:IsA("GuiObject") and reveal.Visible
+end
+
+function UiKit.toast(gui: ScreenGui, text: string, passive: boolean?)
+	if passive == true and UiKit.isCompact() and UiKit.panelCovering(gui) then
+		if #toastQueue < TOAST_QUEUE_MAX then
+			table.insert(toastQueue, { gui = gui, text = text, at = os.clock() })
+		end
+		if not toastDrain then
+			toastDrain = true
+			task.spawn(function()
+				-- pcall, so one bad toast can never leave toastDrain stuck and silence passive toasts for good.
+				local ok, err = pcall(function()
+					while #toastQueue > 0 do
+						task.wait(0.3)
+						local nextToast = toastQueue[1]
+						if nextToast ~= nil and not UiKit.panelCovering(nextToast.gui) then
+							table.remove(toastQueue, 1)
+							if nextToast.gui.Parent ~= nil and os.clock() - nextToast.at <= TOAST_STALE_SECONDS then
+								showToast(nextToast.gui, nextToast.text)
+								task.wait(TOAST_SECONDS + 0.2)
+							end
+						elseif nextToast ~= nil and os.clock() - nextToast.at > TOAST_STALE_SECONDS then
+							table.remove(toastQueue, 1) -- stale, drop it even while a panel stays open
+						end
+					end
+				end)
+				if not ok then
+					warn("UiKit toast queue: " .. tostring(err))
+					table.clear(toastQueue)
+				end
+				toastDrain = false
+			end)
+		end
+		return
+	end
+	showToast(gui, text)
 end
 
 -- Layout ---------------------------------------------------------------------------------------
@@ -720,6 +838,50 @@ function UiKit.overlayOpen(): boolean
 		end
 	end
 	return false
+end
+
+-- Roblox's thumbstick and jump button are drawn by CoreGui above every ScreenGui, so they sit on top of
+-- a panel's corners. While a panel (or the picker modal) is open on a phone it asks to hide them:
+-- each `owner` holds or releases its own request, and the original setting comes back exactly as it
+-- was when the last owner lets go.
+local touchHolds: { [string]: boolean? } = {}
+local savedTouchControls: boolean? = nil
+function UiKit.holdTouchControls(owner: string, hidden: boolean)
+	touchHolds[owner] = if hidden then true else nil
+	local held = next(touchHolds) ~= nil
+	if held and savedTouchControls == nil then
+		local ok, current = pcall(function()
+			return GuiService.TouchControlsEnabled
+		end)
+		if ok then
+			-- The loading screen hides the controls itself: the original is what it stored, not that false.
+			local lp = Players.LocalPlayer
+			local loadingSaved = if lp ~= nil then lp:GetAttribute("LoadingTouchSaved") else nil
+			savedTouchControls = TouchHold.original(
+				current,
+				lp ~= nil and lp:GetAttribute("LoadingScreen") ~= nil,
+				if type(loadingSaved) == "boolean" then loadingSaved else nil
+			)
+			pcall(function()
+				GuiService.TouchControlsEnabled = false
+			end)
+		end
+	elseif not held and savedTouchControls ~= nil then
+		local saved = savedTouchControls
+		savedTouchControls = nil
+		local lpHold = Players.LocalPlayer
+		-- While the loading screen is up it restores the controls itself.
+		if lpHold == nil or lpHold:GetAttribute("LoadingScreen") == nil then
+			pcall(function()
+				GuiService.TouchControlsEnabled = saved
+			end)
+		end
+	end
+	-- Tells the loading screen not to restore the controls under an open panel.
+	local lp = Players.LocalPlayer
+	if lp ~= nil then
+		lp:SetAttribute("TouchHeld", if held then true else nil)
+	end
 end
 
 -- Opens `panel` (building it first) and closes the other panels; opens nothing if it was open.
@@ -879,7 +1041,7 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 	local header = UiKit.makeTitle(panel, title, UiKit.WHITE, UDim2.new(1, -70, 0, 40), UDim2.fromOffset(16, 6), 3.5)
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.ZIndex = 2
-	local close = UiKit.makeButton(panel, "X", UiKit.CLOSE_RED, UDim2.fromOffset(40, 40), UDim2.new(1, -50, 0, 6))
+	local close = UiKit.makeHitButton(panel, "X", UiKit.CLOSE_RED, 40, 44)
 	close.Name = "Close"
 	close.ZIndex = 2
 	close.Activated:Connect(function()
@@ -933,7 +1095,8 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 			local rect = PickerLayout.panelRect(
 				screen.X,
 				screen.Y,
-				if typeof(menuRight) == "number" then menuRight else 0,
+				-- A modal (scrim) covers the side menu, so it keeps no room for it.
+				if typeof(menuRight) == "number" and not options.scrim then menuRight else 0,
 				compact,
 				if typeof(reserve) == "number" then reserve else nil,
 				limit.MaxSize.X,
@@ -982,14 +1145,20 @@ function UiKit.makePanel(gui: ScreenGui, name: string, title: string, topOffset:
 		header.Size = UDim2.new(1, -(54 + headerX), 0, if compact then 30 else 40)
 		header.Position = UDim2.fromOffset(headerX, if compact then 5 else 6)
 		local closeSize = if compact then 32 else 40
-		close.Size = UDim2.fromOffset(closeSize, closeSize)
-		close.Position = UDim2.new(1, -(closeSize + 10), 0, (barHeight - 4 - closeSize) // 2)
+		-- The red X keeps its size; its 44 px tap area stays inside the panel's top edge.
+		local closeFace = close:FindFirstChild("Face") :: Frame
+		closeFace.Size = UDim2.fromOffset(closeSize, closeSize)
+		local faceY = (barHeight - 4 - closeSize) // 2 + closeSize / 2
+		local hitY = math.max(faceY, 22)
+		close.AnchorPoint = Vector2.new(0.5, 0.5)
+		close.Position = UDim2.new(1, -(closeSize / 2 + 10), 0, hitY)
+		closeFace.Position = UDim2.new(0.5, 0, 0.5, faceY - hitY)
 		local listTop = top
 		local tabs = panel:FindFirstChild("Tabs") or panel:FindFirstChild("Agencies")
 		if tabs ~= nil and tabs:IsA("Frame") then
 			tabs.Position = UDim2.fromOffset(12, if compact then 46 else 62)
-			tabs.Size = UDim2.new(1, -24, 0, if compact then 30 else 40)
-			listTop = if compact then top - 26 else top
+			tabs.Size = UDim2.new(1, -24, 0, if compact then 44 else 40) -- 44 px tap targets on phones
+			listTop = if compact then top - 10 else top
 		elseif compact then
 			listTop = top - 12
 		end

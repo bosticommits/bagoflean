@@ -73,8 +73,8 @@ Luck divides the "1 in N" chance at every agency (Luck ×2 turns 1/8,000 into 1/
 | Icon | Golden Muse | 1 in 5,000,000 | 300 |
 
 **Variants**, rolled on top of any actor: *Shiny* (1 in 40, ×2) and *Award-Winning*
-(1 in 800, ×5). Each variant has its own Index slot. Version 1 ships 21 actors (3 per tier),
-which with variants makes **63 Index slots**.
+(1 in 800, ×5). Each variant has its own Index slot. Version 1 ships 30 actors (5/5/5/5/4/3/3 per tier, Actors v2),
+which with variants makes **90 Index slots**.
 
 **Casting agencies** (Fame-gated): Open Casting, Talent Agency, Hollywood Casting.
 Better agencies cost more per roll and remove the bottom tier from the pool.
@@ -141,7 +141,7 @@ and players expect it.
 |---|---|---|
 | M0 | Setup | Rojo project synced into Studio. Claude can see and playtest the place |
 | M1 | Lot and cash | 6 claimable lots, cinema collect pad earns Cash, HUD, data saves |
-| M2 | Casting | Casting Call roll with odds and reveal, roster screen, 21 actors and variants |
+| M2 | Casting | Casting Call roll with odds and reveal, roster screen, 30 actors and variants |
 | M3 | Movies | Script shop, cast 3, filming timer (incl. offline), premiere roll, cinema royalties |
 | M4 | Index and progression | Index screen, tier rewards, Fame, agencies, lot upgrades |
 | M5 | Polish | Lot visuals, billboard, premiere and rare-pull VFX and sounds, 60-second tutorial |

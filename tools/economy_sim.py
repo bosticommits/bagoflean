@@ -40,6 +40,7 @@ import re
 import statistics
 from pathlib import Path
 
+LIVE_LUCK = 1.0  # LiveConfig CastingLuckMultiplier (--live-luck), e.g. a Luck Weekend
 ROOT = Path(__file__).resolve().parent.parent
 SHARED = ROOT / "src" / "shared"
 
@@ -568,7 +569,7 @@ class Player:
     def cast_luck(self) -> float:
         """CastingService.castLuck: stat Luck x 2x Luck pass x Lucky Casting x Award Night x
         Lucky Star."""
-        luck = self.luck()
+        luck = self.luck() * LIVE_LUCK
         if self.luck_pass:
             luck *= self.g.c["PassLuckMultiplier"]
         if self.luck_boost_until > self.now:
@@ -992,9 +993,11 @@ class Player:
             self.mark(f"First {variant} variant")
         if self.g.actor[actor_id].get("season"):
             self.mark("Limited actor")
-        for n in (21, 32, 42, 63):
+        # Marks sit at the Index achievement targets (Achievements.luau) and the full Index.
+        total_slots = sum(1 for a in self.g.actor.values() if not a.get("season")) * 3
+        for n in (20, 45, 65, total_slots):
             if len(self.everyday_index()) >= n:
-                self.mark(f"Index {n}/63")
+                self.mark(f"Index {n}/{total_slots}")
         if agency["minTier"] > 1:
             self.mark(f"First roll at {agency['name']}")
 
@@ -1296,6 +1299,7 @@ if __name__ == "__main__":
     parser.add_argument("--player", default="typical", choices=["typical", "casual", "hardcore"])
     parser.add_argument("--runs", type=int, default=300)
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--live-luck", type=float, default=1.0, help="LiveConfig CastingLuckMultiplier for the whole run (Luck Weekend)")
     parser.add_argument("--luck-pass", action="store_true", help="the player owns the 2x Luck game pass")
     parser.add_argument("--days", type=int, default=7, help="days to simulate (whole weeks get a checkpoint)")
     parser.add_argument("--no-rebirth", action="store_true", help="the player never rebirths")
@@ -1320,6 +1324,7 @@ if __name__ == "__main__":
     parser.add_argument("--film-set-visit-minutes", type=float, default=0,
                         help="minutes per online session spent inside an owned set (requires --film-sets)")
     args = parser.parse_args()
+    LIVE_LUCK = args.live_luck
     if args.runs < 1:
         parser.error("--runs must be at least 1")
     if args.days < 1:

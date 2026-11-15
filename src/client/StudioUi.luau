@@ -2,7 +2,6 @@
 -- Studio screen: stages (start a movie, clapperboard, premiere), script shop, and cinema.
 -- Styled after the design kit (see UiKit). The client shows server state and sends requests; it never decides
 -- Cash, timers, or results. Remaining time is the server's end stamp minus the server's clock.
-local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -277,6 +276,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			end
 			local cast = makeLabel(row, "Cast: " .. table.concat(names, ", "), WHITE, UDim2.new(0.6, -(20 + castWidth * 0.6), 0, 18), UDim2.fromOffset(10, 58))
 			cast.TextXAlignment = Enum.TextXAlignment.Left
+			-- A long cast list is cut with "..." at 12 px rather than shrunk below it.
+			cast.TextTruncate = Enum.TextTruncate.AtEnd
+			local castLimit = cast:FindFirstChildOfClass("UITextSizeConstraint")
+			if castLimit ~= nil then
+				castLimit.MinTextSize = 12
+			end
 			-- "Direct the scene": takes played so far and the premiere Luck they added.
 			local takes = makeLabel(row, "", UiKit.GOLD, UDim2.new(0.4, -castWidth * 0.4, 0, 18), UDim2.new(0.6, -castWidth * 0.6, 0, 58))
 			takes.Name = "Takes"
@@ -702,6 +707,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 		for _, entry in actorCards do
 			UiKit.textConstraint(entry.name, textSize)
 			UiKit.textConstraint(entry.power, textSize)
+			for _, label in { entry.name, entry.power } do
+				local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+				if limit ~= nil then
+					limit.MinTextSize = 12
+				end
+			end
 			entry.bonus.Size = if pickerCompact then UDim2.fromOffset(72, 18) else UDim2.fromOffset(86, 22)
 		end
 	end
@@ -901,21 +912,23 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 			art.Name = "Art"
 			art.BackgroundTransparency = 1
 			art.Position = UDim2.fromScale(0.05, 0.03)
-			art.Size = UDim2.fromScale(0.9, 0.56)
+			art.Size = UDim2.fromScale(0.9, 0.47)
 			art.Parent = card
 			if actor ~= nil then
 				local tier = Actors.getTier(actor.tier)
 				Icon3D.glow(Icon3D.actor(art, actor.id, parts[2]), if tier ~= nil then tier.color else nil)
 			end
-			local name = UiKit.makeTitle(card, actorLabel(key), WHITE, UDim2.fromScale(0.94, 0.17), UDim2.fromScale(0.03, 0.6), 2)
+			-- Two lines ("Night Shift Villain (Shiny)"): the text stays 12 px or more instead of shrinking to fit one.
+			local name = UiKit.makeTitle(card, actorLabel(key), WHITE, UDim2.fromScale(0.94, 0.27), UDim2.fromScale(0.03, 0.5), 2)
+			name.TextWrapped = true
 			name.ZIndex = 3
 			UiKit.textConstraint(name, 18)
-			local power = UiKit.makeTitle(card, "", UiKit.GOLD, UDim2.fromScale(0.94, 0.15), UDim2.fromScale(0.03, 0.79), 2)
+			local power = UiKit.makeTitle(card, "", UiKit.GOLD, UDim2.fromScale(0.94, 0.17), UDim2.fromScale(0.03, 0.79), 2)
 			power.ZIndex = 3
 			UiKit.textConstraint(power, 18)
 			-- Tag shown when the actor's specialty matches the picked script, over the foot of the
 			-- picture (the owned-copies chip has the top corner).
-			local bonus = UiKit.makeTitle(card, "", WHITE, UDim2.fromOffset(86, 22), UDim2.new(0.5, 0, 0.6, -2), 1.5)
+			local bonus = UiKit.makeTitle(card, "", WHITE, UDim2.fromOffset(86, 22), UDim2.new(0.5, 0, 0.5, -2), 1.5)
 			bonus.AnchorPoint = Vector2.new(0.5, 1)
 			bonus.BackgroundTransparency = 0
 			bonus.Rotation = -4
@@ -998,34 +1011,12 @@ function StudioUi.start(gui: ScreenGui, studioButton: TextButton)
 	-- filming) and the Studio panel (bigger than the picker on a phone, so it peeked out above it)
 	-- are hidden, and put back exactly as they were when it closes. The Studio panel stays "Visible"
 	-- (the tutorial and the close-with-Studio rule rely on that); a tiny UIScale hides it.
-	local savedTouchControls: boolean? = nil
 	local studioHide = Instance.new("UIScale")
 	studioHide.Name = "PickerHide"
 	studioHide.Parent = panel
 	local function setPickerModal(open: boolean)
-		if open then
-			if savedTouchControls == nil then
-				local ok, current = pcall(function()
-					return GuiService.TouchControlsEnabled
-				end)
-				if ok then
-					savedTouchControls = current
-					pcall(function()
-						GuiService.TouchControlsEnabled = false
-					end)
-				end
-			end
-			studioHide.Scale = 0.001
-		else
-			local saved = savedTouchControls
-			if saved ~= nil then
-				savedTouchControls = nil
-				pcall(function()
-					GuiService.TouchControlsEnabled = saved
-				end)
-			end
-			studioHide.Scale = 1
-		end
+		UiKit.holdTouchControls("picker", open)
+		studioHide.Scale = if open then 0.001 else 1
 	end
 	picker:GetPropertyChangedSignal("Visible"):Connect(function()
 		setPickerModal(picker.Visible)

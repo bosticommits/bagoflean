@@ -1,7 +1,7 @@
 --!strict
 -- Brings the actors standing round town to life: the star on each lot's pedestal, the store
 -- keepers and the Top Studios wall breathe with a little bob, look round, sway their arms and now
--- and then wave hello. The Phantom Auteur hovers instead.
+-- and then wave hello. The hovering actors (rig.float: Captain Kapow, the Phantom Auteur) float instead.
 --
 -- ActorModels splits every figure into rig pieces (Body, Head, ArmL, ArmR, Base) and tags it
 -- "ActorRig"; this turns the pieces round their pivots. Each player moves their own view of the
@@ -39,6 +39,9 @@ local random = Random.new()
 local function register(model: Instance)
 	if not model:IsA("Model") or rigs[model] ~= nil or not model:IsDescendantOf(Workspace) then
 		return
+	end
+	if model:FindFirstAncestorWhichIsA("ViewportFrame") ~= nil then
+		return -- portraits (lot billboard) stand still
 	end
 	local root = model.WorldPivot
 	local rig: Rig = {

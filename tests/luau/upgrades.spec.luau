@@ -101,3 +101,14 @@ test("the welcome-back line picks full, Auto-Collect or the default", function()
 	expect(string.find(Upgrades.awayText("5", false, false), "gold pad", 1, true) ~= nil, "default")
 	equal(Upgrades.awayText("1,234", false, false), "Your cinema earned $1,234 while you were away! Collect it at the gold pad", "one dollar sign")
 end)
+
+test("an old 21-actor save loads: tier rows read 3/5 and the Index still counts its keys", function()
+	local index: { [string]: boolean } = {}
+	for _, id in { "NervousIntern", "StuntDouble", "BackgroundExtra" } do
+		index[Actors.key(id, "Normal")] = true
+	end
+	local found, total = Upgrades.tierProgress(index, "Newcomer")
+	equal(found, 3, "old Newcomer actors still count")
+	equal(total, 5, "the row now has five")
+	expect(not Upgrades.rewardEarned(index, "tier:Newcomer"), "an unclaimed tier reward is not yet earned")
+end)

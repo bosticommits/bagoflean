@@ -45,22 +45,31 @@ Actors.List = {
 	{ id = "NervousIntern", name = "Nervous Intern", tier = "Newcomer", genre = "Comedy" },
 	{ id = "StuntDouble", name = "Stunt Double", tier = "Newcomer", genre = "Action" },
 	{ id = "BackgroundExtra", name = "Zombie Extra", tier = "Newcomer", genre = "Romance" },
+	{ id = "WerewolfPup", name = "Werewolf Pup", tier = "Newcomer", genre = "Horror" },
+	{ id = "CardboardAstronaut", name = "Cardboard Astronaut", tier = "Newcomer", genre = "Sci-Fi" },
 
 	{ id = "SoapRegular", name = "Soap Opera Star", tier = "Rising", genre = "Romance" },
 	{ id = "AdModel", name = "Hot Dog Mascot", tier = "Rising", genre = "Comedy" },
 	{ id = "IndieSidekick", name = "Robot Sidekick", tier = "Rising", genre = "Sci-Fi" },
+	{ id = "RodeoRookie", name = "Rodeo Rookie", tier = "Rising", genre = "Action" },
+	{ id = "WobblyWitch", name = "Wobbly Witch", tier = "Rising", genre = "Horror" },
 
 	{ id = "ActionVeteran", name = "Commando", tier = "Pro", genre = "Action" },
 	{ id = "ComedyDuo", name = "Ventriloquist", tier = "Pro", genre = "Comedy" },
 	{ id = "NightShiftVillain", name = "Night Shift Villain", tier = "Pro", genre = "Horror" },
+	{ id = "LagoonMermaid", name = "Lagoon Mermaid", tier = "Pro", genre = "Romance" },
+	{ id = "TimeTourist", name = "Time Tourist", tier = "Pro", genre = "Sci-Fi" },
 
 	{ id = "TeenHeartthrob", name = "Teen Heartthrob", tier = "Star", genre = "Romance" },
 	{ id = "MethodActor", name = "Method Knight", tier = "Star", genre = "Horror" },
 	{ id = "SpaceCaptain", name = "Alien Captain", tier = "Star", genre = "Sci-Fi" },
+	{ id = "CaptainKapow", name = "Captain Kapow", tier = "Star", genre = "Action" },
+	{ id = "InspectorWhoops", name = "Inspector Whoops", tier = "Star", genre = "Comedy" },
 
 	{ id = "BoxOfficeKing", name = "Box Office King", tier = "Superstar", genre = "Action" },
 	{ id = "ScreamQueen", name = "Scream Queen", tier = "Superstar", genre = "Horror" },
 	{ id = "RomComSweetheart", name = "Cupid", tier = "Superstar", genre = "Romance" },
+	{ id = "PirateCaptain", name = "Captain Squawk", tier = "Superstar", genre = "Comedy" },
 
 	{ id = "GoldenAgeDiva", name = "Showgirl Diva", tier = "Legend", genre = "Romance" },
 	{ id = "SilentEraClown", name = "Silent Film Clown", tier = "Legend", genre = "Comedy" },
@@ -82,12 +91,12 @@ Actors.IndexSlots = #Actors.List * #Actors.Variants
 
 -- Limited seasonal actors: one per seasonal Film Festival (SpecialEvents.Seasons). While its season
 -- runs, a limited actor can be cast exactly as often as any one everyday actor of its tier (a Star
--- is 1 in 700 at Open Casting, so each Star actor is 1 in 2,100), and winning that festival gives
+-- is 1 in 700 at Open Casting, so each of the five Star actors is 1 in 3,500), and winning that festival gives
 -- a copy. Its chance comes out of the agency's commonest tier, so every other actor keeps its odds
 -- and the Star row is no slower to finish in season. Out of season nobody can cast it; copies
 -- already owned stay and work like any actor of their tier. They are kept out of Actors.List on
 -- purpose: the Index tier rows, the
--- genre sets, Actors.IndexSlots and the "all 21 actors" goal only count actors anyone can find on
+-- genre sets, Actors.IndexSlots and the "all actors" goal only count actors anyone can find on
 -- any day, so a player who missed a season can still finish every one of them. The Collection
 -- shows them in their own Limited group. Designs: art/blender/seasonal_actors.py.
 Actors.Limited = {

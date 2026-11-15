@@ -107,6 +107,13 @@ Sounds.Slots = {
 	FilmPlaces = { id = 109213125841224, volume = 0.8, fallback = "indicator" }, -- "Places everyone!" when the owner walks in
 	FilmApplause = { id = 9113138035, volume = 0.5, fallback = "clap", pitch = 1.1 }, -- a clean take (PSE "Applause Tight 4"; FilmSetWorld plays ~3 s of it)
 
+	-- Loading screen hand-off (LoadingBridge): the clapper snaps as the screen fades, then Lucien calls
+	-- "Quiet on set!". The clapper is its own clip (Freesound 207867, CC0); the voice is Lucien's take 1.
+	-- Assets still in moderation stay silent: a failed or unapproved id never errors (Sfx safety net,
+	-- pcall'd preload), and id = 0 keeps LoadingBridge silent for the voice.
+	LoadClapper = { id = 121142679642498, volume = 0.7, fallback = "clap", pitch = 0.8 },
+	lucienQuietOnSet = { id = 89316668549432, volume = 0.9, fallback = "jingle", voice = true, delay = 0.35 },
+
 	-- Rewards
 	reward = slot("stinger"), -- a reward or code claimed
 	welcome = slot("jingle"), -- welcome back, daily reward ready, tutorial done

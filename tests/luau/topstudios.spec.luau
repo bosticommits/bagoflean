@@ -161,15 +161,85 @@ test("the Rare Wall fits on a lot without touching anything else", function()
 	equal(#figures, TopStudios.WallSize, "one figure per slot")
 	local gap = TopStudiosModels.Layout.wallWidth / TopStudios.WallSize
 	for _, figure in figures do
-		local lo, hi = math.huge, -math.huge
+		local lo, hi, top = math.huge, -math.huge, -math.huge
 		for _, part in figure:GetDescendants() do
 			if part:IsA("BasePart") then
 				local cf = frame:ToObjectSpace(part.CFrame)
 				local half = part.Size / 2
 				local reach = math.abs(cf.RightVector.X) * half.X + math.abs(cf.UpVector.X) * half.Y + math.abs(cf.LookVector.X) * half.Z
 				lo, hi = math.min(lo, cf.Position.X - reach), math.max(hi, cf.Position.X + reach)
+				local up = math.abs(cf.RightVector.Y) * half.X + math.abs(cf.UpVector.Y) * half.Y + math.abs(cf.LookVector.Y) * half.Z
+				top = math.max(top, cf.Position.Y + up)
 			end
 		end
 		expect(hi - lo <= gap + 0.01, `{figure.Name} is wider than its plinth ({hi - lo})`)
+		expect(top - 1 <= TopStudiosModels.NameplateBottom - 0.2 + 0.01, `{figure.Name} covers its nameplate (top {top - 1})`)
 	end
+end)
+
+test("figure fit: shrinks by width or height, never grows, leaves normal actors alone", function()
+	local Fit = H.require("Models/ActorFit")
+	equal(Fit.shrink(2, 4, 3, 4), 1, "fits already")
+	equal(Fit.shrink(6, 2, 3, 4), 0.5, "width limits")
+	equal(Fit.shrink(2, 8, 3, 4), 0.5, "height limits")
+	equal(Fit.shrink(6, 8, 3, 2), 0.25, "the tighter of the two")
+	equal(Fit.shrink(1, 1, nil, nil), 1, "no limits")
+end)
+
+test("wall cap: the figure top stays at or under the nameplate's bottom edge", function()
+	local Fit = H.require("Models/ActorFit")
+	expect(math.abs(Fit.wallCap(1.8, 5.2) - 3.4) < 1e-9, "gap above the plinth")
+	equal(Fit.wallCap(5, 4), 0, "never negative")
+	expect(math.abs(Fit.shrink(1, 6.8, nil, Fit.wallCap(1.8, 5.2)) - 0.5) < 1e-9, "a 6.8-tall figure halves")
+end)
+
+test("mesh truth: only the Witch, Astronaut and Tourist exceed the Rare Wall height cap (from rig piece bounds)", function()
+	local Fit = H.require("Models/ActorFit")
+	local Shapes = H.require("Models/ActorShapes")
+	local tall = {}
+	for _, actor in Actors.List do
+		local rig = Shapes.Actors[actor.id]
+		local top = -math.huge
+		for name, piece in rig.pieces do
+			if name ~= "Base" then
+				top = math.max(top, piece.center.Y + piece.size.Y / 2)
+			end
+		end
+		if top * TopStudiosModels.FigureScale > TopStudiosModels.MaxFigureHeight then
+			table.insert(tall, actor.id)
+		end
+	end
+	table.sort(tall)
+	equal(table.concat(tall, ","), "CardboardAstronaut,TimeTourist,WobblyWitch", "clamped actors")
+end)
+
+test("height counts a hover: a floating figure is measured from its feet, not its lowest part", function()
+	local Fit = H.require("Models/ActorFit")
+	local frame = CFrame.new(0, 0, 0)
+	local folder = roblox.Instance.new("Folder")
+	local model = roblox.Instance.new("Model")
+	local part = roblox.Instance.new("Part")
+	part.Size = Vector3.new(1, 2, 1)
+	part.CFrame = CFrame.new(0, 3, 0) -- hovers: spans y 2 to 4
+	part.Parent = model
+	model.Parent = folder
+	equal(Fit.heightOf(model, frame), 4, "top above the feet, hover included")
+end)
+
+test("lot portrait camera: normal figures keep the original framing, tall ones back off, and it is stored for clients", function()
+	local Portrait = H.require("PortraitCamera")
+	local y, d = Portrait.fit(5.2, 0, 3)
+	equal(y, 2.8, "normal target height")
+	equal(d, Portrait.MinDistance, "normal distance")
+	local ty, td = Portrait.fit(11, 0.4, 3.4)
+	expect(math.abs(ty - 5.7) < 1e-9, "tall figures aim at their middle")
+	expect(td > Portrait.MinDistance, "and stand further back")
+	local tanHalf = math.tan(math.rad(Portrait.FieldOfView / 2))
+	expect(td * tanHalf >= (11 - 5.7) * 1.08 - 1e-6, "the whole height fits")
+	local wide = select(2, Portrait.fit(5, 0, 9))
+	expect(wide * tanHalf * Portrait.Aspect >= 9 / 2 * 1.08 - 1e-6, "the whole width fits the 0.63 aspect")
+	local viewport = roblox.Instance.new("ViewportFrame")
+	Portrait.store(viewport, ty, td)
+	equal(viewport:GetAttribute("PortraitDistance"), td, "distance stored")
+	equal(viewport:GetAttribute("PortraitTargetY"), ty, "target stored")
 end)

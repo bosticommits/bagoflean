@@ -30,6 +30,7 @@ local Icon3D = require(script.Parent.Icon3D)
 local Sfx = require(script.Parent.Sfx)
 local Guides = require(script.Parent.Guides)
 local UiKit = require(script.Parent.UiKit)
+local RectOverlap = require(ReplicatedStorage.Shared.RectOverlap)
 local BubblePlacer = require(ReplicatedStorage.Shared.BubblePlacer)
 local Spotlight = require(ReplicatedStorage.Shared.Spotlight)
 local TutorialLines = require(ReplicatedStorage.Shared.TutorialLines)
@@ -403,6 +404,19 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 	skip.Name = "Skip"
 	skip.ZIndex = 11
 	UiKit.textConstraint(skip, 18)
+	-- Pill mode: the visual Skip is shorter than the 44 px phone tap target (the title bar is 40 px), so an
+	-- invisible button over it takes the tap. Hidden outside pill mode, where Skip is already 44 px tall.
+	local skipHit = Instance.new("TextButton")
+	skipHit.Name = "SkipHit"
+	skipHit.Text = ""
+	skipHit.BackgroundTransparency = 1
+	skipHit.AutoButtonColor = false
+	skipHit.AnchorPoint = Vector2.new(0.5, 0.5)
+	skipHit.Position = UDim2.fromScale(0.5, 0.5)
+	skipHit.Size = UDim2.fromOffset(52, 44)
+	skipHit.ZIndex = 12
+	skipHit.Visible = false
+	skipHit.Parent = skip
 
 	-- State --------------------------------------------------------------------------------------
 	local active = false
@@ -452,7 +466,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local out: { Rect } = {}
 		local panels: { Rect } = {}
 		local function add(object: Instance, depth: number)
-			if not object:IsA("GuiObject") or not object.Visible then
+			if not object:IsA("GuiObject") or not object.Visible or object == container then
 				return
 			end
 			local at, size = object.AbsolutePosition - origin, object.AbsoluteSize
@@ -468,7 +482,28 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 					end
 				end
 			elseif object.BackgroundTransparency < 1 or #object:GetChildren() > 0 then
-				table.insert(out, { x = at.X, y = at.Y, w = size.X, h = size.Y })
+				-- Parts that hang outside the object (the CAST bar's "star guaranteed" pill; not the HUD's Tuck X, which floats alone)
+				-- count too, or the bubble would be placed over them.
+				local x0, y0, x1, y1 = at.X, at.Y, at.X + size.X, at.Y + size.Y
+				local function reach(node: Instance, levels: number)
+					for _, child in node:GetChildren() do
+						if child:IsA("GuiObject") and child.Visible and child.AbsoluteSize.X > 0 and child.AbsoluteSize.Y > 0 then
+							local childAt = child.AbsolutePosition - origin
+							if child.Name == "Tuck" then
+								-- floats alone, far from its card: an obstacle of its own, not part of the card's rect
+								table.insert(out, { x = childAt.X, y = childAt.Y, w = child.AbsoluteSize.X, h = child.AbsoluteSize.Y })
+								continue
+							end
+							x0, y0 = math.min(x0, childAt.X), math.min(y0, childAt.Y)
+							x1, y1 = math.max(x1, childAt.X + child.AbsoluteSize.X), math.max(y1, childAt.Y + child.AbsoluteSize.Y)
+							if levels > 1 then
+								reach(child, levels - 1)
+							end
+						end
+					end
+				end
+				reach(object, 2)
+				table.insert(out, { x = x0, y = y0, w = x1 - x0, h = y1 - y0 })
 			end
 		end
 		for _, child in gui:GetChildren() do
@@ -504,6 +539,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 12), UDim.new(0, 12)
 		pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 10)
 		nameLabel.Visible = true
+		skipHit.Visible = false
 		speech.TextScaled = false
 		nameLabel.TextSize = textSize -- only while not scaled
 		speech.TextSize = textSize
@@ -532,7 +568,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local splashOpen = splash ~= nil
 		local textSize = if small then 16 else 20
 		begin.Visible = splashOpen and introTyped
-		skip.Size = if small then UDim2.fromOffset(64, 28) else UDim2.fromOffset(80, 34)
+		skip.Size = if small then UDim2.fromOffset(64, 44) else UDim2.fromOffset(80, 34) -- 44 px tap target on phones
 
 		local bustSize = if small then BUST_PHONE else BUST_PC
 		-- On a phone Skip overlaps the bust's lower edge instead of hanging under it (keeps PanelTop low).
@@ -568,6 +604,8 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 			skip.Size = UDim2.fromOffset(p.skipW, p.skipH)
 			skip.AnchorPoint = Vector2.new(0, 0.5)
 			skip.Position = UDim2.fromOffset(at.X + p.skipX, at.Y + size.Y / 2)
+			skipHit.Size = UDim2.fromOffset(p.skipW, p.hitH)
+			skipHit.Visible = true
 		elseif splashOpen then
 			leavePill(textSize)
 			-- The intro: the bubble from the middle of the safe area, Skip bottom-right.
@@ -1055,9 +1093,22 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		local area = gui.AbsoluteSize
 		local bob = math.sin(clock * 6) * 6
 		local spot: GuiObject? = nil -- one UI target at a time
+		-- Open panels' rects, once per frame: an arrow for a control they cover would draw over them.
+		local panelRects: { RectOverlap.Rect } = {}
+		for _, child in gui:GetChildren() do
+			if child:IsA("GuiObject") and child.Visible and string.sub(child.Name, -5) == "Panel" then
+				table.insert(panelRects, { x = child.AbsolutePosition.X, y = child.AbsolutePosition.Y, w = child.AbsoluteSize.X, h = child.AbsoluteSize.Y })
+			end
+		end
 		for _, guide in uiGuides do
 			local target, arrow = guide.target, guide.arrow
-			if spot ~= nil or target.Parent == nil or not shown(target) or revealShowing() or splash ~= nil then
+			local covered = false
+			if #panelRects > 0 and not inPanel(target) then
+				-- the target plus the room the arrow takes around it
+				local rect = { x = target.AbsolutePosition.X, y = target.AbsolutePosition.Y, w = target.AbsoluteSize.X, h = target.AbsoluteSize.Y }
+				covered = RectOverlap.overlapsAny(RectOverlap.inflate(rect, arrow.AbsoluteSize.X + 10), panelRects)
+			end
+			if spot ~= nil or target.Parent == nil or not shown(target) or revealShowing() or splash ~= nil or covered then
 				arrow.Visible = false
 				continue
 			end
@@ -1072,7 +1123,17 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 				arrow.Position = UDim2.fromOffset(at.X + size.X + half + bob, centre.Y)
 			elseif centre.Y > area.Y * 0.45 then
 				arrow.Rotation = 0 -- pointing down from above
-				arrow.Position = UDim2.fromOffset(centre.X, at.Y - half - bob)
+				-- The CAST bar's "star guaranteed" pill hangs above it: the arrow goes over the pill, not on its text.
+				local top = at.Y
+				local holder: Instance? = target.Parent
+				local pill = target:FindFirstChild("HotStart")
+				if pill == nil and holder ~= nil then
+					pill = holder:FindFirstChild("HotStart")
+				end
+				if pill ~= nil and pill:IsA("GuiObject") and pill.Visible then
+					top = math.min(top, pill.AbsolutePosition.Y - origin.Y)
+				end
+				arrow.Position = UDim2.fromOffset(centre.X, top - half - bob)
 			else
 				arrow.Rotation = 180 -- pointing up from below
 				arrow.Position = UDim2.fromOffset(centre.X, at.Y + size.Y + half + bob)
@@ -1101,7 +1162,13 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 
 	-- Steps ---------------------------------------------------------------------------------------
 	local function sideButton(name: string): GuiObject?
-		return findGui(gui:FindFirstChild("SideMenu"), name)
+		local menu = gui:FindFirstChild("SideMenu")
+		local found = findGui(menu, name)
+		-- On phones the less-used tiles live in the More flyout: while it is shut, point at More instead.
+		if found ~= nil and found:FindFirstAncestor("MoreFlyout") ~= nil and gui:GetAttribute("MoreOpen") ~= true then
+			return findGui(menu, "MoreButton")
+		end
+		return found
 	end
 	-- The way into the Studio screen: the menu button and the MOVIES stand.
 	-- `key` says something else instead of the "Tap Studio" line (a later step with Studio closed).
@@ -1696,6 +1763,7 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		animateGuides(dt)
 	end
 
+	local waitingForLoading = false
 	local function activate()
 		active = true
 		gui:SetAttribute("TutorialActive", true)
@@ -1712,13 +1780,15 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		update()
 	end
 
-	skip.Activated:Connect(function()
+	local function onSkip()
 		if finale then
 			teardown()
 		else
 			finish(true)
 		end
-	end)
+	end
+	skip.Activated:Connect(onSkip)
+	skipHit.Activated:Connect(onSkip)
 
 	-- Signals ----------------------------------------------------------------------------------------
 	-- A collect is the only thing that lowers pending royalties.
@@ -1742,6 +1812,24 @@ function Tutorial.start(gui: ScreenGui, remotes: Instance)
 		if not active and not finished then
 			if s.tutorialDone then
 				finished = true
+				return
+			end
+			if player:GetAttribute("LoadingScreen") == "loading" then
+				-- The loading screen covers everything: the curtain intro starts when it hands off
+				-- (or after a safety timeout, should that script ever fail to clear its flag).
+				if not waitingForLoading then
+					waitingForLoading = true
+					task.spawn(function()
+						local started = os.clock()
+						while player:GetAttribute("LoadingScreen") == "loading" and os.clock() - started < 12 do
+							task.wait()
+						end
+						waitingForLoading = false
+						if not active and not finished and studio() ~= nil then
+							activate()
+						end
+					end)
+				end
 				return
 			end
 			activate()

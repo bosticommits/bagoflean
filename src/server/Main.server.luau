@@ -81,8 +81,22 @@ do
 			present[d.Name] = true
 		end
 	end
-	local missing, total = LotMeshCheck.missing(LotMeshManifest.meshes, present)
+	-- Rows flagged pending (mesh not uploaded yet, assetId 0) are reported apart, so "missing" still
+	-- means a real gap.
+	local expected: { { name: string } } = {}
+	local pending = 0
+	for _, entry in LotMeshManifest.meshes do
+		if entry.pending == true then
+			pending += 1
+		else
+			table.insert(expected, entry)
+		end
+	end
+	local missing, total = LotMeshCheck.missing(expected, present)
 	local line = `[MovieMogul] {LotMeshCheck.summary(missing, total)}`
+	if pending > 0 then
+		line ..= `; {pending} pending upload`
+	end
 	if #missing > 0 then
 		warn(line)
 	else

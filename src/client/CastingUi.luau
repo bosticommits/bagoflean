@@ -107,7 +107,13 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 		local viewport = UiKit.viewport()
 		local profile = PhoneLayout.profile(viewport.X, viewport.Y, UserInputService.TouchEnabled)
 		barScale.Scale = if profile.compact then 0.82 else 1
-		bar.Position = UDim2.new(0.5, 0, 1, -profile.castBottomInset)
+		-- Phones in landscape: the bar's left edge stays clear of the thumbstick zone (x < 30% of the screen).
+		local shift = 0
+		if UserInputService.TouchEnabled and profile.compact and viewport.X > viewport.Y then
+			local left = viewport.X / 2 - 340 * barScale.Scale / 2
+			shift = math.max(0, math.ceil(0.3 * viewport.X + 8 - left))
+		end
+		bar.Position = UDim2.new(0.5, shift, 1, -profile.castBottomInset)
 	end)
 
 	local castButton = makeButton(bar, "", UiKit.GREEN, UDim2.fromOffset(240, 84), UDim2.fromOffset(0, 2))
@@ -749,10 +755,10 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	cardLimit.MaxSize = Vector2.new(440, 600)
 	cardLimit.Parent = card
 	-- Filled in below; fitCard sizes the card (taller on short screens) and lays its rows out.
-	local fitRows: (number) -> () = function() end
+	local fitRows: (number, number) -> () = function() end
 	local function fitCard()
 		card.Size = UDim2.fromScale(0.85, CardLayout.cardScale(overlay.AbsoluteSize.Y))
-		fitRows(math.min(card.Size.Y.Scale * overlay.AbsoluteSize.Y, cardLimit.MaxSize.Y))
+		fitRows(math.min(card.Size.Y.Scale * overlay.AbsoluteSize.Y, cardLimit.MaxSize.Y), math.min(card.Size.X.Scale * overlay.AbsoluteSize.X, cardLimit.MaxSize.X))
 	end
 	overlay:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCard)
 	-- The card's frame glows in the rarity color; the Icon tier gets a rainbow.
@@ -1025,8 +1031,8 @@ function CastingUi.start(gui: ScreenGui, actorsButton: TextButton)
 	hintLabel.ZIndex = 12
 	textConstraint(hintLabel, 16)
 	local guardUntil = 0
-	fitRows = function(cardHeight: number)
-		local l = CardLayout.compute(cardHeight)
+	fitRows = function(cardHeight: number, cardWidth: number)
+		local l = CardLayout.compute(cardHeight, cardWidth)
 		hintLabel.Position = UDim2.fromScale(0.5, l.buttonBottom - l.buttonH - 0.01)
 		art.Position = UDim2.fromScale(0.5, l.artY)
 		art.Size = UDim2.fromScale(0.8, l.artH)

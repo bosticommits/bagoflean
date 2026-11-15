@@ -14,6 +14,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LotLook = require(ReplicatedStorage.Shared.Models.LotLook)
 local LotModels = require(ReplicatedStorage.Shared.Models.LotModels)
 local MapModels = require(ReplicatedStorage.Shared.Models.MapModels)
+local PortraitCamera = require(ReplicatedStorage.Shared.PortraitCamera)
 local Rebirth = require(ReplicatedStorage.Shared.Rebirth)
 local SpecialEvents = require(ReplicatedStorage.Shared.SpecialEvents)
 local TopStudios = require(ReplicatedStorage.Shared.TopStudios)
@@ -180,16 +181,16 @@ local function setBillboard(lot: Lot, title: string, line1: string, line2: strin
 		viewport.Ambient = Color3.fromRGB(190, 190, 190)
 		viewport.LightColor = Color3.new(1, 1, 1)
 		viewport.LightDirection = Vector3.new(-1, -1, 1)
+		local figure = ActorModels.build(viewport, CFrame.identity, actorId, variantId)
+		figure:RemoveTag("ActorRig") -- a portrait is static: ActorLife must not animate it
+		-- The camera is built by each client (Cameras do not replicate): store the framing on the viewport.
+		local boxCf, boxSize = figure:GetBoundingBox()
+		local targetY, distance = PortraitCamera.fit(boxCf.Position.Y + boxSize.Y / 2, boxCf.Position.Y - boxSize.Y / 2, boxSize.X)
+		PortraitCamera.store(viewport, targetY, distance)
 		viewport.Parent = lot.billboard
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0.08, 0)
 		corner.Parent = viewport
-		local camera = Instance.new("Camera")
-		camera.FieldOfView = 30
-		camera.CFrame = CFrame.lookAt(Vector3.new(-3, 3.6, -13), Vector3.new(0, 2.8, 0))
-		camera.Parent = viewport
-		viewport.CurrentCamera = camera
-		ActorModels.build(viewport, CFrame.identity, actorId, variantId)
 	end
 end
 

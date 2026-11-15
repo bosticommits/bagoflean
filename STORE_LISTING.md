@@ -47,7 +47,7 @@ Paste this into the Description field:
 Run your own film studio and become a Hollywood legend!
 
 ⭐ CAST RARE ACTORS
-Hold Casting Calls to discover 21 original actors, from Nervous Intern to the 1 in 5,000,000 Icons like the Golden Muse. Find Shiny and Award-Winning versions too!
+Hold Casting Calls to discover 30 original actors, from Nervous Intern to the 1 in 5,000,000 Icons like the Golden Muse. Find Shiny and Award-Winning versions too!
 
 🎥 MAKE MOVIES
 Pick a script, cast up to 3 stars and start filming. Your movies keep filming while you're offline!

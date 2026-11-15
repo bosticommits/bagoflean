@@ -64,14 +64,15 @@ end)
 
 test("a limited actor is as likely as one actor of its tier, and nobody else's odds move", function()
 	local limited = Actors.Limited[1]
-	equal(#Actors.actorsInTier(limited.tier), 3, "the everyday pool is not changed")
+	local poolSize = 5 -- Actors v2: five everyday Star actors (the limited one is not among them)
+	equal(#Actors.actorsInTier(limited.tier), poolSize, "the everyday pool is not changed")
 	for _, agency in Actors.Agencies do
 		for _, luck in { 1, 2, 10, 50 } do
 			local chances = Actors.tierChances(luck, agency.minTier)
 			local chance = Actors.limitedChance(chances, limited)
 			equal(Actors.limitedChance(chances, nil), 0, "none out of season")
 			expect(chance > 0, `castable at {agency.id} Luck {luck}`)
-			expect(chance <= chances[limited.tier] / 3 + 1e-12, "never more than one Star actor")
+			expect(chance <= chances[limited.tier] / poolSize + 1e-12, "never more than one Star actor")
 			local commonest = 0
 			for _, tier in Actors.Tiers do
 				if chances[tier.id] > 0 then
@@ -83,7 +84,7 @@ test("a limited actor is as likely as one actor of its tier, and nobody else's o
 		end
 	end
 	local open = Actors.tierChances(1, 1)
-	H.near(1 / Actors.limitedChance(open, limited), 3 * 700, 30, "about 1 in 2,100 at Open Casting")
+	H.near(1 / Actors.limitedChance(open, limited), poolSize * 700, 30, "one Star actor's odds at Open Casting (1 in 3,500 with five)")
 
 	-- Same seed, with and without the limited actor: every cast is identical except the few that
 	-- land on its slice, which were the commonest tier's (so no Star, or better, is ever lost).
