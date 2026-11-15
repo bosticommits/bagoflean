@@ -807,7 +807,7 @@ local function start(result: any, res: any, first: boolean, hooks: Hooks): boole
 			local base = CFrame.lookAt(pos, pos + stage.f)
 			local model = ActorModels.build(folder, base, parts3[1] or "", parts3[2])
 			local wide = ActorFit.widthOf(model, base)
-			local k = ActorFit.shrink(wide, 0, castMaxWidth, nil)
+			local k = ActorFit.shrink(wide, ActorFit.heightOf(model, base), castMaxWidth, ActorFit.MaxHeight)
 			if k < 1 then
 				model:Destroy()
 				model = ActorModels.build(folder, base, parts3[1] or "", parts3[2], k)

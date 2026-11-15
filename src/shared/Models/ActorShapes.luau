@@ -17,7 +17,7 @@ end
 
 local ActorShapes = {}
 
-ActorShapes.BaseHeight = 0.45
+ActorShapes.BaseHeight = 0.68
 
 -- The pieces in build order.
 ActorShapes.Pieces = { "Body", "Head", "ArmL", "ArmR", "Base" }
