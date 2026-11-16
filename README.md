@@ -56,6 +56,9 @@ Every pull request that touches the game runs two checks (`.github/workflows/gam
   daily rewards, Award Night, special events) and the town layout in [Lune](https://lune-org.github.io/docs), outside Studio. They
   check that odds add up and prices rise, not exact numbers, so balance changes keep passing.
 
+`datastore.spec` runs the DataStore API (get/set/update + a save-version migration) against the vendored
+  [MockDataStoreService](tests/vendor/MockDataStoreService/README.md) (pinned `c428562`, test only, not in the place build).
+
 Run them locally after `aftman install`, from the repo root:
 ```
 rojo sourcemap default.project.json -o sourcemap.json

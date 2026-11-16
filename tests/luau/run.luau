@@ -21,3 +21,5 @@ print(`\n{total - failures}/{total} passed`)
 if total == 0 or failures > 0 then
 	process.exit(1)
 end
+-- The vendored mock DataStore keeps a budget thread alive forever, so exit explicitly.
+process.exit(0)
