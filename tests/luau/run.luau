@@ -2,6 +2,7 @@
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local Harness = require("./harness")
+local MockDS = require("./mockds")
 
 local files = fs.readDir("tests/luau")
 table.sort(files)
@@ -17,9 +18,8 @@ for _, file in files do
 	end
 end
 
+MockDS.finish()
 print(`\n{total - failures}/{total} passed`)
 if total == 0 or failures > 0 then
 	process.exit(1)
 end
--- The vendored mock DataStore keeps a budget thread alive forever, so exit explicitly.
-process.exit(0)
