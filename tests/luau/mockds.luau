@@ -6,6 +6,17 @@ local serde = require("@lune/serde")
 local task = require("@lune/task")
 local H = require("./harness")
 
+-- The mock's endless budget loop does `while task.wait(...)`; once finish() is called its wait returns nil and the loop ends, so Lune exits by itself.
+local done = false
+local mockTask = setmetatable({
+	wait = function(t: number?)
+		if done then
+			return nil
+		end
+		return task.wait(t)
+	end,
+}, { __index = task })
+
 local ROOT = "tests/vendor/MockDataStoreService/lib"
 local cache: { [string]: any } = {}
 
@@ -57,7 +68,7 @@ local function load(path: string): any
 			env[k] = v
 		end
 		env.game = game
-		env.task = task
+		env.task = mockTask
 		-- Lune's BindableEvent has no Fire/Event; the mock only uses it for OnUpdate.
 		env.Instance = { new = function() return { Fire = noop, Event = { Connect = noop }, Destroy = noop } end }
 		-- Lune's Enum has no DataStoreRequestType; the mock only uses its items as table keys.
@@ -84,10 +95,25 @@ function node(path: string): any
 	})
 end
 
-return function()
+local function build()
 	-- Real DataStores throttle same-key writes (6 s); drop that so tests stay fast. Budgets stay on.
 	local constants = load(`{ROOT}/MockDataStoreConstants`)
 	constants.WRITE_COOLDOWN = 0
 	constants.GET_COOLDOWN = 0
+	constants.YIELD_TIME_MIN = 0
+	constants.YIELD_TIME_MAX = 0
 	return load(ROOT)
 end
+
+local M = {}
+
+-- Call once after the last spec so the budget thread stops.
+function M.finish()
+	done = true
+end
+
+return setmetatable(M, {
+	__call = function(_)
+		return build()
+	end,
+})
